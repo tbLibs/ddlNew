@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="launch-controller">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="launch-scene">
+            <objects>
+                <viewController id="launch-controller" sceneMemberID="viewController">
+                    <view key="view" clipsSubviews="YES" contentMode="scaleToFill" id="launch-view">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="860"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" image="LaunchBackground" translatesAutoresizingMaskIntoConstraints="NO" id="launch-background">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="860"/>
+                            </imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" image="club-logo" translatesAutoresizingMaskIntoConstraints="NO" id="launch-logo">
+                                <rect key="frame" x="76.5" y="116" width="222" height="234"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="222" id="logo-width"/>
+                                    <constraint firstAttribute="height" constant="234" id="logo-height"/>
+                                </constraints>
+                            </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="活动空间" textAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="launch-title">
+                                <rect key="frame" x="24" y="324" width="327" height="54"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="36"/>
+                                <color key="textColor" red="0.09019607843" green="0.2392156863" blue="0.2313725490" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints><constraint firstAttribute="height" constant="54" id="title-height"/></constraints>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="一起发现，一起参与" textAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="launch-subtitle">
+                                <rect key="frame" x="24" y="383" width="327" height="23"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <color key="textColor" red="0.4" green="0.4784313725" blue="0.4666666667" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints><constraint firstAttribute="height" constant="23" id="subtitle-height"/></constraints>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="launch-safe-area"/>
+                        <color key="backgroundColor" red="0.8196078431" green="0.9490196078" blue="0.9411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="launch-background" firstAttribute="top" secondItem="launch-view" secondAttribute="top" id="background-top"/>
+                            <constraint firstItem="launch-background" firstAttribute="bottom" secondItem="launch-view" secondAttribute="bottom" id="background-bottom"/>
+                            <constraint firstItem="launch-background" firstAttribute="leading" secondItem="launch-view" secondAttribute="leading" id="background-leading"/>
+                            <constraint firstItem="launch-background" firstAttribute="trailing" secondItem="launch-view" secondAttribute="trailing" id="background-trailing"/>
+                            <constraint firstItem="launch-logo" firstAttribute="centerX" secondItem="launch-view" secondAttribute="centerX" id="logo-center"/>
+                            <constraint firstItem="launch-logo" firstAttribute="top" secondItem="launch-view" secondAttribute="bottom" multiplier="0.17441860465" constant="-34" id="logo-top"/>
+                            <constraint firstItem="launch-title" firstAttribute="top" secondItem="launch-view" secondAttribute="bottom" multiplier="0.37674418605" id="title-top"/>
+                            <constraint firstItem="launch-title" firstAttribute="leading" secondItem="launch-safe-area" secondAttribute="leading" constant="24" id="title-leading"/>
+                            <constraint firstItem="launch-title" firstAttribute="trailing" secondItem="launch-safe-area" secondAttribute="trailing" constant="-24" id="title-trailing"/>
+                            <constraint firstItem="launch-subtitle" firstAttribute="top" secondItem="launch-title" secondAttribute="bottom" constant="5" id="subtitle-top"/>
+                            <constraint firstItem="launch-subtitle" firstAttribute="leading" secondItem="launch-title" secondAttribute="leading" id="subtitle-leading"/>
+                            <constraint firstItem="launch-subtitle" firstAttribute="trailing" secondItem="launch-title" secondAttribute="trailing" id="subtitle-trailing"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="launch-first-responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="LaunchBackground" width="375" height="860"/>
+        <image name="club-logo" width="222" height="234"/>
+    </resources>
+</document>
