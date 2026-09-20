@@ -36,9 +36,6 @@ struct LegalDocumentScreen: View {
             .navigationTitle(document.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("完成") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    if let url = document.onlineURL { Link("网页版", destination: url) }
-                }
             }
         }.navigationViewStyle(.stack).tint(ClubTheme.darkTeal)
     }
