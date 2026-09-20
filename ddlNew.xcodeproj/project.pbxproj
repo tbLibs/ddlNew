@@ -15,7 +15,6 @@
 		AF019ABC305D30000000000C /* SwiftUIX in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000B /* SwiftUIX */; };
 		AF019ABC305D30000000000F /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000E /* SwiftUIIntrospect */; };
 		AF019ABC305D300000000010 /* WCDBSwiftDynamic in Embed Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000002 /* WCDBSwiftDynamic */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DD107D85305D254A0022CB3C /* TBBasicLib in Frameworks */ = {isa = PBXBuildFile; productRef = DD107D84305D254A0022CB3C /* TBBasicLib */; };
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -278,10 +277,16 @@
 		AF019ABC305D300000000012 /* WCDB Privacy Manifest */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = ("$(SRCROOT)/Config/Privacy/WCDBSwiftDynamic/PrivacyInfo.xcprivacy", "$(WCDB_PRIVACY_FRAMEWORK_$(DEPLOYMENT_LOCATION))/WCDBSwiftDynamic",);
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Config/Privacy/WCDBSwiftDynamic/PrivacyInfo.xcprivacy",
+				"$(WCDB_PRIVACY_FRAMEWORK_$(DEPLOYMENT_LOCATION))/WCDBSwiftDynamic",
+			);
 			name = "WCDB Privacy Manifest";
-			outputPaths = ("$(WCDB_PRIVACY_FRAMEWORK_$(DEPLOYMENT_LOCATION))/PrivacyInfo.xcprivacy",);
+			outputPaths = (
+				"$(WCDB_PRIVACY_FRAMEWORK_$(DEPLOYMENT_LOCATION))/PrivacyInfo.xcprivacy",
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "set -eu\n/usr/bin/plutil -lint \"$SCRIPT_INPUT_FILE_0\"\n/bin/cp \"$SCRIPT_INPUT_FILE_0\" \"$SCRIPT_OUTPUT_FILE_0\"\n";
@@ -466,7 +471,7 @@
 				DEVELOPMENT_TEAM = DGK6VR7P2D;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = DDL;
+				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -491,9 +496,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				WCDB_PRIVACY_FRAMEWORK_NO = "$(BUILT_PRODUCTS_DIR)/PackageFrameworks/WCDBSwiftDynamic.framework";
 				WCDB_PRIVACY_FRAMEWORK_YES = "$(OBJROOT)/UninstalledProducts/$(PLATFORM_NAME)/WCDBSwiftDynamic.framework";
-				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -508,7 +513,7 @@
 				DEVELOPMENT_TEAM = DGK6VR7P2D;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = DDL;
+				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -533,9 +538,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				WCDB_PRIVACY_FRAMEWORK_NO = "$(BUILT_PRODUCTS_DIR)/PackageFrameworks/WCDBSwiftDynamic.framework";
 				WCDB_PRIVACY_FRAMEWORK_YES = "$(OBJROOT)/UninstalledProducts/$(PLATFORM_NAME)/WCDBSwiftDynamic.framework";
-				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -663,11 +668,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AF019ABC305D30000000000D /* XCRemoteSwiftPackageReference "swiftui-introspect" */;
 			productName = SwiftUIIntrospect;
-		};
-		DD107D84305D254A0022CB3C /* TBBasicLib */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */;
-			productName = TBBasicLib;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

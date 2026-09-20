@@ -103,7 +103,6 @@ struct SettingsScreen: View {
     @EnvironmentObject private var store: ClubStore
     @Environment(\.dismiss) private var dismiss
     @State private var confirmLogout = false
-    @State private var info: InformationPage?
     @State private var legalDocument: LegalDocument?
     var body: some View {
         NavigationView {
@@ -111,8 +110,6 @@ struct SettingsScreen: View {
                 Section("会员账户") {
                     LabeledContentCompat(title: "昵称", value: "林夏")
                     LabeledContentCompat(title: "会员卡号", value: "YS****18")
-                    Button("隐私与安全") { info = .privacy }
-                    Button("使用说明") { info = .loginHelp }
                 }
                 Section("隐私与支持") {
                     Button("隐私政策") { legalDocument = .privacy }
@@ -131,7 +128,6 @@ struct SettingsScreen: View {
                     Button("取消", role: .cancel) { }
                     Button("退出登录", role: .destructive) { dismiss(); Task { await store.signOut() } }
                 } message: { Text("活动记录会保留在本机。") }
-                .sheet(item: $info) { InformationSheet(page: $0) }
                 .sheet(item: $legalDocument) { LegalDocumentScreen(document: $0) }
         }.navigationViewStyle(.stack).tint(ClubTheme.darkTeal)
     }
