@@ -7,14 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		28A1C0010000000000000001 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 28A1C0010000000000000003 /* Kingfisher */; };
+		28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */ = {isa = PBXBuildFile; productRef = 28A1C0010000000000000004 /* CocoaAsyncSocket */; };
 		4F605F5B45FF0DA04D58B367 /* Pods_ddlNew.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CFD8FD33BBD2B9E314ABF93 /* Pods_ddlNew.framework */; };
 		796572EA946FB6FC559BC943 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 70AF31731E8FA4AB6D0A7FE4 /* Foundation.framework */; };
+		91B8712AFD7842FAB03C89F9 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E70490D2949F485DB50D1748 /* Sentry */; };
 		AF019ABC305D300000000003 /* WCDBSwiftDynamic in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000002 /* WCDBSwiftDynamic */; };
 		AF019ABC305D300000000006 /* UIAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000005 /* UIAdapter */; };
 		AF019ABC305D300000000009 /* AlertToast in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000008 /* AlertToast */; };
 		AF019ABC305D30000000000C /* SwiftUIX in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000B /* SwiftUIX */; };
 		AF019ABC305D30000000000F /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000E /* SwiftUIIntrospect */; };
 		AF019ABC305D300000000010 /* WCDBSwiftDynamic in Embed Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000002 /* WCDBSwiftDynamic */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C0D3A0010000000000000001 /* MMKV in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0010000000000000002 /* MMKV */; };
+		C0D3A0010000000000000003 /* Localize_Swift in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0010000000000000004 /* Localize_Swift */; };
+		DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */ = {isa = PBXBuildFile; productRef = DDC481FA306101510097F2C3 /* TBBasicLib */; };
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -73,12 +79,18 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				28A1C0010000000000000001 /* Kingfisher in Frameworks */,
+				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
 				4F605F5B45FF0DA04D58B367 /* Pods_ddlNew.framework in Frameworks */,
+				DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */,
+				C0D3A0010000000000000001 /* MMKV in Frameworks */,
+				C0D3A0010000000000000003 /* Localize_Swift in Frameworks */,
 				AF019ABC305D300000000003 /* WCDBSwiftDynamic in Frameworks */,
 				AF019ABC305D300000000006 /* UIAdapter in Frameworks */,
 				AF019ABC305D30000000000F /* SwiftUIIntrospect in Frameworks */,
 				AF019ABC305D30000000000C /* SwiftUIX in Frameworks */,
 				AF019ABC305D300000000009 /* AlertToast in Frameworks */,
+				91B8712AFD7842FAB03C89F9 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -170,6 +182,7 @@
 				DD12A8CA305CD63A005799BD /* Resources */,
 				AF019ABC305D300000000012 /* WCDB Privacy Manifest */,
 				AF019ABC305D300000000011 /* Embed Frameworks */,
+				F65538465AE848B195C6A3AD /* Upload Debug Symbols to Sentry */,
 			);
 			buildRules = (
 			);
@@ -180,11 +193,17 @@
 			);
 			name = ddlNew;
 			packageProductDependencies = (
+				28A1C0010000000000000003 /* Kingfisher */,
+				28A1C0010000000000000004 /* CocoaAsyncSocket */,
 				AF019ABC305D300000000002 /* WCDBSwiftDynamic */,
 				AF019ABC305D300000000005 /* UIAdapter */,
 				AF019ABC305D30000000000E /* SwiftUIIntrospect */,
 				AF019ABC305D30000000000B /* SwiftUIX */,
 				AF019ABC305D300000000008 /* AlertToast */,
+				E70490D2949F485DB50D1748 /* Sentry */,
+				DDC481FA306101510097F2C3 /* TBBasicLib */,
+				C0D3A0010000000000000002 /* MMKV */,
+				C0D3A0010000000000000004 /* Localize_Swift */,
 			);
 			productName = ddlNew;
 			productReference = DD12A8CC305CD63A005799BD /* ddlNew.app */;
@@ -216,12 +235,17 @@
 			mainGroup = DD12A8C3305CD63A005799BD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 				DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */,
+				C0D3A0010000000000000005 /* XCRemoteSwiftPackageReference "MMKV" */,
+				C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */,
 				AF019ABC305D300000000001 /* XCRemoteSwiftPackageReference "wcdb" */,
 				AF019ABC305D300000000004 /* XCRemoteSwiftPackageReference "UIAdapter" */,
 				AF019ABC305D30000000000D /* XCRemoteSwiftPackageReference "swiftui-introspect" */,
 				AF019ABC305D30000000000A /* XCRemoteSwiftPackageReference "SwiftUIX" */,
 				AF019ABC305D300000000007 /* XCRemoteSwiftPackageReference "AlertToast" */,
+				4142392EA096483992E8FCF3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DD12A8CD305CD63A005799BD /* Products */;
@@ -291,6 +315,21 @@
 			shellPath = /bin/sh;
 			shellScript = "set -eu\n/usr/bin/plutil -lint \"$SCRIPT_INPUT_FILE_0\"\n/bin/cp \"$SCRIPT_INPUT_FILE_0\" \"$SCRIPT_OUTPUT_FILE_0\"\n";
 			showEnvVarsInLog = 0;
+		};
+		F65538465AE848B195C6A3AD /* Upload Debug Symbols to Sentry */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+			);
+			name = "Upload Debug Symbols to Sentry";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script is responsible for uploading debug symbols and source context for Sentry.\nif which sentry-cli >/dev/null; then\n  export SENTRY_ORG=der-gop\n  export SENTRY_PROJECT=dingdongliao\n  ERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH/$DWARF_DSYM_FILE_NAME\" 2>&1 >/dev/null)\n  if [ ! $? -eq 0 ]; then\n    echo \"warning: sentry-cli - $ERROR\"\n  fi\nelse\n  echo \"warning: sentry-cli not installed, download from https://github.com/getsentry/sentry-cli/releases\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -468,8 +507,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = DGK6VR7P2D;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -478,7 +519,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -510,8 +551,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = DGK6VR7P2D;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -520,7 +563,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -593,6 +636,32 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/robbiehanson/CocoaAsyncSocket.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.6.4;
+			};
+		};
+		4142392EA096483992E8FCF3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa/";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+			traits = (
+			);
+		};
 		AF019ABC305D300000000001 /* XCRemoteSwiftPackageReference "wcdb" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Tencent/wcdb";
@@ -633,6 +702,22 @@
 				minimumVersion = 27.0.0;
 			};
 		};
+		C0D3A0010000000000000005 /* XCRemoteSwiftPackageReference "MMKV" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tencent/MMKV.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.2;
+			};
+		};
+		C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/marmelroy/Localize-Swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.2.0;
+			};
+		};
 		DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tbLibs/TBBasicLib";
@@ -644,6 +729,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		28A1C0010000000000000003 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+		28A1C0010000000000000004 /* CocoaAsyncSocket */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */;
+			productName = CocoaAsyncSocket;
+		};
 		AF019ABC305D300000000002 /* WCDBSwiftDynamic */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AF019ABC305D300000000001 /* XCRemoteSwiftPackageReference "wcdb" */;
@@ -668,6 +763,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AF019ABC305D30000000000D /* XCRemoteSwiftPackageReference "swiftui-introspect" */;
 			productName = SwiftUIIntrospect;
+		};
+		C0D3A0010000000000000002 /* MMKV */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0D3A0010000000000000005 /* XCRemoteSwiftPackageReference "MMKV" */;
+			productName = MMKV;
+		};
+		C0D3A0010000000000000004 /* Localize_Swift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */;
+			productName = Localize_Swift;
+		};
+		DDC481FA306101510097F2C3 /* TBBasicLib */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */;
+			productName = TBBasicLib;
+		};
+		E70490D2949F485DB50D1748 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4142392EA096483992E8FCF3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
