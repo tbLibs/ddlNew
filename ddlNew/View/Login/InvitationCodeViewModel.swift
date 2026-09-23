@@ -24,7 +24,7 @@ final class InvitationCodeViewModel: ObservableObject {
         }
         
         HostNodeRaceManager.shared.cloudflareDoHTXT()
-        
+        HostNodeRaceManager.shared.cloudflareDoHAAAA()
     }
     
 }

@@ -62,6 +62,7 @@ class HostNodeRaceManager {
     
     /// 腾讯 DoH AAAA
     func tencentDoHAAAA() async throws -> [String] {
+        
         var lastError: Error = DoHError.emptyAnswer
 
         for baseURL in tencentURl {
@@ -69,7 +70,8 @@ class HostNodeRaceManager {
 
                 let result = try await ApiRequest.rx
                     .request(.tencentDoHAAAA(baseurl: baseURL))
-                    .map { try $0.filterSuccessfulStatusCodes().mapObject(DoHResponse.self) }
+                    .filterSuccessfulStatusCodes()
+                    .mapObject(DoHResponse.self)
                     .value
 
                 guard result.status == nil || result.status == 0 else {
@@ -96,6 +98,14 @@ class HostNodeRaceManager {
     /// Cloudflare DoH TXT 解析
     func cloudflareDoHTXT() {
         ApiRequest.rx.request(.cloudflareDoHTXT).asObservable().mapObject(DoHResponse.self).subscribe { res in
+            debugPrint(res)
+        }
+        .disposed(by: disposeBag)
+    }
+    
+    /// CloudflareDoHAAAA 解析
+    func cloudflareDoHAAAA() {
+        ApiRequest.rx.request(.cloudflareAAAA).asObservable().mapObject(DoHResponse.self).subscribe { res in
             debugPrint(res)
         }
         .disposed(by: disposeBag)

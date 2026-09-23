@@ -12,7 +12,10 @@ import Alamofire
 enum ApiType {
     /// 腾讯DNS
     case tencentDoHAAAA(baseurl: String)
+    /// cloudflareDoHTXT
     case cloudflareDoHTXT
+    /// CloudflareAAAA
+    case cloudflareAAAA
     
 }
 
@@ -22,7 +25,9 @@ extension ApiType: TargetType {
         case .tencentDoHAAAA(let baseurl):
             return URL(string: baseurl)!
         case .cloudflareDoHTXT:
-            return URL(string: "https://cloudflare-dns.com/dns-query")!
+            return URL(string: cf_doh_base_url)!
+        case .cloudflareAAAA:
+            return URL(string: cf_doh_base_url)!
         }
     }
     
@@ -32,15 +37,15 @@ extension ApiType: TargetType {
             ""
         case .cloudflareDoHTXT:
             ""
+        case .cloudflareAAAA:
+            ""
         }
     }
     
     var method: Moya.Method {
         switch self {
-        case .tencentDoHAAAA:
+        case .tencentDoHAAAA, .cloudflareDoHTXT, .cloudflareAAAA:
             .get
-        case .cloudflareDoHTXT:
-                .get
         }
     }
     
@@ -56,13 +61,18 @@ extension ApiType: TargetType {
                 parameters: ["name": cf_doh_test_domain, "type": "TXT"],
                 encoding: URLEncoding.queryString
             )
+        case .cloudflareAAAA:
+            return .requestParameters(
+                parameters: ["name": cf_doh_test_domain, "type": "AAAA"],
+                encoding: URLEncoding.queryString
+            )
         }
     }
     
     var headers: [String : String]? {
         var header = [String : String]()
         switch self {
-        case .tencentDoHAAAA, .cloudflareDoHTXT:
+        case .tencentDoHAAAA, .cloudflareDoHTXT, .cloudflareAAAA:
             header["Accept"] = "application/dns-json"
         }
         return header
