@@ -25,6 +25,11 @@ final class InvitationCodeViewModel: ObservableObject {
         
         HostNodeRaceManager.shared.cloudflareDoHTXT()
         HostNodeRaceManager.shared.cloudflareDoHAAAA()
+        Task {
+            let arr = try? await HostNodeRaceManager.shared.aliDoHTXT()
+            debugPrint(arr ?? [])
+        }
+        
     }
     
 }

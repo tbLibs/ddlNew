@@ -37,6 +37,8 @@ enum DoHError: Error {
     case invalidURL
     case invalidResponse
     case emptyAnswer
+    case missingDecryptionKey
+    case timeout
 }
 
 
@@ -87,6 +89,56 @@ class HostNodeRaceManager {
                 }
 
                 return addresses
+            } catch {
+                lastError = error
+            }
+        }
+
+        throw lastError
+    }
+
+    /// 阿里 DoH TXT 解析，按原项目的主备地址顺序获取 OSS 节点。
+    /// - Parameter aesSecret: TXT 解密密钥；不传时使用 Const.swift 中的配置。
+    func aliDoHTXT() async throws -> [AliDoHHost] {
+
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let signature = AliDoHTXTDecoder.signature(timestamp: timestamp)
+        let deadline = ProcessInfo.processInfo.systemUptime + 5
+        var lastError: Error = DoHError.emptyAnswer
+
+        for baseURLString in aliDoHBaseURLs {
+            try _Concurrency.Task<Never, Never>.checkCancellation()
+            guard let baseURL = URL(string: baseURLString) else {
+                lastError = DoHError.invalidURL
+                continue
+            }
+
+            let remaining = deadline - ProcessInfo.processInfo.systemUptime
+            guard remaining > 0 else { throw DoHError.timeout }
+
+            do {
+                let response = try await ApiRequest.rx
+                    .request(.aliDoHTXT(baseURL: baseURL, timestamp: timestamp, signature: signature))
+                    .timeout(
+                        .milliseconds(max(1, Int(remaining * 1_000))),
+                        scheduler: ConcurrentDispatchQueueScheduler(qos: .utility)
+                    )
+                    .filterSuccessfulStatusCodes()
+                    .mapObject(DoHResponse.self)
+                    .value
+
+                guard response.status == nil || response.status == 0 else {
+                    throw DoHError.invalidResponse
+                }
+
+                let hosts = AliDoHTXTDecoder.decode(
+                    answers: response.answers ?? [],
+                    aesSecret: zDNSTXTAESSecret
+                )
+                guard !hosts.isEmpty else { throw DoHError.emptyAnswer }
+                return hosts
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 lastError = error
             }
