@@ -16,7 +16,6 @@ struct DeleteAccountScreen: View {
                     .frame(width: 76, height: 76).background(ClubTheme.card)
                     .clipShape(RoundedRectangle(cornerRadius: 24)).accessibilityHidden(true)
                 Text("注销前，请确认以下事项").font(.title2.bold())
-                Text("注销仅清除本机账号和记录，不会向俱乐部服务器提交请求。")
                     .font(.body).foregroundColor(ClubTheme.secondary).lineSpacing(5)
                 ClubCard {
                     VStack(alignment: .leading, spacing: 18) {
@@ -24,7 +23,7 @@ struct DeleteAccountScreen: View {
                         Divider()
                         explanation("结束聊天会话", "清除本次会话中的聊天记录、草稿和常用联系人。")
                         Divider()
-                        explanation("账号无法再次登录", "注销后不可撤销，本机将保留注销标记，原本机账号无法再次登录。")
+                        explanation("账号无法再次登录", "注销后不可撤销，账号无法再次登录。")
                     }
                 }
                 Toggle("我已了解注销后果", isOn: $acknowledged)

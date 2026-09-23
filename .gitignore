@@ -2,6 +2,7 @@
 /NoaChatKit/CandyTalk.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 /NoaChatSDKCore/CandyTalkPro.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 .DS_Store
+/.sentryclirc
 /build/
 */build/*
 *.pbxuser
