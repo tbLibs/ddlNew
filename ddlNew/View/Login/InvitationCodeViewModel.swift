@@ -16,19 +16,7 @@ final class InvitationCodeViewModel: ObservableObject {
     
     /// 点击连接俱乐部
     func clickClub() {
-        HostNodeRaceManager.shared.aliAAATest()
-        
-        Task {
-            let arr = try? await HostNodeRaceManager.shared.tencentDoHAAAA()
-            debugPrint(arr ?? [])
-        }
-        
-        HostNodeRaceManager.shared.cloudflareDoHTXT()
-        HostNodeRaceManager.shared.cloudflareDoHAAAA()
-        Task {
-            let arr = try? await HostNodeRaceManager.shared.aliDoHTXT()
-            debugPrint(arr ?? [])
-        }
+        HostNodeRaceManager.shared.getHostAndPort()
         
     }
     
