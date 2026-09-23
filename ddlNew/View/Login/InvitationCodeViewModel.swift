@@ -13,4 +13,18 @@ import Combine
 final class InvitationCodeViewModel: ObservableObject {
     /// 用户输入的邀请码。
     @Published var invitationCode = ""
+    
+    /// 点击连接俱乐部
+    func clickClub() {
+        HostNodeRaceManager.shared.aliAAATest()
+        
+        Task {
+            let arr = try? await HostNodeRaceManager.shared.tencentDoHAAAA()
+            debugPrint(arr ?? [])
+        }
+        
+        HostNodeRaceManager.shared.cloudflareDoHTXT()
+        
+    }
+    
 }

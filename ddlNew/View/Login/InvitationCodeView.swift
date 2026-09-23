@@ -39,10 +39,12 @@ struct InvitationCodeView: View {
                         .font(.system(size: 11.zoom()))
                         .foregroundStyle(InvitationCodePalette.secondary)
 
-                    Button("连接俱乐部") { }
-                        .buttonStyle(InvitationCodeButtonStyle())
-                        .padding(.top, 10.zoom())
-                        .accessibilityIdentifier("connectClub")
+                    Button("连接俱乐部") {
+                        viewModel.clickClub()
+                    }
+                    .buttonStyle(InvitationCodeButtonStyle())
+                    .padding(.top, 10.zoom())
+                    .accessibilityIdentifier("connectClub")
                 }
                 .padding(20.zoom())
                 .frame(maxWidth: .infinity, alignment: .leading)

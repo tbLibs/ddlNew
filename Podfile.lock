@@ -1,3 +1,16 @@
-PODFILE CHECKSUM: 7aaaaafc2d2d7016a23eac49bff42c282a4ccc9f
+PODS:
+  - AlicloudPDNS (2.1.9)
+
+DEPENDENCIES:
+  - AlicloudPDNS (= 2.1.9)
+
+SPEC REPOS:
+  https://github.com/aliyun/aliyun-specs.git:
+    - AlicloudPDNS
+
+SPEC CHECKSUMS:
+  AlicloudPDNS: 6eda4d8af312b1e0824a58d97a2f5edf71531186
+
+PODFILE CHECKSUM: fb0c3e0c401593ea46109f60b6f6312199585b93
 
 COCOAPODS: 1.17.0
