@@ -45,7 +45,7 @@ enum DoHError: Error {
 }
 
 /// 与旧项目的五路 DNS 来源标记保持一致，供后续节点竞速识别来源。
-enum DNSHostSource: String {
+enum DNSHostSource: String, CaseIterable, Sendable {
     case aliAAAA = "ALIDNS"
     case tencentAAAA = "TENCENT_AAAA"
     case cloudflareTXT = "CF_TXT"

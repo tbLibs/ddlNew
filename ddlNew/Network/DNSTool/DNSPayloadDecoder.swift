@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct DNSResolvedHost: Equatable {
+struct DNSResolvedHost: Equatable, Sendable {
     let urlString: String
     let type: String
 }

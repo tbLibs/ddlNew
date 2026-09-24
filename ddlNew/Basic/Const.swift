@@ -7,6 +7,10 @@
 
 import Foundation
 
+/// OSS Auth 签名沿用旧项目的 DirectDecodeKeyId / DirectDecodeKeySecret。
+let DirectDecodeKeyId = "671581_30185023923412521"
+let DirectDecodeKeySecret = "0fc2f1c074fd24b3b13f23243297dc86"
+
 /// aliyun的账号
 let aliyunDNSAccountId = "818331"
 let aliyunDNSAccessKeyId = "818331_32775143437188096"

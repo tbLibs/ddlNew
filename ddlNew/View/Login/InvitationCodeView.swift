@@ -45,6 +45,14 @@ struct InvitationCodeView: View {
                     .buttonStyle(InvitationCodeButtonStyle())
                     .padding(.top, 10.zoom())
                     .accessibilityIdentifier("connectClub")
+                    .disabled(viewModel.isRacing)
+
+                    if let statusMessage = viewModel.statusMessage {
+                        Text(statusMessage)
+                            .font(.system(size: 11.zoom()))
+                            .foregroundStyle(InvitationCodePalette.secondary)
+                            .accessibilityIdentifier("ossRaceStatus")
+                    }
                 }
                 .padding(20.zoom())
                 .frame(maxWidth: .infinity, alignment: .leading)

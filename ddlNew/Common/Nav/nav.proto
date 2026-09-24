@@ -1,0 +1,122 @@
+syntax = "proto3";
+option java_package = "com.zlc.nav.protobuf.message";
+option java_outer_classname = "Message";
+option java_multiple_files = true;
+option go_package = "./;pb";
+
+
+message NavMessage {
+  enum DataType {
+    navAuth = 0;    //认证消息
+    navAuthAck = 1;    //认证回执消息
+    imServerListReq = 2;    //IM服务器列表请求
+    imServerListResp = 3;   //IM服务器列表响应
+  }
+  DataType data_type = 1; //消息类型
+  //oneof表示多个当中有一个被赋值
+  oneof dataBody {
+    //下面类型同一时刻只能出现一个
+    Auth auth = 2;
+    AuthAck authAck = 3;
+    IMServerListRequest imServerListRequest = 4;
+    IMServerListResponse imServerListResponse = 5;
+  }
+}
+
+message Auth {
+  string appkey = 1; // 企业号
+  int64 timestamp = 2; // 13位UTC时间戳
+  string sn = 3;  // 设备sn码
+  string nonce = 4; // 随机字符串
+  int32 appType = 5; // app类型 0:公共打包 1:独立打包
+  string sign = 6; // appkey+timestamp+sn+nonce+appType AES加密
+}
+
+message AuthAck {
+  int64 code = 1; // 状态码 200 成功 401 企业号不存在 402 解密失败 403 IP被封禁 404 设备被封禁 501 服务端异常
+  string message = 2; // 消息内容
+  NavData data = 3; // 导航数据
+}
+// 导航数据
+message NavData {
+  string navEncryptStr = 1; // 导航加密字符串
+}
+
+
+// 注：HTTP DNS使用标准DNS查询，返回导航加速节点的IPv6地址列表
+// 导航服务定期将IPv6地址列表写入HTTP DNS供应商后台
+// 客户端通过标准DNS查询获取导航节点IP列表，不需要自定义协议
+
+// IM服务器列表请求协议（客户端 → 导航服务）
+message IMServerListRequest {
+  enum DataType {
+    COMMON = 0;    // 公共打包
+    INDEPENDENT = 1;    // 独立打包
+  }
+  string app_id = 1;          // 【必填】企业号
+  DataType appType = 2; // app类型 0:公共打包 1:独立打包
+  string client_version = 3;   // 【必填】客户端版本
+  string region = 4;          // 【必填】地区标识 (CN/US/EU/AP)
+  string device_type = 5;     // 【必填】设备类型 (ios/android/pc/web)
+  int64 timestamp = 6;        // 【必填】请求时间戳
+  string signature = 7;       // 【必填】请求签名
+  string client_ip = 8;       // 【非必填】客户端IP地址
+  string sdk_version = 9;     // 【非必填】SDK版本
+  string nonce = 10;          // 【必填】随机字符串，防重放攻击
+}
+
+// IM服务器列表响应协议（导航服务 → 客户端）
+message IMServerListResponse {
+  int32 status_code = 1;      // 【必填】状态码（使用6位错误码）
+  string message = 2;         // 【必填】响应消息
+  bytes response_body = 3;    // 【必填】加密的响应体数据
+  int64 server_timestamp = 4; // 【必填】服务器时间戳
+}
+
+// IM服务器列表响应体（加密传输）
+message IMServerListResponseBody {
+  repeated IMServerEndpoint im_endpoints = 1;  // 【必填】IM服务器列表
+  NavigationMeta meta = 2;    // 【非必填】元数据信息
+  FallbackEndpoints fallback_endpoints = 3; // 【非必填】兜底导航地址
+  int64 cache_ttl = 4;        // 【必填】缓存有效期(秒)
+}
+
+// IM服务器节点信息
+message IMServerEndpoint {
+  string ip = 1;              // 【必填】IP地址
+  int32 port = 2;             // 【必填】端口号
+  int32 weight = 3;           // 【必填】权重(1-100)
+  string region = 4;          // 【非必填】所属地区
+  string status = 5;          // 【必填】状态(ACTIVE/INACTIVE)
+  int64 latency = 6;          // 【非必填】延迟(ms)
+  string server_id = 7;       // 【必填】服务器标识
+  string cluster_id = 8;      // 【非必填】集群标识
+  int32 load = 9;             // 【非必填】当前负载(0-100)
+  repeated string protocols = 10; // 【非必填】支持的协议列表
+}
+
+// 导航元数据
+message NavigationMeta {
+  string nav_version = 1;     // 【必填】导航服务版本
+  NavigationConfig config = 2; // 【非必填】客户端配置
+  int64 next_update_time = 3; // 【非必填】下次更新时间
+  string trace_id = 4;        // 【非必填】请求追踪ID
+}
+
+// 客户端配置
+message NavigationConfig {
+  int32 connect_timeout = 1;  // 【非必填】连接超时(ms)，默认10000
+  int32 read_timeout = 2;     // 【非必填】读取超时(ms)，默认5000
+  int32 max_retry_count = 3;  // 【非必填】最大重试次数，默认3
+  int32 race_timeout = 4;     // 【非必填】竞速超时(ms)，默认3000
+  int32 cache_duration = 5;   // 【非必填】缓存时长(秒)，默认3600
+  bool enable_network_detect = 6; // 【非必填】是否启用网络探测，默认true
+  repeated string sentry_urls = 7; // 【非必填】Sentry服务地址列表
+  repeated string logan_urls = 8;  // 【非必填】Logan服务地址列表
+}
+
+// 兜底导航地址
+message FallbackEndpoints {
+  repeated string domestic = 1; // 【非必填】国内导航地址
+  repeated string overseas = 2; // 【非必填】海外导航地址
+}
