@@ -10,6 +10,9 @@ import Foundation
 /// 按邀请码保存 OSS 导航状态的 AppStorage key 前缀。
 let ossNavigationAppStorageKeyPrefix = "ddlNew.ossNavigation.v2."
 
+/// 按邀请码保存已选 HTTP API Host 的 AppStorage key 前缀。
+let ossSelectedHTTPHostAppStorageKeyPrefix = "ddlNew.selectedHTTPHost.v1."
+
 /// OSS Auth 签名沿用旧项目的 DirectDecodeKeyId / DirectDecodeKeySecret。
 let DirectDecodeKeyId = "671581_30185023923412521"
 let DirectDecodeKeySecret = "0fc2f1c074fd24b3b13f23243297dc86"
