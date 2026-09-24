@@ -7,7 +7,7 @@ final class MemberJourneyTests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["CLUB_UI_TEST_DATABASE_ID"] = UUID().uuidString
         app.launch()
-        enter("100001", in: app.textFields["field.shield"])
+        enter("10001", in: app.textFields["field.shield"])
         app.buttons["connectClub"].tap()
         XCTAssertTrue(app.textFields["field.person"].waitForExistence(timeout: 5))
         enter("YS20260018", in: app.textFields["field.person"])
@@ -79,8 +79,8 @@ final class MemberJourneyTests: XCTestCase {
         done.tap()
         app.buttons["connectClub"].tap()
         XCTAssertTrue(app.staticTexts["未找到对应的俱乐部"].waitForExistence(timeout: 5))
-        replace("100001", in: field)
-        XCTAssertEqual(field.value as? String, "100001")
+        replace("10001", in: field)
+        XCTAssertEqual(field.value as? String, "10001")
         XCTAssertTrue(app.keyboards.firstMatch.exists)
         done.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -105,7 +105,7 @@ final class MemberJourneyTests: XCTestCase {
         app.buttons["connectClub"].tap()
         XCTAssertTrue(app.staticTexts["未找到对应的俱乐部"].waitForExistence(timeout: 5))
         screenshot("02-邀请码错误", app)
-        replace("100001", in: invite)
+        replace("10001", in: invite)
         app.buttons["connectClub"].tap()
 
         let card = app.textFields["field.person"]
@@ -200,7 +200,7 @@ final class MemberJourneyTests: XCTestCase {
         app.launch()
         let invite = app.textFields["field.shield"]
         XCTAssertTrue(invite.waitForExistence(timeout: 10))
-        enter("100001", in: invite)
+        enter("10001", in: invite)
         app.buttons["connectClub"].tap()
         let card = app.textFields["field.person"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))
@@ -301,7 +301,7 @@ final class MemberJourneyTests: XCTestCase {
         app.launch()
         let invite = app.textFields["field.shield"]
         XCTAssertTrue(invite.waitForExistence(timeout: 10))
-        enter("100001", in: invite)
+        enter("10001", in: invite)
         app.buttons["connectClub"].tap()
         let card = app.textFields["field.person"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))
@@ -331,7 +331,7 @@ final class MemberJourneyTests: XCTestCase {
         app.terminate()
         app.launch()
         XCTAssertTrue(invite.waitForExistence(timeout: 10))
-        enter("100001", in: invite)
+        enter("10001", in: invite)
         app.buttons["connectClub"].tap()
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         enter("YS20260018", in: card)

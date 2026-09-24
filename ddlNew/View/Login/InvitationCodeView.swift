@@ -155,7 +155,7 @@ private struct InvitationCodeField: View {
                     .foregroundStyle(InvitationCodePalette.darkTeal)
                     .accessibilityHidden(true)
 
-                TextField("例如 100001", text: $text)
+                TextField("例如 10001", text: $text)
                     .font(.system(size: 15.zoom()))
                     .foregroundStyle(InvitationCodePalette.ink)
                     .keyboardType(.numberPad)

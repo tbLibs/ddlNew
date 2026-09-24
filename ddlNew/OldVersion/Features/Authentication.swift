@@ -38,7 +38,7 @@ struct InviteScreen: View {
                                     .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                             }.frame(maxWidth: .infinity).padding(.vertical, 20)
                         }
-                        ClubField(title: "俱乐部邀请码", placeholder: "例如 100001", icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
+                        ClubField(title: "俱乐部邀请码", placeholder: "例如 10001", icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
                         Text("请输入俱乐部提供的邀请码")
                             .font(.system(size: 11)).foregroundColor(ClubTheme.secondary)
                         Button("连接俱乐部") {
