@@ -13,7 +13,9 @@ import RxSwift
 
 /// DoH JSON 响应；Answer.type 用于区分归一化阶段需要的 A 记录。
 struct DoHResponse: Mappable {
+    /// DNS 查询状态；0 表示成功，缺省时沿用旧接口的宽松处理。
     var status: Int?
+    /// 响应中的记录列表，后续按 TXT、AAAA 或 A 类型解析。
     var answers: [Answer]?
 
     init?(map: Map) {}
@@ -24,7 +26,9 @@ struct DoHResponse: Mappable {
     }
 
     struct Answer: Mappable {
+        /// DNS RR 类型编号，例如 A=1、TXT=16、AAAA=28。
         var type: Int?
+        /// 单条记录的原始内容，可能仍需拼接或解密。
         var data = ""
 
         init?(map: Map) {}
@@ -36,27 +40,40 @@ struct DoHResponse: Mappable {
     }
 }
 
+/// DoH 请求和载荷解析阶段的错误。
 enum DoHError: Error {
+    /// 主备地址无法组成有效 URL。
     case invalidURL
+    /// 服务返回非成功 DNS 状态。
     case invalidResponse
+    /// 响应中没有可用的节点记录。
     case emptyAnswer
+    /// TXT 载荷缺少解密配置。
     case missingDecryptionKey
+    /// 主备地址的共同请求时限已到。
     case timeout
 }
 
 /// 与旧项目的五路 DNS 来源标记保持一致，供后续节点竞速识别来源。
 enum DNSHostSource: String, CaseIterable, Sendable {
+    /// 阿里 HTTPDNS SDK 的 AAAA 记录。
     case aliAAAA = "ALIDNS"
+    /// 腾讯 DoH 的 AAAA 记录。
     case tencentAAAA = "TENCENT_AAAA"
+    /// Cloudflare DoH 的 TXT 记录。
     case cloudflareTXT = "CF_TXT"
+    /// Cloudflare DoH 的 AAAA 记录。
     case cloudflareAAAA = "CF_AAAA"
+    /// 阿里 DoH 的 TXT 记录。
     case aliTXT = "ALI_DOH_TXT"
 }
 
 
+/// 管理五路 DNS 数据获取；最终 OSS Auth 胜出由 OSSNodeRaceCoordinator 判断。
 class HostNodeRaceManager {
 
     private init() {}
+    /// 供页面与竞速协调器复用的无状态实例。
     static let shared = HostNodeRaceManager()
     
     /// 五路 DNS 并发解析；每一路有结果时将归一化后的节点回传。

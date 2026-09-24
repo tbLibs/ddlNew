@@ -10,6 +10,7 @@ import TBBasicLib
 
 struct TabbarView: View {
     
+    /// 与 App 根入口共享 Tab 选中状态及各页独立的导航路径。
     @StateObject var router = RouterTool.shared
     
     var body: some View {

@@ -10,8 +10,10 @@ import Foundation
 import RxSwift
 import Moya
 
+/// DNS/DoH 请求共用的 Moya Provider，统一应用请求超时配置。
 var ApiRequest = MoyaProvider<ApiType>(plugins: [TRCApiHandle()])
 
+/// 为项目网络请求统一设置超时并预留发送、响应处理入口。
 class TRCApiHandle: PluginType {
     func willSend(_ request: any RequestType, target: any TargetType) {
         
@@ -39,6 +41,7 @@ class TRCApiHandle: PluginType {
     
 }
 
+/// 保留旧 Rx 调用的订阅容器；async/await 的 DNS 请求不依赖它。
 class DisposeBagHelper {
     public static let share = DisposeBagHelper()
     public required init() {}
@@ -46,6 +49,7 @@ class DisposeBagHelper {
 }
 
 // MARK: - - common模块的请求
+/// 旧回调式请求入口的类型和订阅容器。
 class DDLApiRequest {
     typealias RequestSuccessCallBack<T> = (_ response: T) -> Void
     typealias RequestFailCallBack = (_ response: Error?) -> Void

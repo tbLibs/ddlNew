@@ -91,8 +91,11 @@ enum DNSHostNormalizer {
         return inet_pton(AF_INET6, host, &ipv6) == 1
     }
 
+    /// A 记录查询的结果或总等待时限事件。
     private enum LookupResult: Sendable {
+        /// 某个 DNS 来源返回的 IPv4 候选。
         case addresses([String])
+        /// 归一化阶段的 500 毫秒时限已到。
         case timeout
     }
 

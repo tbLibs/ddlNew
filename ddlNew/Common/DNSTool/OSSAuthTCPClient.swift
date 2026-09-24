@@ -9,21 +9,28 @@ import CocoaAsyncSocket
 import Foundation
 import SwiftProtobuf
 
+/// 单节点 TCP 连接、帧解析和收发过程中的错误。
 enum OSSAuthTCPError: Error {
+    /// 地址或端口无法用于建立连接。
     case invalidAddress
     case invalidPort
+    /// 调用参数或待发送的 Protobuf 消息无效。
     case invalidTimeout
     case emptyRequest
     case requestTooLarge
+    /// 响应帧长度不合法或超过上限。
     case malformedResponseLength
     case responseTooLarge
+    /// 连接超时或在收到完整响应前断开。
     case timeout
     case connectionClosed
 }
 
 /// 单节点直连：只处理 TCP 和 Protobuf 帧，不判断导航业务状态，也不解密响应体。
 enum OSSAuthTCPClient {
+    /// 旧项目 OSS Auth 未显式带端口时使用的默认端口。
     private static let defaultPort: UInt16 = 8087
+    /// 限制单帧 Protobuf 为 1 MiB，避免异常长度导致大内存分配。
     private static let maxMessageLength = 1_048_576
 
     static func request(
@@ -98,12 +105,15 @@ enum OSSAuthTCPClient {
 }
 
 private struct OSSAuthTCPEndpoint: Sendable {
+    /// 可直接用于 Socket 连接的主机名或 IP。
     let host: String
+    /// 已校验的 TCP 端口。
     let port: UInt16
 }
 
 /// 每次请求独占一个 Socket；可变状态只在 delegateQueue 上读写。
 private final class OSSAuthTCPConnection: NSObject, GCDAsyncSocketDelegate {
+    /// 区分写入包、长度前缀及响应体的 Socket 回调。
     private enum Tag {
         static let packet = 1
         static let lengthByte = 2
@@ -114,11 +124,15 @@ private final class OSSAuthTCPConnection: NSObject, GCDAsyncSocketDelegate {
     private let packet: Data
     private let timeout: TimeInterval
     private let maxMessageLength: Int
+    /// Socket 与 continuation 的可变状态只在此串行队列访问。
     private let delegateQueue = DispatchQueue(label: "ddlNew.ossAuthTCP", qos: .utility)
     private var socket: GCDAsyncSocket?
     private var timer: DispatchSourceTimer?
+    /// 任一完成路径只能恢复一次。
     private var continuation: CheckedContinuation<NavMessage, Error>?
+    /// 处理取消早于 Socket 启动的竞态。
     private var cancellationRequested = false
+    /// 分字节解析的 varint32 响应长度及已读字节数。
     private var responseLength: UInt32 = 0
     private var lengthByteCount = 0
 

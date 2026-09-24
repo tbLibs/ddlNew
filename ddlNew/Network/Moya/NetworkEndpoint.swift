@@ -9,18 +9,19 @@ import Foundation
 import Moya
 import Alamofire
 
+/// 五路 DNS 及归一化阶段 A 记录查询所用的 Moya 目标。
 enum ApiType {
     
-    /// 腾讯DNS
+    /// 腾讯 DoH AAAA 查询，主备服务地址由调用方传入。
     case tencentDoHAAAA(baseurl: String)
     
     /// 阿里 DoH TXT
     case aliDoHTXT(baseURL: URL, timestamp: String, signature: String)
     
-    /// cloudflareDoHTXT
+    /// Cloudflare DoH TXT 查询。
     case cloudflareDoHTXT
     
-    /// CloudflareAAAA
+    /// Cloudflare DoH AAAA 查询。
     case cloudflareAAAA
     
     /// 将 DNS 返回的域名归一化为 IPv4 时使用的阿里 DoH A 查询。

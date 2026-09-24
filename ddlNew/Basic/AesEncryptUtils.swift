@@ -10,6 +10,7 @@ import CryptoKit
 import CommonCrypto
 
 enum AesEncryptUtils {
+    /// 旧项目 TXT/导航载荷采用 AES-128。
     static let keyLengthBits = 128
 
     /// 将 UTF-8 字符串加密并返回 Base64 字符串。

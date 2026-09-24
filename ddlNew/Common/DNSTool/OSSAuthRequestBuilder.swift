@@ -10,12 +10,16 @@ import CryptoKit
 import Foundation
 import Security
 
+/// 构造 OSS Auth 请求时的参数或签名错误。
 enum OSSAuthRequestError: Error {
+    /// 请求缺少企业号、客户端版本、地区或签名密钥。
     case emptyAppID
     case missingClientVersion
     case missingRegion
     case missingSigningKey
+    /// appType 不在旧协议支持的公共包、独立包范围内。
     case unsupportedAppType
+    /// 无法生成签名 IV 或执行 AES 加密。
     case randomGenerationFailed
     case encryptionFailed
 }

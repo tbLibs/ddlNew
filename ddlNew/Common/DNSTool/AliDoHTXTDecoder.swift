@@ -8,8 +8,10 @@
 import Foundation
 import CryptoKit
 
+/// 阿里 TXT 解密后的节点与其他 DNS 来源共用地址模型。
 typealias AliDoHHost = DNSResolvedHost
 
+/// 校验阿里 DoH TXT 请求，并解密响应中的 OSS 节点载荷。
 enum AliDoHTXTDecoder {
 
     static func signature(timestamp: String) -> String {

@@ -7,11 +7,15 @@
 
 import Foundation
 
+/// DNS 载荷还原出的 OSS 节点；地址可能是域名、IPv4 或 IPv6。
 struct DNSResolvedHost: Equatable, Sendable {
+    /// 可选带端口的 OSS 地址，未带端口时由 TCP 客户端使用默认值。
     let urlString: String
+    /// 旧项目的节点类型标记：首个为原类型，其余归为备用类型 2。
     let type: String
 }
 
+/// 还原编码在 DNS AAAA/TXT 记录中的 OSS 地址列表。
 enum DNSPayloadDecoder {
 
     /// 将一个或多个 JSON 载荷中的主机与端口组合为节点。

@@ -9,8 +9,10 @@ import Foundation
 import Combine
 import SwiftUI
 
+/// 主界面四个 Tab 的稳定标识，用于选中状态和导航栈切换。
 enum TabType: Hashable {
     case main, message, contacts, mine
+    /// 与当前 Tab 对应的展示标题。
     var title: String {
         switch self {
         case .main:
@@ -25,17 +27,19 @@ enum TabType: Hashable {
     }
 }
 
-/// app启动显示的页面
+/// App 根页面阶段：邀请码、登录或主 Tab。
 enum ShowAppPageType {
-    //  邀请码             登录   tabbar
     case invitationCode, login, tabbar
 }
 
+/// 各 Tab 导航栈和根页面的共享状态容器。
 class RouterTool: ObservableObject{
     
+    /// 在根视图与 Tab 容器间共享同一份路由状态。
     static let shared = RouterTool()
     private init() {}
     
+    /// 当前选中的 Tab。
     @Published var selectTab: TabType = .main
     
     /// 首页 Path

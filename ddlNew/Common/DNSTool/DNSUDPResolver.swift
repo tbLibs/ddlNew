@@ -109,11 +109,14 @@ enum DNSUDPResolver {
 /// 每次查询独占一个 UDP Socket，所有状态都在主队列串行处理。
 @MainActor
 private final class DNSUDPQuery: NSObject, GCDAsyncUdpSocketDelegate {
+    /// 本次 UDP 查询的 DNS 服务器、报文和事务 ID。
     private let server: String
     private let packet: Data
     private let transactionID: UInt16
     private var socket: GCDAsyncUdpSocket?
+    /// 收到有效响应、超时或取消时恢复；只能恢复一次。
     private var continuation: CheckedContinuation<[String], Never>?
+    /// 处理调用方在 Socket 启动前取消的情况。
     private var isCancelled = false
 
     init(server: String, packet: Data, transactionID: UInt16) {

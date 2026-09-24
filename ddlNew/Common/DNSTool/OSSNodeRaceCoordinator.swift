@@ -7,20 +7,31 @@
 
 import Foundation
 
+/// OSS Auth 请求签名所需的旧协议密钥。
 struct OSSAuthCredentials: Sendable {
+    /// 签名密钥标识，对应旧项目 DirectDecodeKeyId。
     let signingKeyID: String
+    /// 签名密钥内容，对应旧项目 DirectDecodeKeySecret。
     let signingKeySecret: String
 }
 
+/// 竞速首胜结果，保留 DNS 来源、OSS 地址和解密后的导航数据。
 struct OSSRaceWinner: Sendable {
+    /// 提供获胜候选的 DNS 来源。
     let source: DNSHostSource
+    /// 完成 OSS Auth 的节点地址。
     let node: DNSResolvedHost
+    /// 后续 IM 连接可使用的 TCP/HTTP 导航节点。
     let navigation: OSSNavigationResult
 }
 
+/// 五路 OSS Auth 竞速的入口参数和结果错误。
 enum OSSNodeRaceError: Error {
+    /// 邀请码（liceseId）为空。
     case missingAppID
+    /// 签名常量缺失。
     case missingCredentials
+    /// 五路 DNS 及其候选节点均未得到有效导航响应。
     case allSourcesFailed
 }
 
@@ -117,8 +128,11 @@ enum OSSNodeRaceCoordinator {
 /// 阿里 SDK 的回调不保证到达；桥接时统一做超时和取消收尾，避免拖住任务组。
 @MainActor
 private final class AliDNSAsyncBridge {
+    /// SDK 回调、超时和取消共用同一个 continuation，完成后立即置空。
     private var continuation: CheckedContinuation<[DNSResolvedHost], Never>?
+    /// 防止阿里 SDK 不回调时拖住整个竞速。
     private var timeoutTask: Task<Void, Never>?
+    /// 处理取消早于 continuation 安装的情况。
     private var cancelled = false
 
     static func resolve(using manager: HostNodeRaceManager) async -> [DNSResolvedHost] {
