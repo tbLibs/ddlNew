@@ -35,7 +35,8 @@ final class HTTPAuthAvailabilityProbe {
             signature: signature,
             appID: plan.appID
         )
-        let response = try await ApiRequest.rx
+        let provider = BusinessApiRequest.provider(for: plan.apiHost)
+        let response = try await provider.rx
             .request(.generateEncryptKey(baseURL: plan.apiHost, headers: headers))
             .filterSuccessfulStatusCodes()
             .value

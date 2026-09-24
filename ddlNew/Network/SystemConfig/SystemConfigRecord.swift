@@ -31,7 +31,15 @@ nonisolated struct SystemConfigRecord: Mappable {
         loginMethod <- map["loginMethod"]
         registerMethod <- map["registerMethod"]
         tenantCode <- map["tenantCode"]
-        captchaChannel <- map["captchaChannel"]
+        // 服务端可能把验证码渠道作为数字或数字字符串返回，缓存时统一写成数字。
+        captchaChannel <- (map["captchaChannel"], TransformOf<Int, Any>(
+            fromJSON: { value in
+                if let number = value as? Int { return number }
+                if let text = value as? String { return Int(text) }
+                return nil
+            },
+            toJSON: { value in value.map { $0 as Any } }
+        ))
         projectName <- map["projectName"]
         projectLogo <- map["projectLogo"]
         isMustInviteCode <- map["isMustInviteCode"]

@@ -9,9 +9,23 @@
 import Foundation
 import RxSwift
 import Moya
+import Alamofire
 
-/// DNS/DoH 请求共用的 Moya Provider，统一应用请求超时配置。
+/// DNS/DoH 请求使用系统默认的证书校验。
 var ApiRequest = MoyaProvider<ApiType>(plugins: [TRCApiHandle()])
+
+/// 仅业务接口使用导航选出的 Host；旧服务端证书无效且未包含域名，暂时跳过该 Host 的证书和域名校验。
+/// 此策略无法验证服务器身份，服务端修复证书后应移除，不能扩展到 DNS/DoH 请求。
+enum BusinessApiRequest {
+    static func provider(for baseURL: URL) -> MoyaProvider<ApiType> {
+        guard let host = baseURL.host else { return ApiRequest }
+        let trustManager = ServerTrustManager(evaluators: [
+            host: DisabledTrustEvaluator()
+        ])
+        let session = Session(serverTrustManager: trustManager)
+        return MoyaProvider<ApiType>(session: session, plugins: [TRCApiHandle()])
+    }
+}
 
 /// 为项目网络请求统一设置超时并预留发送、响应处理入口。
 class TRCApiHandle: PluginType {

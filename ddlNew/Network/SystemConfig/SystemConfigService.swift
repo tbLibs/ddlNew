@@ -11,11 +11,17 @@ import ObjectMapper
 import RxMoya
 import RxSwift
 
+/// 系统配置请求已返回后，在业务响应解析与导航一致性校验中产生的错误。
 enum SystemConfigServiceError: Error {
+    /// 响应体不是预期的 JSON 对象。
     case invalidResponse
+    /// HTTP 请求成功，但服务端返回的业务码不是成功码。
     case businessFailure(code: Int, message: String)
+    /// 响应中缺少 data，或 data 为 null。
     case missingData
+    /// 解密后的配置无法映射，或缺少登录所需的有效字段。
     case invalidConfiguration
+    /// 请求期间邀请码或 HTTP 节点已切换，不能保存这次响应。
     case staleNavigation
 }
 
@@ -32,7 +38,8 @@ final class SystemConfigService {
         let signature = try SystemConfigCrypto.signature(timestamp: timestamp)
         let headers = BusinessRequestHeaders.make(timestamp: timestamp, signature: signature)
 
-        let response = try await ApiRequest.rx
+        let provider = BusinessApiRequest.provider(for: plan.apiHost)
+        let response = try await provider.rx
             .request(.systemConfig(baseURL: plan.apiHost, headers: headers))
             .filterSuccessfulStatusCodes()
             .value
@@ -52,6 +59,7 @@ final class SystemConfigService {
             throw SystemConfigServiceError.missingData
         }
         let dictionary = try SystemConfigCrypto.configurationDictionary(from: payload)
+        
         guard let configuration = Mapper<SystemConfigRecord>().map(JSON: dictionary),
               configuration.isValidForLogin else {
             throw SystemConfigServiceError.invalidConfiguration

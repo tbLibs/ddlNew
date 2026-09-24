@@ -103,24 +103,9 @@ final class InvitationCodeViewModel: ObservableObject {
                     guard self.raceRunID == runID else { return }
                     systemConfig = configuration
                     debugPrint("[系统配置] 获取成功：登录方式=\(configuration.loginMethod)，验证码渠道=\(configuration.captchaChannel)")
-
-                    statusMessage = "系统配置已保存，正在验证 HTTP 密钥接口…"
-                    do {
-                        try await HTTPAuthAvailabilityProbe.shared.verifyKeyEndpoint(
-                            plan: plan,
-                            configuration: configuration
-                        )
-                        try Task<Never, Never>.checkCancellation()
-                        guard self.raceRunID == runID else { return }
-                        statusMessage = "HTTP 密钥接口可用；登录请求仍未验证"
-                        debugPrint("[登录准备] HTTP 获取加密密钥接口可用，未验证登录 POST")
-                    } catch is CancellationError {
-                        return
-                    } catch {
-                        guard !Task.isCancelled, self.raceRunID == runID else { return }
-                        statusMessage = "系统配置已保存；HTTP 密钥接口尚不可用"
-                        debugPrint("[登录准备] HTTP 密钥接口探测失败：\(error)")
-                    }
+                    // 配置已保存，切换根页面到登录页。
+                    RouterTool.shared.showAppPage = .login
+                    return
                 } catch is CancellationError {
                     return
                 } catch {
