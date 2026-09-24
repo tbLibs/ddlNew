@@ -12,6 +12,7 @@ target 'ddlNew' do
   
   #aliyun云解析DNS
   pod 'AlicloudPDNS', '2.1.9'
+  pod 'WoodPeckeriOS', :configurations => ['Debug']
 
 
 end

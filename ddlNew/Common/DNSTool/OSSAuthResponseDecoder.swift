@@ -66,6 +66,11 @@ enum OSSAuthResponseDecoder {
         }
 
         let body = try IMServerListResponseBody(serializedBytes: plaintext)
+        return try navigation(from: body)
+    }
+
+    /// 新响应与本地缓存共用同一套端点校验，避免恢复出不可连接的导航状态。
+    nonisolated static func navigation(from body: IMServerListResponseBody) throws -> OSSNavigationResult {
         let usable = body.imEndpoints.filter { endpoint in
             endpoint.status != "INACTIVE" &&
                 !endpoint.ip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&

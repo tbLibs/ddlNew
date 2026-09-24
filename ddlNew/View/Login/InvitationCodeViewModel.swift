@@ -20,6 +20,7 @@ final class InvitationCodeViewModel: ObservableObject {
             raceTask?.cancel()
             raceTask = nil
             raceWinner = nil
+            navigationSnapshot = nil
             isRacing = false
             statusMessage = nil
         }
@@ -29,8 +30,10 @@ final class InvitationCodeViewModel: ObservableObject {
     @Published private(set) var isRacing = false
     /// 展示当前进度或失败原因，不代表后续 IM 连接已完成。
     @Published private(set) var statusMessage: String?
-    /// 首个通过解密和端点校验的导航结果，供下一阶段连接使用。
+    /// 本次竞速的原始首胜结果；后续连接应使用已保存的 navigationSnapshot。
     @Published private(set) var raceWinner: OSSRaceWinner?
+    /// 已持久化的导航状态，后续连接层也可按邀请码从 OSSNavigationStore 读取。
+    @Published private(set) var navigationSnapshot: OSSNavigationSnapshot?
 
     /// 保留当前竞速任务，以便邀请码变更时取消旧请求。
     private var raceTask: Task<Void, Never>?
@@ -49,6 +52,7 @@ final class InvitationCodeViewModel: ObservableObject {
 
         raceTask?.cancel()
         raceWinner = nil
+        navigationSnapshot = nil
         isRacing = true
         statusMessage = "正在竞速导航节点…"
         raceTask = Task { [weak self] in
@@ -58,16 +62,19 @@ final class InvitationCodeViewModel: ObservableObject {
                 let clientIP = await PublicIPResolver.resolve()
                 try Task<Never, Never>.checkCancellation()
                 let winner = try await OSSNodeRaceCoordinator.race(appID: appID, credentials: credentials, clientIP: clientIP)
+                try Task<Never, Never>.checkCancellation()
+                let snapshot = try OSSNavigationStore.shared.save(winner, appID: appID)
                 guard !Task.isCancelled else { return }
                 raceWinner = winner
-                statusMessage = "导航节点已获取"
+                navigationSnapshot = snapshot
+                statusMessage = "导航节点已获取并保存"
                 debugPrint("[OSS竞速] 获胜来源：\(winner.source.rawValue)，地址：\(winner.node.urlString)")
             } catch is CancellationError {
                 return
             } catch {
                 guard !Task.isCancelled else { return }
-                statusMessage = "导航节点获取失败，请重试"
-                debugPrint("[OSS竞速] 五路均未成功：\(error)")
+                statusMessage = "导航节点获取或保存失败，请重试"
+                debugPrint("[OSS导航] 获取或保存失败：\(error)")
             }
             isRacing = false
         }

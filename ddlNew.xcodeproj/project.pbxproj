@@ -208,6 +208,7 @@
 				AF019ABC305D300000000012 /* WCDB Privacy Manifest */,
 				AF019ABC305D300000000011 /* Embed Frameworks */,
 				F65538465AE848B195C6A3AD /* Upload Debug Symbols to Sentry */,
+				2A314831F265E534FA32D44F /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -312,6 +313,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		2A314831F265E534FA32D44F /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		51DDDF3217EB7B546716265C /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -702,8 +724,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
-			traits = (
-			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;
