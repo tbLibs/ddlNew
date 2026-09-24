@@ -22,6 +22,12 @@ let aliDoHBaseURLs = [
     "https://223.6.6.6/resolve"
 ]
 
+/// 域名转 IPv4 时使用的阿里 DoH 地址。
+let aliARecordBaseURLs = aliDoHBaseURLs + ["https://dns.alidns.com/resolve"]
+
+/// 域名转 IPv4 时使用的 UDP DNS 服务器。
+let dnsARecordServers = ["119.29.29.29", "114.114.114.114"]
+
 /// 腾讯AAA
 let tencent_httpdns_test_domain  = "fbar.fbar.coerua.com"
 let tencentURl = [

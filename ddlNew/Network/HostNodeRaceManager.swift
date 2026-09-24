@@ -11,6 +11,7 @@ import ObjectMapper
 import RxMoya
 import RxSwift
 
+/// DoH JSON 响应；Answer.type 用于区分归一化阶段需要的 A 记录。
 struct DoHResponse: Mappable {
     var status: Int?
     var answers: [Answer]?
@@ -23,11 +24,13 @@ struct DoHResponse: Mappable {
     }
 
     struct Answer: Mappable {
+        var type: Int?
         var data = ""
 
         init?(map: Map) {}
 
         mutating func mapping(map: Map) {
+            type <- map["type"]
             data <- map["data"]
         }
     }
@@ -41,38 +44,72 @@ enum DoHError: Error {
     case timeout
 }
 
+/// 与旧项目的五路 DNS 来源标记保持一致，供后续节点竞速识别来源。
+enum DNSHostSource: String {
+    case aliAAAA = "ALIDNS"
+    case tencentAAAA = "TENCENT_AAAA"
+    case cloudflareTXT = "CF_TXT"
+    case cloudflareAAAA = "CF_AAAA"
+    case aliTXT = "ALI_DOH_TXT"
+}
+
 
 class HostNodeRaceManager {
 
     private init() {}
     static let shared = HostNodeRaceManager()
     
-    /// 获取【DNS节点】
-    func getHostAndPort() {
+    /// 五路 DNS 并发解析；每一路有结果时将归一化后的节点回传。
+    /// 此阶段不会按 DNS 返回先后选出最终 OSS 节点。
+    func getHostAndPort(onNormalized: @escaping (DNSHostSource, [DNSResolvedHost]) -> Void = { _, _ in }) {
+        // SDK 使用回调，转成 Swift 任务后与其他四路共用归一化入口。
         aliAAATest { hosts in
-            debugPrint("[DNS节点] 阿里AAAA DNS 节点：", hosts)
+            _Concurrency.Task {
+                debugPrint("[DNS节点] aliAAATest=\(hosts)")
+                await self.consume(hosts, from: .aliAAAA, onNormalized: onNormalized)
+            }
+        }
+
+        // 显式使用 Swift 的 Task，避免与 Moya.Task 同名冲突。
+        _Concurrency.Task {
+            let hosts = try? await tencentDoHAAAA()
+            debugPrint("[DNS节点] tencentDoHAAAA=\(hosts ?? [])")
+            await consume(hosts ?? [], from: .tencentAAAA, onNormalized: onNormalized)
         }
 
         _Concurrency.Task {
-            let arr = try? await tencentDoHAAAA()
-            debugPrint("[DNS节点] 腾讯AAAA DNS节点:", arr ?? [])
-        }
-        
-        _Concurrency.Task {
             let hosts = try? await cloudflareDoHTXT()
-            debugPrint("[DNS节点] Cloudflare TXT 节点：", hosts ?? [])
+            debugPrint("[DNS节点] cloudflareDoHTXT=\(hosts ?? [])")
+            await consume(hosts ?? [], from: .cloudflareTXT, onNormalized: onNormalized)
         }
         _Concurrency.Task {
             let hosts = try? await cloudflareDoHAAAA()
-            debugPrint("[DNS节点] Cloudflare AAAA 节点：", hosts ?? [])
+            debugPrint("[DNS节点] cloudflareDoHAAAA=\(hosts ?? [])")
+            await consume(hosts ?? [], from: .cloudflareAAAA, onNormalized: onNormalized)
         }
         _Concurrency.Task {
-            let arr = try? await aliDoHTXT()
-            debugPrint("[DNS节点] aliDoHTXT DNS节点:", arr ?? [])
+            let hosts = try? await aliDoHTXT()
+            debugPrint("[DNS节点] aliDoHTXT=\(hosts ?? [])")
+            await consume(hosts ?? [], from: .aliTXT, onNormalized: onNormalized)
         }
     }
 
+    /// 空结果不参与后续流程；有结果时先归一化，再交给调用方。
+    private func consume(
+        _ hosts: [DNSResolvedHost],
+        from source: DNSHostSource,
+        onNormalized: (DNSHostSource, [DNSResolvedHost]) -> Void
+    ) async {
+        guard !hosts.isEmpty else { return }
+        let normalized = await DNSHostNormalizer.normalize(hosts)
+        guard !normalized.isEmpty else { return }
+        debugPrint("[DNS节点] \(source.rawValue) 归一化结果：", normalized)
+        onNormalized(source, normalized)
+    }
 
+}
+
+extension HostNodeRaceManager {
     /// 阿里 DNSResolver 的 AAAA 记录中包含分片编码的节点 JSON。
     func aliAAATest(completion: @escaping ([DNSResolvedHost]) -> Void) {
         guard let resolver = DNSResolver.share() else {
@@ -86,6 +123,7 @@ class HostNodeRaceManager {
             andAccesskeySecret: aliyunDNSAccesskeySecret
         )
         resolver.cacheEnable = false
+        // DNSResolverSchemeHttp 的原始值为 0，Swift OptionSet 用 [] 表示。
         resolver.scheme = []
         resolver.clearHostCache([])
         resolver.getIpv6Data(withDomain: ali_httpdns_test_domain) { records in
@@ -97,6 +135,7 @@ class HostNodeRaceManager {
     
     /// 腾讯 DoH AAAA
     func tencentDoHAAAA() async throws -> [DNSResolvedHost] {
+        // 主、备地址顺序尝试，但共同受 5 秒总时限约束。
         let deadline = ProcessInfo.processInfo.systemUptime + 5
         var lastError: Error = DoHError.emptyAnswer
 
@@ -225,5 +264,4 @@ class HostNodeRaceManager {
         guard !hosts.isEmpty else { throw DoHError.emptyAnswer }
         return hosts
     }
-
 }

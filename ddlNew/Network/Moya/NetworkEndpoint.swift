@@ -10,14 +10,24 @@ import Moya
 import Alamofire
 
 enum ApiType {
+    
     /// 腾讯DNS
     case tencentDoHAAAA(baseurl: String)
+    
     /// 阿里 DoH TXT
     case aliDoHTXT(baseURL: URL, timestamp: String, signature: String)
+    
     /// cloudflareDoHTXT
     case cloudflareDoHTXT
+    
     /// CloudflareAAAA
     case cloudflareAAAA
+    
+    /// 将 DNS 返回的域名归一化为 IPv4 时使用的阿里 DoH A 查询。
+    case aliDoHA(baseURL: URL, domain: String)
+    
+    /// 将 DNS 返回的域名归一化为 IPv4 时使用的 Cloudflare DoH A 查询。
+    case cloudflareA(domain: String)
     
 }
 
@@ -28,29 +38,25 @@ extension ApiType: TargetType {
             return URL(string: baseurl)!
         case .aliDoHTXT(let baseURL, _, _):
             return baseURL
-        case .cloudflareDoHTXT:
-            return URL(string: cf_doh_base_url)!
-        case .cloudflareAAAA:
+        case .aliDoHA(let baseURL, _):
+            return baseURL
+        case .cloudflareDoHTXT, .cloudflareAAAA, .cloudflareA:
             return URL(string: cf_doh_base_url)!
         }
     }
     
     var path: String {
         switch self {
-        case .tencentDoHAAAA:
-            ""
-        case .aliDoHTXT:
-            ""
-        case .cloudflareDoHTXT:
-            ""
-        case .cloudflareAAAA:
+        case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT,
+             .cloudflareAAAA, .aliDoHA, .cloudflareA:
             ""
         }
     }
     
     var method: Moya.Method {
         switch self {
-        case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT, .cloudflareAAAA:
+        case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT,
+             .cloudflareAAAA, .aliDoHA, .cloudflareA:
             .get
         }
     }
@@ -84,13 +90,19 @@ extension ApiType: TargetType {
                 parameters: ["name": cf_doh_test_domain, "type": "AAAA"],
                 encoding: URLEncoding.queryString
             )
+        case .aliDoHA(_, let domain), .cloudflareA(let domain):
+            return .requestParameters(
+                parameters: ["name": domain, "type": "A"],
+                encoding: URLEncoding.queryString
+            )
         }
     }
     
     var headers: [String : String]? {
         var header = [String : String]()
         switch self {
-        case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT, .cloudflareAAAA:
+        case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT,
+             .cloudflareAAAA, .aliDoHA, .cloudflareA:
             header["Accept"] = "application/dns-json"
         }
         return header
