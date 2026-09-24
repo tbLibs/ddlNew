@@ -31,7 +31,15 @@ class TRCApiHandle: PluginType {
     
     func prepare(_ request: URLRequest, target: any TargetType) -> URLRequest {
         var mrequest = request
-        mrequest.timeoutInterval = 5
+        // 系统配置接口沿用旧项目的 10 秒请求超时，DNS 查询保持 5 秒。
+        if let target = target as? ApiType {
+            switch target {
+            case .systemConfig, .generateEncryptKey:
+                mrequest.timeoutInterval = 10
+            default:
+                mrequest.timeoutInterval = 5
+            }
+        }
         return mrequest
     }
     

@@ -22,7 +22,9 @@ final class InvitationCodeViewModel: ObservableObject {
             raceWinner = nil
             navigationSnapshot = nil
             connectionPlan = nil
+            systemConfig = nil
             OSSConnectionBootstrap.shared.clearCurrent()
+            raceRunID = UUID()
             isRacing = false
             statusMessage = nil
         }
@@ -38,9 +40,13 @@ final class InvitationCodeViewModel: ObservableObject {
     @Published private(set) var navigationSnapshot: OSSNavigationSnapshot?
     /// 已选的 HTTP API Host 与待 ECDH 探测的 TCP 候选，不代表 IM 已连接。
     @Published private(set) var connectionPlan: OSSConnectionPlan?
+    /// 当前邀请码的系统配置；获取失败时不会误认为登录已就绪。
+    @Published private(set) var systemConfig: SystemConfigRecord?
 
     /// 保留当前竞速任务，以便邀请码变更时取消旧请求。
     private var raceTask: Task<Void, Never>?
+    /// 标识最新一次点击，阻止取消中的旧任务覆盖新状态。
+    private var raceRunID = UUID()
     
     /// 点击连接俱乐部
     func clickClub() {
@@ -58,11 +64,20 @@ final class InvitationCodeViewModel: ObservableObject {
         raceWinner = nil
         navigationSnapshot = nil
         connectionPlan = nil
+        systemConfig = nil
         OSSConnectionBootstrap.shared.clearCurrent()
+        let runID = UUID()
+        raceRunID = runID
         isRacing = true
         statusMessage = "正在竞速导航节点…"
         raceTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if self.raceRunID == runID {
+                    self.isRacing = false
+                    self.raceTask = nil
+                }
+            }
             do {
                 // 旧项目在 OSS Auth 前获取出口公网 IP；失败时沿用空字符串兜底。
                 let clientIP = await PublicIPResolver.resolve()
@@ -70,7 +85,7 @@ final class InvitationCodeViewModel: ObservableObject {
                 let winner = try await OSSNodeRaceCoordinator.race(appID: appID, credentials: credentials, clientIP: clientIP)
                 try Task<Never, Never>.checkCancellation()
                 let snapshot = try OSSNavigationStore.shared.save(winner, appID: appID)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, self.raceRunID == runID else { return }
                 let plan = try OSSConnectionBootstrap.shared.prepare(
                     appID: appID,
                     requireFresh: false
@@ -78,17 +93,52 @@ final class InvitationCodeViewModel: ObservableObject {
                 raceWinner = winner
                 navigationSnapshot = snapshot
                 connectionPlan = plan
-                statusMessage = "HTTP 节点已选，等待 TCP 安全探测"
                 debugPrint("[OSS竞速] 获胜来源：\(winner.source.rawValue)，地址：\(winner.node.urlString)")
                 debugPrint("[OSS连接] HTTP：\(plan.apiHost.absoluteString)，TCP 候选：\(plan.tcpCandidates.count) 个")
+
+                statusMessage = "HTTP 节点已选，正在获取系统配置…"
+                do {
+                    let configuration = try await SystemConfigService.shared.fetchAndCache(for: plan)
+                    try Task<Never, Never>.checkCancellation()
+                    guard self.raceRunID == runID else { return }
+                    systemConfig = configuration
+                    debugPrint("[系统配置] 获取成功：登录方式=\(configuration.loginMethod)，验证码渠道=\(configuration.captchaChannel)")
+
+                    statusMessage = "系统配置已保存，正在验证 HTTP 密钥接口…"
+                    do {
+                        try await HTTPAuthAvailabilityProbe.shared.verifyKeyEndpoint(
+                            plan: plan,
+                            configuration: configuration
+                        )
+                        try Task<Never, Never>.checkCancellation()
+                        guard self.raceRunID == runID else { return }
+                        statusMessage = "HTTP 密钥接口可用；登录请求仍未验证"
+                        debugPrint("[登录准备] HTTP 获取加密密钥接口可用，未验证登录 POST")
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard !Task.isCancelled, self.raceRunID == runID else { return }
+                        statusMessage = "系统配置已保存；HTTP 密钥接口尚不可用"
+                        debugPrint("[登录准备] HTTP 密钥接口探测失败：\(error)")
+                    }
+                } catch is CancellationError {
+                    return
+                } catch {
+                    guard !Task.isCancelled, self.raceRunID == runID else { return }
+                    if case SystemConfigCryptoError.unavailableOnSimulator = error {
+                        statusMessage = "导航已保存；系统配置签名需要真机运行"
+                    } else {
+                        statusMessage = "导航已保存，系统配置获取失败"
+                    }
+                    debugPrint("[系统配置] 获取失败：\(error)")
+                }
             } catch is CancellationError {
                 return
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, self.raceRunID == runID else { return }
                 statusMessage = "导航获取或节点准备失败，请重试"
                 debugPrint("[OSS导航] 获取或节点准备失败：\(error)")
             }
-            isRacing = false
         }
     }
     

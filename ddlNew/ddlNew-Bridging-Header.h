@@ -6,3 +6,4 @@
 //
 
 #import <pdns-sdk-ios/DNSResolver.h>
+#import "Basic/LXChatEncrypt/LXChatEncrypt.h"

@@ -13,6 +13,15 @@ let ossNavigationAppStorageKeyPrefix = "ddlNew.ossNavigation.v2."
 /// 按邀请码保存已选 HTTP API Host 的 AppStorage key 前缀。
 let ossSelectedHTTPHostAppStorageKeyPrefix = "ddlNew.selectedHTTPHost.v1."
 
+/// 按邀请码保存业务系统配置的 AppStorage key 前缀。
+let systemConfigAppStorageKeyPrefix = "ddlNew.systemConfig.v1."
+
+/// 业务请求的设备 UUID 存储 key。
+let businessDeviceUUIDAppStorageKey = "ddlNew.businessDeviceUUID.v1"
+
+/// 老项目业务接口使用的组织标识。
+let businessOrgName = "1595975575091130369"
+
 /// OSS Auth 签名沿用旧项目的 DirectDecodeKeyId / DirectDecodeKeySecret。
 let DirectDecodeKeyId = "671581_30185023923412521"
 let DirectDecodeKeySecret = "0fc2f1c074fd24b3b13f23243297dc86"

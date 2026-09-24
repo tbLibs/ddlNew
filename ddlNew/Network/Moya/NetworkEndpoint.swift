@@ -9,8 +9,14 @@ import Foundation
 import Moya
 import Alamofire
 
-/// 五路 DNS 及归一化阶段 A 记录查询所用的 Moya 目标。
+/// DNS 查询与未登录业务配置所用的 Moya 目标。
 enum ApiType {
+
+    /// 使用 OSS 导航选出的 HTTPS Host 获取系统配置。
+    case systemConfig(baseURL: URL, headers: [String: String])
+
+    /// 仅验证 HTTP 获取登录加密密钥是否可用，不提交账号或密码。
+    case generateEncryptKey(baseURL: URL, headers: [String: String])
     
     /// 腾讯 DoH AAAA 查询，主备服务地址由调用方传入。
     case tencentDoHAAAA(baseurl: String)
@@ -35,6 +41,10 @@ enum ApiType {
 extension ApiType: TargetType {
     var baseURL: URL {
         switch self {
+        case .systemConfig(let baseURL, _):
+            return baseURL
+        case .generateEncryptKey(let baseURL, _):
+            return baseURL
         case .tencentDoHAAAA(let baseurl):
             return URL(string: baseurl)!
         case .aliDoHTXT(let baseURL, _, _):
@@ -48,22 +58,37 @@ extension ApiType: TargetType {
     
     var path: String {
         switch self {
+        case .systemConfig:
+            return NetworkPath.systemConfig
+        case .generateEncryptKey:
+            return NetworkPath.generateEncryptKey
         case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT,
              .cloudflareAAAA, .aliDoHA, .cloudflareA:
-            ""
+            return ""
         }
     }
     
     var method: Moya.Method {
         switch self {
+        case .systemConfig:
+            return .post
+        case .generateEncryptKey:
+            return .get
         case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT,
              .cloudflareAAAA, .aliDoHA, .cloudflareA:
-            .get
+            return .get
         }
     }
     
     var task: Moya.Task {
         switch self {
+        case .systemConfig:
+            return .requestParameters(
+                parameters: ["projectId": ""],
+                encoding: JSONEncoding.default
+            )
+        case .generateEncryptKey:
+            return .requestPlain
         case .tencentDoHAAAA:
             return .requestParameters(
                 parameters: ["name": tencent_httpdns_test_domain, "type": "AAAA"],
@@ -102,6 +127,10 @@ extension ApiType: TargetType {
     var headers: [String : String]? {
         var header = [String : String]()
         switch self {
+        case .systemConfig(_, let headers):
+            return headers
+        case .generateEncryptKey(_, let headers):
+            return headers
         case .tencentDoHAAAA, .aliDoHTXT, .cloudflareDoHTXT,
              .cloudflareAAAA, .aliDoHA, .cloudflareA:
             header["Accept"] = "application/dns-json"
