@@ -26,6 +26,8 @@
 		C0D3A0010000000000000003 /* Localize_Swift in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0010000000000000004 /* Localize_Swift */; };
 		DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */ = {isa = PBXBuildFile; productRef = DD4B2D4E306274680031D035 /* ObjectMapper */; };
 		DDA7937D3064B6D9002421B4 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = DDA7937C3064B6D9002421B4 /* SwiftProtobuf */; };
+		DDADAC4430652BF600F0B6ED /* NoaChatCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; };
+		DDADAC4530652BF600F0B6ED /* NoaChatCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */ = {isa = PBXBuildFile; productRef = DDC481FA306101510097F2C3 /* TBBasicLib */; };
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
 /* End PBXBuildFile section */
@@ -47,6 +49,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				DDADAC4530652BF600F0B6ED /* NoaChatCore.framework in Embed Frameworks */,
 				AF019ABC305D300000000010 /* WCDBSwiftDynamic in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -59,6 +62,7 @@
 		70AF31731E8FA4AB6D0A7FE4 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		7CFD8FD33BBD2B9E314ABF93 /* Pods_ddlNew.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ddlNew.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD12A8CC305CD63A005799BD /* ddlNew.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ddlNew.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = NoaChatCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E8A4295B1CBE575C234CB752 /* ddlNewUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ddlNewUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MemberJourneyTests.swift; sourceTree = "<group>"; };
 		F450AC13BFE6238D095ADEDD /* Pods-ddlNew.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ddlNew.release.xcconfig"; path = "Target Support Files/Pods-ddlNew/Pods-ddlNew.release.xcconfig"; sourceTree = "<group>"; };
@@ -109,6 +113,7 @@
 				AF019ABC305D300000000006 /* UIAdapter in Frameworks */,
 				AF019ABC305D30000000000F /* SwiftUIIntrospect in Frameworks */,
 				AF019ABC305D30000000000C /* SwiftUIX in Frameworks */,
+				DDADAC4430652BF600F0B6ED /* NoaChatCore.framework in Frameworks */,
 				AF019ABC305D300000000009 /* AlertToast in Frameworks */,
 				A71B2C3D4E5F60718293A403 /* Moya in Frameworks */,
 				A71B2C3D4E5F60718293A406 /* RxSwift in Frameworks */,
@@ -133,6 +138,7 @@
 		6BE211773B972D2BB3F4D6DD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */,
 				7CFD8FD33BBD2B9E314ABF93 /* Pods_ddlNew.framework */,
 				66AABE754F7E7DDD11468F34 /* iOS */,
 			);
@@ -742,6 +748,8 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
+			traits = (
+			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;

@@ -1,0 +1,1868 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		18B1539128A270570033CB51 /* NoaChatSDKCore.docc in Sources */ = {isa = PBXBuildFile; fileRef = 18B1539028A270570033CB51 /* NoaChatSDKCore.docc */; };
+		18B1539D28A270580033CB51 /* NoaIMSDKCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 18B1538F28A270570033CB51 /* NoaIMSDKCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		2DF1BA232ED700D0008785D0 /* WCDBObjc.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2DF1BA222ED700D0008785D0 /* WCDBObjc.framework */; };
+		2DF1BA342ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.m in Sources */ = {isa = PBXBuildFile; fileRef = 2DF1BA332ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.m */; };
+		2DF1BA352ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DF1BA322ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.h */; };
+		6C8487C52E7A98A500AF71B8 /* NoaIMSDKManager+Probe.h in Headers */ = {isa = PBXBuildFile; fileRef = 6C8487C12E7A98A500AF71B8 /* NoaIMSDKManager+Probe.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6C8487C82E7A98A500AF71B8 /* NoaIMSDKManager+Probe.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C8487C22E7A98A500AF71B8 /* NoaIMSDKManager+Probe.m */; };
+		6CAE35252E6FDD680024763A /* NoaIMLoganHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CAE351F2E6FDD680024763A /* NoaIMLoganHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6CAE35262E6FDD680024763A /* NoaIMLoganOption.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CAE35222E6FDD680024763A /* NoaIMLoganOption.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6CAE35272E6FDD680024763A /* NoaIMUncaughtExceptionHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CAE351C2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6CAE35282E6FDD680024763A /* NoaIMLoganManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CAE35202E6FDD680024763A /* NoaIMLoganManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6CAE35292E6FDD680024763A /* NoaIMSignalExceptionHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CAE351A2E6FDD680024763A /* NoaIMSignalExceptionHandler.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6CAE352A2E6FDD680024763A /* NoaIMLoganManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CAE35212E6FDD680024763A /* NoaIMLoganManager.m */; };
+		6CAE352B2E6FDD680024763A /* NoaIMLoganOption.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CAE35232E6FDD680024763A /* NoaIMLoganOption.m */; };
+		6CAE352C2E6FDD680024763A /* NoaIMSignalExceptionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CAE351B2E6FDD680024763A /* NoaIMSignalExceptionHandler.m */; };
+		6CAE352E2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CAE351D2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.m */; };
+		6CAE35312E6FDEC00024763A /* NoaIMSDKManager+Logan.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CAE352F2E6FDEC00024763A /* NoaIMSDKManager+Logan.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6CAE35322E6FDEC00024763A /* NoaIMSDKManager+Logan.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CAE35302E6FDEC00024763A /* NoaIMSDKManager+Logan.m */; };
+		C31576182E68431D007EC45E /* NovDecryptorManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C31576142E68431D007EC45E /* NovDecryptorManager.m */; };
+		C31576192E68431D007EC45E /* ECDHClientProtocolHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = C31576102E68431D007EC45E /* ECDHClientProtocolHandler.m */; };
+		C315761A2E68431D007EC45E /* ZIMMessageDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = C315760A2E68431D007EC45E /* ZIMMessageDecoder.m */; };
+		C315761B2E68431D007EC45E /* ZIMKeyExchange.m in Sources */ = {isa = PBXBuildFile; fileRef = C315760E2E68431D007EC45E /* ZIMKeyExchange.m */; };
+		C315761C2E68431D007EC45E /* ZIMAESEncryption.m in Sources */ = {isa = PBXBuildFile; fileRef = C315760C2E68431D007EC45E /* ZIMAESEncryption.m */; };
+		C315761D2E68431D007EC45E /* ECDHKeyManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C31576122E68431D007EC45E /* ECDHKeyManager.m */; };
+		C315761E2E68431D007EC45E /* MessageProtocolHeader.m in Sources */ = {isa = PBXBuildFile; fileRef = C31576162E68431D007EC45E /* MessageProtocolHeader.m */; };
+		C315761F2E68431D007EC45E /* MessageProtocolHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = C31576152E68431D007EC45E /* MessageProtocolHeader.h */; };
+		C31576202E68431D007EC45E /* ECDHClientProtocolHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = C315760F2E68431D007EC45E /* ECDHClientProtocolHandler.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C31576212E68431D007EC45E /* ZIMAESEncryption.h in Headers */ = {isa = PBXBuildFile; fileRef = C315760B2E68431D007EC45E /* ZIMAESEncryption.h */; };
+		C31576222E68431D007EC45E /* ZIMKeyExchange.h in Headers */ = {isa = PBXBuildFile; fileRef = C315760D2E68431D007EC45E /* ZIMKeyExchange.h */; };
+		C31576232E68431D007EC45E /* ZIMMessageDecoder.h in Headers */ = {isa = PBXBuildFile; fileRef = C31576092E68431D007EC45E /* ZIMMessageDecoder.h */; };
+		C31576242E68431D007EC45E /* ECDHKeyManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C31576112E68431D007EC45E /* ECDHKeyManager.h */; };
+		C31576252E68431D007EC45E /* NovDecryptorManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C31576132E68431D007EC45E /* NovDecryptorManager.h */; };
+		C31576282E684345007EC45E /* NoaIMSocketManager+EchoEncryption.m in Sources */ = {isa = PBXBuildFile; fileRef = C31576272E684345007EC45E /* NoaIMSocketManager+EchoEncryption.m */; };
+		C31576292E684345007EC45E /* NoaIMSocketManager+EchoEncryption.h in Headers */ = {isa = PBXBuildFile; fileRef = C31576262E684345007EC45E /* NoaIMSocketManager+EchoEncryption.h */; };
+		C35DDA3D2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = C35DDA3B2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.m */; };
+		C35DDA3E2E5C053F0002E0DF /* LingIMTcpCommonTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C35DDA332E5C053F0002E0DF /* LingIMTcpCommonTool.m */; };
+		C35DDA412E5C053F0002E0DF /* LingIMTcpRequestModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C35DDA392E5C053F0002E0DF /* LingIMTcpRequestModel.m */; };
+		C35DDA442E5C053F0002E0DF /* LingIMTcpRequestModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C35DDA382E5C053F0002E0DF /* LingIMTcpRequestModel.h */; };
+		C35DDA452E5C053F0002E0DF /* LingIMTcpCommonTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C35DDA322E5C053F0002E0DF /* LingIMTcpCommonTool.h */; };
+		C35DDA472E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = C35DDA3A2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.h */; };
+		C38FF8EC2E5D98A400EC7BAB /* LingImmessage.pbobjc.m in Sources */ = {isa = PBXBuildFile; fileRef = C38FF8EB2E5D98A400EC7BAB /* LingImmessage.pbobjc.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		C38FF8ED2E5D98A400EC7BAB /* LingImmessage.pbobjc.h in Headers */ = {isa = PBXBuildFile; fileRef = C38FF8EA2E5D98A400EC7BAB /* LingImmessage.pbobjc.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3AD95652E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = C3AD95642E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.m */; };
+		C3AD95662E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = C3AD95632E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.h */; };
+		C3DAE0742E54828B00CCA36B /* libLXChatEncrypt.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C3DADF702E54828B00CCA36B /* libLXChatEncrypt.a */; };
+		C3DAE0752E54828B00CCA36B /* NoaIMDBTool+Friend.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFD02E54828B00CCA36B /* NoaIMDBTool+Friend.mm */; };
+		C3DAE0762E54828B00CCA36B /* LingIMGroupModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0072E54828B00CCA36B /* LingIMGroupModel.mm */; };
+		C3DAE0772E54828B00CCA36B /* NoaIMHttpManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF902E54828B00CCA36B /* NoaIMHttpManager.m */; };
+		C3DAE0782E54828B00CCA36B /* LingIMGroupMemberModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0042E54828B00CCA36B /* LingIMGroupMemberModel.mm */; };
+		C3DAE0792E54828B00CCA36B /* NoaIMSocketUserOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFC12E54828B00CCA36B /* NoaIMSocketUserOptions.m */; };
+		C3DAE07A2E54828B00CCA36B /* OIMGCDMulticastDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFEA2E54828B00CCA36B /* OIMGCDMulticastDelegate.m */; };
+		C3DAE07B2E54828B00CCA36B /* LIMMediaCallGroupParticipant.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE00D2E54828B00CCA36B /* LIMMediaCallGroupParticipant.m */; };
+		C3DAE07C2E54828B00CCA36B /* NoaIMDBTool+Stickers.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFDA2E54828B00CCA36B /* NoaIMDBTool+Stickers.mm */; };
+		C3DAE07D2E54828B00CCA36B /* NoaIMDBTool+MiniApp.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFD62E54828B00CCA36B /* NoaIMDBTool+MiniApp.mm */; };
+		C3DAE07E2E54828B00CCA36B /* NoaIMSDKManager+GroupMember.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0592E54828B00CCA36B /* NoaIMSDKManager+GroupMember.m */; };
+		C3DAE0802E54828B00CCA36B /* UIDevice+FCUUID.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF632E54828B00CCA36B /* UIDevice+FCUUID.m */; };
+		C3DAE0812E54828B00CCA36B /* NoaIMSDKHostOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0442E54828B00CCA36B /* NoaIMSDKHostOptions.m */; };
+		C3DAE0822E54828B00CCA36B /* NoaIMDBTool.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFCA2E54828B00CCA36B /* NoaIMDBTool.mm */; };
+		C3DAE0832E54828B00CCA36B /* NoaIMDBTool+Group.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFD22E54828B00CCA36B /* NoaIMDBTool+Group.mm */; };
+		C3DAE0842E54828B00CCA36B /* LingIMSensitiveRecordsModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0252E54828B00CCA36B /* LingIMSensitiveRecordsModel.mm */; };
+		C3DAE0852E54828B00CCA36B /* LIMMediaCallModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0132E54828B00CCA36B /* LIMMediaCallModel.m */; };
+		C3DAE0862E54828B00CCA36B /* NoaIMFunction.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF782E54828B00CCA36B /* NoaIMFunction.m */; };
+		C3DAE0872E54828B00CCA36B /* NoaIMHttpManager+AppInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF922E54828B00CCA36B /* NoaIMHttpManager+AppInfo.m */; };
+		C3DAE0882E54828B00CCA36B /* NoaIMDBTool+AppInfo.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFCC2E54828B00CCA36B /* NoaIMDBTool+AppInfo.mm */; };
+		C3DAE0892E54828B00CCA36B /* FCUUID.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF5F2E54828B00CCA36B /* FCUUID.m */; };
+		C3DAE08A2E54828B00CCA36B /* NoaIMHttpResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFAA2E54828B00CCA36B /* NoaIMHttpResponse.m */; };
+		C3DAE08B2E54828B00CCA36B /* LingIMSensitiveModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0212E54828B00CCA36B /* LingIMSensitiveModel.m */; };
+		C3DAE08C2E54828B00CCA36B /* RecentsEmojiModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFF92E54828B00CCA36B /* RecentsEmojiModel.mm */; };
+		C3DAE08D2E54828B00CCA36B /* NoaIMSocketHostOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFBB2E54828B00CCA36B /* NoaIMSocketHostOptions.m */; };
+		C3DAE08E2E54828B00CCA36B /* NoaIMSDKApiOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0422E54828B00CCA36B /* NoaIMSDKApiOptions.m */; };
+		C3DAE08F2E54828B00CCA36B /* LingIMGroupActiviteScoreModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0022E54828B00CCA36B /* LingIMGroupActiviteScoreModel.m */; };
+		C3DAE0902E54828B00CCA36B /* NoaIMDeviceTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF762E54828B00CCA36B /* NoaIMDeviceTool.m */; };
+		C3DAE0912E54828B00CCA36B /* NoaIMZGCallOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF8B2E54828B00CCA36B /* NoaIMZGCallOptions.m */; };
+		C3DAE0922E54828B00CCA36B /* NoaIMHttpManager+Stickers.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFA22E54828B00CCA36B /* NoaIMHttpManager+Stickers.m */; };
+		C3DAE0932E54828B00CCA36B /* UICKeyChainStore.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF612E54828B00CCA36B /* UICKeyChainStore.m */; };
+		C3DAE0952E54828B00CCA36B /* NoaIMCallManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF812E54828B00CCA36B /* NoaIMCallManager.m */; };
+		C3DAE0962E54828B00CCA36B /* LingIMCallOptionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF842E54828B00CCA36B /* LingIMCallOptionsManager.swift */; };
+		C3DAE0972E54828B00CCA36B /* NoaIMSDKManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0492E54828B00CCA36B /* NoaIMSDKManager.mm */; };
+		C3DAE0982E54828B00CCA36B /* LingIMFriendGroupModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0352E54828B00CCA36B /* LingIMFriendGroupModel.mm */; };
+		C3DAE09A2E54828B00CCA36B /* NoaIMMessageRemindTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF7D2E54828B00CCA36B /* NoaIMMessageRemindTool.m */; };
+		C3DAE09B2E54828B00CCA36B /* LIMServerMessageModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0292E54828B00CCA36B /* LIMServerMessageModel.m */; };
+		C3DAE09D2E54828B00CCA36B /* NoaIMZGCallConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF872E54828B00CCA36B /* NoaIMZGCallConfig.m */; };
+		C3DAE09E2E54828B00CCA36B /* NoaIMSocketManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFBD2E54828B00CCA36B /* NoaIMSocketManager.m */; };
+		C3DAE09F2E54828B00CCA36B /* NoaIMSocketManagerTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFBF2E54828B00CCA36B /* NoaIMSocketManagerTool.m */; };
+		C3DAE0A02E54828B00CCA36B /* NoaIMDBTool+Session.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFD82E54828B00CCA36B /* NoaIMDBTool+Session.mm */; };
+		C3DAE0A12E54828B00CCA36B /* NoaIMSDKManager+Auth.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE04D2E54828B00CCA36B /* NoaIMSDKManager+Auth.m */; };
+		C3DAE0A22E54828B00CCA36B /* LingIMTranslateConfigModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE03B2E54828B00CCA36B /* LingIMTranslateConfigModel.m */; };
+		C3DAE0A32E54828B00CCA36B /* NoaIMSDKManager+User.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE06F2E54828B00CCA36B /* NoaIMSDKManager+User.m */; };
+		C3DAE0A42E54828B00CCA36B /* LIMMassMessageModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE02C2E54828B00CCA36B /* LIMMassMessageModel.m */; };
+		C3DAE0A52E54828B00CCA36B /* NoaIMSDKManager+AppInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE04B2E54828B00CCA36B /* NoaIMSDKManager+AppInfo.m */; };
+		C3DAE0A62E54828B00CCA36B /* NSDate+LingIMDateTime.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF662E54828B00CCA36B /* NSDate+LingIMDateTime.m */; };
+		C3DAE0A72E54828B00CCA36B /* NoaIMHttpManager+Group.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF9A2E54828B00CCA36B /* NoaIMHttpManager+Group.m */; };
+		C3DAE0A82E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0612E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.m */; };
+		C3DAE0A92E54828B00CCA36B /* LIMMediaCallMeetingModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0112E54828B00CCA36B /* LIMMediaCallMeetingModel.m */; };
+		C3DAE0AC2E54828B00CCA36B /* NoaIMSDKManager+Connect.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0532E54828B00CCA36B /* NoaIMSDKManager+Connect.m */; };
+		C3DAE0AE2E54828B00CCA36B /* NoaIMHttpManager+User.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFA82E54828B00CCA36B /* NoaIMHttpManager+User.m */; };
+		C3DAE0AF2E54828B00CCA36B /* NoaIMStickersModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFF32E54828B00CCA36B /* NoaIMStickersModel.mm */; };
+		C3DAE0B02E54828B00CCA36B /* NoaIMCallOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF832E54828B00CCA36B /* NoaIMCallOptions.m */; };
+		C3DAE0B12E54828B00CCA36B /* LingIMMiniAppModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE01A2E54828B00CCA36B /* LingIMMiniAppModel.mm */; };
+		C3DAE0B22E54828B00CCA36B /* NoaIMManagerTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF7B2E54828B00CCA36B /* NoaIMManagerTool.m */; };
+		C3DAE0B32E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0512E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.m */; };
+		C3DAE0B42E54828B00CCA36B /* NSDate+SyncServer.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF682E54828B00CCA36B /* NSDate+SyncServer.m */; };
+		C3DAE0B52E54828B00CCA36B /* NoaIMStickersPackageModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFF62E54828B00CCA36B /* NoaIMStickersPackageModel.mm */; };
+		C3DAE0B62E54828B00CCA36B /* LIMMediaCallGroupModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE00B2E54828B00CCA36B /* LIMMediaCallGroupModel.m */; };
+		C3DAE0B72E54828B00CCA36B /* NoaIMHttpManager+MiniApp.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF9E2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.m */; };
+		C3DAE0B82E54828B00CCA36B /* LingIMMMKVTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFC62E54828B00CCA36B /* LingIMMMKVTool.m */; };
+		C3DAE0B92E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE05D2E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.m */; };
+		C3DAE0BA2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE00F2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.m */; };
+		C3DAE0BB2E54828B00CCA36B /* NoaIMHttpManager+Auth.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF942E54828B00CCA36B /* NoaIMHttpManager+Auth.m */; };
+		C3DAE0BC2E54828B00CCA36B /* NoaIMSDKManager+Translate.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE06D2E54828B00CCA36B /* NoaIMSDKManager+Translate.m */; };
+		C3DAE0BD2E54828B00CCA36B /* NoaIMHttpManager+Translate.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFA62E54828B00CCA36B /* NoaIMHttpManager+Translate.m */; };
+		C3DAE0BE2E54828B00CCA36B /* NoaIMChatMessageModel+WCTColumnCoding.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFF02E54828B00CCA36B /* NoaIMChatMessageModel+WCTColumnCoding.mm */; };
+		C3DAE0C02E54828B00CCA36B /* NoaIMChatMessageModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFEF2E54828B00CCA36B /* NoaIMChatMessageModel.mm */; };
+		C3DAE0C12E54828B00CCA36B /* NoaChatMessageModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFED2E54828B00CCA36B /* NoaChatMessageModel.m */; };
+		C3DAE0C22E54828B00CCA36B /* NoaIMHttpManager+signin.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFA02E54828B00CCA36B /* NoaIMHttpManager+signin.m */; };
+		C3DAE0C32E54828B00CCA36B /* NoaIMSDKManager+Team.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE06B2E54828B00CCA36B /* NoaIMSDKManager+Team.m */; };
+		C3DAE0C42E54828B00CCA36B /* NoaIMSDKManager+Friend.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0552E54828B00CCA36B /* NoaIMSDKManager+Friend.m */; };
+		C3DAE0C52E54828B00CCA36B /* NoaFloatMiniAppModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFFD2E54828B00CCA36B /* NoaFloatMiniAppModel.m */; };
+		C3DAE0C62E54828B00CCA36B /* NoaIMHttpManager+Message.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF9C2E54828B00CCA36B /* NoaIMHttpManager+Message.m */; };
+		C3DAE0C72E54828B00CCA36B /* NoaIMSDKManager+Call.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE04F2E54828B00CCA36B /* NoaIMSDKManager+Call.m */; };
+		C3DAE0C92E54828B00CCA36B /* NoaIMSDKManager+Session.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0632E54828B00CCA36B /* NoaIMSDKManager+Session.m */; };
+		C3DAE0CA2E54828B00CCA36B /* NoaIMSDKManager+SyncServer.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0692E54828B00CCA36B /* NoaIMSDKManager+SyncServer.m */; };
+		C3DAE0CB2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFFF2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.mm */; };
+		C3DAE0CC2E54828B00CCA36B /* NoaIMHttpManager+Team.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFA42E54828B00CCA36B /* NoaIMHttpManager+Team.m */; };
+		C3DAE0CD2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE05F2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.m */; };
+		C3DAE0CE2E54828B00CCA36B /* NoaIMSDKUserOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0462E54828B00CCA36B /* NoaIMSDKUserOptions.m */; };
+		C3DAE0CF2E54828B00CCA36B /* NoaIMHttpManager+Call.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF962E54828B00CCA36B /* NoaIMHttpManager+Call.m */; };
+		C3DAE0D02E54828B00CCA36B /* NoaIMDBTool+ChatMessage.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFCE2E54828B00CCA36B /* NoaIMDBTool+ChatMessage.mm */; };
+		C3DAE0D12E54828B00CCA36B /* ThreadSafeMutableDictionary.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF732E54828B00CCA36B /* ThreadSafeMutableDictionary.m */; };
+		C3DAE0D22E54828B00CCA36B /* NoaIMDBTool+GroupMember.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DADFD42E54828B00CCA36B /* NoaIMDBTool+GroupMember.mm */; };
+		C3DAE0D32E54828B00CCA36B /* NoaIMSDKManager+signin.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0652E54828B00CCA36B /* NoaIMSDKManager+signin.m */; };
+		C3DAE0D42E54828B00CCA36B /* LIMMediaCallRoomInfoModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0152E54828B00CCA36B /* LIMMediaCallRoomInfoModel.m */; };
+		C3DAE0D52E54828B00CCA36B /* LingIMSessionModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0312E54828B00CCA36B /* LingIMSessionModel.mm */; };
+		C3DAE0D62E54828B00CCA36B /* NoaIMSDKManager+Group.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0572E54828B00CCA36B /* NoaIMSDKManager+Group.m */; };
+		C3DAE0D72E54828B00CCA36B /* NoaIMHttpManager+Friend.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF982E54828B00CCA36B /* NoaIMHttpManager+Friend.m */; };
+		C3DAE0D82E54828B00CCA36B /* LingIMModelTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE01E2E54828B00CCA36B /* LingIMModelTool.m */; };
+		C3DAE0D92E54828B00CCA36B /* NoaIMZGCallManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF892E54828B00CCA36B /* NoaIMZGCallManager.m */; };
+		C3DAE0DA2E54828B00CCA36B /* LingIMFriendModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0382E54828B00CCA36B /* LingIMFriendModel.mm */; };
+		C3DAE0DB2E54828B00CCA36B /* LIMSessionModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE02F2E54828B00CCA36B /* LIMSessionModel.m */; };
+		C3DAE0DC2E54828B00CCA36B /* ZDateRequestTool.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DADF6A2E54828B00CCA36B /* ZDateRequestTool.m */; };
+		C3DAE0DD2E54828B00CCA36B /* NoaIMSDKManager+Stickers.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0672E54828B00CCA36B /* NoaIMSDKManager+Stickers.m */; };
+		C3DAE0DE2E54828B00CCA36B /* LIMMediaCallSingleModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0172E54828B00CCA36B /* LIMMediaCallSingleModel.m */; };
+		C3DAE0E02E54828B00CCA36B /* LingIMUserModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE03D2E54828B00CCA36B /* LingIMUserModel.mm */; };
+		C3DAE0E22E54828B00CCA36B /* LingIMSensitivePageModel.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DAE0232E54828B00CCA36B /* LingIMSensitivePageModel.m */; };
+		C3DAE0E42E54828B00CCA36B /* NoaIMDBTool+ChatMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFCD2E54828B00CCA36B /* NoaIMDBTool+ChatMessage.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0E52E54828B00CCA36B /* NoaIMSDKDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFE82E54828B00CCA36B /* NoaIMSDKDelegate.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0E62E54828B00CCA36B /* NoaIMHttpManager+Message.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF9B2E54828B00CCA36B /* NoaIMHttpManager+Message.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0E72E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE05C2E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0E82E54828B00CCA36B /* NoaIMHttpManager+Translate.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFA52E54828B00CCA36B /* NoaIMHttpManager+Translate.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0E92E54828B00CCA36B /* LingIMTranslateConfigModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE03A2E54828B00CCA36B /* LingIMTranslateConfigModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0EA2E54828B00CCA36B /* LingIMFriendModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0372E54828B00CCA36B /* LingIMFriendModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0EB2E54828B00CCA36B /* NoaIMSDKUserOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0452E54828B00CCA36B /* NoaIMSDKUserOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0EC2E54828B00CCA36B /* LingIMMiniAppModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0192E54828B00CCA36B /* LingIMMiniAppModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0ED2E54828B00CCA36B /* NoaIMSDKManager+User.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE06E2E54828B00CCA36B /* NoaIMSDKManager+User.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0EE2E54828B00CCA36B /* ZDateRequestTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF692E54828B00CCA36B /* ZDateRequestTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0EF2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE05E2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F02E54828B00CCA36B /* NoaIMHttpResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFA92E54828B00CCA36B /* NoaIMHttpResponse.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F12E54828B00CCA36B /* NoaIMManagerTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF7A2E54828B00CCA36B /* NoaIMManagerTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F22E54828B00CCA36B /* LingIMGroupMemberModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0032E54828B00CCA36B /* LingIMGroupMemberModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F42E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE00E2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F52E54828B00CCA36B /* NoaIMHttpManager+Team.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFA32E54828B00CCA36B /* NoaIMHttpManager+Team.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F62E54828B00CCA36B /* NoaIMSDKManagerHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0702E54828B00CCA36B /* NoaIMSDKManagerHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F72E54828B00CCA36B /* NoaIMSocketManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFBC2E54828B00CCA36B /* NoaIMSocketManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F82E54828B00CCA36B /* NoaIMSDKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0482E54828B00CCA36B /* NoaIMSDKManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0F92E54828B00CCA36B /* NoaIMSocketManagerTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFBE2E54828B00CCA36B /* NoaIMSocketManagerTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0FC2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF9D2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0FD2E54828B00CCA36B /* NoaIMHttpManager+Call.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF952E54828B00CCA36B /* NoaIMHttpManager+Call.h */; };
+		C3DAE0FE2E54828B00CCA36B /* NoaIMSDKManager+SyncServer.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0682E54828B00CCA36B /* NoaIMSDKManager+SyncServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE0FF2E54828B00CCA36B /* NoaIMStickersPackageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFF52E54828B00CCA36B /* NoaIMStickersPackageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1002E54828B00CCA36B /* NoaIMHttpManager+Auth.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF932E54828B00CCA36B /* NoaIMHttpManager+Auth.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1012E54828B00CCA36B /* NoaIMDBTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFC92E54828B00CCA36B /* NoaIMDBTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1022E54828B00CCA36B /* NoaIMSDKManager+Session.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0622E54828B00CCA36B /* NoaIMSDKManager+Session.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1032E54828B00CCA36B /* NoaIMSDKManager+AppInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE04A2E54828B00CCA36B /* NoaIMSDKManager+AppInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1042E54828B00CCA36B /* NoaIMSocketHostOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFBA2E54828B00CCA36B /* NoaIMSocketHostOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1052E54828B00CCA36B /* LingIMSensitiveRecordsModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0242E54828B00CCA36B /* LingIMSensitiveRecordsModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1062E54828B00CCA36B /* NoaIMDBTool+Stickers.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFD92E54828B00CCA36B /* NoaIMDBTool+Stickers.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1072E54828B00CCA36B /* RecentsEmojiModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFF82E54828B00CCA36B /* RecentsEmojiModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1082E54828B00CCA36B /* NoaIMZGCallConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF862E54828B00CCA36B /* NoaIMZGCallConfig.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE10A2E54828B00CCA36B /* NoaFloatMiniAppModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFFC2E54828B00CCA36B /* NoaFloatMiniAppModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE10B2E54828B00CCA36B /* NoaIMHttpManager+AppInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF912E54828B00CCA36B /* NoaIMHttpManager+AppInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE10C2E54828B00CCA36B /* NoaIMDBTool+MiniApp.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFD52E54828B00CCA36B /* NoaIMDBTool+MiniApp.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE10D2E54828B00CCA36B /* LingIMCallHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF8D2E54828B00CCA36B /* LingIMCallHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE10E2E54828B00CCA36B /* NoaIMHttpManager+signin.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF9F2E54828B00CCA36B /* NoaIMHttpManager+signin.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1102E54828B00CCA36B /* NoaIMSDKManager+Friend.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0542E54828B00CCA36B /* NoaIMSDKManager+Friend.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1112E54828B00CCA36B /* NoaIMChatMessageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFEE2E54828B00CCA36B /* NoaIMChatMessageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1132E54828B00CCA36B /* NoaIMHttpManager+Stickers.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFA12E54828B00CCA36B /* NoaIMHttpManager+Stickers.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1142E54828B00CCA36B /* NoaIMChatMessageModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFF12E54828B00CCA36B /* NoaIMChatMessageModel+WCTTableCoding.h */; };
+		C3DAE1152E54828B00CCA36B /* LingIMSensitivePageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0222E54828B00CCA36B /* LingIMSensitivePageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1162E54828B00CCA36B /* LIMSessionModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE02E2E54828B00CCA36B /* LIMSessionModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1172E54828B00CCA36B /* ThreadSafeMutableDictionary.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF722E54828B00CCA36B /* ThreadSafeMutableDictionary.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1182E54828B00CCA36B /* UICKeyChainStore.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF602E54828B00CCA36B /* UICKeyChainStore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1192E54828B00CCA36B /* NoaIMSDKManager+Auth.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE04C2E54828B00CCA36B /* NoaIMSDKManager+Auth.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE11A2E54828B00CCA36B /* NoaIMDBTool+AppInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFCB2E54828B00CCA36B /* NoaIMDBTool+AppInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE11B2E54828B00CCA36B /* LingIMSensitiveRecordsModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0262E54828B00CCA36B /* LingIMSensitiveRecordsModel+WCTTableCoding.h */; };
+		C3DAE11C2E54828B00CCA36B /* NoaIMSDKManager+Call.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE04E2E54828B00CCA36B /* NoaIMSDKManager+Call.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE11D2E54828B00CCA36B /* LingIMUserModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE03E2E54828B00CCA36B /* LingIMUserModel+WCTTableCoding.h */; };
+		C3DAE11E2E54828B00CCA36B /* NoaIMStickersModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFF22E54828B00CCA36B /* NoaIMStickersModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE11F2E54828B00CCA36B /* NoaIMMessageRemindTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF7C2E54828B00CCA36B /* NoaIMMessageRemindTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1202E54828B00CCA36B /* NoaIMSDKManager+signin.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0642E54828B00CCA36B /* NoaIMSDKManager+signin.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1212E54828B00CCA36B /* NoaIMHttpManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF8F2E54828B00CCA36B /* NoaIMHttpManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1222E54828B00CCA36B /* NoaIMDeviceTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF752E54828B00CCA36B /* NoaIMDeviceTool.h */; };
+		C3DAE1232E54828B00CCA36B /* LIMMediaCallGroupModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE00A2E54828B00CCA36B /* LIMMediaCallGroupModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1242E54828B00CCA36B /* LingIMModelTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE01D2E54828B00CCA36B /* LingIMModelTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1252E54828B00CCA36B /* NoaIMZGCallManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF882E54828B00CCA36B /* NoaIMZGCallManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1262E54828B00CCA36B /* UIDevice+FCUUID.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF622E54828B00CCA36B /* UIDevice+FCUUID.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1272E54828B00CCA36B /* LingIMFriendModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0392E54828B00CCA36B /* LingIMFriendModel+WCTTableCoding.h */; };
+		C3DAE1282E54828B00CCA36B /* LingIMGroupActiviteScoreModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0012E54828B00CCA36B /* LingIMGroupActiviteScoreModel.h */; };
+		C3DAE1292E54828B00CCA36B /* NoaIMHttpManager+Friend.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF972E54828B00CCA36B /* NoaIMHttpManager+Friend.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE12A2E54828B00CCA36B /* NoaIMZGCallOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF8A2E54828B00CCA36B /* NoaIMZGCallOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE12B2E54828B00CCA36B /* NoaIMCallManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF802E54828B00CCA36B /* NoaIMCallManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE12C2E54828B00CCA36B /* LingIMFriendGroupModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0342E54828B00CCA36B /* LingIMFriendGroupModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE12D2E54828B00CCA36B /* OIMGCDMulticastDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFE92E54828B00CCA36B /* OIMGCDMulticastDelegate.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE12E2E54828B00CCA36B /* LingIMSensitiveModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0202E54828B00CCA36B /* LingIMSensitiveModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE12F2E54828B00CCA36B /* LIMMediaCallGroupParticipant.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE00C2E54828B00CCA36B /* LIMMediaCallGroupParticipant.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1302E54828B00CCA36B /* NoaIMDBHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFC82E54828B00CCA36B /* NoaIMDBHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1312E54828B00CCA36B /* NoaIMFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF772E54828B00CCA36B /* NoaIMFunction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1322E54828B00CCA36B /* NoaIMSDKManager+Group.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0562E54828B00CCA36B /* NoaIMSDKManager+Group.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1332E54828B00CCA36B /* RecentsEmojiModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFFA2E54828B00CCA36B /* RecentsEmojiModel+WCTTableCoding.h */; };
+		C3DAE1342E54828B00CCA36B /* NoaIMDBTool+Friend.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFCF2E54828B00CCA36B /* NoaIMDBTool+Friend.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1352E54828B00CCA36B /* NoaIMDBTool+GroupMember.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFD32E54828B00CCA36B /* NoaIMDBTool+GroupMember.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1372E54828B00CCA36B /* NoaIMDBTool+Group.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFD12E54828B00CCA36B /* NoaIMDBTool+Group.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1382E54828B00CCA36B /* LingIMMMKVTool.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFC52E54828B00CCA36B /* LingIMMMKVTool.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1392E54828B00CCA36B /* NoaIMSDKHostOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0432E54828B00CCA36B /* NoaIMSDKHostOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE13B2E54828B00CCA36B /* NoaIMCallOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF822E54828B00CCA36B /* NoaIMCallOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE13C2E54828B00CCA36B /* NoaIMHttpManager+Group.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF992E54828B00CCA36B /* NoaIMHttpManager+Group.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE13D2E54828B00CCA36B /* LIMMassMessageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE02B2E54828B00CCA36B /* LIMMassMessageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE13E2E54828B00CCA36B /* LIMMediaCallSingleModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0162E54828B00CCA36B /* LIMMediaCallSingleModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1402E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0602E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1412E54828B00CCA36B /* LingIMGroupMemberModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0052E54828B00CCA36B /* LingIMGroupMemberModel+WCTTableCoding.h */; };
+		C3DAE1422E54828B00CCA36B /* LingIMMacorHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF792E54828B00CCA36B /* LingIMMacorHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1432E54828B00CCA36B /* NoaIMSDKManager+GroupMember.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0582E54828B00CCA36B /* NoaIMSDKManager+GroupMember.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1442E54828B00CCA36B /* LIMMediaCallRoomInfoModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0142E54828B00CCA36B /* LIMMediaCallRoomInfoModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1452E54828B00CCA36B /* LingIMGroupModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0082E54828B00CCA36B /* LingIMGroupModel+WCTTableCoding.h */; };
+		C3DAE1462E54828B00CCA36B /* LIMSessionMassMessageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE02D2E54828B00CCA36B /* LIMSessionMassMessageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1472E54828B00CCA36B /* NoaIMSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFC32E54828B00CCA36B /* NoaIMSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1482E54828B00CCA36B /* NoaIMStickersPackageModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFF72E54828B00CCA36B /* NoaIMStickersPackageModel+WCTTableCoding.h */; };
+		C3DAE1492E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFFE2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.h */; };
+		C3DAE14A2E54828B00CCA36B /* LIMMediaCallMeetingModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0102E54828B00CCA36B /* LIMMediaCallMeetingModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE14B2E54828B00CCA36B /* LingIMGroupModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0062E54828B00CCA36B /* LingIMGroupModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE14C2E54828B00CCA36B /* LXChatEncrypt.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF6C2E54828B00CCA36B /* LXChatEncrypt.h */; };
+		C3DAE14D2E54828B00CCA36B /* NoaIMSDKManager+Connect.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0522E54828B00CCA36B /* NoaIMSDKManager+Connect.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE14E2E54828B00CCA36B /* LIMMediaCallModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0122E54828B00CCA36B /* LIMMediaCallModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE14F2E54828B00CCA36B /* LingIMUserModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE03C2E54828B00CCA36B /* LingIMUserModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1502E54828B00CCA36B /* LingIMMiniAppModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE01B2E54828B00CCA36B /* LingIMMiniAppModel+WCTTableCoding.h */; };
+		C3DAE1512E54828B00CCA36B /* LingIMFriendGroupModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0362E54828B00CCA36B /* LingIMFriendGroupModel+WCTTableCoding.h */; };
+		C3DAE1522E54828B00CCA36B /* NoaIMStickersModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFF42E54828B00CCA36B /* NoaIMStickersModel+WCTTableCoding.h */; };
+		C3DAE1532E54828B00CCA36B /* NoaIMSDKManager+Stickers.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0662E54828B00CCA36B /* NoaIMSDKManager+Stickers.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1542E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0502E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1552E54828B00CCA36B /* LingIMSessionModel+WCTTableCoding.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0322E54828B00CCA36B /* LingIMSessionModel+WCTTableCoding.h */; };
+		C3DAE1562E54828B00CCA36B /* NSDate+LingIMDateTime.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF652E54828B00CCA36B /* NSDate+LingIMDateTime.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1572E54828B00CCA36B /* NSDate+SyncServer.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF672E54828B00CCA36B /* NSDate+SyncServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1582E54828B00CCA36B /* LingIMSessionModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0302E54828B00CCA36B /* LingIMSessionModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1592E54828B00CCA36B /* NoaIMSDKManager+Translate.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE06C2E54828B00CCA36B /* NoaIMSDKManager+Translate.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE15B2E54828B00CCA36B /* NoaIMSocketUserOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFC02E54828B00CCA36B /* NoaIMSocketUserOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE15C2E54828B00CCA36B /* NoaIMSDKApiOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0412E54828B00CCA36B /* NoaIMSDKApiOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE15D2E54828B00CCA36B /* FCUUID.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF5E2E54828B00CCA36B /* FCUUID.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE15E2E54828B00CCA36B /* NoaChatMessageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFEC2E54828B00CCA36B /* NoaChatMessageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE15F2E54828B00CCA36B /* NoaIMSDKManager+Team.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE06A2E54828B00CCA36B /* NoaIMSDKManager+Team.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1602E54828B00CCA36B /* LingIMProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADF7E2E54828B00CCA36B /* LingIMProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1612E54828B00CCA36B /* NoaIMHttpManager+User.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFA72E54828B00CCA36B /* NoaIMHttpManager+User.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1622E54828B00CCA36B /* LIMServerMessageModel.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DAE0282E54828B00CCA36B /* LIMServerMessageModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DAE1632E54828B00CCA36B /* NoaIMDBTool+Session.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DADFD72E54828B00CCA36B /* NoaIMDBTool+Session.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DF0DAC2E88233B007AF2EE /* LoggerWrapper.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DF0DAA2E88233B007AF2EE /* LoggerWrapper.h */; };
+		C3DF0DAD2E88233B007AF2EE /* LoggerWrapper.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DF0DAB2E88233B007AF2EE /* LoggerWrapper.m */; };
+		C3DF0DB22E88233B007AF2EE /* NoaLocalLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DF0DB02E88233B007AF2EE /* NoaLocalLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C3DF0DB32E88233B007AF2EE /* NoaLocalLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DF0DB12E88233B007AF2EE /* NoaLocalLogger.m */; };
+		E81A79093526FBA928481561 /* Pods_CandyTalkPro.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 73D1DA0B27A16771ED2012A9 /* Pods_CandyTalkPro.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		04CF21F228AC95610052D11A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		18B1538C28A270570033CB51 /* NoaChatCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NoaChatCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		18B1538F28A270570033CB51 /* NoaIMSDKCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKCore.h; sourceTree = "<group>"; };
+		18B1539028A270570033CB51 /* NoaChatSDKCore.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NoaChatSDKCore.docc; sourceTree = "<group>"; };
+		18B1539B28A270580033CB51 /* NoaChatSDKCoreTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaChatSDKCoreTests.m; sourceTree = "<group>"; };
+		2DF1BA222ED700D0008785D0 /* WCDBObjc.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = WCDBObjc.framework; sourceTree = "<group>"; };
+		2DF1BA322ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSocketManagerTool+LingImTcpReplaceHttp.h"; sourceTree = "<group>"; };
+		2DF1BA332ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSocketManagerTool+LingImTcpReplaceHttp.m"; sourceTree = "<group>"; };
+		4E6A025058C358A8445C4CA7 /* Pods-CandyTalkPro.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CandyTalkPro.release.xcconfig"; path = "Target Support Files/Pods-CandyTalkPro/Pods-CandyTalkPro.release.xcconfig"; sourceTree = "<group>"; };
+		6C8487C12E7A98A500AF71B8 /* NoaIMSDKManager+Probe.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Probe.h"; sourceTree = "<group>"; };
+		6C8487C22E7A98A500AF71B8 /* NoaIMSDKManager+Probe.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Probe.m"; sourceTree = "<group>"; };
+		6CAE351A2E6FDD680024763A /* NoaIMSignalExceptionHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSignalExceptionHandler.h; sourceTree = "<group>"; };
+		6CAE351B2E6FDD680024763A /* NoaIMSignalExceptionHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSignalExceptionHandler.m; sourceTree = "<group>"; };
+		6CAE351C2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMUncaughtExceptionHandler.h; sourceTree = "<group>"; };
+		6CAE351D2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMUncaughtExceptionHandler.m; sourceTree = "<group>"; };
+		6CAE351F2E6FDD680024763A /* NoaIMLoganHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMLoganHeader.h; sourceTree = "<group>"; };
+		6CAE35202E6FDD680024763A /* NoaIMLoganManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMLoganManager.h; sourceTree = "<group>"; };
+		6CAE35212E6FDD680024763A /* NoaIMLoganManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMLoganManager.m; sourceTree = "<group>"; };
+		6CAE35222E6FDD680024763A /* NoaIMLoganOption.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMLoganOption.h; sourceTree = "<group>"; };
+		6CAE35232E6FDD680024763A /* NoaIMLoganOption.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMLoganOption.m; sourceTree = "<group>"; };
+		6CAE352F2E6FDEC00024763A /* NoaIMSDKManager+Logan.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Logan.h"; sourceTree = "<group>"; };
+		6CAE35302E6FDEC00024763A /* NoaIMSDKManager+Logan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Logan.m"; sourceTree = "<group>"; };
+		6D313F282C8F837B9CA02574 /* Pods-CandyTalkPro.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CandyTalkPro.debug.xcconfig"; path = "Target Support Files/Pods-CandyTalkPro/Pods-CandyTalkPro.debug.xcconfig"; sourceTree = "<group>"; };
+		73D1DA0B27A16771ED2012A9 /* Pods_CandyTalkPro.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CandyTalkPro.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		8C9480EAA42CF09FA26B2305 /* Pods-NoaChatSDKCore.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NoaChatSDKCore.release.xcconfig"; path = "Target Support Files/Pods-NoaChatSDKCore/Pods-NoaChatSDKCore.release.xcconfig"; sourceTree = "<group>"; };
+		C31576092E68431D007EC45E /* ZIMMessageDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZIMMessageDecoder.h; sourceTree = "<group>"; };
+		C315760A2E68431D007EC45E /* ZIMMessageDecoder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZIMMessageDecoder.m; sourceTree = "<group>"; };
+		C315760B2E68431D007EC45E /* ZIMAESEncryption.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZIMAESEncryption.h; sourceTree = "<group>"; };
+		C315760C2E68431D007EC45E /* ZIMAESEncryption.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZIMAESEncryption.m; sourceTree = "<group>"; };
+		C315760D2E68431D007EC45E /* ZIMKeyExchange.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZIMKeyExchange.h; sourceTree = "<group>"; };
+		C315760E2E68431D007EC45E /* ZIMKeyExchange.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZIMKeyExchange.m; sourceTree = "<group>"; };
+		C315760F2E68431D007EC45E /* ECDHClientProtocolHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ECDHClientProtocolHandler.h; sourceTree = "<group>"; };
+		C31576102E68431D007EC45E /* ECDHClientProtocolHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ECDHClientProtocolHandler.m; sourceTree = "<group>"; };
+		C31576112E68431D007EC45E /* ECDHKeyManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ECDHKeyManager.h; sourceTree = "<group>"; };
+		C31576122E68431D007EC45E /* ECDHKeyManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ECDHKeyManager.m; sourceTree = "<group>"; };
+		C31576132E68431D007EC45E /* NovDecryptorManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NovDecryptorManager.h; sourceTree = "<group>"; };
+		C31576142E68431D007EC45E /* NovDecryptorManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NovDecryptorManager.m; sourceTree = "<group>"; };
+		C31576152E68431D007EC45E /* MessageProtocolHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MessageProtocolHeader.h; sourceTree = "<group>"; };
+		C31576162E68431D007EC45E /* MessageProtocolHeader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MessageProtocolHeader.m; sourceTree = "<group>"; };
+		C31576262E684345007EC45E /* NoaIMSocketManager+EchoEncryption.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSocketManager+EchoEncryption.h"; sourceTree = "<group>"; };
+		C31576272E684345007EC45E /* NoaIMSocketManager+EchoEncryption.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSocketManager+EchoEncryption.m"; sourceTree = "<group>"; };
+		C35DDA322E5C053F0002E0DF /* LingIMTcpCommonTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMTcpCommonTool.h; sourceTree = "<group>"; };
+		C35DDA332E5C053F0002E0DF /* LingIMTcpCommonTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMTcpCommonTool.m; sourceTree = "<group>"; };
+		C35DDA382E5C053F0002E0DF /* LingIMTcpRequestModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMTcpRequestModel.h; sourceTree = "<group>"; };
+		C35DDA392E5C053F0002E0DF /* LingIMTcpRequestModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMTcpRequestModel.m; sourceTree = "<group>"; };
+		C35DDA3A2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMTcpRequestModel+HandleReceiveMessage.h"; sourceTree = "<group>"; };
+		C35DDA3B2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "LingIMTcpRequestModel+HandleReceiveMessage.m"; sourceTree = "<group>"; };
+		C38FF8EA2E5D98A400EC7BAB /* LingImmessage.pbobjc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingImmessage.pbobjc.h; sourceTree = "<group>"; };
+		C38FF8EB2E5D98A400EC7BAB /* LingImmessage.pbobjc.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingImmessage.pbobjc.m; sourceTree = "<group>"; };
+		C3AD95632E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.h"; sourceTree = "<group>"; };
+		C3AD95642E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.m"; sourceTree = "<group>"; };
+		C3DADF5E2E54828B00CCA36B /* FCUUID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FCUUID.h; sourceTree = "<group>"; };
+		C3DADF5F2E54828B00CCA36B /* FCUUID.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FCUUID.m; sourceTree = "<group>"; };
+		C3DADF602E54828B00CCA36B /* UICKeyChainStore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UICKeyChainStore.h; sourceTree = "<group>"; };
+		C3DADF612E54828B00CCA36B /* UICKeyChainStore.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UICKeyChainStore.m; sourceTree = "<group>"; };
+		C3DADF622E54828B00CCA36B /* UIDevice+FCUUID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIDevice+FCUUID.h"; sourceTree = "<group>"; };
+		C3DADF632E54828B00CCA36B /* UIDevice+FCUUID.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UIDevice+FCUUID.m"; sourceTree = "<group>"; };
+		C3DADF652E54828B00CCA36B /* NSDate+LingIMDateTime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSDate+LingIMDateTime.h"; sourceTree = "<group>"; };
+		C3DADF662E54828B00CCA36B /* NSDate+LingIMDateTime.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSDate+LingIMDateTime.m"; sourceTree = "<group>"; };
+		C3DADF672E54828B00CCA36B /* NSDate+SyncServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSDate+SyncServer.h"; sourceTree = "<group>"; };
+		C3DADF682E54828B00CCA36B /* NSDate+SyncServer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSDate+SyncServer.m"; sourceTree = "<group>"; };
+		C3DADF692E54828B00CCA36B /* ZDateRequestTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZDateRequestTool.h; sourceTree = "<group>"; };
+		C3DADF6A2E54828B00CCA36B /* ZDateRequestTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZDateRequestTool.m; sourceTree = "<group>"; };
+		C3DADF6C2E54828B00CCA36B /* LXChatEncrypt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LXChatEncrypt.h; sourceTree = "<group>"; };
+		C3DADF702E54828B00CCA36B /* libLXChatEncrypt.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libLXChatEncrypt.a; sourceTree = "<group>"; };
+		C3DADF722E54828B00CCA36B /* ThreadSafeMutableDictionary.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ThreadSafeMutableDictionary.h; sourceTree = "<group>"; };
+		C3DADF732E54828B00CCA36B /* ThreadSafeMutableDictionary.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ThreadSafeMutableDictionary.m; sourceTree = "<group>"; };
+		C3DADF752E54828B00CCA36B /* NoaIMDeviceTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMDeviceTool.h; sourceTree = "<group>"; };
+		C3DADF762E54828B00CCA36B /* NoaIMDeviceTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMDeviceTool.m; sourceTree = "<group>"; };
+		C3DADF772E54828B00CCA36B /* NoaIMFunction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMFunction.h; sourceTree = "<group>"; };
+		C3DADF782E54828B00CCA36B /* NoaIMFunction.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMFunction.m; sourceTree = "<group>"; };
+		C3DADF792E54828B00CCA36B /* LingIMMacorHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMMacorHeader.h; sourceTree = "<group>"; };
+		C3DADF7A2E54828B00CCA36B /* NoaIMManagerTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMManagerTool.h; sourceTree = "<group>"; };
+		C3DADF7B2E54828B00CCA36B /* NoaIMManagerTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMManagerTool.m; sourceTree = "<group>"; };
+		C3DADF7C2E54828B00CCA36B /* NoaIMMessageRemindTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMMessageRemindTool.h; sourceTree = "<group>"; };
+		C3DADF7D2E54828B00CCA36B /* NoaIMMessageRemindTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMMessageRemindTool.m; sourceTree = "<group>"; };
+		C3DADF7E2E54828B00CCA36B /* LingIMProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMProtocol.h; sourceTree = "<group>"; };
+		C3DADF802E54828B00CCA36B /* NoaIMCallManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMCallManager.h; sourceTree = "<group>"; };
+		C3DADF812E54828B00CCA36B /* NoaIMCallManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMCallManager.m; sourceTree = "<group>"; };
+		C3DADF822E54828B00CCA36B /* NoaIMCallOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMCallOptions.h; sourceTree = "<group>"; };
+		C3DADF832E54828B00CCA36B /* NoaIMCallOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMCallOptions.m; sourceTree = "<group>"; };
+		C3DADF842E54828B00CCA36B /* LingIMCallOptionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LingIMCallOptionsManager.swift; sourceTree = "<group>"; };
+		C3DADF862E54828B00CCA36B /* NoaIMZGCallConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMZGCallConfig.h; sourceTree = "<group>"; };
+		C3DADF872E54828B00CCA36B /* NoaIMZGCallConfig.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMZGCallConfig.m; sourceTree = "<group>"; };
+		C3DADF882E54828B00CCA36B /* NoaIMZGCallManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMZGCallManager.h; sourceTree = "<group>"; };
+		C3DADF892E54828B00CCA36B /* NoaIMZGCallManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMZGCallManager.m; sourceTree = "<group>"; };
+		C3DADF8A2E54828B00CCA36B /* NoaIMZGCallOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMZGCallOptions.h; sourceTree = "<group>"; };
+		C3DADF8B2E54828B00CCA36B /* NoaIMZGCallOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMZGCallOptions.m; sourceTree = "<group>"; };
+		C3DADF8D2E54828B00CCA36B /* LingIMCallHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMCallHeader.h; sourceTree = "<group>"; };
+		C3DADF8F2E54828B00CCA36B /* NoaIMHttpManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMHttpManager.h; sourceTree = "<group>"; };
+		C3DADF902E54828B00CCA36B /* NoaIMHttpManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMHttpManager.m; sourceTree = "<group>"; };
+		C3DADF912E54828B00CCA36B /* NoaIMHttpManager+AppInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+AppInfo.h"; sourceTree = "<group>"; };
+		C3DADF922E54828B00CCA36B /* NoaIMHttpManager+AppInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+AppInfo.m"; sourceTree = "<group>"; };
+		C3DADF932E54828B00CCA36B /* NoaIMHttpManager+Auth.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Auth.h"; sourceTree = "<group>"; };
+		C3DADF942E54828B00CCA36B /* NoaIMHttpManager+Auth.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Auth.m"; sourceTree = "<group>"; };
+		C3DADF952E54828B00CCA36B /* NoaIMHttpManager+Call.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Call.h"; sourceTree = "<group>"; };
+		C3DADF962E54828B00CCA36B /* NoaIMHttpManager+Call.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Call.m"; sourceTree = "<group>"; };
+		C3DADF972E54828B00CCA36B /* NoaIMHttpManager+Friend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Friend.h"; sourceTree = "<group>"; };
+		C3DADF982E54828B00CCA36B /* NoaIMHttpManager+Friend.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Friend.m"; sourceTree = "<group>"; };
+		C3DADF992E54828B00CCA36B /* NoaIMHttpManager+Group.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Group.h"; sourceTree = "<group>"; };
+		C3DADF9A2E54828B00CCA36B /* NoaIMHttpManager+Group.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Group.m"; sourceTree = "<group>"; };
+		C3DADF9B2E54828B00CCA36B /* NoaIMHttpManager+Message.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Message.h"; sourceTree = "<group>"; };
+		C3DADF9C2E54828B00CCA36B /* NoaIMHttpManager+Message.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Message.m"; sourceTree = "<group>"; };
+		C3DADF9D2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+MiniApp.h"; sourceTree = "<group>"; };
+		C3DADF9E2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+MiniApp.m"; sourceTree = "<group>"; };
+		C3DADF9F2E54828B00CCA36B /* NoaIMHttpManager+signin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+signin.h"; sourceTree = "<group>"; };
+		C3DADFA02E54828B00CCA36B /* NoaIMHttpManager+signin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+signin.m"; sourceTree = "<group>"; };
+		C3DADFA12E54828B00CCA36B /* NoaIMHttpManager+Stickers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Stickers.h"; sourceTree = "<group>"; };
+		C3DADFA22E54828B00CCA36B /* NoaIMHttpManager+Stickers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Stickers.m"; sourceTree = "<group>"; };
+		C3DADFA32E54828B00CCA36B /* NoaIMHttpManager+Team.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Team.h"; sourceTree = "<group>"; };
+		C3DADFA42E54828B00CCA36B /* NoaIMHttpManager+Team.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Team.m"; sourceTree = "<group>"; };
+		C3DADFA52E54828B00CCA36B /* NoaIMHttpManager+Translate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+Translate.h"; sourceTree = "<group>"; };
+		C3DADFA62E54828B00CCA36B /* NoaIMHttpManager+Translate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+Translate.m"; sourceTree = "<group>"; };
+		C3DADFA72E54828B00CCA36B /* NoaIMHttpManager+User.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMHttpManager+User.h"; sourceTree = "<group>"; };
+		C3DADFA82E54828B00CCA36B /* NoaIMHttpManager+User.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMHttpManager+User.m"; sourceTree = "<group>"; };
+		C3DADFA92E54828B00CCA36B /* NoaIMHttpResponse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMHttpResponse.h; sourceTree = "<group>"; };
+		C3DADFAA2E54828B00CCA36B /* NoaIMHttpResponse.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMHttpResponse.m; sourceTree = "<group>"; };
+		C3DADFBA2E54828B00CCA36B /* NoaIMSocketHostOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSocketHostOptions.h; sourceTree = "<group>"; };
+		C3DADFBB2E54828B00CCA36B /* NoaIMSocketHostOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSocketHostOptions.m; sourceTree = "<group>"; };
+		C3DADFBC2E54828B00CCA36B /* NoaIMSocketManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSocketManager.h; sourceTree = "<group>"; };
+		C3DADFBD2E54828B00CCA36B /* NoaIMSocketManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSocketManager.m; sourceTree = "<group>"; };
+		C3DADFBE2E54828B00CCA36B /* NoaIMSocketManagerTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSocketManagerTool.h; sourceTree = "<group>"; };
+		C3DADFBF2E54828B00CCA36B /* NoaIMSocketManagerTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSocketManagerTool.m; sourceTree = "<group>"; };
+		C3DADFC02E54828B00CCA36B /* NoaIMSocketUserOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSocketUserOptions.h; sourceTree = "<group>"; };
+		C3DADFC12E54828B00CCA36B /* NoaIMSocketUserOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSocketUserOptions.m; sourceTree = "<group>"; };
+		C3DADFC32E54828B00CCA36B /* NoaIMSDK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDK.h; sourceTree = "<group>"; };
+		C3DADFC52E54828B00CCA36B /* LingIMMMKVTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMMMKVTool.h; sourceTree = "<group>"; };
+		C3DADFC62E54828B00CCA36B /* LingIMMMKVTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMMMKVTool.m; sourceTree = "<group>"; };
+		C3DADFC82E54828B00CCA36B /* NoaIMDBHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMDBHeader.h; sourceTree = "<group>"; };
+		C3DADFC92E54828B00CCA36B /* NoaIMDBTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMDBTool.h; sourceTree = "<group>"; };
+		C3DADFCA2E54828B00CCA36B /* NoaIMDBTool.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NoaIMDBTool.mm; sourceTree = "<group>"; };
+		C3DADFCB2E54828B00CCA36B /* NoaIMDBTool+AppInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+AppInfo.h"; sourceTree = "<group>"; };
+		C3DADFCC2E54828B00CCA36B /* NoaIMDBTool+AppInfo.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+AppInfo.mm"; sourceTree = "<group>"; };
+		C3DADFCD2E54828B00CCA36B /* NoaIMDBTool+ChatMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+ChatMessage.h"; sourceTree = "<group>"; };
+		C3DADFCE2E54828B00CCA36B /* NoaIMDBTool+ChatMessage.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+ChatMessage.mm"; sourceTree = "<group>"; };
+		C3DADFCF2E54828B00CCA36B /* NoaIMDBTool+Friend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+Friend.h"; sourceTree = "<group>"; };
+		C3DADFD02E54828B00CCA36B /* NoaIMDBTool+Friend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+Friend.mm"; sourceTree = "<group>"; };
+		C3DADFD12E54828B00CCA36B /* NoaIMDBTool+Group.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+Group.h"; sourceTree = "<group>"; };
+		C3DADFD22E54828B00CCA36B /* NoaIMDBTool+Group.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+Group.mm"; sourceTree = "<group>"; };
+		C3DADFD32E54828B00CCA36B /* NoaIMDBTool+GroupMember.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+GroupMember.h"; sourceTree = "<group>"; };
+		C3DADFD42E54828B00CCA36B /* NoaIMDBTool+GroupMember.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+GroupMember.mm"; sourceTree = "<group>"; };
+		C3DADFD52E54828B00CCA36B /* NoaIMDBTool+MiniApp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+MiniApp.h"; sourceTree = "<group>"; };
+		C3DADFD62E54828B00CCA36B /* NoaIMDBTool+MiniApp.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+MiniApp.mm"; sourceTree = "<group>"; };
+		C3DADFD72E54828B00CCA36B /* NoaIMDBTool+Session.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+Session.h"; sourceTree = "<group>"; };
+		C3DADFD82E54828B00CCA36B /* NoaIMDBTool+Session.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+Session.mm"; sourceTree = "<group>"; };
+		C3DADFD92E54828B00CCA36B /* NoaIMDBTool+Stickers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMDBTool+Stickers.h"; sourceTree = "<group>"; };
+		C3DADFDA2E54828B00CCA36B /* NoaIMDBTool+Stickers.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMDBTool+Stickers.mm"; sourceTree = "<group>"; };
+		C3DADFE82E54828B00CCA36B /* NoaIMSDKDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKDelegate.h; sourceTree = "<group>"; };
+		C3DADFE92E54828B00CCA36B /* OIMGCDMulticastDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OIMGCDMulticastDelegate.h; sourceTree = "<group>"; };
+		C3DADFEA2E54828B00CCA36B /* OIMGCDMulticastDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OIMGCDMulticastDelegate.m; sourceTree = "<group>"; };
+		C3DADFEC2E54828B00CCA36B /* NoaChatMessageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaChatMessageModel.h; sourceTree = "<group>"; };
+		C3DADFED2E54828B00CCA36B /* NoaChatMessageModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaChatMessageModel.m; sourceTree = "<group>"; };
+		C3DADFEE2E54828B00CCA36B /* NoaIMChatMessageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMChatMessageModel.h; sourceTree = "<group>"; };
+		C3DADFEF2E54828B00CCA36B /* NoaIMChatMessageModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NoaIMChatMessageModel.mm; sourceTree = "<group>"; };
+		C3DADFF02E54828B00CCA36B /* NoaIMChatMessageModel+WCTColumnCoding.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaIMChatMessageModel+WCTColumnCoding.mm"; sourceTree = "<group>"; };
+		C3DADFF12E54828B00CCA36B /* NoaIMChatMessageModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMChatMessageModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DADFF22E54828B00CCA36B /* NoaIMStickersModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMStickersModel.h; sourceTree = "<group>"; };
+		C3DADFF32E54828B00CCA36B /* NoaIMStickersModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NoaIMStickersModel.mm; sourceTree = "<group>"; };
+		C3DADFF42E54828B00CCA36B /* NoaIMStickersModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMStickersModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DADFF52E54828B00CCA36B /* NoaIMStickersPackageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMStickersPackageModel.h; sourceTree = "<group>"; };
+		C3DADFF62E54828B00CCA36B /* NoaIMStickersPackageModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NoaIMStickersPackageModel.mm; sourceTree = "<group>"; };
+		C3DADFF72E54828B00CCA36B /* NoaIMStickersPackageModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMStickersPackageModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DADFF82E54828B00CCA36B /* RecentsEmojiModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RecentsEmojiModel.h; sourceTree = "<group>"; };
+		C3DADFF92E54828B00CCA36B /* RecentsEmojiModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RecentsEmojiModel.mm; sourceTree = "<group>"; };
+		C3DADFFA2E54828B00CCA36B /* RecentsEmojiModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RecentsEmojiModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DADFFC2E54828B00CCA36B /* NoaFloatMiniAppModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaFloatMiniAppModel.h; sourceTree = "<group>"; };
+		C3DADFFD2E54828B00CCA36B /* NoaFloatMiniAppModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaFloatMiniAppModel.m; sourceTree = "<group>"; };
+		C3DADFFE2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaFloatMiniAppModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DADFFF2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NoaFloatMiniAppModel+WCTTableCoding.mm"; sourceTree = "<group>"; };
+		C3DAE0012E54828B00CCA36B /* LingIMGroupActiviteScoreModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMGroupActiviteScoreModel.h; sourceTree = "<group>"; };
+		C3DAE0022E54828B00CCA36B /* LingIMGroupActiviteScoreModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMGroupActiviteScoreModel.m; sourceTree = "<group>"; };
+		C3DAE0032E54828B00CCA36B /* LingIMGroupMemberModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMGroupMemberModel.h; sourceTree = "<group>"; };
+		C3DAE0042E54828B00CCA36B /* LingIMGroupMemberModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMGroupMemberModel.mm; sourceTree = "<group>"; };
+		C3DAE0052E54828B00CCA36B /* LingIMGroupMemberModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMGroupMemberModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE0062E54828B00CCA36B /* LingIMGroupModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMGroupModel.h; sourceTree = "<group>"; };
+		C3DAE0072E54828B00CCA36B /* LingIMGroupModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMGroupModel.mm; sourceTree = "<group>"; };
+		C3DAE0082E54828B00CCA36B /* LingIMGroupModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMGroupModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE00A2E54828B00CCA36B /* LIMMediaCallGroupModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallGroupModel.h; sourceTree = "<group>"; };
+		C3DAE00B2E54828B00CCA36B /* LIMMediaCallGroupModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallGroupModel.m; sourceTree = "<group>"; };
+		C3DAE00C2E54828B00CCA36B /* LIMMediaCallGroupParticipant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallGroupParticipant.h; sourceTree = "<group>"; };
+		C3DAE00D2E54828B00CCA36B /* LIMMediaCallGroupParticipant.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallGroupParticipant.m; sourceTree = "<group>"; };
+		C3DAE00E2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallGroupParticipantAction.h; sourceTree = "<group>"; };
+		C3DAE00F2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallGroupParticipantAction.m; sourceTree = "<group>"; };
+		C3DAE0102E54828B00CCA36B /* LIMMediaCallMeetingModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallMeetingModel.h; sourceTree = "<group>"; };
+		C3DAE0112E54828B00CCA36B /* LIMMediaCallMeetingModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallMeetingModel.m; sourceTree = "<group>"; };
+		C3DAE0122E54828B00CCA36B /* LIMMediaCallModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallModel.h; sourceTree = "<group>"; };
+		C3DAE0132E54828B00CCA36B /* LIMMediaCallModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallModel.m; sourceTree = "<group>"; };
+		C3DAE0142E54828B00CCA36B /* LIMMediaCallRoomInfoModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallRoomInfoModel.h; sourceTree = "<group>"; };
+		C3DAE0152E54828B00CCA36B /* LIMMediaCallRoomInfoModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallRoomInfoModel.m; sourceTree = "<group>"; };
+		C3DAE0162E54828B00CCA36B /* LIMMediaCallSingleModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMediaCallSingleModel.h; sourceTree = "<group>"; };
+		C3DAE0172E54828B00CCA36B /* LIMMediaCallSingleModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMediaCallSingleModel.m; sourceTree = "<group>"; };
+		C3DAE0192E54828B00CCA36B /* LingIMMiniAppModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMMiniAppModel.h; sourceTree = "<group>"; };
+		C3DAE01A2E54828B00CCA36B /* LingIMMiniAppModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMMiniAppModel.mm; sourceTree = "<group>"; };
+		C3DAE01B2E54828B00CCA36B /* LingIMMiniAppModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMMiniAppModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE01D2E54828B00CCA36B /* LingIMModelTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMModelTool.h; sourceTree = "<group>"; };
+		C3DAE01E2E54828B00CCA36B /* LingIMModelTool.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMModelTool.m; sourceTree = "<group>"; };
+		C3DAE0202E54828B00CCA36B /* LingIMSensitiveModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMSensitiveModel.h; sourceTree = "<group>"; };
+		C3DAE0212E54828B00CCA36B /* LingIMSensitiveModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMSensitiveModel.m; sourceTree = "<group>"; };
+		C3DAE0222E54828B00CCA36B /* LingIMSensitivePageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMSensitivePageModel.h; sourceTree = "<group>"; };
+		C3DAE0232E54828B00CCA36B /* LingIMSensitivePageModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMSensitivePageModel.m; sourceTree = "<group>"; };
+		C3DAE0242E54828B00CCA36B /* LingIMSensitiveRecordsModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMSensitiveRecordsModel.h; sourceTree = "<group>"; };
+		C3DAE0252E54828B00CCA36B /* LingIMSensitiveRecordsModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMSensitiveRecordsModel.mm; sourceTree = "<group>"; };
+		C3DAE0262E54828B00CCA36B /* LingIMSensitiveRecordsModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMSensitiveRecordsModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE0282E54828B00CCA36B /* LIMServerMessageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMServerMessageModel.h; sourceTree = "<group>"; };
+		C3DAE0292E54828B00CCA36B /* LIMServerMessageModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMServerMessageModel.m; sourceTree = "<group>"; };
+		C3DAE02B2E54828B00CCA36B /* LIMMassMessageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMMassMessageModel.h; sourceTree = "<group>"; };
+		C3DAE02C2E54828B00CCA36B /* LIMMassMessageModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMMassMessageModel.m; sourceTree = "<group>"; };
+		C3DAE02D2E54828B00CCA36B /* LIMSessionMassMessageModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMSessionMassMessageModel.h; sourceTree = "<group>"; };
+		C3DAE02E2E54828B00CCA36B /* LIMSessionModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LIMSessionModel.h; sourceTree = "<group>"; };
+		C3DAE02F2E54828B00CCA36B /* LIMSessionModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LIMSessionModel.m; sourceTree = "<group>"; };
+		C3DAE0302E54828B00CCA36B /* LingIMSessionModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMSessionModel.h; sourceTree = "<group>"; };
+		C3DAE0312E54828B00CCA36B /* LingIMSessionModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMSessionModel.mm; sourceTree = "<group>"; };
+		C3DAE0322E54828B00CCA36B /* LingIMSessionModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMSessionModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE0342E54828B00CCA36B /* LingIMFriendGroupModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMFriendGroupModel.h; sourceTree = "<group>"; };
+		C3DAE0352E54828B00CCA36B /* LingIMFriendGroupModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMFriendGroupModel.mm; sourceTree = "<group>"; };
+		C3DAE0362E54828B00CCA36B /* LingIMFriendGroupModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMFriendGroupModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE0372E54828B00CCA36B /* LingIMFriendModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMFriendModel.h; sourceTree = "<group>"; };
+		C3DAE0382E54828B00CCA36B /* LingIMFriendModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMFriendModel.mm; sourceTree = "<group>"; };
+		C3DAE0392E54828B00CCA36B /* LingIMFriendModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMFriendModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE03A2E54828B00CCA36B /* LingIMTranslateConfigModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMTranslateConfigModel.h; sourceTree = "<group>"; };
+		C3DAE03B2E54828B00CCA36B /* LingIMTranslateConfigModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LingIMTranslateConfigModel.m; sourceTree = "<group>"; };
+		C3DAE03C2E54828B00CCA36B /* LingIMUserModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LingIMUserModel.h; sourceTree = "<group>"; };
+		C3DAE03D2E54828B00CCA36B /* LingIMUserModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LingIMUserModel.mm; sourceTree = "<group>"; };
+		C3DAE03E2E54828B00CCA36B /* LingIMUserModel+WCTTableCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LingIMUserModel+WCTTableCoding.h"; sourceTree = "<group>"; };
+		C3DAE0412E54828B00CCA36B /* NoaIMSDKApiOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKApiOptions.h; sourceTree = "<group>"; };
+		C3DAE0422E54828B00CCA36B /* NoaIMSDKApiOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSDKApiOptions.m; sourceTree = "<group>"; };
+		C3DAE0432E54828B00CCA36B /* NoaIMSDKHostOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKHostOptions.h; sourceTree = "<group>"; };
+		C3DAE0442E54828B00CCA36B /* NoaIMSDKHostOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSDKHostOptions.m; sourceTree = "<group>"; };
+		C3DAE0452E54828B00CCA36B /* NoaIMSDKUserOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKUserOptions.h; sourceTree = "<group>"; };
+		C3DAE0462E54828B00CCA36B /* NoaIMSDKUserOptions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaIMSDKUserOptions.m; sourceTree = "<group>"; };
+		C3DAE0482E54828B00CCA36B /* NoaIMSDKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKManager.h; sourceTree = "<group>"; };
+		C3DAE0492E54828B00CCA36B /* NoaIMSDKManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NoaIMSDKManager.mm; sourceTree = "<group>"; };
+		C3DAE04A2E54828B00CCA36B /* NoaIMSDKManager+AppInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+AppInfo.h"; sourceTree = "<group>"; };
+		C3DAE04B2E54828B00CCA36B /* NoaIMSDKManager+AppInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+AppInfo.m"; sourceTree = "<group>"; };
+		C3DAE04C2E54828B00CCA36B /* NoaIMSDKManager+Auth.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Auth.h"; sourceTree = "<group>"; };
+		C3DAE04D2E54828B00CCA36B /* NoaIMSDKManager+Auth.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Auth.m"; sourceTree = "<group>"; };
+		C3DAE04E2E54828B00CCA36B /* NoaIMSDKManager+Call.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Call.h"; sourceTree = "<group>"; };
+		C3DAE04F2E54828B00CCA36B /* NoaIMSDKManager+Call.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Call.m"; sourceTree = "<group>"; };
+		C3DAE0502E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+ChatMessage.h"; sourceTree = "<group>"; };
+		C3DAE0512E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+ChatMessage.m"; sourceTree = "<group>"; };
+		C3DAE0522E54828B00CCA36B /* NoaIMSDKManager+Connect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Connect.h"; sourceTree = "<group>"; };
+		C3DAE0532E54828B00CCA36B /* NoaIMSDKManager+Connect.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Connect.m"; sourceTree = "<group>"; };
+		C3DAE0542E54828B00CCA36B /* NoaIMSDKManager+Friend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Friend.h"; sourceTree = "<group>"; };
+		C3DAE0552E54828B00CCA36B /* NoaIMSDKManager+Friend.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Friend.m"; sourceTree = "<group>"; };
+		C3DAE0562E54828B00CCA36B /* NoaIMSDKManager+Group.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Group.h"; sourceTree = "<group>"; };
+		C3DAE0572E54828B00CCA36B /* NoaIMSDKManager+Group.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Group.m"; sourceTree = "<group>"; };
+		C3DAE0582E54828B00CCA36B /* NoaIMSDKManager+GroupMember.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+GroupMember.h"; sourceTree = "<group>"; };
+		C3DAE0592E54828B00CCA36B /* NoaIMSDKManager+GroupMember.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+GroupMember.m"; sourceTree = "<group>"; };
+		C3DAE05C2E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+MessageRemind.h"; sourceTree = "<group>"; };
+		C3DAE05D2E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+MessageRemind.m"; sourceTree = "<group>"; };
+		C3DAE05E2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+MiniApp.h"; sourceTree = "<group>"; };
+		C3DAE05F2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+MiniApp.m"; sourceTree = "<group>"; };
+		C3DAE0602E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+ServiceMessage.h"; sourceTree = "<group>"; };
+		C3DAE0612E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+ServiceMessage.m"; sourceTree = "<group>"; };
+		C3DAE0622E54828B00CCA36B /* NoaIMSDKManager+Session.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Session.h"; sourceTree = "<group>"; };
+		C3DAE0632E54828B00CCA36B /* NoaIMSDKManager+Session.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Session.m"; sourceTree = "<group>"; };
+		C3DAE0642E54828B00CCA36B /* NoaIMSDKManager+signin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+signin.h"; sourceTree = "<group>"; };
+		C3DAE0652E54828B00CCA36B /* NoaIMSDKManager+signin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+signin.m"; sourceTree = "<group>"; };
+		C3DAE0662E54828B00CCA36B /* NoaIMSDKManager+Stickers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Stickers.h"; sourceTree = "<group>"; };
+		C3DAE0672E54828B00CCA36B /* NoaIMSDKManager+Stickers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Stickers.m"; sourceTree = "<group>"; };
+		C3DAE0682E54828B00CCA36B /* NoaIMSDKManager+SyncServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+SyncServer.h"; sourceTree = "<group>"; };
+		C3DAE0692E54828B00CCA36B /* NoaIMSDKManager+SyncServer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+SyncServer.m"; sourceTree = "<group>"; };
+		C3DAE06A2E54828B00CCA36B /* NoaIMSDKManager+Team.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Team.h"; sourceTree = "<group>"; };
+		C3DAE06B2E54828B00CCA36B /* NoaIMSDKManager+Team.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Team.m"; sourceTree = "<group>"; };
+		C3DAE06C2E54828B00CCA36B /* NoaIMSDKManager+Translate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+Translate.h"; sourceTree = "<group>"; };
+		C3DAE06D2E54828B00CCA36B /* NoaIMSDKManager+Translate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Translate.m"; sourceTree = "<group>"; };
+		C3DAE06E2E54828B00CCA36B /* NoaIMSDKManager+User.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NoaIMSDKManager+User.h"; sourceTree = "<group>"; };
+		C3DAE06F2E54828B00CCA36B /* NoaIMSDKManager+User.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+User.m"; sourceTree = "<group>"; };
+		C3DAE0702E54828B00CCA36B /* NoaIMSDKManagerHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMSDKManagerHeader.h; sourceTree = "<group>"; };
+		C3DF0DAA2E88233B007AF2EE /* LoggerWrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LoggerWrapper.h; sourceTree = "<group>"; };
+		C3DF0DAB2E88233B007AF2EE /* LoggerWrapper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LoggerWrapper.m; sourceTree = "<group>"; };
+		C3DF0DB02E88233B007AF2EE /* NoaLocalLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaLocalLogger.h; sourceTree = "<group>"; };
+		C3DF0DB12E88233B007AF2EE /* NoaLocalLogger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NoaLocalLogger.m; sourceTree = "<group>"; };
+		E4FB0A9ABE611E68AC1E9D87 /* Pods-NoaChatSDKCore.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NoaChatSDKCore.debug.xcconfig"; path = "Target Support Files/Pods-NoaChatSDKCore/Pods-NoaChatSDKCore.debug.xcconfig"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		18B1538928A270570033CB51 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DF1BA232ED700D0008785D0 /* WCDBObjc.framework in Frameworks */,
+				C3DAE0742E54828B00CCA36B /* libLXChatEncrypt.a in Frameworks */,
+				E81A79093526FBA928481561 /* Pods_CandyTalkPro.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1813D6BD2951ABBD006ADA68 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
+		18B1538228A270570033CB51 = {
+			isa = PBXGroup;
+			children = (
+				18B1538E28A270570033CB51 /* NoaChatSDKCore */,
+				18B1539A28A270580033CB51 /* NoaChatSDKCoreTests */,
+				18B1538D28A270570033CB51 /* Products */,
+				650BFE4CBC9BD08CBAF21877 /* Pods */,
+				B1C1F6E390B4EC3DAE9612A2 /* Frameworks */,
+				1813D6BD2951ABBD006ADA68 /* Recovered References */,
+			);
+			sourceTree = "<group>";
+		};
+		18B1538D28A270570033CB51 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				18B1538C28A270570033CB51 /* NoaChatCore.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		18B1538E28A270570033CB51 /* NoaChatSDKCore */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0732E54828B00CCA36B /* NoaChatSDKCode */,
+				18B1538F28A270570033CB51 /* NoaIMSDKCore.h */,
+				04CF21F228AC95610052D11A /* Info.plist */,
+				18B1539028A270570033CB51 /* NoaChatSDKCore.docc */,
+			);
+			path = NoaChatSDKCore;
+			sourceTree = "<group>";
+		};
+		18B1539A28A270580033CB51 /* NoaChatSDKCoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				18B1539B28A270580033CB51 /* NoaChatSDKCoreTests.m */,
+			);
+			path = NoaChatSDKCoreTests;
+			sourceTree = "<group>";
+		};
+		2D5FD4422ED7287600CB72FB /* SdkManager */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0482E54828B00CCA36B /* NoaIMSDKManager.h */,
+				C3DAE0492E54828B00CCA36B /* NoaIMSDKManager.mm */,
+				C3DAE04A2E54828B00CCA36B /* NoaIMSDKManager+AppInfo.h */,
+				C3DAE04B2E54828B00CCA36B /* NoaIMSDKManager+AppInfo.m */,
+				C3DAE04C2E54828B00CCA36B /* NoaIMSDKManager+Auth.h */,
+				C3DAE04D2E54828B00CCA36B /* NoaIMSDKManager+Auth.m */,
+				C3DAE04E2E54828B00CCA36B /* NoaIMSDKManager+Call.h */,
+				C3DAE04F2E54828B00CCA36B /* NoaIMSDKManager+Call.m */,
+				C3DAE0502E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.h */,
+				C3DAE0512E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.m */,
+				C3DAE0522E54828B00CCA36B /* NoaIMSDKManager+Connect.h */,
+				C3DAE0532E54828B00CCA36B /* NoaIMSDKManager+Connect.m */,
+				C3DAE0542E54828B00CCA36B /* NoaIMSDKManager+Friend.h */,
+				C3DAE0552E54828B00CCA36B /* NoaIMSDKManager+Friend.m */,
+				C3DAE0562E54828B00CCA36B /* NoaIMSDKManager+Group.h */,
+				C3DAE0572E54828B00CCA36B /* NoaIMSDKManager+Group.m */,
+				6C8487C12E7A98A500AF71B8 /* NoaIMSDKManager+Probe.h */,
+				6C8487C22E7A98A500AF71B8 /* NoaIMSDKManager+Probe.m */,
+				C3DAE0582E54828B00CCA36B /* NoaIMSDKManager+GroupMember.h */,
+				C3DAE0592E54828B00CCA36B /* NoaIMSDKManager+GroupMember.m */,
+				C3DAE05C2E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.h */,
+				C3DAE05D2E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.m */,
+				C3DAE05E2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.h */,
+				C3DAE05F2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.m */,
+				C3DAE0602E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.h */,
+				C3DAE0612E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.m */,
+				C3DAE0622E54828B00CCA36B /* NoaIMSDKManager+Session.h */,
+				C3DAE0632E54828B00CCA36B /* NoaIMSDKManager+Session.m */,
+				C3DAE0642E54828B00CCA36B /* NoaIMSDKManager+signin.h */,
+				C3DAE0652E54828B00CCA36B /* NoaIMSDKManager+signin.m */,
+				C3DAE0662E54828B00CCA36B /* NoaIMSDKManager+Stickers.h */,
+				C3DAE0672E54828B00CCA36B /* NoaIMSDKManager+Stickers.m */,
+				C3DAE0682E54828B00CCA36B /* NoaIMSDKManager+SyncServer.h */,
+				C3DAE0692E54828B00CCA36B /* NoaIMSDKManager+SyncServer.m */,
+				C3DAE06A2E54828B00CCA36B /* NoaIMSDKManager+Team.h */,
+				C3DAE06B2E54828B00CCA36B /* NoaIMSDKManager+Team.m */,
+				C3DAE06C2E54828B00CCA36B /* NoaIMSDKManager+Translate.h */,
+				C3DAE06D2E54828B00CCA36B /* NoaIMSDKManager+Translate.m */,
+				C3DAE06E2E54828B00CCA36B /* NoaIMSDKManager+User.h */,
+				C3DAE06F2E54828B00CCA36B /* NoaIMSDKManager+User.m */,
+				C3DAE0702E54828B00CCA36B /* NoaIMSDKManagerHeader.h */,
+				6CAE352F2E6FDEC00024763A /* NoaIMSDKManager+Logan.h */,
+				6CAE35302E6FDEC00024763A /* NoaIMSDKManager+Logan.m */,
+			);
+			path = SdkManager;
+			sourceTree = "<group>";
+		};
+		2DF1BA362ED72041008785D0 /* TcpManager */ = {
+			isa = PBXGroup;
+			children = (
+				C31576262E684345007EC45E /* NoaIMSocketManager+EchoEncryption.h */,
+				C31576272E684345007EC45E /* NoaIMSocketManager+EchoEncryption.m */,
+				C3DADFBA2E54828B00CCA36B /* NoaIMSocketHostOptions.h */,
+				C3DADFBB2E54828B00CCA36B /* NoaIMSocketHostOptions.m */,
+				C3DADFBC2E54828B00CCA36B /* NoaIMSocketManager.h */,
+				C3DADFBD2E54828B00CCA36B /* NoaIMSocketManager.m */,
+				C3DADFBE2E54828B00CCA36B /* NoaIMSocketManagerTool.h */,
+				C3DADFBF2E54828B00CCA36B /* NoaIMSocketManagerTool.m */,
+				C3DADFC02E54828B00CCA36B /* NoaIMSocketUserOptions.h */,
+				C3DADFC12E54828B00CCA36B /* NoaIMSocketUserOptions.m */,
+			);
+			path = TcpManager;
+			sourceTree = "<group>";
+		};
+		650BFE4CBC9BD08CBAF21877 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				E4FB0A9ABE611E68AC1E9D87 /* Pods-NoaChatSDKCore.debug.xcconfig */,
+				8C9480EAA42CF09FA26B2305 /* Pods-NoaChatSDKCore.release.xcconfig */,
+				6D313F282C8F837B9CA02574 /* Pods-CandyTalkPro.debug.xcconfig */,
+				4E6A025058C358A8445C4CA7 /* Pods-CandyTalkPro.release.xcconfig */,
+			);
+			name = Pods;
+			path = ../Pods;
+			sourceTree = "<group>";
+		};
+		6CAE351E2E6FDD680024763A /* ExceptionCore */ = {
+			isa = PBXGroup;
+			children = (
+				6CAE351A2E6FDD680024763A /* NoaIMSignalExceptionHandler.h */,
+				6CAE351B2E6FDD680024763A /* NoaIMSignalExceptionHandler.m */,
+				6CAE351C2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.h */,
+				6CAE351D2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.m */,
+			);
+			path = ExceptionCore;
+			sourceTree = "<group>";
+		};
+		6CAE35242E6FDD680024763A /* LoganModule */ = {
+			isa = PBXGroup;
+			children = (
+				6CAE351E2E6FDD680024763A /* ExceptionCore */,
+				6CAE351F2E6FDD680024763A /* NoaIMLoganHeader.h */,
+				6CAE35202E6FDD680024763A /* NoaIMLoganManager.h */,
+				6CAE35212E6FDD680024763A /* NoaIMLoganManager.m */,
+				6CAE35222E6FDD680024763A /* NoaIMLoganOption.h */,
+				6CAE35232E6FDD680024763A /* NoaIMLoganOption.m */,
+			);
+			path = LoganModule;
+			sourceTree = "<group>";
+		};
+		B1C1F6E390B4EC3DAE9612A2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				73D1DA0B27A16771ED2012A9 /* Pods_CandyTalkPro.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		C31576172E68431D007EC45E /* DeCryptorManager */ = {
+			isa = PBXGroup;
+			children = (
+				C31576092E68431D007EC45E /* ZIMMessageDecoder.h */,
+				C315760A2E68431D007EC45E /* ZIMMessageDecoder.m */,
+				C315760B2E68431D007EC45E /* ZIMAESEncryption.h */,
+				C315760C2E68431D007EC45E /* ZIMAESEncryption.m */,
+				C315760D2E68431D007EC45E /* ZIMKeyExchange.h */,
+				C315760E2E68431D007EC45E /* ZIMKeyExchange.m */,
+				C315760F2E68431D007EC45E /* ECDHClientProtocolHandler.h */,
+				C31576102E68431D007EC45E /* ECDHClientProtocolHandler.m */,
+				C31576112E68431D007EC45E /* ECDHKeyManager.h */,
+				C31576122E68431D007EC45E /* ECDHKeyManager.m */,
+				C31576132E68431D007EC45E /* NovDecryptorManager.h */,
+				C31576142E68431D007EC45E /* NovDecryptorManager.m */,
+				C31576152E68431D007EC45E /* MessageProtocolHeader.h */,
+				C31576162E68431D007EC45E /* MessageProtocolHeader.m */,
+			);
+			path = DeCryptorManager;
+			sourceTree = "<group>";
+		};
+		C35DDA3C2E5C053F0002E0DF /* HttpToTcpRequest */ = {
+			isa = PBXGroup;
+			children = (
+				C3AD95632E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.h */,
+				C3AD95642E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.m */,
+				2DF1BA322ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.h */,
+				2DF1BA332ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.m */,
+				C35DDA322E5C053F0002E0DF /* LingIMTcpCommonTool.h */,
+				C35DDA332E5C053F0002E0DF /* LingIMTcpCommonTool.m */,
+				C35DDA382E5C053F0002E0DF /* LingIMTcpRequestModel.h */,
+				C35DDA392E5C053F0002E0DF /* LingIMTcpRequestModel.m */,
+				C35DDA3A2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.h */,
+				C35DDA3B2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.m */,
+			);
+			path = HttpToTcpRequest;
+			sourceTree = "<group>";
+		};
+		C3C15D582E80F0260075B458 /* ThirdLibs */ = {
+			isa = PBXGroup;
+			children = (
+				2DF1BA222ED700D0008785D0 /* WCDBObjc.framework */,
+			);
+			path = ThirdLibs;
+			sourceTree = "<group>";
+		};
+		C3DADF642E54828B00CCA36B /* FCUUID */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF5E2E54828B00CCA36B /* FCUUID.h */,
+				C3DADF5F2E54828B00CCA36B /* FCUUID.m */,
+				C3DADF602E54828B00CCA36B /* UICKeyChainStore.h */,
+				C3DADF612E54828B00CCA36B /* UICKeyChainStore.m */,
+				C3DADF622E54828B00CCA36B /* UIDevice+FCUUID.h */,
+				C3DADF632E54828B00CCA36B /* UIDevice+FCUUID.m */,
+			);
+			path = FCUUID;
+			sourceTree = "<group>";
+		};
+		C3DADF6B2E54828B00CCA36B /* NoaIMDateTool */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF652E54828B00CCA36B /* NSDate+LingIMDateTime.h */,
+				C3DADF662E54828B00CCA36B /* NSDate+LingIMDateTime.m */,
+				C3DADF672E54828B00CCA36B /* NSDate+SyncServer.h */,
+				C3DADF682E54828B00CCA36B /* NSDate+SyncServer.m */,
+				C3DADF692E54828B00CCA36B /* ZDateRequestTool.h */,
+				C3DADF6A2E54828B00CCA36B /* ZDateRequestTool.m */,
+			);
+			path = NoaIMDateTool;
+			sourceTree = "<group>";
+		};
+		C3DADF6D2E54828B00CCA36B /* include */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF6C2E54828B00CCA36B /* LXChatEncrypt.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		C3DADF6E2E54828B00CCA36B /* local */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF6D2E54828B00CCA36B /* include */,
+			);
+			path = local;
+			sourceTree = "<group>";
+		};
+		C3DADF6F2E54828B00CCA36B /* usr */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF6E2E54828B00CCA36B /* local */,
+			);
+			path = usr;
+			sourceTree = "<group>";
+		};
+		C3DADF712E54828B00CCA36B /* LXChatEncrypt */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF6F2E54828B00CCA36B /* usr */,
+				C3DADF702E54828B00CCA36B /* libLXChatEncrypt.a */,
+			);
+			path = LXChatEncrypt;
+			sourceTree = "<group>";
+		};
+		C3DADF742E54828B00CCA36B /* ThreadSafeMutableDictionary */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF722E54828B00CCA36B /* ThreadSafeMutableDictionary.h */,
+				C3DADF732E54828B00CCA36B /* ThreadSafeMutableDictionary.m */,
+			);
+			path = ThreadSafeMutableDictionary;
+			sourceTree = "<group>";
+		};
+		C3DADF7F2E54828B00CCA36B /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF642E54828B00CCA36B /* FCUUID */,
+				C3DADF6B2E54828B00CCA36B /* NoaIMDateTool */,
+				C3DADF712E54828B00CCA36B /* LXChatEncrypt */,
+				C3DADF742E54828B00CCA36B /* ThreadSafeMutableDictionary */,
+				C3DADF752E54828B00CCA36B /* NoaIMDeviceTool.h */,
+				C3DADF762E54828B00CCA36B /* NoaIMDeviceTool.m */,
+				C3DADF772E54828B00CCA36B /* NoaIMFunction.h */,
+				C3DADF782E54828B00CCA36B /* NoaIMFunction.m */,
+				C3DADF792E54828B00CCA36B /* LingIMMacorHeader.h */,
+				C3DADF7A2E54828B00CCA36B /* NoaIMManagerTool.h */,
+				C3DADF7B2E54828B00CCA36B /* NoaIMManagerTool.m */,
+				C3DADF7C2E54828B00CCA36B /* NoaIMMessageRemindTool.h */,
+				C3DADF7D2E54828B00CCA36B /* NoaIMMessageRemindTool.m */,
+				C3DADF7E2E54828B00CCA36B /* LingIMProtocol.h */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
+		C3DADF852E54828B00CCA36B /* LiveKit */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF802E54828B00CCA36B /* NoaIMCallManager.h */,
+				C3DADF812E54828B00CCA36B /* NoaIMCallManager.m */,
+				C3DADF822E54828B00CCA36B /* NoaIMCallOptions.h */,
+				C3DADF832E54828B00CCA36B /* NoaIMCallOptions.m */,
+				C3DADF842E54828B00CCA36B /* LingIMCallOptionsManager.swift */,
+			);
+			path = LiveKit;
+			sourceTree = "<group>";
+		};
+		C3DADF8C2E54828B00CCA36B /* ZeGo */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF862E54828B00CCA36B /* NoaIMZGCallConfig.h */,
+				C3DADF872E54828B00CCA36B /* NoaIMZGCallConfig.m */,
+				C3DADF882E54828B00CCA36B /* NoaIMZGCallManager.h */,
+				C3DADF892E54828B00CCA36B /* NoaIMZGCallManager.m */,
+				C3DADF8A2E54828B00CCA36B /* NoaIMZGCallOptions.h */,
+				C3DADF8B2E54828B00CCA36B /* NoaIMZGCallOptions.m */,
+			);
+			path = ZeGo;
+			sourceTree = "<group>";
+		};
+		C3DADF8E2E54828B00CCA36B /* MediaCallModule */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF852E54828B00CCA36B /* LiveKit */,
+				C3DADF8C2E54828B00CCA36B /* ZeGo */,
+				C3DADF8D2E54828B00CCA36B /* LingIMCallHeader.h */,
+			);
+			path = MediaCallModule;
+			sourceTree = "<group>";
+		};
+		C3DADFAB2E54828B00CCA36B /* HttpRequest */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADF8F2E54828B00CCA36B /* NoaIMHttpManager.h */,
+				C3DADF902E54828B00CCA36B /* NoaIMHttpManager.m */,
+				C3DADF912E54828B00CCA36B /* NoaIMHttpManager+AppInfo.h */,
+				C3DADF922E54828B00CCA36B /* NoaIMHttpManager+AppInfo.m */,
+				C3DADF932E54828B00CCA36B /* NoaIMHttpManager+Auth.h */,
+				C3DADF942E54828B00CCA36B /* NoaIMHttpManager+Auth.m */,
+				C3DADF952E54828B00CCA36B /* NoaIMHttpManager+Call.h */,
+				C3DADF962E54828B00CCA36B /* NoaIMHttpManager+Call.m */,
+				C3DADF972E54828B00CCA36B /* NoaIMHttpManager+Friend.h */,
+				C3DADF982E54828B00CCA36B /* NoaIMHttpManager+Friend.m */,
+				C3DADF992E54828B00CCA36B /* NoaIMHttpManager+Group.h */,
+				C3DADF9A2E54828B00CCA36B /* NoaIMHttpManager+Group.m */,
+				C3DADF9B2E54828B00CCA36B /* NoaIMHttpManager+Message.h */,
+				C3DADF9C2E54828B00CCA36B /* NoaIMHttpManager+Message.m */,
+				C3DADF9D2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.h */,
+				C3DADF9E2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.m */,
+				C3DADF9F2E54828B00CCA36B /* NoaIMHttpManager+signin.h */,
+				C3DADFA02E54828B00CCA36B /* NoaIMHttpManager+signin.m */,
+				C3DADFA12E54828B00CCA36B /* NoaIMHttpManager+Stickers.h */,
+				C3DADFA22E54828B00CCA36B /* NoaIMHttpManager+Stickers.m */,
+				C3DADFA32E54828B00CCA36B /* NoaIMHttpManager+Team.h */,
+				C3DADFA42E54828B00CCA36B /* NoaIMHttpManager+Team.m */,
+				C3DADFA52E54828B00CCA36B /* NoaIMHttpManager+Translate.h */,
+				C3DADFA62E54828B00CCA36B /* NoaIMHttpManager+Translate.m */,
+				C3DADFA72E54828B00CCA36B /* NoaIMHttpManager+User.h */,
+				C3DADFA82E54828B00CCA36B /* NoaIMHttpManager+User.m */,
+				C3DADFA92E54828B00CCA36B /* NoaIMHttpResponse.h */,
+				C3DADFAA2E54828B00CCA36B /* NoaIMHttpResponse.m */,
+				C3DADF8E2E54828B00CCA36B /* MediaCallModule */,
+			);
+			path = HttpRequest;
+			sourceTree = "<group>";
+		};
+		C3DADFAE2E54828B00CCA36B /* MessagePbobjc */ = {
+			isa = PBXGroup;
+			children = (
+				C38FF8EA2E5D98A400EC7BAB /* LingImmessage.pbobjc.h */,
+				C38FF8EB2E5D98A400EC7BAB /* LingImmessage.pbobjc.m */,
+			);
+			path = MessagePbobjc;
+			sourceTree = "<group>";
+		};
+		C3DADFC22E54828B00CCA36B /* Socket */ = {
+			isa = PBXGroup;
+			children = (
+				2DF1BA362ED72041008785D0 /* TcpManager */,
+			);
+			path = Socket;
+			sourceTree = "<group>";
+		};
+		C3DADFC42E54828B00CCA36B /* ConnectModule */ = {
+			isa = PBXGroup;
+			children = (
+				C31576172E68431D007EC45E /* DeCryptorManager */,
+				C35DDA3C2E5C053F0002E0DF /* HttpToTcpRequest */,
+				C3DADF7F2E54828B00CCA36B /* Common */,
+				C3DADFAB2E54828B00CCA36B /* HttpRequest */,
+				C3DADFAE2E54828B00CCA36B /* MessagePbobjc */,
+				C3DADFC22E54828B00CCA36B /* Socket */,
+				C3DADFC32E54828B00CCA36B /* NoaIMSDK.h */,
+			);
+			path = ConnectModule;
+			sourceTree = "<group>";
+		};
+		C3DADFC72E54828B00CCA36B /* MMKVTools */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFC52E54828B00CCA36B /* LingIMMMKVTool.h */,
+				C3DADFC62E54828B00CCA36B /* LingIMMMKVTool.m */,
+			);
+			path = MMKVTools;
+			sourceTree = "<group>";
+		};
+		C3DADFDB2E54828B00CCA36B /* DataBaseModule */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFC82E54828B00CCA36B /* NoaIMDBHeader.h */,
+				C3DADFC92E54828B00CCA36B /* NoaIMDBTool.h */,
+				C3DADFCA2E54828B00CCA36B /* NoaIMDBTool.mm */,
+				C3DADFCB2E54828B00CCA36B /* NoaIMDBTool+AppInfo.h */,
+				C3DADFCC2E54828B00CCA36B /* NoaIMDBTool+AppInfo.mm */,
+				C3DADFCD2E54828B00CCA36B /* NoaIMDBTool+ChatMessage.h */,
+				C3DADFCE2E54828B00CCA36B /* NoaIMDBTool+ChatMessage.mm */,
+				C3DADFCF2E54828B00CCA36B /* NoaIMDBTool+Friend.h */,
+				C3DADFD02E54828B00CCA36B /* NoaIMDBTool+Friend.mm */,
+				C3DADFD12E54828B00CCA36B /* NoaIMDBTool+Group.h */,
+				C3DADFD22E54828B00CCA36B /* NoaIMDBTool+Group.mm */,
+				C3DADFD32E54828B00CCA36B /* NoaIMDBTool+GroupMember.h */,
+				C3DADFD42E54828B00CCA36B /* NoaIMDBTool+GroupMember.mm */,
+				C3DADFD52E54828B00CCA36B /* NoaIMDBTool+MiniApp.h */,
+				C3DADFD62E54828B00CCA36B /* NoaIMDBTool+MiniApp.mm */,
+				C3DADFD72E54828B00CCA36B /* NoaIMDBTool+Session.h */,
+				C3DADFD82E54828B00CCA36B /* NoaIMDBTool+Session.mm */,
+				C3DADFD92E54828B00CCA36B /* NoaIMDBTool+Stickers.h */,
+				C3DADFDA2E54828B00CCA36B /* NoaIMDBTool+Stickers.mm */,
+			);
+			path = DataBaseModule;
+			sourceTree = "<group>";
+		};
+		C3DADFEB2E54828B00CCA36B /* SdkDelegate */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFE82E54828B00CCA36B /* NoaIMSDKDelegate.h */,
+				C3DADFE92E54828B00CCA36B /* OIMGCDMulticastDelegate.h */,
+				C3DADFEA2E54828B00CCA36B /* OIMGCDMulticastDelegate.m */,
+			);
+			path = SdkDelegate;
+			sourceTree = "<group>";
+		};
+		C3DADFFB2E54828B00CCA36B /* ChatModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFF52E54828B00CCA36B /* NoaIMStickersPackageModel.h */,
+				C3DADFF62E54828B00CCA36B /* NoaIMStickersPackageModel.mm */,
+				C3DADFEC2E54828B00CCA36B /* NoaChatMessageModel.h */,
+				C3DADFED2E54828B00CCA36B /* NoaChatMessageModel.m */,
+				C3DADFEE2E54828B00CCA36B /* NoaIMChatMessageModel.h */,
+				C3DADFEF2E54828B00CCA36B /* NoaIMChatMessageModel.mm */,
+				C3DADFF02E54828B00CCA36B /* NoaIMChatMessageModel+WCTColumnCoding.mm */,
+				C3DADFF12E54828B00CCA36B /* NoaIMChatMessageModel+WCTTableCoding.h */,
+				C3DADFF22E54828B00CCA36B /* NoaIMStickersModel.h */,
+				C3DADFF32E54828B00CCA36B /* NoaIMStickersModel.mm */,
+				C3DADFF42E54828B00CCA36B /* NoaIMStickersModel+WCTTableCoding.h */,
+				C3DADFF72E54828B00CCA36B /* NoaIMStickersPackageModel+WCTTableCoding.h */,
+				C3DADFF82E54828B00CCA36B /* RecentsEmojiModel.h */,
+				C3DADFF92E54828B00CCA36B /* RecentsEmojiModel.mm */,
+				C3DADFFA2E54828B00CCA36B /* RecentsEmojiModel+WCTTableCoding.h */,
+			);
+			path = ChatModels;
+			sourceTree = "<group>";
+		};
+		C3DAE0002E54828B00CCA36B /* FloatMiniAppModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFFC2E54828B00CCA36B /* NoaFloatMiniAppModel.h */,
+				C3DADFFD2E54828B00CCA36B /* NoaFloatMiniAppModel.m */,
+				C3DADFFE2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.h */,
+				C3DADFFF2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.mm */,
+			);
+			path = FloatMiniAppModels;
+			sourceTree = "<group>";
+		};
+		C3DAE0092E54828B00CCA36B /* GroupModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0012E54828B00CCA36B /* LingIMGroupActiviteScoreModel.h */,
+				C3DAE0022E54828B00CCA36B /* LingIMGroupActiviteScoreModel.m */,
+				C3DAE0032E54828B00CCA36B /* LingIMGroupMemberModel.h */,
+				C3DAE0042E54828B00CCA36B /* LingIMGroupMemberModel.mm */,
+				C3DAE0052E54828B00CCA36B /* LingIMGroupMemberModel+WCTTableCoding.h */,
+				C3DAE0062E54828B00CCA36B /* LingIMGroupModel.h */,
+				C3DAE0072E54828B00CCA36B /* LingIMGroupModel.mm */,
+				C3DAE0082E54828B00CCA36B /* LingIMGroupModel+WCTTableCoding.h */,
+			);
+			path = GroupModels;
+			sourceTree = "<group>";
+		};
+		C3DAE0182E54828B00CCA36B /* MediaCallModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE00A2E54828B00CCA36B /* LIMMediaCallGroupModel.h */,
+				C3DAE00B2E54828B00CCA36B /* LIMMediaCallGroupModel.m */,
+				C3DAE00C2E54828B00CCA36B /* LIMMediaCallGroupParticipant.h */,
+				C3DAE00D2E54828B00CCA36B /* LIMMediaCallGroupParticipant.m */,
+				C3DAE00E2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.h */,
+				C3DAE00F2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.m */,
+				C3DAE0102E54828B00CCA36B /* LIMMediaCallMeetingModel.h */,
+				C3DAE0112E54828B00CCA36B /* LIMMediaCallMeetingModel.m */,
+				C3DAE0122E54828B00CCA36B /* LIMMediaCallModel.h */,
+				C3DAE0132E54828B00CCA36B /* LIMMediaCallModel.m */,
+				C3DAE0142E54828B00CCA36B /* LIMMediaCallRoomInfoModel.h */,
+				C3DAE0152E54828B00CCA36B /* LIMMediaCallRoomInfoModel.m */,
+				C3DAE0162E54828B00CCA36B /* LIMMediaCallSingleModel.h */,
+				C3DAE0172E54828B00CCA36B /* LIMMediaCallSingleModel.m */,
+			);
+			path = MediaCallModels;
+			sourceTree = "<group>";
+		};
+		C3DAE01C2E54828B00CCA36B /* MiniAppModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0192E54828B00CCA36B /* LingIMMiniAppModel.h */,
+				C3DAE01A2E54828B00CCA36B /* LingIMMiniAppModel.mm */,
+				C3DAE01B2E54828B00CCA36B /* LingIMMiniAppModel+WCTTableCoding.h */,
+			);
+			path = MiniAppModels;
+			sourceTree = "<group>";
+		};
+		C3DAE01F2E54828B00CCA36B /* ModelManagers */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE01D2E54828B00CCA36B /* LingIMModelTool.h */,
+				C3DAE01E2E54828B00CCA36B /* LingIMModelTool.m */,
+			);
+			path = ModelManagers;
+			sourceTree = "<group>";
+		};
+		C3DAE0272E54828B00CCA36B /* SensitiveModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0202E54828B00CCA36B /* LingIMSensitiveModel.h */,
+				C3DAE0212E54828B00CCA36B /* LingIMSensitiveModel.m */,
+				C3DAE0222E54828B00CCA36B /* LingIMSensitivePageModel.h */,
+				C3DAE0232E54828B00CCA36B /* LingIMSensitivePageModel.m */,
+				C3DAE0242E54828B00CCA36B /* LingIMSensitiveRecordsModel.h */,
+				C3DAE0252E54828B00CCA36B /* LingIMSensitiveRecordsModel.mm */,
+				C3DAE0262E54828B00CCA36B /* LingIMSensitiveRecordsModel+WCTTableCoding.h */,
+			);
+			path = SensitiveModels;
+			sourceTree = "<group>";
+		};
+		C3DAE02A2E54828B00CCA36B /* ServerModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0282E54828B00CCA36B /* LIMServerMessageModel.h */,
+				C3DAE0292E54828B00CCA36B /* LIMServerMessageModel.m */,
+			);
+			path = ServerModels;
+			sourceTree = "<group>";
+		};
+		C3DAE0332E54828B00CCA36B /* SessionModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE02B2E54828B00CCA36B /* LIMMassMessageModel.h */,
+				C3DAE02C2E54828B00CCA36B /* LIMMassMessageModel.m */,
+				C3DAE02D2E54828B00CCA36B /* LIMSessionMassMessageModel.h */,
+				C3DAE02E2E54828B00CCA36B /* LIMSessionModel.h */,
+				C3DAE02F2E54828B00CCA36B /* LIMSessionModel.m */,
+				C3DAE0302E54828B00CCA36B /* LingIMSessionModel.h */,
+				C3DAE0312E54828B00CCA36B /* LingIMSessionModel.mm */,
+				C3DAE0322E54828B00CCA36B /* LingIMSessionModel+WCTTableCoding.h */,
+			);
+			path = SessionModels;
+			sourceTree = "<group>";
+		};
+		C3DAE03F2E54828B00CCA36B /* UserModels */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0342E54828B00CCA36B /* LingIMFriendGroupModel.h */,
+				C3DAE0352E54828B00CCA36B /* LingIMFriendGroupModel.mm */,
+				C3DAE0362E54828B00CCA36B /* LingIMFriendGroupModel+WCTTableCoding.h */,
+				C3DAE0372E54828B00CCA36B /* LingIMFriendModel.h */,
+				C3DAE0382E54828B00CCA36B /* LingIMFriendModel.mm */,
+				C3DAE0392E54828B00CCA36B /* LingIMFriendModel+WCTTableCoding.h */,
+				C3DAE03A2E54828B00CCA36B /* LingIMTranslateConfigModel.h */,
+				C3DAE03B2E54828B00CCA36B /* LingIMTranslateConfigModel.m */,
+				C3DAE03C2E54828B00CCA36B /* LingIMUserModel.h */,
+				C3DAE03D2E54828B00CCA36B /* LingIMUserModel.mm */,
+				C3DAE03E2E54828B00CCA36B /* LingIMUserModel+WCTTableCoding.h */,
+			);
+			path = UserModels;
+			sourceTree = "<group>";
+		};
+		C3DAE0402E54828B00CCA36B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFFB2E54828B00CCA36B /* ChatModels */,
+				C3DAE0002E54828B00CCA36B /* FloatMiniAppModels */,
+				C3DAE0092E54828B00CCA36B /* GroupModels */,
+				C3DAE0182E54828B00CCA36B /* MediaCallModels */,
+				C3DAE01C2E54828B00CCA36B /* MiniAppModels */,
+				C3DAE01F2E54828B00CCA36B /* ModelManagers */,
+				C3DAE0272E54828B00CCA36B /* SensitiveModels */,
+				C3DAE02A2E54828B00CCA36B /* ServerModels */,
+				C3DAE0332E54828B00CCA36B /* SessionModels */,
+				C3DAE03F2E54828B00CCA36B /* UserModels */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		C3DAE0472E54828B00CCA36B /* SocketOptions */ = {
+			isa = PBXGroup;
+			children = (
+				C3DAE0412E54828B00CCA36B /* NoaIMSDKApiOptions.h */,
+				C3DAE0422E54828B00CCA36B /* NoaIMSDKApiOptions.m */,
+				C3DAE0432E54828B00CCA36B /* NoaIMSDKHostOptions.h */,
+				C3DAE0442E54828B00CCA36B /* NoaIMSDKHostOptions.m */,
+				C3DAE0452E54828B00CCA36B /* NoaIMSDKUserOptions.h */,
+				C3DAE0462E54828B00CCA36B /* NoaIMSDKUserOptions.m */,
+			);
+			path = SocketOptions;
+			sourceTree = "<group>";
+		};
+		C3DAE0712E54828B00CCA36B /* NoaChatClient */ = {
+			isa = PBXGroup;
+			children = (
+				2D5FD4422ED7287600CB72FB /* SdkManager */,
+				C3DF0DAA2E88233B007AF2EE /* LoggerWrapper.h */,
+				C3DF0DAB2E88233B007AF2EE /* LoggerWrapper.m */,
+				C3DF0DB02E88233B007AF2EE /* NoaLocalLogger.h */,
+				C3DF0DB12E88233B007AF2EE /* NoaLocalLogger.m */,
+				C3DAE0472E54828B00CCA36B /* SocketOptions */,
+			);
+			path = NoaChatClient;
+			sourceTree = "<group>";
+		};
+		C3DAE0722E54828B00CCA36B /* OtherModules */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFEB2E54828B00CCA36B /* SdkDelegate */,
+				C3DAE0402E54828B00CCA36B /* Models */,
+				C3DAE0712E54828B00CCA36B /* NoaChatClient */,
+			);
+			path = OtherModules;
+			sourceTree = "<group>";
+		};
+		C3DAE0732E54828B00CCA36B /* NoaChatSDKCode */ = {
+			isa = PBXGroup;
+			children = (
+				C3DADFC72E54828B00CCA36B /* MMKVTools */,
+				C3C15D582E80F0260075B458 /* ThirdLibs */,
+				6CAE35242E6FDD680024763A /* LoganModule */,
+				C3DADFC42E54828B00CCA36B /* ConnectModule */,
+				C3DADFDB2E54828B00CCA36B /* DataBaseModule */,
+				C3DAE0722E54828B00CCA36B /* OtherModules */,
+			);
+			path = NoaChatSDKCode;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		18B1538728A270570033CB51 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C38FF8ED2E5D98A400EC7BAB /* LingImmessage.pbobjc.h in Headers */,
+				C3DAE1032E54828B00CCA36B /* NoaIMSDKManager+AppInfo.h in Headers */,
+				C3DAE0E42E54828B00CCA36B /* NoaIMDBTool+ChatMessage.h in Headers */,
+				C3DAE0E52E54828B00CCA36B /* NoaIMSDKDelegate.h in Headers */,
+				C3DAE0E62E54828B00CCA36B /* NoaIMHttpManager+Message.h in Headers */,
+				C315761F2E68431D007EC45E /* MessageProtocolHeader.h in Headers */,
+				C31576202E68431D007EC45E /* ECDHClientProtocolHandler.h in Headers */,
+				6CAE35252E6FDD680024763A /* NoaIMLoganHeader.h in Headers */,
+				6CAE35262E6FDD680024763A /* NoaIMLoganOption.h in Headers */,
+				6CAE35272E6FDD680024763A /* NoaIMUncaughtExceptionHandler.h in Headers */,
+				6CAE35282E6FDD680024763A /* NoaIMLoganManager.h in Headers */,
+				6CAE35292E6FDD680024763A /* NoaIMSignalExceptionHandler.h in Headers */,
+				C31576212E68431D007EC45E /* ZIMAESEncryption.h in Headers */,
+				C31576222E68431D007EC45E /* ZIMKeyExchange.h in Headers */,
+				C31576232E68431D007EC45E /* ZIMMessageDecoder.h in Headers */,
+				C31576242E68431D007EC45E /* ECDHKeyManager.h in Headers */,
+				C31576252E68431D007EC45E /* NovDecryptorManager.h in Headers */,
+				C3DAE0E72E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.h in Headers */,
+				C3DAE0E82E54828B00CCA36B /* NoaIMHttpManager+Translate.h in Headers */,
+				C3DAE0E92E54828B00CCA36B /* LingIMTranslateConfigModel.h in Headers */,
+				C3DAE0EA2E54828B00CCA36B /* LingIMFriendModel.h in Headers */,
+				6C8487C52E7A98A500AF71B8 /* NoaIMSDKManager+Probe.h in Headers */,
+				C3DAE0EB2E54828B00CCA36B /* NoaIMSDKUserOptions.h in Headers */,
+				C3DAE0EC2E54828B00CCA36B /* LingIMMiniAppModel.h in Headers */,
+				C3DAE0ED2E54828B00CCA36B /* NoaIMSDKManager+User.h in Headers */,
+				C3DAE0EE2E54828B00CCA36B /* ZDateRequestTool.h in Headers */,
+				C3DAE0EF2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.h in Headers */,
+				C3DAE0F02E54828B00CCA36B /* NoaIMHttpResponse.h in Headers */,
+				C3DAE0F12E54828B00CCA36B /* NoaIMManagerTool.h in Headers */,
+				C3DAE0F22E54828B00CCA36B /* LingIMGroupMemberModel.h in Headers */,
+				C3DAE0F42E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.h in Headers */,
+				C3DAE0F52E54828B00CCA36B /* NoaIMHttpManager+Team.h in Headers */,
+				C3DAE0F62E54828B00CCA36B /* NoaIMSDKManagerHeader.h in Headers */,
+				C3DAE0F72E54828B00CCA36B /* NoaIMSocketManager.h in Headers */,
+				C3DAE0F82E54828B00CCA36B /* NoaIMSDKManager.h in Headers */,
+				C3DAE0F92E54828B00CCA36B /* NoaIMSocketManagerTool.h in Headers */,
+				C31576292E684345007EC45E /* NoaIMSocketManager+EchoEncryption.h in Headers */,
+				C3DAE0FC2E54828B00CCA36B /* NoaIMHttpManager+MiniApp.h in Headers */,
+				C3DAE0FE2E54828B00CCA36B /* NoaIMSDKManager+SyncServer.h in Headers */,
+				C3DAE0FF2E54828B00CCA36B /* NoaIMStickersPackageModel.h in Headers */,
+				C3DAE1002E54828B00CCA36B /* NoaIMHttpManager+Auth.h in Headers */,
+				C3DAE1012E54828B00CCA36B /* NoaIMDBTool.h in Headers */,
+				C3DAE1022E54828B00CCA36B /* NoaIMSDKManager+Session.h in Headers */,
+				C3DAE1042E54828B00CCA36B /* NoaIMSocketHostOptions.h in Headers */,
+				C3DAE1052E54828B00CCA36B /* LingIMSensitiveRecordsModel.h in Headers */,
+				C3DAE1062E54828B00CCA36B /* NoaIMDBTool+Stickers.h in Headers */,
+				C3DAE1072E54828B00CCA36B /* RecentsEmojiModel.h in Headers */,
+				C3DAE1082E54828B00CCA36B /* NoaIMZGCallConfig.h in Headers */,
+				C3DAE10A2E54828B00CCA36B /* NoaFloatMiniAppModel.h in Headers */,
+				C3DAE10B2E54828B00CCA36B /* NoaIMHttpManager+AppInfo.h in Headers */,
+				C3DF0DAC2E88233B007AF2EE /* LoggerWrapper.h in Headers */,
+				C3DF0DB22E88233B007AF2EE /* NoaLocalLogger.h in Headers */,
+				C3DAE10C2E54828B00CCA36B /* NoaIMDBTool+MiniApp.h in Headers */,
+				C3DAE10D2E54828B00CCA36B /* LingIMCallHeader.h in Headers */,
+				C3DAE10E2E54828B00CCA36B /* NoaIMHttpManager+signin.h in Headers */,
+				C3DAE1102E54828B00CCA36B /* NoaIMSDKManager+Friend.h in Headers */,
+				C3DAE1112E54828B00CCA36B /* NoaIMChatMessageModel.h in Headers */,
+				C3DAE1132E54828B00CCA36B /* NoaIMHttpManager+Stickers.h in Headers */,
+				C3DAE1152E54828B00CCA36B /* LingIMSensitivePageModel.h in Headers */,
+				C3DAE1162E54828B00CCA36B /* LIMSessionModel.h in Headers */,
+				2DF1BA352ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.h in Headers */,
+				C3DAE1172E54828B00CCA36B /* ThreadSafeMutableDictionary.h in Headers */,
+				C3DAE1182E54828B00CCA36B /* UICKeyChainStore.h in Headers */,
+				C3DAE1192E54828B00CCA36B /* NoaIMSDKManager+Auth.h in Headers */,
+				C3DAE11A2E54828B00CCA36B /* NoaIMDBTool+AppInfo.h in Headers */,
+				C3DAE11C2E54828B00CCA36B /* NoaIMSDKManager+Call.h in Headers */,
+				C3DAE11E2E54828B00CCA36B /* NoaIMStickersModel.h in Headers */,
+				C3DAE11F2E54828B00CCA36B /* NoaIMMessageRemindTool.h in Headers */,
+				C3DAE1202E54828B00CCA36B /* NoaIMSDKManager+signin.h in Headers */,
+				C3DAE1212E54828B00CCA36B /* NoaIMHttpManager.h in Headers */,
+				C3DAE1232E54828B00CCA36B /* LIMMediaCallGroupModel.h in Headers */,
+				C3DAE1242E54828B00CCA36B /* LingIMModelTool.h in Headers */,
+				C3DAE1252E54828B00CCA36B /* NoaIMZGCallManager.h in Headers */,
+				C3DAE1262E54828B00CCA36B /* UIDevice+FCUUID.h in Headers */,
+				C3DAE1292E54828B00CCA36B /* NoaIMHttpManager+Friend.h in Headers */,
+				C3DAE12A2E54828B00CCA36B /* NoaIMZGCallOptions.h in Headers */,
+				C3DAE12B2E54828B00CCA36B /* NoaIMCallManager.h in Headers */,
+				C3DAE12C2E54828B00CCA36B /* LingIMFriendGroupModel.h in Headers */,
+				C3DAE12D2E54828B00CCA36B /* OIMGCDMulticastDelegate.h in Headers */,
+				C3DAE12E2E54828B00CCA36B /* LingIMSensitiveModel.h in Headers */,
+				C3DAE12F2E54828B00CCA36B /* LIMMediaCallGroupParticipant.h in Headers */,
+				C3DAE1302E54828B00CCA36B /* NoaIMDBHeader.h in Headers */,
+				C3DAE1312E54828B00CCA36B /* NoaIMFunction.h in Headers */,
+				C3DAE1322E54828B00CCA36B /* NoaIMSDKManager+Group.h in Headers */,
+				C3DAE1342E54828B00CCA36B /* NoaIMDBTool+Friend.h in Headers */,
+				C3DAE1352E54828B00CCA36B /* NoaIMDBTool+GroupMember.h in Headers */,
+				6CAE35312E6FDEC00024763A /* NoaIMSDKManager+Logan.h in Headers */,
+				C3DAE1372E54828B00CCA36B /* NoaIMDBTool+Group.h in Headers */,
+				C3DAE1382E54828B00CCA36B /* LingIMMMKVTool.h in Headers */,
+				C3DAE1392E54828B00CCA36B /* NoaIMSDKHostOptions.h in Headers */,
+				C3DAE13B2E54828B00CCA36B /* NoaIMCallOptions.h in Headers */,
+				C3DAE13C2E54828B00CCA36B /* NoaIMHttpManager+Group.h in Headers */,
+				C3DAE13D2E54828B00CCA36B /* LIMMassMessageModel.h in Headers */,
+				C3DAE13E2E54828B00CCA36B /* LIMMediaCallSingleModel.h in Headers */,
+				C3DAE1402E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.h in Headers */,
+				C3AD95662E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.h in Headers */,
+				C3DAE1422E54828B00CCA36B /* LingIMMacorHeader.h in Headers */,
+				C3DAE1432E54828B00CCA36B /* NoaIMSDKManager+GroupMember.h in Headers */,
+				C3DAE1442E54828B00CCA36B /* LIMMediaCallRoomInfoModel.h in Headers */,
+				C3DAE1462E54828B00CCA36B /* LIMSessionMassMessageModel.h in Headers */,
+				C3DAE1472E54828B00CCA36B /* NoaIMSDK.h in Headers */,
+				C3DAE14A2E54828B00CCA36B /* LIMMediaCallMeetingModel.h in Headers */,
+				C3DAE14B2E54828B00CCA36B /* LingIMGroupModel.h in Headers */,
+				C3DAE14D2E54828B00CCA36B /* NoaIMSDKManager+Connect.h in Headers */,
+				C3DAE14E2E54828B00CCA36B /* LIMMediaCallModel.h in Headers */,
+				C3DAE14F2E54828B00CCA36B /* LingIMUserModel.h in Headers */,
+				C3DAE1532E54828B00CCA36B /* NoaIMSDKManager+Stickers.h in Headers */,
+				C3DAE1542E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.h in Headers */,
+				C3DAE1562E54828B00CCA36B /* NSDate+LingIMDateTime.h in Headers */,
+				C3DAE1572E54828B00CCA36B /* NSDate+SyncServer.h in Headers */,
+				C3DAE1582E54828B00CCA36B /* LingIMSessionModel.h in Headers */,
+				C3DAE1592E54828B00CCA36B /* NoaIMSDKManager+Translate.h in Headers */,
+				C3DAE15B2E54828B00CCA36B /* NoaIMSocketUserOptions.h in Headers */,
+				C3DAE15C2E54828B00CCA36B /* NoaIMSDKApiOptions.h in Headers */,
+				C3DAE15D2E54828B00CCA36B /* FCUUID.h in Headers */,
+				C3DAE15E2E54828B00CCA36B /* NoaChatMessageModel.h in Headers */,
+				C3DAE15F2E54828B00CCA36B /* NoaIMSDKManager+Team.h in Headers */,
+				C3DAE1602E54828B00CCA36B /* LingIMProtocol.h in Headers */,
+				C3DAE1612E54828B00CCA36B /* NoaIMHttpManager+User.h in Headers */,
+				C3DAE1622E54828B00CCA36B /* LIMServerMessageModel.h in Headers */,
+				C3DAE1632E54828B00CCA36B /* NoaIMDBTool+Session.h in Headers */,
+				C35DDA442E5C053F0002E0DF /* LingIMTcpRequestModel.h in Headers */,
+				C35DDA452E5C053F0002E0DF /* LingIMTcpCommonTool.h in Headers */,
+				C35DDA472E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.h in Headers */,
+				18B1539D28A270580033CB51 /* NoaIMSDKCore.h in Headers */,
+				C3DAE1282E54828B00CCA36B /* LingIMGroupActiviteScoreModel.h in Headers */,
+				C3DAE1222E54828B00CCA36B /* NoaIMDeviceTool.h in Headers */,
+				C3DAE0FD2E54828B00CCA36B /* NoaIMHttpManager+Call.h in Headers */,
+				C3DAE14C2E54828B00CCA36B /* LXChatEncrypt.h in Headers */,
+				C3DAE1142E54828B00CCA36B /* NoaIMChatMessageModel+WCTTableCoding.h in Headers */,
+				C3DAE11B2E54828B00CCA36B /* LingIMSensitiveRecordsModel+WCTTableCoding.h in Headers */,
+				C3DAE11D2E54828B00CCA36B /* LingIMUserModel+WCTTableCoding.h in Headers */,
+				C3DAE1272E54828B00CCA36B /* LingIMFriendModel+WCTTableCoding.h in Headers */,
+				C3DAE1332E54828B00CCA36B /* RecentsEmojiModel+WCTTableCoding.h in Headers */,
+				C3DAE1412E54828B00CCA36B /* LingIMGroupMemberModel+WCTTableCoding.h in Headers */,
+				C3DAE1452E54828B00CCA36B /* LingIMGroupModel+WCTTableCoding.h in Headers */,
+				C3DAE1482E54828B00CCA36B /* NoaIMStickersPackageModel+WCTTableCoding.h in Headers */,
+				C3DAE1492E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.h in Headers */,
+				C3DAE1502E54828B00CCA36B /* LingIMMiniAppModel+WCTTableCoding.h in Headers */,
+				C3DAE1512E54828B00CCA36B /* LingIMFriendGroupModel+WCTTableCoding.h in Headers */,
+				C3DAE1522E54828B00CCA36B /* NoaIMStickersModel+WCTTableCoding.h in Headers */,
+				C3DAE1552E54828B00CCA36B /* LingIMSessionModel+WCTTableCoding.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		18B1538B28A270570033CB51 /* CandyTalkPro */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 18B153A028A270580033CB51 /* Build configuration list for PBXNativeTarget "CandyTalkPro" */;
+			buildPhases = (
+				A7ACBFF8FB39BC5C38FE7FED /* [CP] Check Pods Manifest.lock */,
+				18B1538728A270570033CB51 /* Headers */,
+				18B1538828A270570033CB51 /* Sources */,
+				18B1538928A270570033CB51 /* Frameworks */,
+				18B1538A28A270570033CB51 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CandyTalkPro;
+			productName = NoaChatSDKCore;
+			productReference = 18B1538C28A270570033CB51 /* NoaChatCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		18B1538328A270570033CB51 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1340;
+				TargetAttributes = {
+					18B1538B28A270570033CB51 = {
+						CreatedOnToolsVersion = 13.4.1;
+						LastSwiftMigration = 1420;
+					};
+				};
+			};
+			buildConfigurationList = 18B1538628A270570033CB51 /* Build configuration list for PBXProject "CandyTalkPro" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 18B1538228A270570033CB51;
+			productRefGroup = 18B1538D28A270570033CB51 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				18B1538B28A270570033CB51 /* CandyTalkPro */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		18B1538A28A270570033CB51 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A7ACBFF8FB39BC5C38FE7FED /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-CandyTalkPro-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		18B1538828A270570033CB51 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3DAE0752E54828B00CCA36B /* NoaIMDBTool+Friend.mm in Sources */,
+				C3DAE0762E54828B00CCA36B /* LingIMGroupModel.mm in Sources */,
+				C3DAE0772E54828B00CCA36B /* NoaIMHttpManager.m in Sources */,
+				C3DAE0782E54828B00CCA36B /* LingIMGroupMemberModel.mm in Sources */,
+				C3DAE0792E54828B00CCA36B /* NoaIMSocketUserOptions.m in Sources */,
+				C3DAE07A2E54828B00CCA36B /* OIMGCDMulticastDelegate.m in Sources */,
+				C3DAE07B2E54828B00CCA36B /* LIMMediaCallGroupParticipant.m in Sources */,
+				C3DAE07C2E54828B00CCA36B /* NoaIMDBTool+Stickers.mm in Sources */,
+				C3DAE07D2E54828B00CCA36B /* NoaIMDBTool+MiniApp.mm in Sources */,
+				C31576282E684345007EC45E /* NoaIMSocketManager+EchoEncryption.m in Sources */,
+				C31576182E68431D007EC45E /* NovDecryptorManager.m in Sources */,
+				C31576192E68431D007EC45E /* ECDHClientProtocolHandler.m in Sources */,
+				C315761A2E68431D007EC45E /* ZIMMessageDecoder.m in Sources */,
+				C315761B2E68431D007EC45E /* ZIMKeyExchange.m in Sources */,
+				C315761C2E68431D007EC45E /* ZIMAESEncryption.m in Sources */,
+				C315761D2E68431D007EC45E /* ECDHKeyManager.m in Sources */,
+				C315761E2E68431D007EC45E /* MessageProtocolHeader.m in Sources */,
+				C3DAE07E2E54828B00CCA36B /* NoaIMSDKManager+GroupMember.m in Sources */,
+				C3DAE0802E54828B00CCA36B /* UIDevice+FCUUID.m in Sources */,
+				C3DAE0812E54828B00CCA36B /* NoaIMSDKHostOptions.m in Sources */,
+				C3DAE0822E54828B00CCA36B /* NoaIMDBTool.mm in Sources */,
+				C3DAE0832E54828B00CCA36B /* NoaIMDBTool+Group.mm in Sources */,
+				C3DAE0842E54828B00CCA36B /* LingIMSensitiveRecordsModel.mm in Sources */,
+				C3DAE0852E54828B00CCA36B /* LIMMediaCallModel.m in Sources */,
+				C3DAE0862E54828B00CCA36B /* NoaIMFunction.m in Sources */,
+				C3DAE0872E54828B00CCA36B /* NoaIMHttpManager+AppInfo.m in Sources */,
+				C3DAE0882E54828B00CCA36B /* NoaIMDBTool+AppInfo.mm in Sources */,
+				C3DAE0892E54828B00CCA36B /* FCUUID.m in Sources */,
+				C3DAE08A2E54828B00CCA36B /* NoaIMHttpResponse.m in Sources */,
+				C3DAE08B2E54828B00CCA36B /* LingIMSensitiveModel.m in Sources */,
+				C3DAE08C2E54828B00CCA36B /* RecentsEmojiModel.mm in Sources */,
+				C3DAE08D2E54828B00CCA36B /* NoaIMSocketHostOptions.m in Sources */,
+				C3DAE08E2E54828B00CCA36B /* NoaIMSDKApiOptions.m in Sources */,
+				C3DAE08F2E54828B00CCA36B /* LingIMGroupActiviteScoreModel.m in Sources */,
+				C3DAE0902E54828B00CCA36B /* NoaIMDeviceTool.m in Sources */,
+				C3DAE0912E54828B00CCA36B /* NoaIMZGCallOptions.m in Sources */,
+				C3DAE0922E54828B00CCA36B /* NoaIMHttpManager+Stickers.m in Sources */,
+				C3DAE0932E54828B00CCA36B /* UICKeyChainStore.m in Sources */,
+				C3DAE0952E54828B00CCA36B /* NoaIMCallManager.m in Sources */,
+				C3DAE0962E54828B00CCA36B /* LingIMCallOptionsManager.swift in Sources */,
+				C3DAE0972E54828B00CCA36B /* NoaIMSDKManager.mm in Sources */,
+				C3DAE0982E54828B00CCA36B /* LingIMFriendGroupModel.mm in Sources */,
+				C3DAE09A2E54828B00CCA36B /* NoaIMMessageRemindTool.m in Sources */,
+				C3DAE09B2E54828B00CCA36B /* LIMServerMessageModel.m in Sources */,
+				C38FF8EC2E5D98A400EC7BAB /* LingImmessage.pbobjc.m in Sources */,
+				C3DAE09D2E54828B00CCA36B /* NoaIMZGCallConfig.m in Sources */,
+				C3DAE09E2E54828B00CCA36B /* NoaIMSocketManager.m in Sources */,
+				C3DAE09F2E54828B00CCA36B /* NoaIMSocketManagerTool.m in Sources */,
+				C3DAE0A02E54828B00CCA36B /* NoaIMDBTool+Session.mm in Sources */,
+				2DF1BA342ED71CF2008785D0 /* NoaIMSocketManagerTool+LingImTcpReplaceHttp.m in Sources */,
+				C3DAE0A12E54828B00CCA36B /* NoaIMSDKManager+Auth.m in Sources */,
+				C3DAE0A22E54828B00CCA36B /* LingIMTranslateConfigModel.m in Sources */,
+				C3DAE0A32E54828B00CCA36B /* NoaIMSDKManager+User.m in Sources */,
+				C3DAE0A42E54828B00CCA36B /* LIMMassMessageModel.m in Sources */,
+				C3DAE0A52E54828B00CCA36B /* NoaIMSDKManager+AppInfo.m in Sources */,
+				C3DAE0A62E54828B00CCA36B /* NSDate+LingIMDateTime.m in Sources */,
+				C3DAE0A72E54828B00CCA36B /* NoaIMHttpManager+Group.m in Sources */,
+				C3DAE0A82E54828B00CCA36B /* NoaIMSDKManager+ServiceMessage.m in Sources */,
+				C3DAE0A92E54828B00CCA36B /* LIMMediaCallMeetingModel.m in Sources */,
+				C3DAE0AC2E54828B00CCA36B /* NoaIMSDKManager+Connect.m in Sources */,
+				C3DAE0AE2E54828B00CCA36B /* NoaIMHttpManager+User.m in Sources */,
+				C3DAE0AF2E54828B00CCA36B /* NoaIMStickersModel.mm in Sources */,
+				C3DAE0B02E54828B00CCA36B /* NoaIMCallOptions.m in Sources */,
+				C3DAE0B12E54828B00CCA36B /* LingIMMiniAppModel.mm in Sources */,
+				C3DAE0B22E54828B00CCA36B /* NoaIMManagerTool.m in Sources */,
+				C3DAE0B32E54828B00CCA36B /* NoaIMSDKManager+ChatMessage.m in Sources */,
+				C3DAE0B42E54828B00CCA36B /* NSDate+SyncServer.m in Sources */,
+				C3DAE0B52E54828B00CCA36B /* NoaIMStickersPackageModel.mm in Sources */,
+				C3DAE0B62E54828B00CCA36B /* LIMMediaCallGroupModel.m in Sources */,
+				C3DAE0B72E54828B00CCA36B /* NoaIMHttpManager+MiniApp.m in Sources */,
+				C3DAE0B82E54828B00CCA36B /* LingIMMMKVTool.m in Sources */,
+				C3AD95652E5C926A0051B55C /* NoaIMSocketManagerTool+HandleReceiveTcpReplaceHttpMessage.m in Sources */,
+				C3DAE0B92E54828B00CCA36B /* NoaIMSDKManager+MessageRemind.m in Sources */,
+				C3DAE0BA2E54828B00CCA36B /* LIMMediaCallGroupParticipantAction.m in Sources */,
+				C3DAE0BB2E54828B00CCA36B /* NoaIMHttpManager+Auth.m in Sources */,
+				C3DAE0BC2E54828B00CCA36B /* NoaIMSDKManager+Translate.m in Sources */,
+				C3DAE0BD2E54828B00CCA36B /* NoaIMHttpManager+Translate.m in Sources */,
+				C3DAE0BE2E54828B00CCA36B /* NoaIMChatMessageModel+WCTColumnCoding.mm in Sources */,
+				C3DAE0C02E54828B00CCA36B /* NoaIMChatMessageModel.mm in Sources */,
+				C3DAE0C12E54828B00CCA36B /* NoaChatMessageModel.m in Sources */,
+				C3DAE0C22E54828B00CCA36B /* NoaIMHttpManager+signin.m in Sources */,
+				C3DAE0C32E54828B00CCA36B /* NoaIMSDKManager+Team.m in Sources */,
+				C3DAE0C42E54828B00CCA36B /* NoaIMSDKManager+Friend.m in Sources */,
+				C3DAE0C52E54828B00CCA36B /* NoaFloatMiniAppModel.m in Sources */,
+				C3DAE0C62E54828B00CCA36B /* NoaIMHttpManager+Message.m in Sources */,
+				C3DAE0C72E54828B00CCA36B /* NoaIMSDKManager+Call.m in Sources */,
+				C3DF0DAD2E88233B007AF2EE /* LoggerWrapper.m in Sources */,
+				C3DF0DB32E88233B007AF2EE /* NoaLocalLogger.m in Sources */,
+				C3DAE0C92E54828B00CCA36B /* NoaIMSDKManager+Session.m in Sources */,
+				C3DAE0CA2E54828B00CCA36B /* NoaIMSDKManager+SyncServer.m in Sources */,
+				C3DAE0CB2E54828B00CCA36B /* NoaFloatMiniAppModel+WCTTableCoding.mm in Sources */,
+				C3DAE0CC2E54828B00CCA36B /* NoaIMHttpManager+Team.m in Sources */,
+				C3DAE0CD2E54828B00CCA36B /* NoaIMSDKManager+MiniApp.m in Sources */,
+				C3DAE0CE2E54828B00CCA36B /* NoaIMSDKUserOptions.m in Sources */,
+				C3DAE0CF2E54828B00CCA36B /* NoaIMHttpManager+Call.m in Sources */,
+				C3DAE0D02E54828B00CCA36B /* NoaIMDBTool+ChatMessage.mm in Sources */,
+				C3DAE0D12E54828B00CCA36B /* ThreadSafeMutableDictionary.m in Sources */,
+				6C8487C82E7A98A500AF71B8 /* NoaIMSDKManager+Probe.m in Sources */,
+				C3DAE0D22E54828B00CCA36B /* NoaIMDBTool+GroupMember.mm in Sources */,
+				C3DAE0D32E54828B00CCA36B /* NoaIMSDKManager+signin.m in Sources */,
+				C3DAE0D42E54828B00CCA36B /* LIMMediaCallRoomInfoModel.m in Sources */,
+				C3DAE0D52E54828B00CCA36B /* LingIMSessionModel.mm in Sources */,
+				C3DAE0D62E54828B00CCA36B /* NoaIMSDKManager+Group.m in Sources */,
+				C3DAE0D72E54828B00CCA36B /* NoaIMHttpManager+Friend.m in Sources */,
+				C3DAE0D82E54828B00CCA36B /* LingIMModelTool.m in Sources */,
+				C3DAE0D92E54828B00CCA36B /* NoaIMZGCallManager.m in Sources */,
+				C3DAE0DA2E54828B00CCA36B /* LingIMFriendModel.mm in Sources */,
+				C3DAE0DB2E54828B00CCA36B /* LIMSessionModel.m in Sources */,
+				6CAE352A2E6FDD680024763A /* NoaIMLoganManager.m in Sources */,
+				6CAE35322E6FDEC00024763A /* NoaIMSDKManager+Logan.m in Sources */,
+				6CAE352B2E6FDD680024763A /* NoaIMLoganOption.m in Sources */,
+				6CAE352C2E6FDD680024763A /* NoaIMSignalExceptionHandler.m in Sources */,
+				6CAE352E2E6FDD680024763A /* NoaIMUncaughtExceptionHandler.m in Sources */,
+				C35DDA3D2E5C053F0002E0DF /* LingIMTcpRequestModel+HandleReceiveMessage.m in Sources */,
+				C35DDA3E2E5C053F0002E0DF /* LingIMTcpCommonTool.m in Sources */,
+				C35DDA412E5C053F0002E0DF /* LingIMTcpRequestModel.m in Sources */,
+				C3DAE0DC2E54828B00CCA36B /* ZDateRequestTool.m in Sources */,
+				C3DAE0DD2E54828B00CCA36B /* NoaIMSDKManager+Stickers.m in Sources */,
+				C3DAE0DE2E54828B00CCA36B /* LIMMediaCallSingleModel.m in Sources */,
+				C3DAE0E02E54828B00CCA36B /* LingIMUserModel.mm in Sources */,
+				C3DAE0E22E54828B00CCA36B /* LingIMSensitivePageModel.m in Sources */,
+				18B1539128A270570033CB51 /* NoaChatSDKCore.docc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		18B1539E28A270580033CB51 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		18B1539F28A270580033CB51 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		18B153A128A270580033CB51 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6D313F282C8F837B9CA02574 /* Pods-CandyTalkPro.debug.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/NoaChatSDKCore/NoaChatSDKCode/Lib",
+					"$(PROJECT_DIR)/NoaChatSDKCore/NoaChatSDKCode/ThirdLibs",
+				);
+				GCC_INCREASE_PRECOMPILED_HEADER_SHARING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/AFNetworking/AFNetworking.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/CocoaAsyncSocket/CocoaAsyncSocket.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/LiveKitClient/LiveKitClient.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logan/Logan.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logging/Logging.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/MJExtension/MJExtension.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKV/MMKV.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKVCore/MMKVCore.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/NullSafe/NullSafe.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC/FBLPromises.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesSwift/Promises.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Protobuf/Protobuf.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SAMKeychain/SAMKeychain.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SQLiteRepairKit/sqliterk.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SocketRocket/SocketRocket.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SwiftProtobuf/SwiftProtobuf.framework/Headers\"",
+				);
+				INFOPLIST_FILE = NoaChatSDKCore/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/NoaChatSDKCore/NoaChatSDKCode/ConnectModule/Common/LXChatEncrypt",
+				);
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lindoo.whale.sdkcore;
+				PRODUCT_MODULE_NAME = NoaChatSDKCore;
+				PRODUCT_NAME = NoaChatCore;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WARNING_CFLAGS = "-Wno-ambiguous-macro";
+			};
+			name = Debug;
+		};
+		18B153A228A270580033CB51 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4E6A025058C358A8445C4CA7 /* Pods-CandyTalkPro.release.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/NoaChatSDKCore/NoaChatSDKCode/Lib",
+					"$(PROJECT_DIR)/NoaChatSDKCore/NoaChatSDKCode/ThirdLibs",
+				);
+				GCC_INCREASE_PRECOMPILED_HEADER_SHARING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/AFNetworking/AFNetworking.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/CocoaAsyncSocket/CocoaAsyncSocket.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/LiveKitClient/LiveKitClient.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logan/Logan.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logging/Logging.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/MJExtension/MJExtension.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKV/MMKV.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKVCore/MMKVCore.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/NullSafe/NullSafe.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC/FBLPromises.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesSwift/Promises.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Protobuf/Protobuf.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SAMKeychain/SAMKeychain.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SQLiteRepairKit/sqliterk.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SocketRocket/SocketRocket.framework/Headers\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/SwiftProtobuf/SwiftProtobuf.framework/Headers\"",
+				);
+				INFOPLIST_FILE = NoaChatSDKCore/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/NoaChatSDKCore/NoaChatSDKCode/ConnectModule/Common/LXChatEncrypt",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lindoo.whale.sdkcore;
+				PRODUCT_MODULE_NAME = NoaChatSDKCore;
+				PRODUCT_NAME = NoaChatCore;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WARNING_CFLAGS = "-Wno-ambiguous-macro";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		18B1538628A270570033CB51 /* Build configuration list for PBXProject "CandyTalkPro" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18B1539E28A270580033CB51 /* Debug */,
+				18B1539F28A270580033CB51 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		18B153A028A270580033CB51 /* Build configuration list for PBXNativeTarget "CandyTalkPro" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18B153A128A270580033CB51 /* Debug */,
+				18B153A228A270580033CB51 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 18B1538328A270570033CB51 /* Project object */;
+}

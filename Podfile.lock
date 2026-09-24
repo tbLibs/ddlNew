@@ -1,21 +1,110 @@
 PODS:
+  - AFNetworking (4.0.1):
+    - AFNetworking/NSURLSession (= 4.0.1)
+    - AFNetworking/Reachability (= 4.0.1)
+    - AFNetworking/Security (= 4.0.1)
+    - AFNetworking/Serialization (= 4.0.1)
+    - AFNetworking/UIKit (= 4.0.1)
+  - AFNetworking/NSURLSession (4.0.1):
+    - AFNetworking/Reachability
+    - AFNetworking/Security
+    - AFNetworking/Serialization
+  - AFNetworking/Reachability (4.0.1)
+  - AFNetworking/Security (4.0.1)
+  - AFNetworking/Serialization (4.0.1)
+  - AFNetworking/UIKit (4.0.1):
+    - AFNetworking/NSURLSession
   - AlicloudPDNS (2.1.9)
+  - CocoaAsyncSocket (7.6.5)
+  - LiveKitClient (1.0.8):
+    - Logging
+    - PromisesSwift
+    - SwiftProtobuf
+    - WebRTC-SDK (~> 104.5112.07)
+  - Logging (1.4.0)
+  - MJExtension (3.4.0)
+  - MMKV (1.2.16):
+    - MMKVCore (~> 1.2.16)
+  - MMKVCore (1.2.16)
+  - NetworkStatus (1.0.0)
+  - NullSafe (2.0)
+  - PromisesObjC (2.4.1)
+  - PromisesSwift (2.4.1):
+    - PromisesObjC (= 2.4.1)
+  - Protobuf (3.21.5)
+  - ReactiveObjC (3.1.1)
+  - SAMKeychain (1.5.3)
+  - SocketRocket (0.6.0)
+  - SwiftProtobuf (1.38.1)
+  - WebRTC-SDK (104.5112.17)
   - WoodPeckeriOS (1.4.3)
+  - ZegoExpressEngine (3.5.0)
 
 DEPENDENCIES:
+  - AFNetworking (= 4.0.1)
   - AlicloudPDNS (= 2.1.9)
+  - CocoaAsyncSocket (= 7.6.5)
+  - LiveKitClient (= 1.0.8)
+  - MJExtension (= 3.4.0)
+  - MMKV (= 1.2.16)
+  - NetworkStatus (from `./NetWorkStatus/NetWorkStatus.podspec`)
+  - NullSafe (= 2.0)
+  - Protobuf (= 3.21.5)
+  - ReactiveObjC
+  - SAMKeychain (= 1.5.3)
+  - SocketRocket (= 0.6.0)
   - WoodPeckeriOS
+  - ZegoExpressEngine (= 3.5.0)
 
 SPEC REPOS:
   https://github.com/aliyun/aliyun-specs.git:
     - AlicloudPDNS
   https://github.com/CocoaPods/Specs:
+    - AFNetworking
+    - CocoaAsyncSocket
+    - LiveKitClient
+    - Logging
+    - MJExtension
+    - MMKV
+    - MMKVCore
+    - NullSafe
+    - PromisesObjC
+    - PromisesSwift
+    - Protobuf
+    - ReactiveObjC
+    - SAMKeychain
+    - SocketRocket
+    - SwiftProtobuf
+    - WebRTC-SDK
     - WoodPeckeriOS
+    - ZegoExpressEngine
+
+EXTERNAL SOURCES:
+  NetworkStatus:
+    :path: "./NetWorkStatus/NetWorkStatus.podspec"
 
 SPEC CHECKSUMS:
+  AFNetworking: 3bd23d814e976cd148d7d44c3ab78017b744cd58
   AlicloudPDNS: 6eda4d8af312b1e0824a58d97a2f5edf71531186
+  CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
+  LiveKitClient: e4c5d63cd7633a5006058f27ccfddd914c5fa592
+  Logging: beeb016c9c80cf77042d62e83495816847ef108b
+  MJExtension: 6c15c7b93398447252c0defdb8d69d02d218a41e
+  MMKV: 784471ce430a2e2d16afef9053d63fab1b357d9e
+  MMKVCore: 9cfef4c48c6c46f66226fc2e4634d78490206a48
+  NetworkStatus: f54a8da5de43b6aca03f3c4c4565b3bda1a37c32
+  NullSafe: 948feba938f03abede5ed3758694a9fe5b3a65ce
+  PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
+  PromisesSwift: 217dea0fd5d2ad65222a109c48698add13cc1c5b
+  Protobuf: 7504b04fffcf6662ad629694db8231f5e744327f
+  ReactiveObjC: 011caa393aa0383245f2dcf9bf02e86b80b36040
+  SAMKeychain: 483e1c9f32984d50ca961e26818a534283b4cd5c
+  SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
+  SwiftProtobuf: 409d3aaec90e51b1705b1dd8065b56893450e77c
+  WebRTC-SDK: 082ae4893212534a779ca233f19a9df8efd5f3bd
   WoodPeckeriOS: d76940519d27513155959a659f0d1142b5ccc081
+  ZegoExpressEngine: 2585b5782f7ad0b837beabb9cdb758d6a64fff73
 
-PODFILE CHECKSUM: 3b32a8ff6ef990a152393930d437d2b6a9026d57
+PODFILE CHECKSUM: 62b19b803d3b2b604589798bb301764d600953ae
 
 COCOAPODS: 1.17.0
