@@ -1,0 +1,30 @@
+//
+//  BusinessRequestHeaders.swift
+//  ddlNew
+//
+//  Created by taobo on 2026/9/24.
+//
+
+import Foundation
+
+/// 未登录业务请求共用的设备、组织与验签请求头。
+@MainActor
+enum BusinessRequestHeaders {
+    static func make(timestamp: Int64, signature: String, lastLiceseId: String? = nil) -> [String: String] {
+        var headers = [
+            "deviceType": "IOS",
+            "deviceUuid": BusinessDeviceIdentity.shared.uuid,
+            "orgName": businessOrgName,
+            "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+            "token": "",
+            "timestamp": String(timestamp),
+            "signature": signature
+        ]
+        if let lastLiceseId, !lastLiceseId.isEmpty {
+            headers["conid"] = lastLiceseId
+            headers["ZTID"] = UUID().uuidString
+            headers["loginuseruid"] = ""
+        }
+        return headers
+    }
+}

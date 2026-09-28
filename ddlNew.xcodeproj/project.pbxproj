@@ -77,7 +77,8 @@
 		DDA78C5630636E3E002421B4 /* Exceptions for "ddlNew" folder in "ddlNew" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				App/Info.plist,
+				Protocols/Nav/nav.proto,
 			);
 			target = DD12A8CB305CD63A005799BD /* ddlNew */;
 		};
@@ -593,7 +594,7 @@
 					"$(inherited)",
 					"$(OBJROOT)/GeneratedModuleMaps-$(PLATFORM_NAME)",
 				);
-				INFOPLIST_FILE = ddlNew/Info.plist;
+				INFOPLIST_FILE = ddlNew/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -626,7 +627,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "ddlNew/ddlNew-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "ddlNew/App/ddlNew-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -654,7 +655,7 @@
 					"$(inherited)",
 					"$(OBJROOT)/GeneratedModuleMaps-$(PLATFORM_NAME)",
 				);
-				INFOPLIST_FILE = ddlNew/Info.plist;
+				INFOPLIST_FILE = ddlNew/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -687,7 +688,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "ddlNew/ddlNew-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "ddlNew/App/ddlNew-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
