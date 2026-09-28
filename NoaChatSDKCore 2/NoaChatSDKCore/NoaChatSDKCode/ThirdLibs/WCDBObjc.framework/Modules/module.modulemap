@@ -1,9 +1,0 @@
-framework module WCDBObjc {
-    requires objc
-
-	module All {
-		header "WCDBObjc.h"
-        export *
-        requires cplusplus17
-    }
-}
