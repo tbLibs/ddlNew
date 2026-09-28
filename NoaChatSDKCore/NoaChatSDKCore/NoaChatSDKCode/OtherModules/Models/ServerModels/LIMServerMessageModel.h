@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 #import "NoaIMSDK.h"
 
 NS_ASSUME_NONNULL_BEGIN

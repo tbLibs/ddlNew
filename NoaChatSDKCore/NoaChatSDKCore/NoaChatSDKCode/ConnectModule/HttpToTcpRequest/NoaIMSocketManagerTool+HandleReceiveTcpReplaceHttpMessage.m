@@ -17,7 +17,7 @@
 #import "LingIMMacorHeader.h"
 
 // 用于mj_objectWithKeyValues
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 
 // 短连接转长连接消息处理类
 #import "NoaIMSocketManagerTool+LingImTcpReplaceHttp.h"

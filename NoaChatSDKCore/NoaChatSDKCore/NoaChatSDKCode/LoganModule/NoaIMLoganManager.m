@@ -11,7 +11,7 @@
 #import "LingIMMacorHeader.h"
 #import "NoaIMUncaughtExceptionHandler.h"
 #import "NoaIMDeviceTool.h"
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 
 //单例
 static dispatch_once_t onceToken;

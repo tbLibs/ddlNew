@@ -10,7 +10,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 #import "NoaIMSDK.h"
 
 //聊天消息发送状态枚举

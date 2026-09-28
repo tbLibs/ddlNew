@@ -18,7 +18,20 @@ target 'ddlNew' do
   #aliyun云解析DNS
   pod 'AlicloudPDNS', '2.1.9'
   pod 'WoodPeckeriOS', :configurations => ['Debug']
+  pod 'MMKV', '1.2.16'
+  pod 'Protobuf', '3.21.5'
+  pod "AFNetworking", '4.0.1'
 
+  pod 'SAMKeychain', '1.5.3'
+  
+  # RAC
+  pod 'ReactiveObjC', :inhibit_warnings => true
+
+  # 网络监听
+  pod 'NetworkStatus', :path => './NetWorkStatus/NetWorkStatus.podspec'
+
+  
+  # MJExtension、LiveKit、ZegoExpressEngine 已迁移到 SPM。
 
 end
 
@@ -27,20 +40,13 @@ target 'CandyTalkPro' do
   use_frameworks!
 
   pod "AFNetworking", '4.0.1'
-  pod 'MJExtension', '3.4.0'
-  pod 'SocketRocket', '0.6.0'
   pod 'MMKV', '1.2.16'
-  pod 'NullSafe', '2.0'
   pod 'Protobuf', '3.21.5'
   #新的架构实现SDK
-  pod 'CocoaAsyncSocket', '7.6.5'
+#  pod 'CocoaAsyncSocket', '7.6.5'
   pod 'SAMKeychain', '1.5.3'
 
-  #音视频要求iOS13最低(SwiftUI)
-  pod 'LiveKitClient', '1.0.8'
-
-  #即构音视频
-  pod 'ZegoExpressEngine', '3.5.0'
+  # 音视频 SDK 与 MJExtension 由两个项目共用的 SPM 依赖提供。
 
   # 错误监控
 #  pod 'Sentry', '8.58.3'

@@ -8,7 +8,7 @@
 // 会话列表-转发助手-最新的消息Model
 
 #import <Foundation/Foundation.h>
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

@@ -9,7 +9,7 @@
 // code码判断
 #import "NoaIMHttpResponse.h"
 
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 
 #import "LingIMTcpCommonTool.h"
 

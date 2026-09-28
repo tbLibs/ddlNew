@@ -1,5 +1,5 @@
 {
-  "originHash" : "1243dca55669ff7b0efbb02a7eb63bdf4bfb02f2003bf22d11da0026a485c06b",
+  "originHash" : "7aabf58b8e75ed286528364b9ed090bfc37a7054ba9b0f6e0992b1a31fd30a04",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -20,12 +20,30 @@
       }
     },
     {
+      "identity" : "client-sdk-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/livekit/client-sdk-swift.git",
+      "state" : {
+        "revision" : "606ee3b65a0b0e1fa9286c54ac39c97b458d9142",
+        "version" : "1.0.8"
+      }
+    },
+    {
       "identity" : "cocoaasyncsocket",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/robbiehanson/CocoaAsyncSocket.git",
       "state" : {
         "revision" : "dbdc00669c1ced63b27c3c5f052ee4d28f10150c",
         "version" : "7.6.5"
+      }
+    },
+    {
+      "identity" : "express-video-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/zegolibrary/express-video-ios.git",
+      "state" : {
+        "revision" : "a5475d0ff1adc204d5a3573c712541488250c7d9",
+        "version" : "3.5.0"
       }
     },
     {
@@ -47,12 +65,12 @@
       }
     },
     {
-      "identity" : "mmkv",
+      "identity" : "mjextension",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tencent/MMKV.git",
+      "location" : "https://github.com/CoderMJLee/MJExtension.git",
       "state" : {
-        "revision" : "ad7657ef9d120dbcdd7432d75aa6c59391149b22",
-        "version" : "2.4.2"
+        "revision" : "6d1d1bb32413f36e58d36473a45161cb9bac9d17",
+        "version" : "3.4.0"
       }
     },
     {
@@ -71,6 +89,15 @@
       "state" : {
         "revision" : "6021c6035e83a306047348666f6400dc61445d3b",
         "version" : "4.4.3"
+      }
+    },
+    {
+      "identity" : "promises",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/google/promises.git",
+      "state" : {
+        "revision" : "f4a19a3c313dc2616c70bb49d29a799fb16be837",
+        "version" : "2.4.1"
       }
     },
     {
@@ -101,12 +128,30 @@
       }
     },
     {
+      "identity" : "specs",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/webrtc-sdk/Specs.git",
+      "state" : {
+        "revision" : "2915620754b1d5b3d6570246b6c2f084b488589d",
+        "version" : "104.5112.7"
+      }
+    },
+    {
       "identity" : "sqlcipher",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Tencent/sqlcipher",
       "state" : {
         "revision" : "5d8825c22feedb421ad6f9ecfc1399460e10d299",
         "version" : "1.4.7"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "9c6fb14227f55d8f711ce3847dc2f419fb0ecacb",
+        "version" : "1.15.1"
       }
     },
     {

@@ -7,6 +7,8 @@
 
 #import "NoaIMCallManager.h"
 #import "LingIMMacorHeader.h"
+//OC调用Swift，引用系统隐式创建的文件
+#import <NoaChatCore/NoaChatCore-Swift.h>
 
 @interface NoaIMCallManager ()
 @property (nonatomic, copy) NSString *callRoomUrl;//音视频房间地址

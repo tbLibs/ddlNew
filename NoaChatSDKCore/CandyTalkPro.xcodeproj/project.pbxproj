@@ -3,10 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0928B0010000000000000007 /* MJExtension in Frameworks */ = {isa = PBXBuildFile; productRef = 0928B0010000000000000004 /* MJExtension */; };
+		0928B0010000000000000008 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0928B0010000000000000005 /* LiveKit */; };
+		0928B0010000000000000009 /* ZegoExpressEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0928B0010000000000000006 /* ZegoExpressEngine */; };
 		0A7DFB4F30DA25C1373AC536 /* Pods_CandyTalkPro.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A89AEBD30F76D09461CDCEA /* Pods_CandyTalkPro.framework */; };
 		18B1539128A270570033CB51 /* NoaChatSDKCore.docc in Sources */ = {isa = PBXBuildFile; fileRef = 18B1539028A270570033CB51 /* NoaChatSDKCore.docc */; };
 		18B1539D28A270580033CB51 /* NoaIMSDKCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 18B1538F28A270570033CB51 /* NoaIMSDKCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -275,7 +278,8 @@
 		C3DF0DB22E88233B007AF2EE /* NoaLocalLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = C3DF0DB02E88233B007AF2EE /* NoaLocalLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C3DF0DB32E88233B007AF2EE /* NoaLocalLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = C3DF0DB12E88233B007AF2EE /* NoaLocalLogger.m */; };
 		DDA79670306524BD002421B4 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = DDA7966F306524BD002421B4 /* Sentry */; };
-		DDADAC473069F7B000F0B6ED /* NoaChatCore.h in Headers */ = {isa = PBXBuildFile; fileRef = DDADAC463069F7B000F0B6ED /* NoaChatCore.h */; };
+		DDADAC473069F7B000F0B6ED /* NoaChatCore.h in Headers */ = {isa = PBXBuildFile; fileRef = DDADAC463069F7B000F0B6ED /* NoaChatCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		DDADACE5306A00EB00F0B6ED /* CocoaAsyncSocket in Frameworks */ = {isa = PBXBuildFile; productRef = DDADACE4306A00EB00F0B6ED /* CocoaAsyncSocket */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -561,6 +565,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0928B0010000000000000007 /* MJExtension in Frameworks */,
+				0928B0010000000000000008 /* LiveKit in Frameworks */,
+				0928B0010000000000000009 /* ZegoExpressEngine in Frameworks */,
+				DDADACE5306A00EB00F0B6ED /* CocoaAsyncSocket in Frameworks */,
 				2DF1BA232ED700D0008785D0 /* WCDBObjc.framework in Frameworks */,
 				C3DAE0742E54828B00CCA36B /* libLXChatEncrypt.a in Frameworks */,
 				DDA79670306524BD002421B4 /* Sentry in Frameworks */,
@@ -1393,7 +1401,11 @@
 			);
 			name = CandyTalkPro;
 			packageProductDependencies = (
+				0928B0010000000000000004 /* MJExtension */,
+				0928B0010000000000000005 /* LiveKit */,
+				0928B0010000000000000006 /* ZegoExpressEngine */,
 				DDA7966F306524BD002421B4 /* Sentry */,
+				DDADACE4306A00EB00F0B6ED /* CocoaAsyncSocket */,
 			);
 			productName = NoaChatSDKCore;
 			productReference = 18B1538C28A270570033CB51 /* NoaChatCore.framework */;
@@ -1424,7 +1436,11 @@
 			);
 			mainGroup = 18B1538228A270570033CB51;
 			packageReferences = (
+				0928B0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */,
+				0928B0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
+				0928B0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
 				DDA7966E306524BD002421B4 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				DDADACE3306A00EB00F0B6ED /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 			);
 			productRefGroup = 18B1538D28A270570033CB51 /* Products */;
 			projectDirPath = "";
@@ -1741,22 +1757,15 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
+					"$(OBJROOT)/GeneratedModuleMaps-$(PLATFORM_NAME)",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/AFNetworking/AFNetworking.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/CocoaAsyncSocket/CocoaAsyncSocket.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/LiveKitClient/LiveKitClient.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logan/Logan.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logging/Logging.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/MJExtension/MJExtension.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKV/MMKV.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKVCore/MMKVCore.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/NullSafe/NullSafe.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC/FBLPromises.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesSwift/Promises.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/Protobuf/Protobuf.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/SAMKeychain/SAMKeychain.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/SQLiteRepairKit/sqliterk.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/SocketRocket/SocketRocket.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/SwiftProtobuf/SwiftProtobuf.framework/Headers\"",
 				);
 				INFOPLIST_FILE = NoaChatSDKCore/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1809,22 +1818,15 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
+					"$(OBJROOT)/GeneratedModuleMaps-$(PLATFORM_NAME)",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/AFNetworking/AFNetworking.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/CocoaAsyncSocket/CocoaAsyncSocket.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/LiveKitClient/LiveKitClient.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logan/Logan.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/Logging/Logging.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/MJExtension/MJExtension.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKV/MMKV.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/MMKVCore/MMKVCore.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/NullSafe/NullSafe.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC/FBLPromises.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesSwift/Promises.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/Protobuf/Protobuf.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/SAMKeychain/SAMKeychain.framework/Headers\"",
 					"\"${PODS_CONFIGURATION_BUILD_DIR}/SQLiteRepairKit/sqliterk.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/SocketRocket/SocketRocket.framework/Headers\"",
-					"\"${PODS_CONFIGURATION_BUILD_DIR}/SwiftProtobuf/SwiftProtobuf.framework/Headers\"",
 				);
 				INFOPLIST_FILE = NoaChatSDKCore/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1877,6 +1879,30 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		0928B0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CoderMJLee/MJExtension.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.4.0;
+			};
+		};
+		0928B0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/client-sdk-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.8;
+			};
+		};
+		0928B0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/zegolibrary/express-video-ios.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.5.0;
+			};
+		};
 		DDA7966E306524BD002421B4 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa/";
@@ -1887,13 +1913,41 @@
 			traits = (
 			);
 		};
+		DDADACE3306A00EB00F0B6ED /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/robbiehanson/CocoaAsyncSocket.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.6.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0928B0010000000000000004 /* MJExtension */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0928B0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */;
+			productName = MJExtension;
+		};
+		0928B0010000000000000005 /* LiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0928B0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
+			productName = LiveKit;
+		};
+		0928B0010000000000000006 /* ZegoExpressEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0928B0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */;
+			productName = ZegoExpressEngine;
+		};
 		DDA7966F306524BD002421B4 /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DDA7966E306524BD002421B4 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
+		};
+		DDADACE4306A00EB00F0B6ED /* CocoaAsyncSocket */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DDADACE3306A00EB00F0B6ED /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */;
+			productName = CocoaAsyncSocket;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

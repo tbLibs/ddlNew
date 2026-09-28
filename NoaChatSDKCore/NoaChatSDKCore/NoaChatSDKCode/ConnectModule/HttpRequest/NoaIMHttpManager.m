@@ -9,7 +9,7 @@
 //获取设备唯一标识
 #import "FCUUID.h"
 //数据解析
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 #import "NoaIMSDKManager.h"
 #import "NoaIMDeviceTool.h"
 #import "LXChatEncrypt.h"

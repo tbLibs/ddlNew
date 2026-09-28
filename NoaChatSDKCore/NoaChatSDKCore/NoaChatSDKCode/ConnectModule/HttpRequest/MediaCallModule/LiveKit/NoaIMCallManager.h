@@ -6,10 +6,8 @@
 //
 
 #import <Foundation/Foundation.h>
-//OC调用Swift，引用系统隐式创建的文件
-#import <NoaChatCore/NoaChatCore-Swift.h>
-//音视频SDK
-#import <LiveKitClient-Swift.h>
+// SPM 的音视频模块名为 LiveKit，公开接口中的 Room 等类型由它提供。
+#import <LiveKit-Swift.h>
 #import <WebRTC/WebRTC.h>
 #import "NoaIMCallOptions.h"
 

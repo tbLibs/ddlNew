@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import "NoaIMStickersModel.h"
-#import <MJExtension/MJExtension.h>
+#import <MJExtension.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

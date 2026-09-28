@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import LiveKitClient
+import LiveKit
 import WebRTC
 
 @objcMembers public class LingIMCallOptionsManager: NSObject {

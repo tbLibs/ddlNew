@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0928A0010000000000000007 /* MJExtension in Frameworks */ = {isa = PBXBuildFile; productRef = 0928A0010000000000000004 /* MJExtension */; };
+		0928A0010000000000000008 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0928A0010000000000000005 /* LiveKit */; };
+		0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0928A0010000000000000006 /* ZegoExpressEngine */; };
+		0928A0030000000000000002 /* WCDBObjc.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0928A0030000000000000001 /* WCDBObjc.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		28A1C0010000000000000001 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 28A1C0010000000000000003 /* Kingfisher */; };
 		28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */ = {isa = PBXBuildFile; productRef = 28A1C0010000000000000004 /* CocoaAsyncSocket */; };
 		4F605F5B45FF0DA04D58B367 /* Pods_ddlNew.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CFD8FD33BBD2B9E314ABF93 /* Pods_ddlNew.framework */; };
@@ -22,7 +26,6 @@
 		AF019ABC305D30000000000C /* SwiftUIX in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000B /* SwiftUIX */; };
 		AF019ABC305D30000000000F /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000E /* SwiftUIIntrospect */; };
 		AF019ABC305D300000000010 /* WCDBSwiftDynamic in Embed Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000002 /* WCDBSwiftDynamic */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C0D3A0010000000000000001 /* MMKV in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0010000000000000002 /* MMKV */; };
 		C0D3A0010000000000000003 /* Localize_Swift in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0010000000000000004 /* Localize_Swift */; };
 		DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */ = {isa = PBXBuildFile; productRef = DD4B2D4E306274680031D035 /* ObjectMapper */; };
 		DDA7937D3064B6D9002421B4 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = DDA7937C3064B6D9002421B4 /* SwiftProtobuf */; };
@@ -49,6 +52,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				0928A0030000000000000002 /* WCDBObjc.framework in Embed Frameworks */,
 				DDADAC4530652BF600F0B6ED /* NoaChatCore.framework in Embed Frameworks */,
 				AF019ABC305D300000000010 /* WCDBSwiftDynamic in Embed Frameworks */,
 			);
@@ -58,6 +62,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0928A0030000000000000001 /* WCDBObjc.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WCDBObjc.framework; path = NoaChatSDKCore/NoaChatSDKCore/NoaChatSDKCode/ThirdLibs/WCDBObjc.framework; sourceTree = SOURCE_ROOT; };
 		1E47D5B2350916F8A86464A3 /* Pods-ddlNew.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ddlNew.debug.xcconfig"; path = "Target Support Files/Pods-ddlNew/Pods-ddlNew.debug.xcconfig"; sourceTree = "<group>"; };
 		70AF31731E8FA4AB6D0A7FE4 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		7CFD8FD33BBD2B9E314ABF93 /* Pods_ddlNew.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ddlNew.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -102,12 +107,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0928A0010000000000000007 /* MJExtension in Frameworks */,
+				0928A0010000000000000008 /* LiveKit in Frameworks */,
+				0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */,
 				28A1C0010000000000000001 /* Kingfisher in Frameworks */,
 				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
 				DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */,
 				4F605F5B45FF0DA04D58B367 /* Pods_ddlNew.framework in Frameworks */,
 				DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */,
-				C0D3A0010000000000000001 /* MMKV in Frameworks */,
 				C0D3A0010000000000000003 /* Localize_Swift in Frameworks */,
 				AF019ABC305D300000000003 /* WCDBSwiftDynamic in Frameworks */,
 				AF019ABC305D300000000006 /* UIAdapter in Frameworks */,
@@ -138,6 +145,7 @@
 		6BE211773B972D2BB3F4D6DD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0928A0030000000000000001 /* WCDBObjc.framework */,
 				DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */,
 				7CFD8FD33BBD2B9E314ABF93 /* Pods_ddlNew.framework */,
 				66AABE754F7E7DDD11468F34 /* iOS */,
@@ -225,6 +233,9 @@
 			);
 			name = ddlNew;
 			packageProductDependencies = (
+				0928A0010000000000000004 /* MJExtension */,
+				0928A0010000000000000005 /* LiveKit */,
+				0928A0010000000000000006 /* ZegoExpressEngine */,
 				28A1C0010000000000000003 /* Kingfisher */,
 				28A1C0010000000000000004 /* CocoaAsyncSocket */,
 				AF019ABC305D300000000002 /* WCDBSwiftDynamic */,
@@ -234,7 +245,6 @@
 				AF019ABC305D300000000008 /* AlertToast */,
 				E70490D2949F485DB50D1748 /* Sentry */,
 				DDC481FA306101510097F2C3 /* TBBasicLib */,
-				C0D3A0010000000000000002 /* MMKV */,
 				C0D3A0010000000000000004 /* Localize_Swift */,
 				DD4B2D4E306274680031D035 /* ObjectMapper */,
 				A71B2C3D4E5F60718293A401 /* Moya */,
@@ -274,10 +284,12 @@
 			mainGroup = DD12A8C3305CD63A005799BD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */,
+				0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
+				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
 				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 				DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */,
-				C0D3A0010000000000000005 /* XCRemoteSwiftPackageReference "MMKV" */,
 				C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */,
 				AF019ABC305D300000000001 /* XCRemoteSwiftPackageReference "wcdb" */,
 				AF019ABC305D300000000004 /* XCRemoteSwiftPackageReference "UIAdapter" */,
@@ -327,13 +339,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -577,6 +585,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(OBJROOT)/GeneratedModuleMaps-$(PLATFORM_NAME)",
+				);
 				INFOPLIST_FILE = ddlNew/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -634,6 +646,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(OBJROOT)/GeneratedModuleMaps-$(PLATFORM_NAME)",
+				);
 				INFOPLIST_FILE = ddlNew/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "活动空间";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -725,6 +741,30 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CoderMJLee/MJExtension.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.4.0;
+			};
+		};
+		0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/client-sdk-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.8;
+			};
+		};
+		0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/zegolibrary/express-video-ios.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.5.0;
+			};
+		};
 		28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
@@ -748,8 +788,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
-			traits = (
-			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -807,14 +845,6 @@
 				minimumVersion = 27.0.0;
 			};
 		};
-		C0D3A0010000000000000005 /* XCRemoteSwiftPackageReference "MMKV" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Tencent/MMKV.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.4.2;
-			};
-		};
 		C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/marmelroy/Localize-Swift.git";
@@ -850,6 +880,21 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0928A0010000000000000004 /* MJExtension */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */;
+			productName = MJExtension;
+		};
+		0928A0010000000000000005 /* LiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
+			productName = LiveKit;
+		};
+		0928A0010000000000000006 /* ZegoExpressEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */;
+			productName = ZegoExpressEngine;
+		};
 		28A1C0010000000000000003 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */;
@@ -904,11 +949,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AF019ABC305D30000000000D /* XCRemoteSwiftPackageReference "swiftui-introspect" */;
 			productName = SwiftUIIntrospect;
-		};
-		C0D3A0010000000000000002 /* MMKV */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C0D3A0010000000000000005 /* XCRemoteSwiftPackageReference "MMKV" */;
-			productName = MMKV;
 		};
 		C0D3A0010000000000000004 /* Localize_Swift */ = {
 			isa = XCSwiftPackageProductDependency;
