@@ -8,29 +8,6 @@
 import Combine
 import Foundation
 
-/// 初始化进度同时供邀请码页和登录页读取；就绪不等于账号已登录。
-enum IMConnectionPhase: Equatable {
-    case idle
-    case connecting
-    case fetchingConfiguration
-    case ready
-    case failed(String)
-
-    var message: String {
-        switch self {
-        case .idle: return "连接尚未准备"
-        case .connecting: return "正在恢复 TCP/ECDH 连接…"
-        case .fetchingConfiguration: return "连接已建立，正在获取系统配置…"
-        case .ready: return "连接已就绪"
-        case .failed(let message): return message
-        }
-    }
-
-    var isBusy: Bool {
-        self == .connecting || self == .fetchingConfiguration
-    }
-}
-
 /// 统一管理登录前连接。首次连接由邀请码页等待，缓存恢复由启动等待页等待。
 @MainActor
 final class IMConnectionCoordinator: ObservableObject {
@@ -52,6 +29,8 @@ final class IMConnectionCoordinator: ObservableObject {
     private var generation = UUID()
     private var reconnectTask: Task<Void, Never>?
     private var monitorTask: Task<Void, Never>?
+    /// 用户 AUTH 开始后，访客重连不能再清理 SDK 用户，交由 SDK 保持已登录连接。
+    private var userOwnsConnection = false
 
     init(driver: any IMSDKConnectionDriving,
          fetchConfiguration: @escaping @MainActor (OSSConnectionPlan) async throws -> SystemConfigRecord,
@@ -63,14 +42,32 @@ final class IMConnectionCoordinator: ObservableObject {
 
     /// 登录请求发送前应再次查询；页面显示或旧缓存存在均不代表可以发送请求。
     var isLoginReady: Bool {
-        phase == .ready && driver.isConnected && configuration?.isValidForLogin == true
+        !userOwnsConnection && phase == .ready && driver.isConnected && configuration?.isValidForLogin == true
     }
 
     /// 每个登录异步步骤核对此轮标识，重连后不能提交旧连接领取的密钥。
     var loginConnectionID: UUID? { isLoginReady ? generation : nil }
 
+    func beginUserAuthentication(connectionID: UUID) throws {
+        guard loginConnectionID == connectionID else { throw AccountLoginError.connectionChanged }
+        userOwnsConnection = true
+        monitorTask?.cancel()
+        monitorTask = nil
+    }
+
+    func isUserConnectionCurrent(_ connectionID: UUID) -> Bool {
+        userOwnsConnection && generation == connectionID
+    }
+
+    func releaseUserConnection(reconnect: Bool) {
+        let owned = userOwnsConnection
+        userOwnsConnection = false
+        if reconnect, owned { startCachedReconnect() }
+    }
+
     /// 新邀请码、更换俱乐部或主动重试时，停止旧恢复任务和 SDK 的自动重连。
     func reset() {
+        userOwnsConnection = false
         generation = UUID()
         reconnectTask?.cancel()
         reconnectTask = nil
@@ -101,6 +98,7 @@ final class IMConnectionCoordinator: ObservableObject {
 
     /// 缓存启动保留启动等待页，后台尝试缓存节点；失败后重新导航并退避重试。
     func startCachedReconnect() {
+        guard !userOwnsConnection else { return }
         guard let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() else { return }
         reset()
         let runID = generation

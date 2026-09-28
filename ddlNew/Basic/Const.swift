@@ -23,6 +23,13 @@ let systemConfigAppStorageKey = "ddlNew.systemConfig.v1"
 /// 业务请求的设备 UUID 存储 key。
 let businessDeviceUUIDAppStorageKey = "ddlNew.businessDeviceUUID.v1"
 
+/// 最新用户资料的固定 key；不保存 token、deviceSecret 或密码。
+let userInfoAppStorageKey = "ddlNew.userInfo.v1"
+
+/// 当前会话凭据的 Keychain 标识，不拼接邀请码。
+let userCredentialKeychainService = "ddlNew.userSession"
+let userCredentialKeychainAccount = "currentSession.v1"
+
 /// 老项目业务接口使用的组织标识。
 let businessOrgName = "1595975575091130369"
 

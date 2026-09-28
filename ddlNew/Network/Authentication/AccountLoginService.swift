@@ -7,88 +7,6 @@
 
 import Foundation
 
-/// 请求进度与 IM 连接状态分开；请求成功尚不代表进入已登录会话。
-enum AccountLoginPhase: Equatable {
-    case idle
-    /// 领取本次密码加密所需的一次性密钥。
-    case fetchingKey
-    /// 已生成密码密文，等待登录接口返回。
-    case submitting
-    /// 后续会话保存与 TCP 用户认证尚未接入。
-    case succeeded
-    case failed(String)
-
-    var isBusy: Bool { self == .fetchingKey || self == .submitting }
-    var buttonTitle: String {
-        switch self {
-        case .fetchingKey: return "正在获取加密密钥…"
-        case .submitting: return "正在登录…"
-        default: return "登录"
-        }
-    }
-}
-
-/// 保留 SDK 业务码供后续验证码、安全验证页面分流。
-nonisolated enum AccountLoginError: LocalizedError {
-    case emptyAccount
-    case emptyPassword
-    case connectionNotReady
-    case connectionChanged
-    case unsupportedAccountLogin
-    case invalidEncryptKey
-    case encryptionFailed
-    case invalidResponse
-    case unavailableOnSimulator
-    case timedOut
-    case businessFailure(code: Int, message: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .emptyAccount: return "请输入会员卡号"
-        case .emptyPassword: return "请输入密码"
-        case .connectionNotReady: return "连接尚未就绪，请稍后重试"
-        case .connectionChanged: return "连接已发生变化，请重新登录"
-        case .unsupportedAccountLogin: return "当前俱乐部未开启账号密码登录"
-        case .invalidEncryptKey: return "获取加密密钥失败，请重新登录"
-        case .encryptionFailed: return "密码加密失败，请重试"
-        case .invalidResponse: return "登录响应数据不完整，请重试"
-        case .unavailableOnSimulator: return "密码加密需要真机运行"
-        case .timedOut: return "登录请求超时，请重试"
-        case .businessFailure(let code, let message):
-            // 不绕过服务端校验；验证码和安全码页面在下一阶段接入。
-            switch code {
-            case 2036, 40019, 50000, 50001:
-                return "账号或密码错误，请重新输入（\(code)）"
-            case 40064, 50002, 51002, 51006, 450010:
-                return "需要完成验证码验证（\(code)），验证码流程尚未接入"
-            case 10009:
-                return "需要安全码验证，安全验证流程尚未接入"
-            default:
-                return message.isEmpty ? "登录请求失败（\(code)）" : "\(message)（\(code)）"
-            }
-        }
-    }
-}
-
-/// 记录真实连接轮次，不使用本地缓存存在与否判断登录是否可发起。
-nonisolated struct AccountLoginContext: Equatable {
-    let connectionID: UUID
-    let loginMethod: String
-    let captchaChannel: Int
-}
-
-@MainActor
-protocol AccountLoginSDKDriving {
-    func fetchEncryptKey() async throws -> String
-    func submit(parameters: [String: Any], captchaChannel: Int) async throws -> AccountLoginResponse
-}
-
-@MainActor
-protocol AccountLoginServicing {
-    func login(account: String, password: String,
-               progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> AccountLoginResponse
-}
-
 /// 只负责“账号密码 → 加密密钥 → 登录请求”，不配置已登录用户、不跳转、不保存会话。
 @MainActor
 final class AccountLoginService: AccountLoginServicing {
@@ -161,7 +79,7 @@ final class AccountLoginService: AccountLoginServicing {
         let response = try await driver.submit(parameters: parameters, captchaChannel: originalContext.captchaChannel)
         try check(originalContext)
         guard response.isValid else { throw AccountLoginError.invalidResponse }
-        debugPrint("[账号登录] 登录请求成功；会话处理尚未接入")
+        debugPrint("[账号登录] 登录请求成功，开始处理用户会话")
         return response
     }
 

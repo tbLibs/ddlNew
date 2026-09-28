@@ -6,6 +6,7 @@
 //
 
 #import "NoaIMSDKManager.h"
+#import <WCDBObjc/WCDBObjc.h>
 #import "NoaIMSDKManager+ChatMessage.h"//聊天类型消息处理
 #import "NoaIMSDKManager+ServiceMessage.h"//系统类型消息处理
 #import "NoaIMSDKManager+Session.h"//会话处理
@@ -18,6 +19,7 @@
 #import "NoaIMHttpManager.h"//Http
 #import <MMKV/MMKV.h>
 #import "NoaIMSocketHostOptions.h"
+#import "NoaIMSocketManager.h"
 #import "NoaIMSocketManagerTool+LingImTcpReplaceHttp.h"
 #import "LoggerWrapper.h"
 
@@ -318,6 +320,22 @@ NoaGroupDelegate
     }else {
         CIMLog(@"LingIMSDKManager>>>缺少用户信息，数据库初始化失败");
     }
+}
+
+/// 只读取初始化结果，不重复创建数据库或发送 AUTH。
+- (BOOL)isUserDatabaseReady {
+    return _userID.length > 0 && [DBTOOL.myUserID isEqualToString:_userID]
+        && DBTOOL.noaChatDB != nil && [DBTOOL.noaChatDB canOpen];
+}
+
+- (void)closeUserDatabase {
+    [DBTOOL closeDB];
+}
+
+- (BOOL)isUserAuthenticated {
+    return _userID.length > 0 && _userToken.length > 0
+        && [[SOCKETMANAGER socketUserID] isEqualToString:_userID]
+        && [SOCKETMANAGER currentSocketConnectStatus] && SOCKETMANAGERTOOL.isAuth;
 }
 
 /// SDK长连接相关处理

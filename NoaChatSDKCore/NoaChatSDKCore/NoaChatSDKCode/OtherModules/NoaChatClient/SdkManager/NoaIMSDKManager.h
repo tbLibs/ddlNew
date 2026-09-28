@@ -76,6 +76,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// 3.SDK user 相关信息 配置/更新
 /// @param userOptions 用户信息
 - (void)configSDKUserWith:(NoaIMSDKUserOptions *)userOptions;
+/// 当前用户数据库已绑定且可打开；供业务层检查首次用户配置是否成功。
+- (BOOL)isUserDatabaseReady;
+/// 正式 Socket 的用户 AUTH 已通过；ECDH 就绪或收到心跳不等于通过 AUTH。
+- (BOOL)isUserAuthenticated;
+/// 关闭数据库连接，保留当前用户的数据库文件。
+- (void)closeUserDatabase;
 /// 配置当前请求使用的设备凭证。
 /// @param deviceSecret App 层根据登录账号或用户 UID 查询到的设备凭证；传 nil 或空值表示清除
 - (void)configSDKDeviceSecret:(nullable NSString *)deviceSecret;

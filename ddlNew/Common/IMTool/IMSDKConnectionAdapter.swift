@@ -8,24 +8,6 @@
 import Foundation
 import NoaChatCore
 
-/// SDK 与连接流程之间的边界，便于用替身验证连接顺序和取消行为。
-@MainActor
-protocol IMSDKConnectionDriving: AnyObject {
-    var isConnected: Bool { get }
-    func reset()
-    func connect(_ plan: OSSConnectionPlan) async throws -> OSSIMTCPNode
-    func apply(_ configuration: SystemConfigRecord)
-}
-
-/// TCP/ECDH 初始化失败；不包含密钥或账号密码。
-enum IMConnectionError: Error {
-    case missingTCPNodes
-    case allProbesFailed
-    case handshakeFailed
-    case timedOut
-    case connectionLost
-}
-
 /// 临时探测选节点，正式 Socket 再握手；两者不能混作同一条连接。
 @MainActor
 final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
@@ -157,58 +139,5 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         defer { waiters[id] = nil }
         let success = try await waiter.run(timeout: timeout, start: start)
         guard success else { throw IMConnectionError.handshakeFailed }
-    }
-}
-
-/// 回调、通知、超时、取消共享一次性完成入口；迟到回调不能重复恢复 continuation。
-@MainActor
-private final class IMHandshakeWaiter {
-    private var continuation: CheckedContinuation<Bool, Error>?
-    private var completed: Result<Bool, Error>?
-    private var timeoutTask: Task<Void, Never>?
-    private var observers: [NSObjectProtocol] = []
-
-    func run(timeout: TimeInterval, start: @MainActor () -> Void) async throws -> Bool {
-        try await withTaskCancellationHandler {
-            try Task<Never, Never>.checkCancellation()
-            return try await withCheckedThrowingContinuation { continuation in
-                if let completed { continuation.resume(with: completed); return }
-                self.continuation = continuation
-                timeoutTask = Task { [weak self] in
-                    do {
-                        try await Task<Never, Never>.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                        self?.finish(.failure(IMConnectionError.timedOut))
-                    } catch { /* 取消超时任务不代表连接失败。 */ }
-                }
-                start()
-            }
-        } onCancel: {
-            Task { @MainActor in self.finish(.failure(CancellationError())) }
-        }
-    }
-
-    func observeSocket(success: @escaping @MainActor () -> Bool) {
-        let center = NotificationCenter.default
-        observers.append(center.addObserver(forName: Notification.Name("socketECDHDidConnectSuccese"), object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
-                guard success() else { return }
-                self?.finish(.success(true))
-            }
-        })
-        observers.append(center.addObserver(forName: Notification.Name("socketECDHDidConnectFailure"), object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.finish(.failure(IMConnectionError.handshakeFailed)) }
-        })
-    }
-
-    func finish(_ result: Result<Bool, Error>) {
-        guard completed == nil else { return }
-        completed = result
-        timeoutTask?.cancel()
-        timeoutTask = nil
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-        observers.removeAll()
-        let pending = continuation
-        continuation = nil
-        pending?.resume(with: result)
     }
 }

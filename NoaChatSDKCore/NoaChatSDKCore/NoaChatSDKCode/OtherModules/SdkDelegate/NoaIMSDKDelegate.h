@@ -139,8 +139,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// 用户被强制下线(强制退出登录)
 - (void)imSdkUserForceLogout:(NSInteger)type message:(NSString *)message;
 
-/// 用户token失效，触发刷新token接口获取最新token并更新给KIT层
-- (void)imSdkRefreshUsetToken:(NSString *)userToken errorMsg:(NSString *)msg;
+/// 用户token失效，触发刷新token接口获取最新token并更新给KIT层。
+/// SDK 的刷新失败分支可能传 nil，声明 nullable 与实际回调一致。
+- (void)imSdkRefreshUsetToken:(NSString *)userToken errorMsg:(nullable NSString *)msg;
 
 /// 账号封禁、设备封禁、IP封禁
 - (void)imSdkRefreshTokenAuthBanned:(NSInteger)errorCode;

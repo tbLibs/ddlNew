@@ -13,6 +13,8 @@ struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
     /// 共享登录前连接状态；页面显示不代表 SDK 已完成握手。
     @ObservedObject private var connection = IMConnectionCoordinator.shared
+    /// AUTH 与访客连接分开，登录后继续显示 SDK 的重连和认证状态。
+    @ObservedObject private var authentication = IMUserAuthenticationService.shared
     /// 用户输入的会员卡号与密码；密码不写入本地缓存。
     @State private var card = ""
     @State private var password = ""
@@ -50,6 +52,9 @@ struct LoginView: View {
         .onDisappear {
             viewModel.cancelLogin()
             password = ""
+        }
+        .onChange(of: viewModel.loginPhase) { phase in
+            if phase == .succeeded { password = "" }
         }
     }
 
@@ -107,16 +112,19 @@ struct LoginView: View {
             // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
             Button(viewModel.loginPhase.buttonTitle, action: login)
                 .buttonStyle(LoginButtonStyle())
-                .disabled(card.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || viewModel.loginPhase.isBusy)
+                .disabled(card.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
+                          || viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
                 .padding(.top, 10)
                 .accessibilityIdentifier("login")
 
             loginRequestStatus
 
-            Text(connection.phase.message)
-                .font(.footnote)
-                .foregroundColor(LoginPalette.secondary)
-                .accessibilityIdentifier("loginConnectionStatus")
+            if viewModel.loginPhase != .succeeded {
+                Text(connection.phase.message)
+                    .font(.footnote)
+                    .foregroundColor(LoginPalette.secondary)
+                    .accessibilityIdentifier("loginConnectionStatus")
+            }
             if case .failed = connection.phase {
                 Button("重试连接") {
                     viewModel.cancelLogin()
@@ -136,15 +144,15 @@ struct LoginView: View {
         }
     }
 
-    /// 成功只确认接口返回，不把当前页面伪装成已经建立完整登录会话。
+    /// 接口成功后继续等待会话处理及真实 AUTH；本步骤完成后仍停留在登录页。
     @ViewBuilder
     private var loginRequestStatus: some View {
         switch viewModel.loginPhase {
-        case .fetchingKey, .submitting:
+        case .fetchingKey, .submitting, .savingSession, .configuringSDK, .authenticating:
             ProgressView()
                 .accessibilityLabel(viewModel.loginPhase.buttonTitle)
         case .succeeded:
-            Text("登录请求成功，后续会话处理尚未接入")
+            Text(authentication.state.message)
                 .font(.footnote)
                 .foregroundColor(LoginPalette.darkTeal)
                 .accessibilityIdentifier("loginRequestSuccess")
