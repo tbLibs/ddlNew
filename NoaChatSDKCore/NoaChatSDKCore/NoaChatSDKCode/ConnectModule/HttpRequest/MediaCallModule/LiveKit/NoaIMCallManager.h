@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 //OC调用Swift，引用系统隐式创建的文件
-#import <NoaChatCore/NoaChatSDKCore-Swift.h>
+#import <NoaChatCore/NoaChatCore-Swift.h>
 //音视频SDK
 #import <LiveKitClient-Swift.h>
 #import <WebRTC/WebRTC.h>
