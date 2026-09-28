@@ -5,7 +5,6 @@
 //  Created by taobo on 2026/9/24.
 //
 
-import CryptoKit
 import Foundation
 import SwiftUI
 
@@ -18,7 +17,7 @@ nonisolated struct OSSIMTCPNode: Equatable, Sendable {
 /// 对应旧项目先选 HTTP Host、再用 tcpArr 探测的连接准备结果。
 nonisolated struct OSSConnectionPlan: Sendable {
     /// 所属邀请码，防止连接状态串用其他企业的节点。
-    let appID: String
+    let lastLiceseId: String
     /// 旧项目的 apiHost。
     let apiHost: URL
     /// 旧项目的 getFileHost，与 API Host 相同。
@@ -31,7 +30,7 @@ nonisolated struct OSSConnectionPlan: Sendable {
 
 /// 导航缓存或节点不满足下一阶段连接准备要求。
 enum OSSConnectionBootstrapError: Error {
-    /// 没有当前邀请码的导航缓存。
+    /// 没有已保存的导航缓存。
     case missingNavigation
     /// 恢复缓存时服务端 TTL 已过期。
     case expiredNavigation
@@ -48,19 +47,18 @@ enum OSSConnectionBootstrapError: Error {
 final class OSSConnectionBootstrap {
     static let shared = OSSConnectionBootstrap()
 
-    /// 当前邀请码的待连接方案；切换邀请码时清空，缓存仍按邀请码保留。
+    /// 当前邀请码的待连接方案；切换邀请码时清空，最新导航缓存仍保留。
     private(set) var current: OSSConnectionPlan?
 
     private init() {}
 
     /// 新导航成功后立即使用；从磁盘恢复时默认要求服务端缓存尚未过期。
     @discardableResult
-    func prepare(appID: String, requireFresh: Bool = true) throws -> OSSConnectionPlan {
-        let appID = appID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let ssoInfo = try OSSNavigationStore.shared.loadSSOInfo(appID: appID) else {
+    func prepare(requireFresh: Bool = true) throws -> OSSConnectionPlan {
+        guard let ssoInfo = try OSSNavigationStore.shared.loadSSOInfo() else {
             throw OSSConnectionBootstrapError.missingNavigation
         }
-        let navigation = try ssoInfo.snapshot(for: appID)
+        let navigation = try ssoInfo.snapshot()
         guard !requireFresh || !navigation.isExpired else {
             throw OSSConnectionBootstrapError.expiredNavigation
         }
@@ -85,14 +83,14 @@ final class OSSConnectionBootstrap {
         }
 
         let plan = OSSConnectionPlan(
-            appID: appID,
+            lastLiceseId: navigation.lastLiceseId,
             apiHost: apiHost,
             getFileHost: apiHost,
             uploadFileHost: apiHost.appending(path: "oss"),
             tcpCandidates: tcpCandidates
         )
-        // 对齐旧项目的 CONNECT_LOCAL_CACHE：按邀请码保留已选 API Host。
-        OSSSelectedHTTPHostStorage(key: Self.storageKey(for: appID)).value = apiHost.absoluteString
+        // 对齐旧项目的 CONNECT_LOCAL_CACHE：固定 key 保存最新已选 API Host。
+        OSSSelectedHTTPHostStorage().value = apiHost.absoluteString
         current = plan
         return plan
     }
@@ -102,11 +100,8 @@ final class OSSConnectionBootstrap {
     }
 
     /// 供后续重连链路读取上次选用的 HTTP Host，不代表该地址仍然可达。
-    func cachedHTTPHost(appID: String) -> URL? {
-        let appID = appID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !appID.isEmpty else { return nil }
-        let value = OSSSelectedHTTPHostStorage(key: Self.storageKey(for: appID)).value
-        return Self.httpsURL(from: value)
+    func cachedHTTPHost() -> URL? {
+        return Self.httpsURL(from: OSSSelectedHTTPHostStorage().value)
     }
 
     private static func httpsURL(from address: String) -> URL? {
@@ -126,20 +121,9 @@ final class OSSConnectionBootstrap {
         components.path = ""
         return components.url
     }
-
-    private static func storageKey(for appID: String) -> String {
-        let digest = SHA256.hash(data: Data(appID.utf8))
-            .map { String(format: "%02x", $0) }
-            .joined()
-        return ossSelectedHTTPHostAppStorageKeyPrefix + digest
-    }
 }
 
 @MainActor
 private struct OSSSelectedHTTPHostStorage {
-    @AppStorage var value: String
-
-    init(key: String) {
-        _value = AppStorage(wrappedValue: "", key)
-    }
+    @AppStorage(ossSelectedHTTPHostAppStorageKey) var value = ""
 }

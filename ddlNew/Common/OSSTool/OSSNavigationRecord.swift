@@ -8,10 +8,12 @@
 import Foundation
 import ObjectMapper
 
-/// 按旧项目 NoaSsoInfoModel 的顶层结构保存邀请码和竞速节点。
+/// 按旧项目 NoaSsoInfoModel 的顶层结构保存最新邀请码和竞速节点。
 nonisolated struct OSSNavigationRecord: Mappable {
     private var schemaVersion = 3
+    /// 本次导航所属的邀请码，与旧项目当前 liceseId 字段一致。
     var liceseId = ""
+    /// 上次完成入口准备的邀请码，供启动恢复使用；更换俱乐部时清空。
     var lastLiceseId = ""
     var ossRacingModel = OSSNetRacingRecord()
     var ipDomainPortStr = ""
@@ -19,15 +21,16 @@ nonisolated struct OSSNavigationRecord: Mappable {
     /// 旧 SSO 模型没有的兜底地址、服务端配置和缓存时间放在导航扩展中。
     private var navigation = OSSNavigationPayloadRecord()
 
-    init(appID: String, source: DNSHostSource, ossNode: DNSResolvedHost,
+    init(lastLiceseId: String, source: DNSHostSource, ossNode: DNSResolvedHost,
          savedAt: Date, body: IMServerListResponseBody,
          previous: OSSNavigationRecord? = nil) throws {
         let result = try OSSAuthResponseDecoder.navigation(from: body)
-        liceseId = appID
-        lastLiceseId = previous?.lastLiceseId ?? ""
+        liceseId = lastLiceseId
+        // 新导航成功不等于入口准备完成，先保留原值，待系统配置成功后再确认。
+        self.lastLiceseId = previous?.lastLiceseId ?? ""
         ipDomainPortStr = previous?.ipDomainPortStr ?? ""
         lastIPDomainPortStr = previous?.lastIPDomainPortStr ?? ""
-        ossRacingModel = OSSNetRacingRecord(appID: appID, body: body, result: result)
+        ossRacingModel = OSSNetRacingRecord(lastLiceseId: lastLiceseId, body: body, result: result)
         navigation = OSSNavigationPayloadRecord(
             source: source,
             ossNode: ossNode,
@@ -51,11 +54,11 @@ nonisolated struct OSSNavigationRecord: Mappable {
     }
 
     /// 校验旧模型节点列表与导航响应一致，避免缓存两份地址发生分歧。
-    func snapshot(for requestedAppID: String) throws -> OSSNavigationSnapshot {
-        guard schemaVersion == 3, liceseId == requestedAppID else {
+    func snapshot() throws -> OSSNavigationSnapshot {
+        guard schemaVersion == 3 else {
             throw OSSNavigationStoreError.invalidStoredNavigation
         }
-        let snapshot = try navigation.snapshot(for: requestedAppID)
+        let snapshot = try navigation.snapshot(lastLiceseId: liceseId)
         guard ossRacingModel.matches(snapshot) else {
             throw OSSNavigationStoreError.invalidStoredNavigation
         }
@@ -77,9 +80,9 @@ nonisolated struct OSSNetRacingRecord: Mappable {
 
     init() {}
 
-    init(appID: String, body: IMServerListResponseBody, result: OSSNavigationResult) {
+    init(lastLiceseId: String, body: IMServerListResponseBody, result: OSSNavigationResult) {
         version = body.hasMeta ? body.meta.navVersion : ""
-        appKey = appID
+        appKey = lastLiceseId
         httpArr = result.httpEndpoints.map { endpoint in
             let address = endpoint.ip.filter { $0 == ":" }.count > 1 && !endpoint.ip.hasPrefix("[")
                 ? "[\(endpoint.ip)]:\(endpoint.port)"
@@ -108,7 +111,7 @@ nonisolated struct OSSNetRacingRecord: Mappable {
 
     func matches(_ snapshot: OSSNavigationSnapshot) -> Bool {
         let expected = OSSNetRacingRecord(
-            appID: snapshot.appID,
+            lastLiceseId: snapshot.lastLiceseId,
             body: snapshot.body,
             result: OSSNavigationResult(
                 body: snapshot.body,
@@ -116,8 +119,7 @@ nonisolated struct OSSNetRacingRecord: Mappable {
                 httpEndpoints: snapshot.httpEndpoints
             )
         )
-        return appKey == expected.appKey &&
-            httpArr == expected.httpArr && tcpArr == expected.tcpArr
+        return httpArr == expected.httpArr && tcpArr == expected.tcpArr
     }
 }
 
@@ -194,7 +196,7 @@ nonisolated private struct OSSNavigationPayloadRecord: Mappable {
     }
 
     /// 缓存恢复后重新筛选端点，不把损坏数据交给连接层。
-    func snapshot(for requestedAppID: String) throws -> OSSNavigationSnapshot {
+    func snapshot(lastLiceseId: String) throws -> OSSNavigationSnapshot {
         guard let source = DNSHostSource(rawValue: source),
               !ossAddress.isEmpty,
               savedAt.isFinite, savedAt > 0 else {
@@ -203,51 +205,7 @@ nonisolated private struct OSSNavigationPayloadRecord: Mappable {
         let responseBody = try body.makeResponseBody()
         let navigation = try OSSAuthResponseDecoder.navigation(from: responseBody)
         return OSSNavigationSnapshot(
-            appID: requestedAppID,
-            source: source,
-            ossNode: DNSResolvedHost(urlString: ossAddress, type: ossType),
-            savedAt: Date(timeIntervalSince1970: savedAt),
-            body: responseBody,
-            tcpEndpoints: navigation.tcpEndpoints,
-            httpEndpoints: navigation.httpEndpoints
-        )
-    }
-}
-
-/// 读取上一版 v2 缓存后转成 SSO 结构，避免已保存的导航节点失效。
-nonisolated struct OSSLegacyNavigationRecord: Mappable {
-    private var version = 2
-    private var appID = ""
-    private var source = ""
-    private var ossAddress = ""
-    private var ossType = ""
-    private var savedAt: Double = 0
-    private var body = OSSNavigationBodyRecord()
-
-    init?(map: Map) {
-        guard map.JSON["version"] as? Int == 2 else { return nil }
-    }
-
-    mutating func mapping(map: Map) {
-        version <- map["version"]
-        appID <- map["appID"]
-        source <- map["source"]
-        ossAddress <- map["ossAddress"]
-        ossType <- map["ossType"]
-        savedAt <- map["savedAt"]
-        body <- map["body"]
-    }
-
-    func snapshot(for requestedAppID: String) throws -> OSSNavigationSnapshot {
-        guard version == 2, appID == requestedAppID,
-              let source = DNSHostSource(rawValue: source),
-              !ossAddress.isEmpty, savedAt.isFinite, savedAt > 0 else {
-            throw OSSNavigationStoreError.invalidStoredNavigation
-        }
-        let responseBody = try body.makeResponseBody()
-        let navigation = try OSSAuthResponseDecoder.navigation(from: responseBody)
-        return OSSNavigationSnapshot(
-            appID: appID,
+            lastLiceseId: lastLiceseId,
             source: source,
             ossNode: DNSResolvedHost(urlString: ossAddress, type: ossType),
             savedAt: Date(timeIntervalSince1970: savedAt),

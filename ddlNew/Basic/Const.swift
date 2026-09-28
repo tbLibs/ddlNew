@@ -7,14 +7,18 @@
 
 import Foundation
 
-/// 按邀请码保存 OSS 导航状态的 AppStorage key 前缀。
-let ossNavigationAppStorageKeyPrefix = "ddlNew.ossNavigation.v2."
+/// 保存最新一份 OSS 导航状态的固定 AppStorage key，不拼接邀请码。
+let ossNavigationAppStorageKey = "ddlNew.ossNavigation.v1"
 
-/// 按邀请码保存已选 HTTP API Host 的 AppStorage key 前缀。
-let ossSelectedHTTPHostAppStorageKeyPrefix = "ddlNew.selectedHTTPHost.v1."
+/// 登录页 Safari 浏览器打开的隐私政策和使用支持地址。
+let privacyPolicyURLString = "https://gitlab.yunliaoliao.com/c/privacy.html"
+let usageSupportURLString = "https://gitlab.yunliaoliao.com/c/support.html"
 
-/// 按邀请码保存业务系统配置的 AppStorage key 前缀。
-let systemConfigAppStorageKeyPrefix = "ddlNew.systemConfig.v1."
+/// 保存最新已选 HTTP API Host 的固定 AppStorage key，不拼接邀请码。
+let ossSelectedHTTPHostAppStorageKey = "ddlNew.selectedHTTPHost.v1"
+
+/// 保存最新业务系统配置的固定 AppStorage key，不拼接邀请码。
+let systemConfigAppStorageKey = "ddlNew.systemConfig.v1"
 
 /// 业务请求的设备 UUID 存储 key。
 let businessDeviceUUIDAppStorageKey = "ddlNew.businessDeviceUUID.v1"

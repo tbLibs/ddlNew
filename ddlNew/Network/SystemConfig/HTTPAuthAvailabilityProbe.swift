@@ -33,7 +33,7 @@ final class HTTPAuthAvailabilityProbe {
         let headers = BusinessRequestHeaders.make(
             timestamp: timestamp,
             signature: signature,
-            appID: plan.appID
+            lastLiceseId: plan.lastLiceseId
         )
         let provider = BusinessApiRequest.provider(for: plan.apiHost)
         let response = try await provider.rx
@@ -53,7 +53,7 @@ final class HTTPAuthAvailabilityProbe {
         }
         // 只确认服务端按 HTTP 返回了密钥数据，不持有、不打印密钥。
         guard let current = OSSConnectionBootstrap.shared.current,
-              current.appID == plan.appID,
+              current.lastLiceseId == plan.lastLiceseId,
               current.apiHost == plan.apiHost else {
             throw HTTPAuthProbeError.staleNavigation
         }

@@ -28,7 +28,7 @@ struct OSSRaceWinner: Sendable {
 /// 五路 OSS Auth 竞速的入口参数和结果错误。
 enum OSSNodeRaceError: Error {
     /// 邀请码（liceseId）为空。
-    case missingAppID
+    case missingLastLiceseId
     /// 签名常量缺失。
     case missingCredentials
     /// 五路 DNS 及其候选节点均未得到有效导航响应。
@@ -38,11 +38,11 @@ enum OSSNodeRaceError: Error {
 /// 五路 DNS 同时开始；每一路按候选顺序尝试 OSS TCP，首个通过导航校验的节点获胜。
 enum OSSNodeRaceCoordinator {
     static func race(
-        appID: String,
+        lastLiceseId: String,
         credentials: OSSAuthCredentials,
         clientIP: String = ""
     ) async throws -> OSSRaceWinner {
-        guard !appID.isEmpty else { throw OSSNodeRaceError.missingAppID }
+        guard !lastLiceseId.isEmpty else { throw OSSNodeRaceError.missingLastLiceseId }
         guard !credentials.signingKeyID.isEmpty, !credentials.signingKeySecret.isEmpty else {
             throw OSSNodeRaceError.missingCredentials
         }
@@ -52,7 +52,7 @@ enum OSSNodeRaceCoordinator {
                 group.addTask {
                     await raceSource(
                         source,
-                        appID: appID,
+                        lastLiceseId: lastLiceseId,
                         credentials: credentials,
                         clientIP: clientIP
                     )
@@ -72,7 +72,7 @@ enum OSSNodeRaceCoordinator {
 
     private static func raceSource(
         _ source: DNSHostSource,
-        appID: String,
+        lastLiceseId: String,
         credentials: OSSAuthCredentials,
         clientIP: String
     ) async -> OSSRaceWinner? {
@@ -84,13 +84,13 @@ enum OSSNodeRaceCoordinator {
                 try Task<Never, Never>.checkCancellation()
                 do {
                     let request = try OSSAuthRequestBuilder.make(
-                        appID: appID,
+                        lastLiceseId: lastLiceseId,
                         signingKeyID: credentials.signingKeyID,
                         signingKeySecret: credentials.signingKeySecret,
                         clientIP: clientIP
                     )
                     let response = try await OSSAuthTCPClient.request(request, to: node)
-                    let navigation = try OSSAuthResponseDecoder.decode(response, appID: appID)
+                    let navigation = try OSSAuthResponseDecoder.decode(response, lastLiceseId: lastLiceseId)
                     try Task<Never, Never>.checkCancellation()
                     return OSSRaceWinner(source: source, node: node, navigation: navigation)
                 } catch is CancellationError {

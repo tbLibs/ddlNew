@@ -54,6 +54,10 @@ typedef void (^NoaTcpRaceCompletion)(NSString * _Nullable host, NSInteger port, 
 /// 停止上一轮初始化并隔离旧 Socket 的断开回调。
 - (void)prepareForConnectionInitialization;
 
+/// 在内部串行队列完成旧连接清理后回调主线程，避免新连接被迟到的清理操作覆盖。
+- (void)prepareForConnectionInitializationWithCompletion:(nullable dispatch_block_t)completion
+    NS_SWIFT_NAME(prepareForConnectionInitialization(completion:));
+
 /// 初始化尚未选出节点时也能启动自动重连；断网后等待网络恢复。
 - (void)resumeInitializationReconnectWithOrgName:(NSString *)orgName;
 /// 仅加入企业使用有限重试；0 恢复默认无限重连。回调在主线程执行。

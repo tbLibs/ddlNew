@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// 老项目独立加密静态库的公开接口；当前只使用 method5 和 method6。
+/// 老项目独立加密静态库的公开接口；登录使用 method4，业务验签和解密使用 method5、method6。
 @interface LXChatEncrypt : NSObject
 
 + (nullable NSString *)method1:(NSString *)encryptData key:(NSString *)key;

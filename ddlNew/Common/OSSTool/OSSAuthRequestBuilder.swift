@@ -13,7 +13,7 @@ import Security
 /// 构造 OSS Auth 请求时的参数或签名错误。
 enum OSSAuthRequestError: Error {
     /// 请求缺少企业号、客户端版本、地区或签名密钥。
-    case emptyAppID
+    case emptyLastLiceseId
     case missingClientVersion
     case missingRegion
     case missingSigningKey
@@ -27,7 +27,7 @@ enum OSSAuthRequestError: Error {
 /// 构造旧导航协议的 IM 服务器列表请求；只负责消息和签名，不执行 TCP 收发。
 enum OSSAuthRequestBuilder {
     static func make(
-        appID: String,
+        lastLiceseId: String,
         signingKeyID: String,
         signingKeySecret: String,
         appType: IMServerListRequest.DataType = .common,
@@ -36,7 +36,7 @@ enum OSSAuthRequestBuilder {
         clientIP: String = "",
         date: Date = Date()
     ) throws -> NavMessage {
-        guard !appID.isEmpty else { throw OSSAuthRequestError.emptyAppID }
+        guard !lastLiceseId.isEmpty else { throw OSSAuthRequestError.emptyLastLiceseId }
         guard !clientVersion.isEmpty else { throw OSSAuthRequestError.missingClientVersion }
         guard !region.isEmpty else { throw OSSAuthRequestError.missingRegion }
         guard !signingKeyID.isEmpty, !signingKeySecret.isEmpty else {
@@ -53,7 +53,7 @@ enum OSSAuthRequestBuilder {
         // 与旧项目保持一致：时间戳既用于请求字段，也用于 nonce 和签名原文。
         let nonce = "test_nonce_\(timestamp)"
         let deviceType = "ios"
-        let rawSign = "\(appID)\(appType.rawValue)\(clientVersion)\(region)\(deviceType)\(timestamp)\(nonce)"
+        let rawSign = "\(lastLiceseId)\(appType.rawValue)\(clientVersion)\(region)\(deviceType)\(timestamp)\(nonce)"
         let signature = try encryptSignature(
             rawSign,
             signingKeyID: signingKeyID,
@@ -61,7 +61,8 @@ enum OSSAuthRequestBuilder {
         )
 
         var request = IMServerListRequest()
-        request.appID = appID
+        // Protobuf 的 appID 是协议字段名，业务侧统一使用 lastLiceseId。
+        request.appID = lastLiceseId
         request.appType = appType
         request.clientVersion = clientVersion
         request.region = region

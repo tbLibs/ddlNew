@@ -470,6 +470,10 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 /// 无上限重试：1、2、4、8、16 秒，此后保持 16 秒。
 - (void)prepareForConnectionInitialization {
+    [self prepareForConnectionInitializationWithCompletion:nil];
+}
+
+- (void)prepareForConnectionInitializationWithCompletion:(dispatch_block_t)completion {
     dispatch_async(self.internalQueue, ^{
         self.isCanReconnect = NO;
         [self stopSocketReconnectWithReason:@"initialization_restart"];
@@ -490,6 +494,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         self.novDecryptorManager = [[NovDecryptorManager alloc] init];
         [self cleanupReceiveBuffers];
         [self updateConnectState:LingIMSocketConnectStateDisconnected];
+        if (completion) dispatch_async(dispatch_get_main_queue(), completion);
     });
 }
 

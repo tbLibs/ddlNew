@@ -11,7 +11,7 @@ import SwiftUI
 /// 未登录业务请求共用的设备、组织与验签请求头。
 @MainActor
 enum BusinessRequestHeaders {
-    static func make(timestamp: Int64, signature: String, appID: String? = nil) -> [String: String] {
+    static func make(timestamp: Int64, signature: String, lastLiceseId: String? = nil) -> [String: String] {
         var headers = [
             "deviceType": "IOS",
             "deviceUuid": BusinessDeviceIdentity.shared.uuid,
@@ -21,8 +21,8 @@ enum BusinessRequestHeaders {
             "timestamp": String(timestamp),
             "signature": signature
         ]
-        if let appID, !appID.isEmpty {
-            headers["conid"] = appID
+        if let lastLiceseId, !lastLiceseId.isEmpty {
+            headers["conid"] = lastLiceseId
             headers["ZTID"] = UUID().uuidString
             headers["loginuseruid"] = ""
         }

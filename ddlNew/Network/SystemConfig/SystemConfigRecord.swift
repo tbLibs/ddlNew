@@ -67,13 +67,13 @@ nonisolated struct BusinessResponseStatus: Mappable {
 /// 缓存封装同时记录邀请码和 Host，防止导航节点切换后误用旧配置。
 nonisolated struct SystemConfigCacheRecord: Mappable {
     var schemaVersion = 1
-    var appID = ""
+    var lastLiceseId = ""
     var apiHost = ""
     var fetchedAt: TimeInterval = 0
     var configuration = SystemConfigRecord()
 
-    init(appID: String, apiHost: URL, configuration: SystemConfigRecord) {
-        self.appID = appID
+    init(lastLiceseId: String, apiHost: URL, configuration: SystemConfigRecord) {
+        self.lastLiceseId = lastLiceseId
         self.apiHost = apiHost.absoluteString
         self.fetchedAt = Date().timeIntervalSince1970
         self.configuration = configuration
@@ -85,7 +85,7 @@ nonisolated struct SystemConfigCacheRecord: Mappable {
 
     mutating func mapping(map: Map) {
         schemaVersion <- map["schemaVersion"]
-        appID <- map["appID"]
+        lastLiceseId <- map["lastLiceseId"]
         apiHost <- map["apiHost"]
         fetchedAt <- map["fetchedAt"]
         configuration <- map["configuration"]

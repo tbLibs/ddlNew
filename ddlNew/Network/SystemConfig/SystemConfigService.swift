@@ -25,7 +25,7 @@ enum SystemConfigServiceError: Error {
     case staleNavigation
 }
 
-/// 在未接入 IM SDK 时，使用 OSS 选中的 Host 获取未登录业务配置。
+/// 正式 ECDH 完成后，使用 OSS 选中的 Host 获取未登录业务配置，再由协调器配置 SDK。
 @MainActor
 final class SystemConfigService {
     static let shared = SystemConfigService()
@@ -68,13 +68,13 @@ final class SystemConfigService {
         // await 后重新检查任务与导航，避免切换邀请码时保存过期响应。
         try _Concurrency.Task<Never, Never>.checkCancellation()
         guard let current = OSSConnectionBootstrap.shared.current,
-              current.appID == plan.appID,
+              current.lastLiceseId == plan.lastLiceseId,
               current.apiHost == plan.apiHost else {
             throw SystemConfigServiceError.staleNavigation
         }
         try SystemConfigStore.shared.save(
             configuration,
-            appID: plan.appID,
+            lastLiceseId: plan.lastLiceseId,
             apiHost: plan.apiHost
         )
         return configuration

@@ -11,8 +11,8 @@ import SwiftProtobuf
 
 /// 导航响应在类型、状态、解密或端点筛选阶段的失败原因。
 enum OSSAuthResponseError: Error {
-    /// 缺少用于派生解密密钥的 appID。
-    case invalidAppID
+    /// 缺少用于派生解密密钥的 lastLiceseId。
+    case invalidLastLiceseId
     /// 不是 IM 服务器列表响应消息。
     case unexpectedMessageType
     /// 服务端返回非成功状态，保留原错误码和消息。
@@ -40,8 +40,8 @@ enum OSSAuthResponseDecoder {
     /// 旧导航协议的成功状态码。
     private static let successCode: Int32 = 200_000
 
-    static func decode(_ message: NavMessage, appID: String) throws -> OSSNavigationResult {
-        guard !appID.isEmpty else { throw OSSAuthResponseError.invalidAppID }
+    static func decode(_ message: NavMessage, lastLiceseId: String) throws -> OSSNavigationResult {
+        guard !lastLiceseId.isEmpty else { throw OSSAuthResponseError.invalidLastLiceseId }
         guard message.dataType == .imServerListResp,
               case .imServerListResponse(let response)? = message.dataBody else {
             throw OSSAuthResponseError.unexpectedMessageType
@@ -56,8 +56,8 @@ enum OSSAuthResponseDecoder {
             throw OSSAuthResponseError.emptyResponseBody
         }
 
-        // 旧协议使用小写 MD5(appID) 作为响应 AES-128-ECB 的 secret。
-        let secret = Insecure.MD5.hash(data: Data(appID.utf8))
+        // 旧协议使用小写 MD5(lastLiceseId) 作为响应 AES-128-ECB 的 secret。
+        let secret = Insecure.MD5.hash(data: Data(lastLiceseId.utf8))
             .map { String(format: "%02x", $0) }
             .joined()
         guard let plaintext = AesEncryptUtils.decryptBytes(response.responseBody, secret: secret),
