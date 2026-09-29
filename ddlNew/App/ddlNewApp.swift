@@ -18,8 +18,10 @@ struct ddlNewApp: App {
     /// 根页面根据共享路由状态在邀请码、登录和主界面之间切换。
     @StateObject var router = RouterTool.shared
 
-    /// OldVersion 登录与会员页面共用的状态。
+    /// 仅供旧版主页面展示；真实登录资格由用户会话与 AUTH 控制。
     @StateObject private var oldVersionStore = ClubStore()
+    /// 根页面持续监听账号失效，即使登录页已经销毁也能退出主界面。
+    @ObservedObject private var authentication = IMUserAuthenticationService.shared
 
     /// 本地恢复只执行一次，避免页面重建时覆盖用户当前路由。
     @State private var hasRestoredLocalEntry = false
@@ -39,6 +41,8 @@ struct ddlNewApp: App {
                     case .tabbar:
                         // TabbarView() // 新版主页面保留，后续版本恢复使用。
                         MemberTabs()
+                            .id(UserSessionStore.shared.currentUser?.userUID)
+                            .accessibilityIdentifier("authenticatedMain")
                     }
                 } else {
                     // 复用系统启动页外观，缓存连接和最新配置都就绪后才退出。
@@ -71,16 +75,19 @@ struct ddlNewApp: App {
                     debugPrint("[启动恢复] 初始化失败：\(error)")
                 }
             }
+            .onReceive(authentication.$state) { state in
+                AppSessionRouter.handleAuthenticationState(state)
+            }
             .onReceive(oldVersionStore.$stage) { stage in
-                // OldVersion 的登录、退出和更换俱乐部结果同步到当前根路由。
+                // 旧版页面只转发用户主动退出的意图，不允许演示登录绕过真实 AUTH。
                 switch stage {
-                case .member:
-                    router.showAppPage = .tabbar
                 case .login:
-                    router.showAppPage = .login
+                    do { try AppSessionRouter.signOut(changeClub: false) }
+                    catch { debugPrint("[退出登录] 清理会话失败：\(error)") }
                 case .invite:
-                    router.showAppPage = .invitationCode
-                case .splash, .restoreFailed:
+                    do { try AppSessionRouter.signOut(changeClub: true) }
+                    catch { debugPrint("[更换俱乐部] 清理会话失败：\(error)") }
+                case .member, .splash, .restoreFailed:
                     break
                 }
             }

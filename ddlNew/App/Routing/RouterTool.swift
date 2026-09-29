@@ -34,4 +34,13 @@ class RouterTool: ObservableObject{
     
     /// app启动需要显示的页面
     @Published var showAppPage: ShowAppPageType = .invitationCode
+
+    /// 账号退出或重新登录时清空旧导航，避免带入上一会话的详情页。
+    func resetTabNavigation() {
+        selectTab = .main
+        mainRouterPath = NavigationPath()
+        messageRouterPath = NavigationPath()
+        contactsRouterPath = NavigationPath()
+        mineRouterPath = NavigationPath()
+    }
 }

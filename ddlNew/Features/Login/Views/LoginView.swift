@@ -144,7 +144,7 @@ struct LoginView: View {
         }
     }
 
-    /// 接口成功后继续等待会话处理及真实 AUTH；本步骤完成后仍停留在登录页。
+    /// 接口成功后继续等待真实 AUTH；全部完成后由 ViewModel 请求根路由进入主界面。
     @ViewBuilder
     private var loginRequestStatus: some View {
         switch viewModel.loginPhase {

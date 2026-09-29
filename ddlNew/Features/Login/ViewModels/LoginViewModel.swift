@@ -17,6 +17,8 @@ final class LoginViewModel: ObservableObject {
 
     private let loginService: any AccountLoginServicing
     private let sessionService: any LoginSessionServicing
+    /// 会话与 AUTH 全部完成后才交给 App 层跳转，便于测试登录和导航的先后顺序。
+    private let onLoginSucceeded: @MainActor () -> Void
     private var authenticationSubscription: AnyCancellable?
     private var loginTask: Task<Void, Never>?
     /// 更换俱乐部、退出页面或新一轮点击后，旧回调不得发布结果。
@@ -34,9 +36,11 @@ final class LoginViewModel: ObservableObject {
     }
 
     init(loginService: any AccountLoginServicing, sessionService: any LoginSessionServicing,
-         authenticationStates: AnyPublisher<IMUserAuthenticationState, Never>? = nil) {
+         authenticationStates: AnyPublisher<IMUserAuthenticationState, Never>? = nil,
+         onLoginSucceeded: @escaping @MainActor () -> Void = { AppSessionRouter.enterMain() }) {
         self.loginService = loginService
         self.sessionService = sessionService
+        self.onLoginSucceeded = onLoginSucceeded
         authenticationSubscription = authenticationStates?.sink { [weak self] state in
             guard let self, self.loginPhase == .succeeded else { return }
             if case .failed(let message) = state {
@@ -70,7 +74,10 @@ final class LoginViewModel: ObservableObject {
                 try Task<Never, Never>.checkCancellation()
                 guard self.loginRunID == runID else { return }
                 self.userInfo = response.userInfo
+                // 跳转会触发 LoginView.onDisappear；先结束任务，不能让页面退出取消已认证会话。
+                self.loginTask = nil
                 self.loginPhase = .succeeded
+                self.onLoginSucceeded()
             } catch is CancellationError {
                 if self.loginRunID == runID { self.loginPhase = .idle }
             } catch {
