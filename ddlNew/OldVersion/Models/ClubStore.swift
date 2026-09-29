@@ -4,10 +4,11 @@ import WCDBSwift
 
 enum SessionStage { case splash, restoreFailed, invite, login, member }
 enum MemberTab: String, CaseIterable, Identifiable {
-    case home = "首页", activities = "活动", messages = "消息", contacts = "通讯录", club = "俱乐部", profile = "我的"
+    // 活动与俱乐部下沉为首页内的导航页面，不再占用底部 Tab。
+    case home = "首页", messages = "消息", contacts = "通讯录", profile = "我的"
     var id: Self { self }
     var icon: String {
-        switch self { case .home: return "home"; case .activities: return "calendar"; case .messages: return "messages"; case .contacts: return "contacts"; case .club: return "users"; case .profile: return "person" }
+        switch self { case .home: return "house"; case .messages: return "bubble.left.and.bubble.right"; case .contacts: return "person.2"; case .profile: return "person.crop.circle" }
     }
 }
 nonisolated enum Participation: String, Codable, Sendable {

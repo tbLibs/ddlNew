@@ -14,6 +14,8 @@ final class LoginViewModel: ObservableObject {
     @Published private(set) var loginPhase: AccountLoginPhase = .idle
     /// 页面只保留用户资料，不长期持有 token 或设备凭据。
     @Published private(set) var userInfo: UserInfo?
+    /// 记住密码失败不改变 AUTH 结果，独立显示本地存储提示。
+    @Published private(set) var rememberedLoginMessage: String?
 
     private let loginService: any AccountLoginServicing
     private let sessionService: any LoginSessionServicing
@@ -50,7 +52,7 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    func login(account: String, password: String) {
+    func login(account: String, password: String, rememberPassword: Bool = true) {
         guard !loginPhase.isBusy, loginPhase != .succeeded else { return }
         cancelLogin()
         let runID = loginRunID
@@ -74,6 +76,7 @@ final class LoginViewModel: ObservableObject {
                 try Task<Never, Never>.checkCancellation()
                 guard self.loginRunID == runID else { return }
                 self.userInfo = response.userInfo
+                self.updateRememberedLogin(account: account, password: password, enabled: rememberPassword)
                 // 跳转会触发 LoginView.onDisappear；先结束任务，不能让页面退出取消已认证会话。
                 self.loginTask = nil
                 self.loginPhase = .succeeded
@@ -90,6 +93,47 @@ final class LoginViewModel: ObservableObject {
                     debugPrint("[账号登录] 请求未完成，请查看页面提示")
                 }
             }
+        }
+    }
+
+    /// 只回填当前俱乐部的成功登录记录，不把记住密码视为自动登录。
+    func rememberedLogin() -> RememberedLoginCredentials? {
+        guard let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() else { return nil }
+        do {
+            let record = try RememberedLoginStore.shared.load(lastLiceseId: lastLiceseId)
+            rememberedLoginMessage = nil
+            return record
+        } catch {
+            rememberedLoginMessage = "无法读取已记住的密码，请手动输入"
+            return nil
+        }
+    }
+
+    /// 取消勾选时立即清理，用户无需再成功登录一次才能删除旧密码。
+    func clearRememberedLogin() {
+        do {
+            try RememberedLoginStore.shared.clear()
+            rememberedLoginMessage = nil
+        } catch {
+            rememberedLoginMessage = "删除已记住的密码失败，请重新开启后关闭该选项以重试"
+        }
+    }
+
+    private func updateRememberedLogin(account: String, password: String, enabled: Bool) {
+        guard enabled else {
+            clearRememberedLogin()
+            return
+        }
+        guard let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() else { return }
+        do {
+            let record = RememberedLoginCredentials(
+                account: account.trimmingCharacters(in: .whitespacesAndNewlines),
+                password: password, lastLiceseId: lastLiceseId
+            )
+            try RememberedLoginStore.shared.save(record)
+            rememberedLoginMessage = nil
+        } catch {
+            rememberedLoginMessage = "本次密码未能保存，下次登录请手动输入"
         }
     }
 

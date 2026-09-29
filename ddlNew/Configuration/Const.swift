@@ -28,6 +28,13 @@ let userInfoAppStorageKey = "ddlNew.userInfo.v1"
 let userCredentialKeychainService = "ddlNew.userSession"
 let userCredentialKeychainAccount = "currentSession.v1"
 
+/// 登录页记住密码的偏好，首次使用默认开启；此 key 不存放密码。
+let loginRememberPasswordAppStorageKey = "ddlNew.login.rememberPassword.v1"
+
+/// 登录表单的独立 Keychain 标识，不与 token、设备凭据混用。
+let rememberedLoginKeychainService = "ddlNew.rememberedLogin"
+let rememberedLoginKeychainAccount = "loginForm.v1"
+
 // MARK: - 登录页外部链接
 
 /// 登录页 Safari 浏览器打开的隐私政策和使用支持地址。

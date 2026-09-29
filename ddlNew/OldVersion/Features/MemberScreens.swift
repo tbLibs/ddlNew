@@ -7,29 +7,28 @@ struct MemberTabs: View {
 
     var body: some View {
         TabView(selection: $store.selectedTab) {
-            tab(.home) { HomeScreen() }
-            tab(.activities) { ActivitiesScreen() }
+            tab(.home) {
+                ClubHomeView(userName: UserSessionStore.shared.currentUser?.nickname ?? "")
+            }
+            // tab(.home) { HomeScreen() } // 原首页保留，后续版本可继续使用。
+            // tab(.activities) { ActivitiesScreen() } // 改为首页内的活动入口。
             tab(.messages) { MessagesScreen() }
             tab(.contacts) { ContactsScreen() }
-            tab(.club) { ClubScreen() }
+            // tab(.club) { ClubScreen() } // 改为首页内的俱乐部入口。
             tab(.profile) { ProfileScreen() }
         }
-        .tint(ClubTheme.teal)
+        .tint(HomeTheme.forest)
         .environmentObject(community)
     }
 
     private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
-        NavigationView {
-            ActivityNavigationScope { content().navigationBarHidden(true) }
+        ActivityNavigationScope {
+            content()
+                .navigationBarHidden(true)
         }
-        .navigationViewStyle(.stack)
-        .background {
-            if tab == .club || tab == .profile {
-                MoreNavigationBarHider()
-            }
-        }
+        // 四个 Tab 均直接展示，原 MoreNavigationBarHider 保留但无需再使用。
         .tabItem {
-            Label { Text(tab.rawValue) } icon: { Image("club-\(tab.icon)") }
+            Label(tab.rawValue, systemImage: tab.icon)
         }
         .badge(tab == .messages ? community.unreadCount : 0)
         .tag(tab)
@@ -65,25 +64,6 @@ private struct MoreNavigationBarHider: UIViewControllerRepresentable {
     }
 }
 
-@MainActor final class ActivityNavigation: ObservableObject {
-    @Published var selected: ClubActivity?
-    @Published var isPresented = false
-    func open(_ activity: ClubActivity) { selected = activity; isPresented = true }
-}
-
-/// A stable route survives when a filtered card or the next-activity card changes.
-struct ActivityNavigationScope<Content: View>: View {
-    @StateObject private var navigation = ActivityNavigation()
-    @ViewBuilder let content: Content
-    var body: some View {
-        content.background {
-            NavigationLink(isActive: $navigation.isPresented) {
-                if let activity = navigation.selected { ActivityDetailScreen(activity: activity) }
-            } label: { EmptyView() }.hidden()
-        }.environmentObject(navigation)
-    }
-}
-
 struct HomeScreen: View {
     @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var navigation: ActivityNavigation
@@ -106,7 +86,7 @@ struct HomeScreen: View {
                             Button { navigation.open(nextActivity) } label: { Text("查看参与信息").padding(.horizontal, 24) }
                                 .buttonStyle(ClubButtonStyle()).fixedSize(horizontal: true, vertical: false)
                         } else {
-                            Button("浏览俱乐部活动") { store.selectedTab = .activities }.buttonStyle(ClubButtonStyle())
+                            NavigationLink("浏览俱乐部活动", value: ClubHomeDestination.activities).buttonStyle(ClubButtonStyle())
                         }
                     }
                 }
@@ -330,7 +310,7 @@ struct ProfileScreen: View {
                 }
                 ClubCard {
                     VStack(spacing: 0) {
-                        Button { store.selectedTab = .club } label: { ClubMenuRow(title: "当前俱乐部", icon: "shield", detail: "远山户外") }
+                        NavigationLink(value: ClubHomeDestination.club) { ClubMenuRow(title: "当前俱乐部", icon: "shield", detail: "远山户外") }
                         Divider()
                         Button { showSwitch = true } label: { ClubMenuRow(title: "更换俱乐部", icon: "settings") }
                         Divider()

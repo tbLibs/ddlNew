@@ -15,9 +15,13 @@ struct LoginView: View {
     @ObservedObject private var connection = IMConnectionCoordinator.shared
     /// AUTH 与访客连接分开，登录后继续显示 SDK 的重连和认证状态。
     @ObservedObject private var authentication = IMUserAuthenticationService.shared
-    /// 用户输入的会员卡号与密码；密码不写入本地缓存。
+    /// 用户输入的会员卡号与密码；勾选记住密码时仅写入 Keychain。
     @State private var card = ""
     @State private var password = ""
+    /// 首次打开默认开启；普通偏好只保存开关，不保存账号密码。
+    @AppStorage(loginRememberPasswordAppStorageKey) private var rememberPassword = true
+    /// 一个页面生命周期内只回填一次，避免弹窗关闭后覆盖正在编辑的输入。
+    @State private var didRestoreRememberedLogin = false
     /// 两个网页入口共用一个 Safari 弹窗，避免同时呈现多个浏览器。
     @State private var webLink: TBBasicLib.WebLink?
     /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
@@ -48,6 +52,10 @@ struct LoginView: View {
         .sheet(item: $webLink) { link in
             TBBasicLib.SafariView(url: link.url)
                 .ignoresSafeArea()
+        }
+        .onAppear(perform: restoreRememberedLogin)
+        .onChange(of: rememberPassword) { enabled in
+            if !enabled { viewModel.clearRememberedLogin() }
         }
         .onDisappear {
             viewModel.cancelLogin()
@@ -108,6 +116,20 @@ struct LoginView: View {
                 .font(.system(size: 11))
                 .foregroundColor(LoginPalette.secondary)
                 .accessibilityIdentifier("loginHint")
+
+            Toggle("记住密码", isOn: $rememberPassword)
+                .font(.system(size: 14))
+                .tint(LoginPalette.darkTeal)
+                .frame(minHeight: 44)
+                .disabled(viewModel.loginPhase.isBusy)
+                .accessibilityIdentifier("rememberPassword")
+
+            if let message = viewModel.rememberedLoginMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundColor(.red)
+                    .accessibilityIdentifier("rememberPasswordError")
+            }
 
             // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
             Button(viewModel.loginPhase.buttonTitle, action: login)
@@ -211,7 +233,20 @@ struct LoginView: View {
 
     private func login() {
         dismissKeyboard()
-        viewModel.login(account: card, password: password)
+        viewModel.login(account: card, password: password, rememberPassword: rememberPassword)
+    }
+
+    private func restoreRememberedLogin() {
+        guard !didRestoreRememberedLogin else { return }
+        didRestoreRememberedLogin = true
+        guard rememberPassword else {
+            // 上次删除失败时，下次进入仍会重试；关闭状态绝不回填密码。
+            viewModel.clearRememberedLogin()
+            return
+        }
+        guard card.isEmpty, password.isEmpty, let record = viewModel.rememberedLogin() else { return }
+        card = record.account
+        password = record.password
     }
 
     private func changeClub() {

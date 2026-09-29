@@ -120,7 +120,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["会员卡号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
         enter("123456", in: app.secureTextFields["field.lock"])
         app.buttons["login"].tap()
-        XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.scrollViews["clubHome"].waitForExistence(timeout: 8))
         screenshot("04-首页", app)
 
         selectTab("活动", in: app)
@@ -163,7 +163,7 @@ final class MemberJourneyTests: XCTestCase {
 
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.scrollViews["clubHome"].waitForExistence(timeout: 8))
         selectTab("活动", in: app)
         app.buttons["activity.hike"].tap()
         XCTAssertTrue(app.buttons["已完成签到"].waitForExistence(timeout: 5))
@@ -342,6 +342,22 @@ final class MemberJourneyTests: XCTestCase {
     }
 
     private func selectTab(_ title: String, in app: XCUIApplication) {
+        // 活动和俱乐部已移到首页，不再从系统 More 列表进入。
+        if title == "活动" || title == "俱乐部" {
+            app.tabBars.buttons["首页"].tap()
+            let identifier = title == "活动" ? "home.activities" : "home.club"
+            let entry = app.buttons[identifier]
+            // 从首页的深层页面切换回来时，先沿当前导航栈返回首页。
+            for _ in 0..<8 {
+                if entry.isHittable { break }
+                let back = app.navigationBars.buttons.firstMatch
+                guard back.exists else { break }
+                back.tap()
+            }
+            XCTAssertTrue(entry.waitForExistence(timeout: 5))
+            entry.tap()
+            return
+        }
         let tab = app.tabBars.buttons[title]
         if tab.exists {
             tab.tap()
