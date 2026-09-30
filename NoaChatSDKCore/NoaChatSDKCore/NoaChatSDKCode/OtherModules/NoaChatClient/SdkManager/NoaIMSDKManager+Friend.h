@@ -14,14 +14,14 @@ NS_ASSUME_NONNULL_BEGIN
 @interface NoaIMSDKManager (Friend)
 
 /// 获取我的好友列表数据
-- (NSArray <LingIMFriendModel *> *)toolGetMyFriendList;
+- (nullable NSArray <LingIMFriendModel *> *)toolGetMyFriendList;
 
 /// 获取我的好友列表数据（不包含已注销账号）
 - (NSArray<LingIMFriendModel *> *)toolGetMyFriendListOffLogout;
 
 /// 根据用的ID查询是否是我的好友
 /// @param userID 用户ID
-- (LingIMFriendModel *)toolCheckMyFriendWith:(NSString *)userID;
+- (nullable LingIMFriendModel *)toolCheckMyFriendWith:(NSString *)userID;
 
 /// 根据用的ID查询是否是我的好友（不包含已注销账号）
 /// @param userID 用户ID
@@ -44,7 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)toolUpdateMyFriendWith:(LingIMFriendModel *)model;
 
 /// 批量 更新好友信息(只更新数据库)
-/// @param model 好友信息
+/// @param list 好友信息
 - (BOOL)toolBacthDBUpdateMyFriendWith:(NSArray <LingIMFriendModel *> *)list;
 
 /// 根据搜索内容，查询好友

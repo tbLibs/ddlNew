@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 55;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -308,6 +308,7 @@
 		6CAE35302E6FDEC00024763A /* NoaIMSDKManager+Logan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NoaIMSDKManager+Logan.m"; sourceTree = "<group>"; };
 		6D313F282C8F837B9CA02574 /* Pods-CandyTalkPro.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CandyTalkPro.debug.xcconfig"; path = "Target Support Files/Pods-CandyTalkPro/Pods-CandyTalkPro.debug.xcconfig"; sourceTree = "<group>"; };
 		8C9480EAA42CF09FA26B2305 /* Pods-NoaChatSDKCore.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NoaChatSDKCore.release.xcconfig"; path = "Target Support Files/Pods-NoaChatSDKCore/Pods-NoaChatSDKCore.release.xcconfig"; sourceTree = "<group>"; };
+		C0A202609300000000000001 /* NoaIMContactsSyncValidation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NoaIMContactsSyncValidation.h; sourceTree = "<group>"; };
 		C31576092E68431D007EC45E /* ZIMMessageDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZIMMessageDecoder.h; sourceTree = "<group>"; };
 		C315760A2E68431D007EC45E /* ZIMMessageDecoder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZIMMessageDecoder.m; sourceTree = "<group>"; };
 		C315760B2E68431D007EC45E /* ZIMAESEncryption.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZIMAESEncryption.h; sourceTree = "<group>"; };
@@ -663,6 +664,7 @@
 				C3DAE0672E54828B00CCA36B /* NoaIMSDKManager+Stickers.m */,
 				C3DAE0682E54828B00CCA36B /* NoaIMSDKManager+SyncServer.h */,
 				C3DAE0692E54828B00CCA36B /* NoaIMSDKManager+SyncServer.m */,
+				C0A202609300000000000001 /* NoaIMContactsSyncValidation.h */,
 				C3DAE06A2E54828B00CCA36B /* NoaIMSDKManager+Team.h */,
 				C3DAE06B2E54828B00CCA36B /* NoaIMSDKManager+Team.m */,
 				C3DAE06C2E54828B00CCA36B /* NoaIMSDKManager+Translate.h */,

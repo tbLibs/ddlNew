@@ -134,7 +134,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// 用户通讯录同步服务器失败
 /// @param errorMsg 错误信息
-- (void)imSdkUserContactsSyncFailed:(NSString *)errorMsg;
+- (void)imSdkUserContactsSyncFailed:(nullable NSString *)errorMsg;
 
 /// 用户被强制下线(强制退出登录)
 - (void)imSdkUserForceLogout:(NSInteger)type message:(NSString *)message;

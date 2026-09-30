@@ -21,6 +21,21 @@
     return [self.noaChatDB getObjectsOfClass:LingIMFriendModel.class fromTable:NoaChatDBFriendTableName];
 }
 
+- (BOOL)updateMyFriendOnlineStatusWithUIDs:(NSSet<NSString *> *)onlineUIDs {
+    WCTDatabase *database = self.noaChatDB;
+    return [database runTransaction:^BOOL(WCTHandle * _Nonnull handle) {
+        NSArray<LingIMFriendModel *> *friends = [database getObjectsOfClass:LingIMFriendModel.class fromTable:NoaChatDBFriendTableName];
+        if (!friends) return NO;
+        for (LingIMFriendModel *contact in friends) {
+            BOOL online = [onlineUIDs containsObject:contact.friendUserUID];
+            if (contact.onlineStatus != online &&
+                ![database updateTable:NoaChatDBFriendTableName setProperty:LingIMFriendModel.onlineStatus
+                               toValue:@(online) where:LingIMFriendModel.friendUserUID == contact.friendUserUID]) return NO;
+        }
+        return YES;
+    }];
+}
+
 #pragma mark - 获取我的好友列表数据(所有的，不包含已注销账号)
 - (NSArray<LingIMFriendModel *> *)getMyFriendListOffLogout {
     return [self.noaChatDB getObjectsOfClass:LingIMFriendModel.class fromTable:NoaChatDBFriendTableName where: LingIMFriendModel.disableStatus != 4];

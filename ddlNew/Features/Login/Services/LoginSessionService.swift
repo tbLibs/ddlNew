@@ -15,6 +15,8 @@ final class LoginSessionService: LoginSessionServicing {
     private let store = UserSessionStore.shared
     private let authentication = IMUserAuthenticationService.shared
     private let connection = IMConnectionCoordinator.shared
+    /// 与手动登录、缓存恢复共用生命周期的真实通讯录状态。
+    let contacts = ContactsStore(client: SDKContactsClient())
     private var sessionID: UUID?
     private var pendingID: UUID?
 
@@ -96,7 +98,16 @@ final class LoginSessionService: LoginSessionServicing {
             guard let self, self.sessionID == runID else { return }
             try self.store.updateToken(token, userUID: userUID)
         }
+        // AUTH 后 SDK 会自动同步好友，必须提前监听，不能等通讯录页面显示才注册。
+        contacts.prepare(for: user.userUID)
         try await authentication.authenticate(user: user, credentials: credentials, progress: progress)
+        try Task<Never, Never>.checkCancellation()
+        guard sessionID == runID, connection.isUserConnectionCurrent(connectionID),
+              authentication.isAuthenticated, store.currentUser?.userUID == user.userUID else {
+            throw AccountLoginError.connectionChanged
+        }
+        await contacts.reload()
+        // 缓存读取已经改为异步，返回后必须再次确认没有退出或切换到新会话。
         try Task<Never, Never>.checkCancellation()
         guard sessionID == runID, connection.isUserConnectionCurrent(connectionID),
               authentication.isAuthenticated, store.currentUser?.userUID == user.userUID else {
@@ -113,6 +124,7 @@ final class LoginSessionService: LoginSessionServicing {
     func clearSession() throws {
         sessionID = nil
         pendingID = nil
+        contacts.reset()
         authentication.reset()
         connection.releaseUserConnection(reconnect: false)
         try store.clear()
@@ -121,6 +133,7 @@ final class LoginSessionService: LoginSessionServicing {
     private func invalidateSession(_ error: Error, preserveCache: Bool = false) {
         sessionID = nil
         pendingID = nil
+        contacts.reset()
         authentication.reset()
         if preserveCache {
             store.deactivate()

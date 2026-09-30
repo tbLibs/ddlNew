@@ -18,7 +18,10 @@ struct TabbarView: View {
                 ClubHomeView(userName: UserSessionStore.shared.currentUser?.nickname ?? "")
             }
             tab(.messages) { MessageView() }
-            tab(.contacts) { ContactsView() }
+            tab(.contacts) {
+                ContactsView(store: LoginSessionService.shared.contacts,
+                             fileHost: OSSConnectionBootstrap.shared.current?.getFileHost)
+            }
             tab(.profile) { MineView() }
         }
         .tint(HomeTheme.forest)

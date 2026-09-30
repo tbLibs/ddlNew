@@ -14,6 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// 获取我的好友列表数据(所有的，包含已注销账号)
 - (NSArray<LingIMFriendModel *> *)getMyFriendList;
 
+/// 只更新现有好友的在线状态，不回写旧资料或重新插入已经删除的好友。
+- (BOOL)updateMyFriendOnlineStatusWithUIDs:(NSSet<NSString *> *)onlineUIDs;
+
 /// 获取我的好友列表数据(所有的，不包含已注销账号)
 - (NSArray<LingIMFriendModel *> *)getMyFriendListOffLogout;
 

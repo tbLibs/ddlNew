@@ -18,6 +18,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// 服务端同步联系人(先同步好友分组信息，然后才同步联系人)
 - (void)syncContactsFromServer;
 
+/// 用户退出、数据库关闭或身份重新配置时，使旧轮次的通讯录请求失效。
+- (void)invalidateContactsSync;
+
 /// 服务端同步群组
 - (void)syncGroupsFromServer;
 

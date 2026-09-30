@@ -6,6 +6,7 @@
 //
 
 #import "NoaIMSDKManager+SyncServer.h"
+#import "NoaIMContactsSyncValidation.h"
 
 #import "NoaIMSDKManager+User.h"
 #import "NoaIMSDKManager+Friend.h"
@@ -27,6 +28,7 @@
 #import <objc/runtime.h>
 
 static const void *kDBQueueKey = &kDBQueueKey;
+static const void *kContactsSyncContextKey = &kContactsSyncContextKey;
 
 @implementation NoaIMSDKManager (SyncServer)
 
@@ -45,9 +47,20 @@ static const void *kDBQueueKey = &kDBQueueKey;
 
 #pragma mark - ******服务端同步联系人******
 - (void)syncContactsFromServer {
-    //1.同步好友分组信息
-    //2.同步好友列表信息
-    [self requestFriendGroupListFromService];
+    @synchronized (self) {
+        if (![self isUserDatabaseReady]) return;
+        NSDictionary *context = @{@"userID": self.myUserID, @"token": self.myUserToken ?: @"",
+                                  @"sso": self.mySsoInfo ?: @"",
+                                  @"startedAt": @([NSDate getCurrentServerMillisecondTime])};
+        objc_setAssociatedObject(self, kContactsSyncContextKey, context, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [self requestFriendGroupListWithContext:context];
+    }
+}
+
+- (void)invalidateContactsSync {
+    @synchronized (self) {
+        objc_setAssociatedObject(self, kContactsSyncContextKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
 }
 
 #pragma mark - ******服务端同步群组******
@@ -238,198 +251,167 @@ static const void *kDBQueueKey = &kDBQueueKey;
 }
 
 #pragma mark - 同步服务端数据具体方法的实现
-/// 服务端 更新通讯录好友分组数据
-- (void)requestFriendGroupListFromService {
-    //获取本地缓存的分组数据
-    __weak typeof(self) weakSelf = self;
-    NSMutableDictionary *params = [NSMutableDictionary dictionary];
-    [params setValue:[self myUserID] forKey:@"userUid"];
-    if (self.lastSyncSectionTime != 0) {
-        [params setValue:@(self.lastSyncSectionTime) forKey:@"lastSyncTime"];
-    }
-    CIMLog(@"[好友] 开始获取好友列表, 参数 = %@", params);
-    [self getFriendGroupListWith:params onSuccess:^(id _Nullable data, NSString * _Nullable traceId) {
-        CIMLog(@"[好友] 好友列表获取成功,data = %@", data);
-        //请求成功
-        //获取本地缓存的通讯录好友数据
-        if ([data isKindOfClass:[NSArray class]]) {
-            //清空本地数据
-            NSArray *friendGroupArray = (NSArray *)data;
-            if (friendGroupArray.count > 0) {
-                for (NSInteger i = 0; i<friendGroupArray.count; i++) {
-                    NSDictionary * obj = [friendGroupArray objectAtIndex:i];
-                    LingIMFriendGroupModel *friendGroupModel = [LingIMFriendGroupModel mj_objectWithKeyValues:obj];
-                    //delFlag删除标识 0正常；1删除
-                    dispatch_async(self.friendGroupListUpdateQueue, ^{
-                        if (friendGroupModel.delFlag == 0) {
-                            [weakSelf toolUpdateMyFriendGroupWith:friendGroupModel];
-                        } else {
-                            [weakSelf toolDeleteMyFriendGroupWith:friendGroupModel.ugUuid];
-                        }
-                    });
-                    
-                    if (i == friendGroupArray.count - 1) {
-                        if (weakSelf.lastSyncFriendTime != 0) {
-                            [weakSelf requestFriendListFromServiceWith:1 withLastSyncFriendTime:weakSelf.lastSyncFriendTime];
-                        } else {
-                            [weakSelf requestFriendListFromServiceWith:1 withLastSyncFriendTime:0];
-                        }
-                    }
-                }
-            } else {
-                if ( weakSelf.lastSyncFriendTime != 0) {
-                    [weakSelf requestFriendListFromServiceWith:1 withLastSyncFriendTime:weakSelf.lastSyncFriendTime];
-                } else {
-                    [weakSelf requestFriendListFromServiceWith:1 withLastSyncFriendTime:0];
-                }
-            }
-        }else {
-            //接口成功了，返回数据格式错误
-            if (weakSelf.lastSyncFriendTime != 0) {
-                [weakSelf requestFriendListFromServiceWith:1 withLastSyncFriendTime:weakSelf.lastSyncFriendTime];
-            } else {
-                [weakSelf requestFriendListFromServiceWith:1 withLastSyncFriendTime:0];
-            }
-        }
-        NSString *key = [NSString  stringWithFormat:@"%@_%@", LAST_SYNC_SECTION_TIME_KEY, weakSelf.myUserID];
-        [[MMKV defaultMMKV] setInt64:[NSDate getCurrentServerMillisecondTime] forKey:key];
-
-    } onFailure:^(NSInteger code, NSString * _Nullable msg, NSString * _Nullable traceId) {
-        CIMLog(@"[好友] 好友列表获取失败");
-    }];
-    
+/// 同一轮同步绑定用户、凭据和邀请码，并与数据库切换共用锁。
+- (BOOL)isContactsContextActive:(NSDictionary *)context {
+    return context && objc_getAssociatedObject(self, kContactsSyncContextKey) == context
+        && [self.myUserID isEqualToString:context[@"userID"]]
+        && [self.myUserToken isEqualToString:context[@"token"]]
+        && [self.mySsoInfo isEqualToString:context[@"sso"]]
+        && [self isUserDatabaseReady];
 }
-/// 服务端 更新通讯录数据
-- (void)requestFriendListFromServiceWith:(NSInteger)page withLastSyncFriendTime:(long long)lastSyncFriendTime {
-    //默认分组
-    LingIMFriendGroupModel *defaultFriendGroupModel = [self toolGetMyFriendGroupTypeList:-1].firstObject;
-    
-    __weak typeof(self) weakSelf = self;
-    
-    NSMutableDictionary *params = [NSMutableDictionary dictionary];
-    [params setValue:@(page) forKey:@"pageNumber"];
-    [params setValue:@(100) forKey:@"pageSize"];
-    [params setValue:@(0) forKey:@"pageStart"];
-    [params setValue:[self myUserID] forKey:@"userUid"];
-    if (lastSyncFriendTime != 0) {
-        [params setValue:@(self.lastSyncFriendTime) forKey:@"lastSyncTime"];
+
+- (void)failContactsContext:(NSDictionary *)context message:(NSString *)message {
+    @synchronized (self) {
+        if (![self isContactsContextActive:context]) return;
+        [self.userDelegate imSdkUserContactsSyncFailed:message.length ? message : @"好友同步失败，请检查网络连接"];
     }
-    
-    [self getContactsFromServerWith:params onSuccess:^(id _Nullable data, NSString * _Nullable traceId) {
-        if ([data isKindOfClass:[NSDictionary class]]) {
-            NSDictionary *dict = (NSDictionary *)data;
-            NSArray *friendList = [dict objectForKey:@"rows"];
-            NSMutableArray *tempContactArr = [NSMutableArray array];
-            dispatch_async(self.contactsListUpdateQueue, ^{
-                
-                for (NSInteger i = 0; i<friendList.count; i++) {
-                    NSDictionary * obj = [friendList objectAtIndex:i];
-                    LingIMFriendModel *model = [LingIMFriendModel mj_objectWithKeyValues:obj];
-                    model.showName = model.remarks.length > 0 ? model.remarks : model.nickname;
-                    if (model.ugUuid.length < 1) {
-                        if (defaultFriendGroupModel) {
-                            model.ugUuid = defaultFriendGroupModel.ugUuid;
-                        }
-                    }
-                    
-                    if (lastSyncFriendTime == 0) {
-                        [tempContactArr addObject:model];
-                    } else {
-                        //status好友状态 1：是好友 0：不是好友（已删除好友）
-                        if (model.status == 1) {
-                            [tempContactArr addObject:model];
-                        } else {
-                            [weakSelf toolDeleteMyFriendWith:model.friendUserUID];
-                        }
-                    }
-                }
-                if (tempContactArr.count > 0) {
-                    //批量插入/更新好友信息
-                    [weakSelf toolBacthDBUpdateMyFriendWith:tempContactArr];
-                }
-            });
-            NSInteger totalPage = [[dict objectForKey:@"pages"] integerValue];
-            NSInteger currentPage = [[dict objectForKey:@"current"] integerValue];
-            if (totalPage > currentPage) {
-                //还有未加载的数据
-                [weakSelf requestFriendListFromServiceWith:currentPage + 1 withLastSyncFriendTime:lastSyncFriendTime];
-            } else {
-                NSString *key = [NSString  stringWithFormat:@"%@_%@", LAST_SYNC_FRIEND_TIME_KEY, weakSelf.myUserID];
-                [[MMKV defaultMMKV] setInt64:[NSDate getCurrentServerMillisecondTime] forKey:key];
-                [[MMKV defaultMMKV] setBool:YES forKey:@"isSyncAllFriend"];
-                //更新好友在线状态
-                
-                dispatch_async(self.friendListQueue, ^{
-                    NSArray *friendList = [weakSelf toolGetMyFriendList];
-                    [weakSelf requestFriendOnlineStatusFromServiceWith:1 friendList:friendList];
-                });
-            }
+}
+
+/// 分组全部落库后再读取默认分组并请求好友，不能只依靠异步任务提交顺序。
+- (void)requestFriendGroupListWithContext:(NSDictionary *)context {
+    __weak typeof(self) weakSelf = self;
+    NSMutableDictionary *params = [@{@"userUid": context[@"userID"]} mutableCopy];
+    long long lastTime = self.lastSyncSectionTime;
+    if (lastTime != 0) params[@"lastSyncTime"] = @(lastTime);
+    [self getFriendGroupListWith:params onSuccess:^(id data, NSString *traceId) {
+        if (![data isKindOfClass:NSArray.class]) {
+            [weakSelf failContactsContext:context message:@"好友分组响应格式错误"];
+            return;
         }
-    } onFailure:^(NSInteger code, NSString * _Nullable msg, NSString * _Nullable traceId) {
-        //通讯录同步服务器错误
-        [weakSelf.userDelegate imSdkUserContactsSyncFailed:msg];
-        //更新好友在线状态
-        dispatch_async(self.friendListQueue, ^{
-            NSArray *friendList = [weakSelf toolGetMyFriendList];
-            [weakSelf requestFriendOnlineStatusFromServiceWith:1 friendList:friendList];
+        NSMutableArray *groups = [NSMutableArray array];
+        for (id row in (NSArray *)data) {
+            if (![row isKindOfClass:NSDictionary.class]) {
+                [weakSelf failContactsContext:context message:@"好友分组响应格式错误"];
+                return;
+            }
+            LingIMFriendGroupModel *group = [LingIMFriendGroupModel mj_objectWithKeyValues:row];
+            if (group.ugUuid.length == 0) {
+                [weakSelf failContactsContext:context message:@"好友分组缺少标识"];
+                return;
+            }
+            [groups addObject:group];
+        }
+        dispatch_async(weakSelf.friendGroupListUpdateQueue, ^{
+            @synchronized (weakSelf) {
+                if (![weakSelf isContactsContextActive:context]) return;
+                for (LingIMFriendGroupModel *group in groups) {
+                    // 删除事件重复到达时，本地已经不存在该分组也视为成功。
+                    BOOL saved = group.delFlag == 0
+                        ? [weakSelf toolUpdateMyFriendGroupWith:group]
+                        : (![weakSelf toolCheckMyFriendGroupWith:group.ugUuid]
+                           || [weakSelf toolDeleteMyFriendGroupWith:group.ugUuid]);
+                    if (!saved) {
+                        [weakSelf failContactsContext:context message:@"好友分组保存失败"];
+                        return;
+                    }
+                }
+                NSString *key = [NSString stringWithFormat:@"%@_%@", LAST_SYNC_SECTION_TIME_KEY, context[@"userID"]];
+                [[MMKV defaultMMKV] setInt64:[context[@"startedAt"] longLongValue] forKey:key];
+                [weakSelf requestFriendListPage:1 lastSyncTime:weakSelf.lastSyncFriendTime context:context];
+            }
         });
-        
+    } onFailure:^(NSInteger code, NSString *message, NSString *traceId) {
+        [weakSelf failContactsContext:context message:message];
     }];
 }
 
-/// 服务端 更新通讯录好友在线状态
-- (void)requestFriendOnlineStatusFromServiceWith:(NSInteger)page friendList:(NSArray<LingIMFriendModel *> *)friendList {
+/// 校验整页后再写入；任何失败都不推进好友增量游标。
+- (void)requestFriendListPage:(NSInteger)page lastSyncTime:(long long)lastTime context:(NSDictionary *)context {
     __weak typeof(self) weakSelf = self;
-    
-    NSMutableDictionary *params = [NSMutableDictionary dictionary];
-    [params setValue:@(page) forKey:@"pageNumber"];
-    [params setValue:@(100) forKey:@"pageSize"];
-    [params setValue:@(0) forKey:@"pageStart"];
-    [params setValue:[self myUserID] forKey:@"userUid"];
-    
-    [self getFriendGetOnlineStatusWith:params onSuccess:^(id _Nullable data, NSString * _Nullable traceId) {
-        if ([data isKindOfClass:[NSDictionary class]]) {
-            NSDictionary *dict = (NSDictionary *)data;
-            NSArray *onlineFriendUidList = [dict objectForKey:@"rows"];
-            
-            BOOL tempOnlineStatus;
-            NSMutableArray *tempOnlineArr = [NSMutableArray array];
-            for (int i = 0; i < friendList.count; i++) {
-                LingIMFriendModel *model = (LingIMFriendModel *)[friendList objectAtIndex:i];
-                tempOnlineStatus = model.onlineStatus;
-                if ([onlineFriendUidList containsObject:model.friendUserUID]) {
-                    model.onlineStatus = YES;
+    NSMutableDictionary *params = [@{@"pageNumber": @(page), @"pageSize": @100,
+                                    @"pageStart": @0, @"userUid": context[@"userID"]} mutableCopy];
+    if (lastTime != 0) params[@"lastSyncTime"] = @(lastTime);
+    [self getContactsFromServerWith:params onSuccess:^(id data, NSString *traceId) {
+        if (!NoaIMContactsPageIsValid(data, page, NO)) {
+            [weakSelf failContactsContext:context message:@"好友同步响应格式错误"];
+            return;
+        }
+        NSDictionary *response = data;
+        NSMutableArray *friends = [NSMutableArray array];
+        for (NSDictionary *row in response[@"rows"]) {
+            if (lastTime != 0 && !NoaIMContactsFriendStatusIsValid(row[@"status"])) {
+                [weakSelf failContactsContext:context message:@"好友增量数据缺少有效状态"];
+                return;
+            }
+            LingIMFriendModel *friend = [LingIMFriendModel mj_objectWithKeyValues:row];
+            if (friend.friendUserUID.length == 0) {
+                [weakSelf failContactsContext:context message:@"好友同步数据缺少 UID"];
+                return;
+            }
+            [friends addObject:friend];
+        }
+        dispatch_async(weakSelf.contactsListUpdateQueue, ^{
+            @synchronized (weakSelf) {
+                if (![weakSelf isContactsContextActive:context]) return;
+                LingIMFriendGroupModel *defaultGroup = [weakSelf toolGetMyFriendGroupTypeList:-1].firstObject;
+                NSMutableArray *updates = [NSMutableArray array];
+                for (LingIMFriendModel *friend in friends) {
+                    friend.showName = friend.remarks.length > 0 ? friend.remarks : friend.nickname;
+                    if (friend.ugUuid.length == 0) friend.ugUuid = defaultGroup.ugUuid;
+                    if (lastTime != 0 && friend.status != 1) {
+                        if ([weakSelf toolCheckMyFriendWith:friend.friendUserUID] &&
+                            ![weakSelf toolDeleteMyFriendWith:friend.friendUserUID]) {
+                            [weakSelf failContactsContext:context message:@"删除好友缓存失败"];
+                            return;
+                        }
+                    } else {
+                        [updates addObject:friend];
+                    }
+                }
+                if (updates.count && ![weakSelf toolBacthDBUpdateMyFriendWith:updates]) {
+                    [weakSelf failContactsContext:context message:@"好友数据保存失败"];
+                    return;
+                }
+                NSInteger pages = [response[@"pages"] integerValue];
+                if (pages > page) {
+                    [weakSelf requestFriendListPage:page + 1 lastSyncTime:lastTime context:context];
                 } else {
-                    model.onlineStatus = NO;
-                }
-                if (tempOnlineStatus != model.onlineStatus) {
-                    [tempOnlineArr addObject:model];
+                    NSString *key = [NSString stringWithFormat:@"%@_%@", LAST_SYNC_FRIEND_TIME_KEY, context[@"userID"]];
+                    // 使用本轮开始时间，避免请求期间的好友变化被新的游标跳过。
+                    [[MMKV defaultMMKV] setInt64:[context[@"startedAt"] longLongValue] forKey:key];
+                    [[MMKV defaultMMKV] setBool:YES forKey:@"isSyncAllFriend"];
+                    [weakSelf requestFriendOnlinePage:1 onlineUIDs:[NSMutableSet set] context:context];
                 }
             }
-            
-            if (tempOnlineArr.count > 0) {
-                //批量插入/更新好友信息
-                dispatch_async(weakSelf.friendOnlineQueue, ^{
-                    [weakSelf toolBacthDBUpdateMyFriendWith:tempOnlineArr];
-                });
-            }
-            
-            NSInteger totalPage = [[dict objectForKey:@"pages"] integerValue];
-            NSInteger currentPage = [[dict objectForKey:@"current"] integerValue];
-            if (totalPage > currentPage) {
-                //还有未加载的数据
-                [weakSelf requestFriendOnlineStatusFromServiceWith:currentPage + 1 friendList:friendList];
-            } else {
-                NSString *key = [NSString  stringWithFormat:@"%@_%@", LAST_SYNC_FRIEND_TIME_KEY, weakSelf.myUserID];
-                [[MMKV defaultMMKV] setInt64:[NSDate getCurrentServerMillisecondTime] forKey:key];
+        });
+    } onFailure:^(NSInteger code, NSString *message, NSString *traceId) {
+        [weakSelf failContactsContext:context message:message];
+    }];
+}
 
-                //好友通讯录同步完成
+/// 全部分页收齐后只更新在线字段，写入成功之后才发完成代理。
+- (void)requestFriendOnlinePage:(NSInteger)page onlineUIDs:(NSMutableSet<NSString *> *)onlineUIDs context:(NSDictionary *)context {
+    __weak typeof(self) weakSelf = self;
+    NSMutableDictionary *params = [@{@"pageNumber": @(page), @"pageSize": @100,
+                                    @"pageStart": @0, @"userUid": context[@"userID"]} mutableCopy];
+    [self getFriendGetOnlineStatusWith:params onSuccess:^(id data, NSString *traceId) {
+        if (!NoaIMContactsPageIsValid(data, page, YES)) {
+            [weakSelf failContactsContext:context message:@"好友在线状态响应格式错误"];
+            return;
+        }
+        @synchronized (weakSelf) {
+            if (![weakSelf isContactsContextActive:context]) return;
+            NSDictionary *response = data;
+            NoaIMContactsMergeOnlinePage(onlineUIDs, response[@"rows"]);
+            if ([response[@"pages"] integerValue] > page) {
+                [weakSelf requestFriendOnlinePage:page + 1 onlineUIDs:onlineUIDs context:context];
+                return;
+            }
+        }
+        NSSet *snapshot = [onlineUIDs copy];
+        dispatch_async(weakSelf.friendOnlineQueue, ^{
+            @synchronized (weakSelf) {
+                if (![weakSelf isContactsContextActive:context]) return;
+                if (![DBTOOL updateMyFriendOnlineStatusWithUIDs:snapshot]) {
+                    [weakSelf failContactsContext:context message:@"好友在线状态保存失败"];
+                    return;
+                }
+                // 在线状态不修改好友列表同步时间，也不会覆盖备注、恢复已删除好友。
                 [weakSelf.userDelegate imSdkUserContactsSyncFinish];
             }
-        }
-    } onFailure:^(NSInteger code, NSString * _Nullable msg, NSString * _Nullable traceId) {
-        //好友通讯录同步完成
-        [weakSelf.userDelegate imSdkUserContactsSyncFinish];
+        });
+    } onFailure:^(NSInteger code, NSString *message, NSString *traceId) {
+        [weakSelf failContactsContext:context message:message];
     }];
 }
 

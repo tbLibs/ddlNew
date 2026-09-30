@@ -138,31 +138,37 @@ NoaGroupDelegate
 
 /// 3.SDK user 相关信息 配置/更新
 - (void)configSDKUserWith:(NoaIMSDKUserOptions *)userOptions {
-    
-    //记录一下原先的用户token，因为token会失效，所以token更新后需要重连
-    NSString *tempUserToken = [_userToken mutableCopy];
-    
-    //只对有值的内容进行更新
-    if (userOptions.userID.length > 0) _userID = userOptions.userID;
-    if (userOptions.userNickname.length > 0) _userNickname = userOptions.userNickname;
-    if (userOptions.userAvatar.length > 0) _userAvatar = userOptions.userAvatar;
-    if (userOptions.userToken.length > 0) _userToken = userOptions.userToken;
-    
-    if (tempUserToken.length > 0) {
-        
-        //目前的功能 只有更新了用户的token信息，需要更新Socket
-        if (![tempUserToken isEqualToString:_userToken]) {
-            [self configSDKSocketUserInfo];
-            LoggerInfo([NSString stringWithFormat:@"通过 - (void)configSDKUserWith:(LingIMSDKUserOptions *)userOptions 调用configSDKSocket, ip = %@, port = %@", _cimHost, _cimPort]);
+    @synchronized (self) {
+        if ((userOptions.userID.length && ![userOptions.userID isEqualToString:_userID]) ||
+            (userOptions.userToken.length && ![userOptions.userToken isEqualToString:_userToken])) {
+            [self invalidateContactsSync];
         }
-        
-    }else {
-        
-        //第一次配置用户信息
-        //首次初始化数据库
-        [self configSDKDB];
-        _configedUserInfo = YES;
-        
+
+        //记录一下原先的用户token，因为token会失效，所以token更新后需要重连
+        NSString *tempUserToken = [_userToken mutableCopy];
+
+        //只对有值的内容进行更新
+        if (userOptions.userID.length > 0) _userID = userOptions.userID;
+        if (userOptions.userNickname.length > 0) _userNickname = userOptions.userNickname;
+        if (userOptions.userAvatar.length > 0) _userAvatar = userOptions.userAvatar;
+        if (userOptions.userToken.length > 0) _userToken = userOptions.userToken;
+
+        if (tempUserToken.length > 0) {
+
+            //目前的功能 只有更新了用户的token信息，需要更新Socket
+            if (![tempUserToken isEqualToString:_userToken]) {
+                [self configSDKSocketUserInfo];
+                LoggerInfo([NSString stringWithFormat:@"通过 - (void)configSDKUserWith:(LingIMSDKUserOptions *)userOptions 调用configSDKSocket, ip = %@, port = %@", _cimHost, _cimPort]);
+            }
+
+        }else {
+
+            //第一次配置用户信息
+            //首次初始化数据库
+            [self configSDKDB];
+            _configedUserInfo = YES;
+
+        }
     }
 }
 
@@ -177,7 +183,12 @@ NoaGroupDelegate
 ///SDK SSO 相关信息 配置/更新
 /// @param ssoInfoStr 邀请码 或者 IP/域名+端口
 - (void)configSDKSsoInfo:(NSString *)ssoInfoStr {
-    if (ssoInfoStr.length > 0) _ssoDetailInfo = ssoInfoStr;
+    @synchronized (self) {
+        if (ssoInfoStr.length > 0 && ![ssoInfoStr isEqualToString:_ssoDetailInfo]) {
+            [self invalidateContactsSync];
+            _ssoDetailInfo = ssoInfoStr;
+        }
+    }
 }
 
 /// 获取我的ID
@@ -272,15 +283,16 @@ NoaGroupDelegate
 
 /// 清除用户信息及当前请求使用的设备凭证
 - (void)clearMyUserInfo {
-    _userID = nil;
-    _userToken = nil;
-    _deviceSecret = nil;
-    _userNickname = nil;
-    _userAvatar = nil;
-    //清除日志模块用户信息
-    [self imSdkClearLoganOption];
-
-
+    @synchronized (self) {
+        [self invalidateContactsSync];
+        _userID = nil;
+        _userToken = nil;
+        _deviceSecret = nil;
+        _userNickname = nil;
+        _userAvatar = nil;
+        //清除日志模块用户信息
+        [self imSdkClearLoganOption];
+    }
 }
 
 /// 获取当前邀请码或者IP/域名+端口号下，储存 敏感词 的表名
@@ -308,17 +320,20 @@ NoaGroupDelegate
 
 /// SDK数据库相关处理
 - (void)configSDKDB {
-    if (_userID.length > 0 && _userToken.length > 0) {
-        BOOL dbResult = [DBTOOL configDBWith:_userToken userID:_userID];
-        if (dbResult) {
-            //socket配置
-            [self configSDKSocketUserInfo];
-            LoggerInfo([NSString stringWithFormat:@"通过 - (void)configSDKDB 调用configSDKSocket, ip = %@, port = %@", _cimHost, _cimPort]);
-            //MMKV配置
-            [MMKVTOOL configMMKVToolWith:_userID token:_userToken];
+    @synchronized (self) {
+        [self invalidateContactsSync];
+        if (_userID.length > 0 && _userToken.length > 0) {
+            BOOL dbResult = [DBTOOL configDBWith:_userToken userID:_userID];
+            if (dbResult) {
+                //socket配置
+                [self configSDKSocketUserInfo];
+                LoggerInfo([NSString stringWithFormat:@"通过 - (void)configSDKDB 调用configSDKSocket, ip = %@, port = %@", _cimHost, _cimPort]);
+                //MMKV配置
+                [MMKVTOOL configMMKVToolWith:_userID token:_userToken];
+            }
+        }else {
+            CIMLog(@"LingIMSDKManager>>>缺少用户信息，数据库初始化失败");
         }
-    }else {
-        CIMLog(@"LingIMSDKManager>>>缺少用户信息，数据库初始化失败");
     }
 }
 
@@ -329,7 +344,10 @@ NoaGroupDelegate
 }
 
 - (void)closeUserDatabase {
-    [DBTOOL closeDB];
+    @synchronized (self) {
+        [self invalidateContactsSync];
+        [DBTOOL closeDB];
+    }
 }
 
 - (BOOL)isUserAuthenticated {

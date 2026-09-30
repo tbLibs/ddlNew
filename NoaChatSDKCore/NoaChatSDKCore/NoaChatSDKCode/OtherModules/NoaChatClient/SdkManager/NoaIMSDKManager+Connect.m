@@ -39,7 +39,7 @@
     [self imSdkDeleteAllFloatMiniApp];
     
     //关闭数据库
-    [DBTOOL closeDB];
+    [self closeUserDatabase];
     
     //清除用户信息
     [self clearMyUserInfo];
