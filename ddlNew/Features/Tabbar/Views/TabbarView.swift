@@ -10,6 +10,8 @@ import SwiftUI
 /// 主界面唯一的四栏容器，每个 Tab 保留独立的导航栈。
 struct TabbarView: View {
     @EnvironmentObject private var store: ClubStore
+    /// 角标随真实 SDK 会话快照变化；ClubCommunity 仍供其他演示页面使用。
+    @ObservedObject private var conversations = LoginSessionService.shared.conversations
     @StateObject private var community = ClubCommunity()
 
     var body: some View {
@@ -17,7 +19,7 @@ struct TabbarView: View {
             tab(.home) {
                 ClubHomeView(userName: UserSessionStore.shared.currentUser?.nickname ?? "")
             }
-            tab(.messages) { MessageView() }
+            tab(.messages) { MessageView(store: conversations) }
             tab(.contacts) {
                 ContactsView(store: LoginSessionService.shared.contacts,
                              fileHost: OSSConnectionBootstrap.shared.current?.getFileHost)
@@ -36,7 +38,7 @@ struct TabbarView: View {
         .tabItem {
             Label(tab.rawValue, systemImage: tab.icon)
         }
-        .badge(tab == .messages ? community.unreadCount : 0)
+        .badge(tab == .messages ? conversations.totalUnreadCount : 0)
         .tag(tab)
     }
 }

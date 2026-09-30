@@ -133,7 +133,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)imSdkUserContactsSyncFinish;
 
 /// 用户通讯录同步服务器失败
-/// @param errorMsg 错误信息
+/// @param errorMsg 错误信息；网络层可能未返回文案
 - (void)imSdkUserContactsSyncFailed:(nullable NSString *)errorMsg;
 
 /// 用户被强制下线(强制退出登录)
@@ -206,7 +206,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// 会话列表 同步服务器失败
 /// @param errorMsg 错误信息
-- (void)imSdkSessionSyncFailed:(NSString *)errorMsg;
+- (void)imSdkSessionSyncFailed:(NSString * _Nullable)errorMsg;
 
 /// 会话列表 用户角色权限发生变化，需要更新用户角色权限
 - (void)imSdkSessionUpdateUserRoleAuthority;
