@@ -340,13 +340,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -395,6 +391,7 @@
 		};
 		F65538465AE848B195C6A3AD /* Upload Debug Symbols to Sentry */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -609,7 +606,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Vendor/LXChatEncrypt",
 					"$(PROJECT_DIR)/ddlNew/Basic/LXChatEncrypt",
 				);
 				MARKETING_VERSION = 1.0;
@@ -670,7 +666,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Vendor/LXChatEncrypt",
 					"$(PROJECT_DIR)/ddlNew/Basic/LXChatEncrypt",
 				);
 				MARKETING_VERSION = 1.0;

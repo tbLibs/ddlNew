@@ -85,8 +85,8 @@ static const NSUInteger kLengthFieldSize = 4;        // 长度字段大小
     
     // 2. 验证消息完整性
     if (messageData.length != protocolHeader.totalLength) {
-        NSLog(@"❌ 消息长度不匹配: 期望=%u, 实际=%lu", 
-              protocolHeader.totalLength, (unsigned long)messageData.length);
+        NSLog(@"❌ 消息长度不匹配: 期望=%ld, 实际=%lu",
+              (long)protocolHeader.totalLength, (unsigned long)messageData.length);
         return nil;
     }
     
@@ -100,7 +100,7 @@ static const NSUInteger kLengthFieldSize = 4;        // 长度字段大小
 
 - (nullable ZIMDecodedMessage *)decodePlainMessage:(NSData *)messageData 
                                     protocolHeader:(MessageProtocolHeader *)protocolHeader {
-    NSLog(@"📝 解码明文消息，消息体长度: %u字节", [protocolHeader messageBodyLength]);
+    NSLog(@"📝 解码明文消息，消息体长度: %ld字节", (long)[protocolHeader messageBodyLength]);
     
     // 提取消息体数据
     NSUInteger headerLength = [MessageProtocolHeader protocolHeaderLength];

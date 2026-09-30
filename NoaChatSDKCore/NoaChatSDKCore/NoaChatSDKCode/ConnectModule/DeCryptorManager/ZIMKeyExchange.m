@@ -12,7 +12,6 @@
 // 常量定义
 static NSString * const kECCurveType = @"secp256r1";
 static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
-static const NSUInteger kECPublicKeyLength = 65;  // 未压缩公钥长度 (1 + 32 + 32)
 
 #pragma mark - ZIMECDHKeyPair
 
@@ -31,8 +30,8 @@ static const NSUInteger kECPublicKeyLength = 65;  // 未压缩公钥长度 (1 + 
                                  publicKeyData:(NSData *)publicKeyData {
     ZIMECDHKeyPair *keyPair = [[ZIMECDHKeyPair alloc] init];
     if (keyPair) {
-        keyPair.privateKey = CFRetain(privateKey);
-        keyPair.publicKey = CFRetain(publicKey);
+        keyPair.privateKey = (SecKeyRef)CFRetain(privateKey);
+        keyPair.publicKey = (SecKeyRef)CFRetain(publicKey);
         keyPair.publicKeyData = publicKeyData;
     }
     return keyPair;

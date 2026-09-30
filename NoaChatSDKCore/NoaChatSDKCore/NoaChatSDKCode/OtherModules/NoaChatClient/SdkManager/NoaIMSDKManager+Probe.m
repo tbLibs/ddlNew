@@ -51,12 +51,6 @@ static const void *kLingIMSDKManagerActiveProbesKey = &kLingIMSDKManagerActivePr
 /// 密钥交换处理类
 @property (nonatomic, strong) NovDecryptorManager *novDecryptorManager;
 
-- (void)probeECDHConnectivityWithHost:(NSString *)host
-                                  port:(uint16_t)port
-                               timeout:(NSTimeInterval)timeout
-                                 type:(NSInteger)type
-                            completion:(void(^)(BOOL success, LingIMSDKManagerProbeECDHConnectStatus status))completion;
-
 @end
 
 @implementation _LingIMEcdhProbeWrapper
@@ -377,7 +371,7 @@ static const void *kLingIMSDKManagerActiveProbesKey = &kLingIMSDKManagerActivePr
                                   port:(uint16_t)port
                                timeout:(NSTimeInterval)timeout
                                  type:(NSInteger)type
-                            completion:(void(^)(BOOL success, LingIMSDKManagerProbeECDHConnectStatus status))completion; {
+                            completion:(void(^)(BOOL success, LingIMSDKManagerProbeECDHConnectStatus status))completion {
     _LingIMEcdhProbeWrapper *probe = [_LingIMEcdhProbeWrapper new];
     // 使用关联对象，保证探测器在回调触发前不被释放
     NSMutableSet *active = [self _activeProbes];
@@ -404,4 +398,3 @@ static const void *kLingIMSDKManagerActiveProbesKey = &kLingIMSDKManagerActivePr
     return set;
 }
 @end
-

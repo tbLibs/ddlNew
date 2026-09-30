@@ -329,14 +329,14 @@
         NSDictionary *bodyDict = (NSDictionary *)[dict objectForKey:@"body_"];
         
         IMChatMessage *imChatMessage = [[IMChatMessage alloc] init];
-        imChatMessage.cType = [[dict objectForKey:@"cType_"] integerValue];
+        imChatMessage.cType = (ChatType)[[dict objectForKey:@"cType_"] integerValue];
         imChatMessage.deviceType = [dict objectForKey:@"deviceType_"];
         imChatMessage.deviceUuid = [dict objectForKey:@"deviceUuid_"];
         imChatMessage.from = [dict objectForKey:@"from_"];
         imChatMessage.icon = [dict objectForKey:@"icon_"];
         imChatMessage.isAck = [[dict objectForKey:@"isAck_"] integerValue];
         imChatMessage.isEncry = [[dict objectForKey:@"isEncry_"] boolValue];
-        imChatMessage.mType = [[dict objectForKey:@"mType_"] integerValue];
+        imChatMessage.mType = (IMChatMessage_MessageType)[[dict objectForKey:@"mType_"] integerValue];
         imChatMessage.msgId = [dict objectForKey:@"msgId_"];
         imChatMessage.nick = [dict objectForKey:@"nick_"];
         imChatMessage.referenceMsgId = [dict objectForKey:@"referenceMsgId_"];

@@ -11,7 +11,7 @@
 #import "LingIMMacorHeader.h"
 
 // 协议头总长度（字节）
-static const NSInteger PROTOCOL_HEADER_LENGTH = 12;
+enum { PROTOCOL_HEADER_LENGTH = 12 };
 
 // 协议魔数："ZIMA" (0x5A494D41)
 static const int PROTOCOL_MAGIC = 0x5A494D41;

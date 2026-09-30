@@ -46,7 +46,25 @@
 {
     if (value) {
         @try {
-            NSDictionary *dict = [NSKeyedUnarchiver unarchiveObjectWithData:value];
+            NSSet<Class> *allowedClasses = [NSSet setWithObjects:
+                                            NSDictionary.class,
+                                            NSMutableDictionary.class,
+                                            NSArray.class,
+                                            NSMutableArray.class,
+                                            NSString.class,
+                                            NSNumber.class,
+                                            NSData.class,
+                                            NSDate.class,
+                                            NSNull.class,
+                                            nil];
+            NSError *error = nil;
+            NSDictionary *dict = [NSKeyedUnarchiver unarchivedObjectOfClasses:allowedClasses
+                                                                      fromData:value
+                                                                         error:&error];
+            if (!dict || error) {
+                NSLog(@"CIMMessageModel unarchive error:%@", error.localizedDescription);
+                return nil;
+            }
             NoaIMChatMessageModel *model = [NoaIMChatMessageModel mj_objectWithKeyValues:dict];
             return model;
         } @catch (NSException *exception) {
@@ -63,7 +81,13 @@
 - (NSData *)archivedWCTValue
 {
     NSDictionary *modelDict = [self mj_JSONObject];
-    NSData *modelData = [NSKeyedArchiver archivedDataWithRootObject:modelDict];
+    NSError *error = nil;
+    NSData *modelData = [NSKeyedArchiver archivedDataWithRootObject:modelDict
+                                              requiringSecureCoding:NO
+                                                              error:&error];
+    if (!modelData || error) {
+        NSLog(@"CIMMessageModel archive error:%@", error.localizedDescription);
+    }
     return modelData;
 }
 

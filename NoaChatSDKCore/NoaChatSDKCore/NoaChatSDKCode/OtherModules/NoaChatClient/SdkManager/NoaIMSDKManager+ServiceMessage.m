@@ -123,7 +123,7 @@
     model.messageStatus = 1;//接收到的消息，默认是正常消息
     //消息定时自动删除相关信息
     ScheduleDeleteMessage *messageTimeDeleteModel = message.scheduleDeleteMessage;
-    model.chatType = messageTimeDeleteModel.chatType;//聊天类型
+    model.chatType = (CIMChatType)messageTimeDeleteModel.chatType;//聊天类型
     model.toID = messageTimeDeleteModel.peerUid;//接收消息方
     model.fromID = messageTimeDeleteModel.userId;//消息发送方
     model.fromNickname = messageTimeDeleteModel.userNick;
@@ -859,7 +859,7 @@
         LingIMGroupModel *groupModel = [IMSDKManager toolCheckMyGroupWith:statusMessage.gid];
         groupModel.groupInformStatus = statusMessage.status;
         [IMSDKManager toolInsertOrUpdateGroupModelWith:groupModel];
-        BOOL resultSession = [IMSDKManager toolInsertSessionForCloseGroupRemindWith:model];
+        [IMSDKManager toolInsertSessionForCloseGroupRemindWith:model];
         [self.messageDelegate cimToolChatMessageReceive:model];
         return;
     }
@@ -870,7 +870,7 @@
         LingIMGroupModel *groupModel = [IMSDKManager toolCheckMyGroupWith:statusMessage.gid];
         groupModel.isMessageInform = statusMessage.status;
         [IMSDKManager toolInsertOrUpdateGroupModelWith:groupModel];
-        BOOL resultSession = [IMSDKManager toolInsertSessionForCloseGroupRemindWith:model];
+        [IMSDKManager toolInsertSessionForCloseGroupRemindWith:model];
         return;
     }
     //踢人，踢出的是虚拟用户
@@ -900,8 +900,6 @@
     BOOL resultSession = NO;
     if (message.sMsgType == IMServerMessage_ServerMsgType_OutGroupMessage) {
         /**主动退群*/
-        OutGroupMessage *outGroupMember = message.outGroupMessage;
-        LingIMGroupModel *groupModel = [IMSDKManager toolCheckMyGroupWith:outGroupMember.gid];
         //       if (groupModel.groupInformStatus == 1) {
         //           //开启群通知
         //           LingIMGroupMemberModel *groupOwnerModel = [self imSdkGetGroupOwnerWith:outGroupMember.gid exceptUserId:@""];

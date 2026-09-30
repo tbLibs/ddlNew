@@ -54,11 +54,11 @@ static dispatch_once_t onceToken;
         _loganOption = loganOption;
         
         //16位aes加密key
-        NSData *keyData = [loganOption.loganKey dataUsingEncoding:NSUTF8StringEncoding];
+//        NSData *keyData = [loganOption.loganKey dataUsingEncoding:NSUTF8StringEncoding];
         //16位aes加密iv
-        NSData *ivData = [loganOption.loganIV dataUsingEncoding:NSUTF8StringEncoding];
+//        NSData *ivData = [loganOption.loganIV dataUsingEncoding:NSUTF8StringEncoding];
         //日志文件最大大小，超过该大小后日志将不再被写入，单位:bytes。
-        uint64_t file_max = loganOption.loganFileMax;
+//        uint64_t file_max = loganOption.loganFileMax;
 
         //在使用之前，必须初始化Logan
         //重要，在实际使用时要用自己的key和iv替换这里的key和iv。最好在App每次发布新版本的时候更新key和iv。后面我们会开源更加安全的加密方案，让日志存储更加安全
@@ -89,23 +89,7 @@ static dispatch_once_t onceToken;
 - (void)loganUploadWith:(NSString *)loganDate complete:(LingIMLoganUpload)aComplete {
     
     if (_loganOption) {
-        NSString *loganUrl = _loganOption.loganUploadUrl;//接受日志的服务器完整url
-        NSString *dateType = loganDate;
-        //loganTodaysDate();//上传当天日志 日志日期 格式："2018-11-21"
-        NSString *appId = [[NSBundle mainBundle]bundleIdentifier];//当前应用的唯一标识,在多App时区分日志来源App
-        NSString *unionId = _loganOption.loganUserUnionId.length > 0 ? _loganOption.loganUserUnionId : @"NONE";//当前用户的唯一标识,用来区分日志来源用户
-        //设备标识
-        NSString *companyID = _loganOption.loganLiceseId.length > 0 ? _loganOption.loganLiceseId : @"NONE COMPANY / IP"; //邀请码/IP/域名
-        NSString *deviceId; //deviceId 设备号
-        if (_loganOption.loganUserUnionId.length > 0) {
-            if (_loganOption.loganUserName.length > 0) {
-                deviceId = [NSString stringWithFormat:@"%@-%@", companyID, _loganOption.loganUserName];
-            } else {
-                deviceId = companyID;
-            }
-        } else {
-            deviceId = companyID;
-        }
+        // 当前 SDK 未启用 Logan 上传实现，配置存在时维持原有空操作行为。
     } else {
         CIMLog(@"请配置日志参数");
         NSError *error = [NSError errorWithDomain:@"come.meituan.logan.error" code:-1000 userInfo:@{@"info" : [NSString stringWithFormat:@"缺少日志模块关键信息"]}];

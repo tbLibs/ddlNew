@@ -5,6 +5,8 @@ minimum_ios_version = '15.0'
 source "https://github.com/CocoaPods/Specs"
 source 'https://github.com/aliyun/aliyun-specs.git'
 
+inhibit_all_warnings!
+
 ## workspace文件名
 workspace 'ddlNew.xcworkspace'
 

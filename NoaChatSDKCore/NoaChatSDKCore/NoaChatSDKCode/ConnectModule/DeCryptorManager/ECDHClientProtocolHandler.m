@@ -20,8 +20,8 @@ static const uint8_t ECDH_SESSION_KEY_DERIVED = 0x13;
 // 协议版本
 static const uint8_t PROTOCOL_VERSION = 0x01;
 
-// 消息头长度
-static const NSInteger HEADER_LENGTH = 8; // version(1) + type(1) + length(4) + reserved(2)
+// 消息头长度：version(1) + type(1) + length(4) + reserved(2)
+enum { HEADER_LENGTH = 8 };
 
 // HKDF 相关常量
 static NSString * const HKDF_SALT = @"ECDH_IM_CLIENT_SALT_2024";
@@ -165,8 +165,8 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     
     // 验证载荷长度
     if (responseData.length < HEADER_LENGTH + payloadLength) {
-        CIMLog(@"❌ [ECDH客户端] 响应数据长度不足: 期望%ld，实际%lu", 
-               HEADER_LENGTH + payloadLength, (unsigned long)responseData.length);
+        CIMLog(@"❌ [ECDH客户端] 响应数据长度不足: 期望%u，实际%lu",
+               (unsigned int)(HEADER_LENGTH + payloadLength), (unsigned long)responseData.length);
         [self notifyKeyExchangeFailed:[self createError:ECDHClientProtocolErrorDomain 
                                                    code:-4 
                                             description:@"响应数据长度不足"]];
@@ -337,7 +337,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     NSData *contextData = [context dataUsingEncoding:NSUTF8StringEncoding];
     NSData *notificationData = [self createProtocolMessage:ECDH_SESSION_KEY_DERIVED payload:contextData];
     
-    CIMLog(@"📤 [ECDH客户端] 发送会话密钥派生通知: %@", context);
+    CIMLog(@"📤 [ECDH客户端] 发送会话密钥派生通知: %@，数据长度: %lu", context, (unsigned long)notificationData.length);
     
     // 这里应该通过 socket 发送给服务端，具体实现在集成时完成
     // [self.socketManager sendData:notificationData];

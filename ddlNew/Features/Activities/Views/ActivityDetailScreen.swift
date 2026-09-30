@@ -70,8 +70,10 @@ struct ActivityDetailScreen: View {
                 }.buttonStyle(ClubButtonStyle()).disabled(status != .available && status != .registered)
             }.padding(12).background(ClubTheme.card)
         }
-        // 参与状态改变后仍保留当前导航链接，避免详情页被提前关闭。
-        .background(NavigationLink(destination: CheckInScreen(activity: activity), isActive: $showCheckIn) { EmptyView() }.hidden())
+        // 参与状态改变后仍在当前导航栈中打开签到页，避免详情页被提前关闭。
+        .navigationDestination(isPresented: $showCheckIn) {
+            CheckInScreen(activity: activity)
+        }
         .navigationBarHidden(false).navigationBarTitleDisplayMode(.inline).navigationTitle("活动详情")
         .modifier(ClubDetailChrome())
         .sheet(isPresented: $showConfirmation) {

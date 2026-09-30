@@ -71,10 +71,10 @@ struct MessageView: View {
             }.padding(.horizontal, 20).padding(.top, 18)
         }
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
-        .background {
-            NavigationLink(isActive: $showingChat) {
-                if let selected { ChatScreen(conversation: selected).id(selected.id) }
-            } label: { EmptyView() }.hidden()
+        .navigationDestination(isPresented: $showingChat) {
+            if let selected {
+                ChatScreen(conversation: selected).id(selected.id)
+            }
         }
     }
 

@@ -299,7 +299,9 @@
 - (BOOL)insertOrUpdateMultiActiviteScoreWithTabName:(NSString *)tabName scoreList:(NSArray <LingIMGroupActiviteScoreModel *> *)scoreList {
     for (LingIMGroupActiviteScoreModel *model in scoreList) {
         BOOL result = [self.noaChatDB updateTable:tabName setProperty:LingIMGroupMemberModel.activityScroe toValue:@(model.activityScore) where:LingIMGroupMemberModel.userUid == model.memberUid];
-        
+        if (!result) {
+            return NO;
+        }
     }
     return YES;
 }
