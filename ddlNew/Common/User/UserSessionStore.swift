@@ -39,14 +39,32 @@ final class UserSessionStore: ObservableObject {
         return record
     }
 
-    /// 提供成对的缓存读取；仅供后续恢复使用，本步骤不自动登录或跳转。
-    func cachedUser() throws -> UserInfo? {
+    /// 成对读取，避免 Keychain 遗留凭据与另一份用户资料组成错误会话。
+    func cachedSession() throws -> UserSessionSnapshot? {
         guard !userInfoJSON.isEmpty else { return nil }
         guard let user = Mapper<UserInfo>().map(JSONString: userInfoJSON),
-              let record = try credentials.load(), record.userUID == user.userUID else {
+              !user.userUID.isEmpty, let record = try credentials.load(), record.isValid,
+              record.userUID == user.userUID else {
             throw UserSessionError.invalidData
         }
-        return user
+        return UserSessionSnapshot(user: user, credentials: record)
+    }
+
+    func cachedUser() throws -> UserInfo? {
+        try cachedSession()?.user
+    }
+
+    /// AUTH 前恢复用户资料，以便 SDK 刷新 token 时能更新同一用户的 Keychain。
+    func restore(_ snapshot: UserSessionSnapshot) throws {
+        guard snapshot.credentials.isValid, snapshot.user.userUID == snapshot.credentials.userUID else {
+            throw UserSessionError.invalidData
+        }
+        currentUser = snapshot.user
+    }
+
+    /// 临时连接失败只撤销内存中的用户，不删除下次启动需要的持久化凭据。
+    func deactivate() {
+        currentUser = nil
     }
 
     func updateToken(_ token: String, userUID: String) throws {

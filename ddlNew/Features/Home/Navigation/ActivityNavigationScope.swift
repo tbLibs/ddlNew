@@ -15,13 +15,17 @@ struct ActivityNavigationScope<Content: View>: View {
     var body: some View {
         NavigationStack(path: $navigation.path) {
             content
-                .environmentObject(navigation)
                 .navigationDestination(for: ClubHomeDestination.self) { destination in
                     ClubHubScreen(destination: destination).environmentObject(navigation)
+                }
+                .navigationDestination(for: RecordKind.self) { kind in
+                    RecordsScreen(kind: kind)
                 }
                 .navigationDestination(for: ClubActivity.self) { activity in
                     ActivityDetailScreen(activity: activity).environmentObject(navigation)
                 }
         }
+        // 注入整个导航栈，直接指定目标页面的 NavigationLink 也能取得同一份导航对象。
+        .environmentObject(navigation)
     }
 }

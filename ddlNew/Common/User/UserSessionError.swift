@@ -14,6 +14,14 @@ nonisolated enum UserSessionError: LocalizedError {
     case authenticationTimedOut
     case authenticationRejected(code: Int, message: String)
 
+    /// 数据损坏或服务端明确拒绝不能继续自动恢复；断网、超时不删除登录凭据。
+    var invalidatesCachedSession: Bool {
+        switch self {
+        case .invalidData, .authenticationRejected: return true
+        case .keychainFailure, .databaseNotReady, .authenticationTimedOut: return false
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .invalidData: return "用户会话数据不完整，请重新登录"

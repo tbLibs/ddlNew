@@ -2,68 +2,38 @@
 //  TabbarView.swift
 //  ddlNew
 //
-//  Created by taobo on 2026/9/21.
+//  Created by taobo on 2026/9/29.
 //
 
 import SwiftUI
-import TBBasicLib
 
+/// 主界面唯一的四栏容器，每个 Tab 保留独立的导航栈。
 struct TabbarView: View {
-    
-    /// 与 App 根入口共享 Tab 选中状态及各页独立的导航路径。
-    @StateObject var router = RouterTool.shared
-    
-    var body: some View {
-        TabView(selection: $router.selectTab) {
-            // 首页
-            NavigationStack(path: $router.mainRouterPath) {
-                MainView()
-            }
-            .toolbar(router.mainRouterPath.isEmpty ? .visible : .hidden, for: .tabBar) // 控制tabBar的显隐
-            .tabItem {
-                Label { Text(TabType.main.title) } icon: { Image(.clubHome) }
-            }
-            .tag(TabType.main)
-            
-            
-            // 消息
-            NavigationStack(path: $router.messageRouterPath) {
-                MessageView()
-            }
-            .toolbar(router.messageRouterPath.isEmpty ? .visible : .hidden, for: .tabBar) // 控制tabBar的显隐
-            .tabItem {
-                Label { Text(TabType.message.title) } icon: { Image(.clubMessages) }
-            }
-            .tag(TabType.message)
-            
-            
-            // 通讯录
-            NavigationStack(path: $router.contactsRouterPath) {
-                ContactsView()
-            }
-            .toolbar(router.contactsRouterPath.isEmpty ? .visible : .hidden, for: .tabBar) // 控制tabBar的显隐
-            .tabItem {
-                Label { Text(TabType.contacts.title) } icon: { Image(.clubContacts) }
-            }
-            .tag(TabType.contacts)
-            
-            
-            // 我的
-            NavigationStack(path: $router.mineRouterPath) {
-                MineView()
-            }
-            .toolbar(router.mineRouterPath.isEmpty ? .visible : .hidden, for: .tabBar) // 控制tabBar的显隐
-            .tabItem {
-                Label { Text(TabType.mine.title) } icon: { Image(.clubUsers) }
-            }
-            .tag(TabType.mine)
-            
-        }
-        .tint(Color(hex: "00B9B1"))
-    }
-    
-}
+    @EnvironmentObject private var store: ClubStore
+    @StateObject private var community = ClubCommunity()
 
-#Preview {
-    TabbarView()
+    var body: some View {
+        TabView(selection: $store.selectedTab) {
+            tab(.home) {
+                ClubHomeView(userName: UserSessionStore.shared.currentUser?.nickname ?? "")
+            }
+            tab(.messages) { MessageView() }
+            tab(.contacts) { ContactsView() }
+            tab(.profile) { MineView() }
+        }
+        .tint(HomeTheme.forest)
+        .environmentObject(community)
+    }
+
+    private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
+        ActivityNavigationScope {
+            content()
+                .navigationBarHidden(true)
+        }
+        .tabItem {
+            Label(tab.rawValue, systemImage: tab.icon)
+        }
+        .badge(tab == .messages ? community.unreadCount : 0)
+        .tag(tab)
+    }
 }

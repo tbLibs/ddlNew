@@ -97,12 +97,12 @@ struct ClubHomeView: View {
         return VStack(alignment: .leading, spacing: 12) {
             sectionTitle("我的户外日程")
             layout {
-                NavigationLink(destination: RecordsScreen(kind: .registered)) {
+                NavigationLink(value: RecordKind.registered) {
                     HomeQuickEntry(title: "我的报名", symbol: "calendar",
                                    detail: "\(store.activities(with: [.registered]).count) 场待参加")
                 }
                 .accessibilityIdentifier("home.registrations")
-                NavigationLink(destination: RecordsScreen(kind: .waiting)) {
+                NavigationLink(value: RecordKind.waiting) {
                     HomeQuickEntry(title: "候补记录", symbol: "clock",
                                    detail: "\(store.activities(with: [.waiting]).count) 项等待中")
                 }

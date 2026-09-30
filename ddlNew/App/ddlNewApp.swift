@@ -18,8 +18,8 @@ struct ddlNewApp: App {
     /// 根页面根据共享路由状态在邀请码、登录和主界面之间切换。
     @StateObject var router = RouterTool.shared
 
-    /// 仅供旧版主页面展示；真实登录资格由用户会话与 AUTH 控制。
-    @StateObject private var oldVersionStore = ClubStore()
+    /// 供活动与俱乐部页面展示；真实登录资格由用户会话与 AUTH 控制。
+    @StateObject private var clubStore = ClubStore()
     /// 根页面持续监听账号失效，即使登录页已经销毁也能退出主界面。
     @ObservedObject private var authentication = IMUserAuthenticationService.shared
 
@@ -37,10 +37,8 @@ struct ddlNewApp: App {
                         InvitationCodeView()
                     case .login:
                         LoginView()
-                        // LoginScreen() // OldVersion 原登录页保留，当前 UI 已接入 LoginView。
                     case .tabbar:
-                        // TabbarView() // 新版主页面保留，后续版本恢复使用。
-                        MemberTabs()
+                        TabbarView()
                             .id(UserSessionStore.shared.currentUser?.userUID)
                             .accessibilityIdentifier("authenticatedMain")
                     }
@@ -51,7 +49,9 @@ struct ddlNewApp: App {
                         .overlay(alignment: .bottom) {
                             VStack(spacing: 10) {
                                 ProgressView()
-                                Text(connection.phase == .idle ? "正在恢复本地入口…" : connection.phase.message)
+                                Text(authentication.state == .authenticating
+                                     ? "正在恢复登录状态…"
+                                     : connection.phase == .idle ? "正在恢复本地入口…" : connection.phase.message)
                                     .font(.footnote)
                                     .multilineTextAlignment(.center)
                             }
@@ -61,13 +61,19 @@ struct ddlNewApp: App {
                         }
                 }
             }
-            .environmentObject(oldVersionStore)
+            .environmentObject(clubStore)
             .task {
                 guard !hasRestoredLocalEntry else { return }
                 do {
                     let page = try await AppStartupCoordinator.restoreLocalEntry()
                     try Task<Never, Never>.checkCancellation()
-                    router.showAppPage = page
+                    if page == .tabbar {
+                        // 返回启动结果到发布路由之间仍可能收到下线回调，入口再核对真实 AUTH。
+                        router.showAppPage = .login
+                        AppSessionRouter.enterMain()
+                    } else {
+                        router.showAppPage = page
+                    }
                     hasRestoredLocalEntry = true
                 } catch is CancellationError {
                     connection.reset()
@@ -78,8 +84,8 @@ struct ddlNewApp: App {
             .onReceive(authentication.$state) { state in
                 AppSessionRouter.handleAuthenticationState(state)
             }
-            .onReceive(oldVersionStore.$stage) { stage in
-                // 旧版页面只转发用户主动退出的意图，不允许演示登录绕过真实 AUTH。
+            .onReceive(clubStore.$stage) { stage in
+                // 展示状态只转发用户主动退出的意图，不允许演示登录绕过真实 AUTH。
                 switch stage {
                 case .login:
                     do { try AppSessionRouter.signOut(changeClub: false) }
