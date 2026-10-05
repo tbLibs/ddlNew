@@ -10,13 +10,15 @@ import Kingfisher
 
 /// 真实好友头像；下载失败或账号已注销时显示本地占位图。
 struct ContactRecordAvatar: View {
+    @ObservedObject private var connection = OSSConnectionBootstrap.shared
     let contact: ContactRecord
     let fileHost: URL?
     let size: CGFloat
 
     var body: some View {
-        KFImage(contact.avatarURL(relativeTo: fileHost))
-            .downloader(NetworkImageDownloader.downloader(for: fileHost))
+        let currentHost = connection.current?.getFileHost ?? fileHost
+        KFImage(contact.avatarURL(relativeTo: currentHost))
+            .downloader(NetworkImageDownloader.downloader(for: currentHost))
             .downsampling(size: CGSize(width: size, height: size))
             .cacheOriginalImage()
             .cancelOnDisappear(true)

@@ -187,7 +187,7 @@
 
 活动导航统一由 `ActivityNavigationScope` 注入，避免二级页面缺失 `ActivityNavigation` 环境对象。旧的 `Main` 和 `OldVersion` 目录已经删除；保留的原版演示页面以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView` 命名，不接当前入口。
 
-网络图片使用 Kingfisher。通讯录头像对导航下发的文件 Host 使用项目现有的临时证书策略，其他 Host 仍按系统规则校验。
+网络图片使用 Kingfisher。通讯录和消息页头像统一通过 `RemoteAvatarURL` 处理完整 HTTP(S) 地址、OSS 相对路径和中文路径；相对路径使用当前文件 Host。SDK 的 `cimUserUpdateHttpNode` 回调会同步更新 API／文件／上传 Host，主界面观察 Host 变化以重新生成图片 URL。图片仅对当前文件 Host 使用项目现有的临时证书策略，其他 Host 仍按系统规则校验。
 
 ## 通讯录实现边界
 
@@ -200,6 +200,8 @@
 
 AUTH 前注册 SDK 用户代理，AUTH 后读取 SDK 本地好友数据库。SDK 同步完成、好友变化和备注变化会触发刷新；迟到回调通过用户 UID 与 generation 隔离。排序规则沿用旧项目：系统账号过滤、备注优先、拼音首字母分组、已注销账号置后。
 
+头像取 SDK 好友记录 `friend.avatar`；已注销账号不请求远端图片。通讯录列表和资料页共用当前文件 Host 与同一个头像组件。
+
 尚未完成：好友申请、修改备注 UI、从好友详情发起真实聊天。
 
 ## 消息会话实现边界
@@ -207,6 +209,8 @@ AUTH 前注册 SDK 用户代理，AUTH 后读取 SDK 本地好友数据库。SDK
 核心文件：`ddlNew/Features/Message/Models/ConversationRecord.swift`、`Services/ConversationsStore.swift`、`Views/MessageView.swift`，以及 `ddlNew/Network/IM/Conversations/SDKConversationsClient.swift`、`SDKConversationsDelegate.swift`。
 
 AUTH 前注册会话代理，AUTH 后读取 SDK 本地会话库；SDK 分页代理先于数据库写入，因此同步完成后才做完整重读。首轮同步中的最新消息按旧项目做法写入 SDK 消息表，使预览可从缓存恢复；实时会话变化触发合并刷新。只显示 `sessionStatus == 1` 且属于已知类型的会话，置顶优先、组内按最新消息时间倒序，按会话 ID 去重。Tab 角标来自真实可见会话未读数，免打扰不计入，手动标记未读计 1。登出或切换账号时通过 UID 与 generation 清空并隔离状态。
+
+单聊头像按旧项目优先读取好友库最新 `friend.avatar`，好友记录缺失时使用 `sessionAvatar`；群聊与其他会话使用 `sessionAvatar`。好友列表变化后重新读取会话快照，避免先同步会话时继续显示旧头像。
 
 消息页已移除 `ClubCommunity` 演示会话、假全部已读和跳往演示 `ChatScreen` 的入口。当前 P0 只读：列表行尚不能打开真实聊天；搜索只匹配已加载的会话名称和预览，不是消息历史全文搜索。当前 P0 未处理旧项目文件助手权限开关，需在接入服务端角色权限时补齐；通知类会话按 SDK 类型显示，具体入口待后续实现。
 
@@ -271,8 +275,9 @@ xcodebuild \
 - 全量 clean build：`BUILD SUCCEEDED`
 - `git diff --check`：通过
 - 消息 P0 离线校验：`sh Tests/Conversations/run-checks.sh`，置顶排序、去重、免打扰角标口径和切账号后的 Store 状态隔离通过。新增会话代码的无签名真机目标构建通过；真实账号同步仍需真机验收。
+- 头像链路修正后再次执行无签名真机目标 `clean build` 和最终增量 `build`，均为 `BUILD SUCCEEDED`；`git diff --check` 通过。
 
-历史通讯录验证在 `feature-contacts-3` 的 `Tests/Contacts/run-checks.sh` 中完成过：生产逻辑 39 项、SDK 分页 19 项均通过。当前提交 `f975457` 已删除整个 `Tests/Contacts` 目录，因此当前分支不能再执行该命令；根目录 `README.md` 中的通讯录验证命令也已过期。需要继续修改通讯录时，应先从 Git 历史理解并恢复或重建等价测试，不要把历史结果当作当前改动的验证证据。
+通讯录离线脚本已从 `feature-contacts-3` 恢复，并增加 OSS 路径、中文编码与无文件 Host 的头像用例。当前可执行 `sh Tests/Contacts/run-checks.sh`；生产逻辑 43 项、SDK 分页 19 项通过。真实 OSS 图片下载、节点切换和证书行为仍需真机登录验收。
 
 模拟器不能完成依赖 `LXChatEncrypt` 的真实系统配置签名和完整登录链路；端到端 DNS、OSS、TCP/ECDH、登录和 AUTH 验证应使用真机。
 

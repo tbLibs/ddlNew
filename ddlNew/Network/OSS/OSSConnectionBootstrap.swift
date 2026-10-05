@@ -5,6 +5,7 @@
 //  Created by taobo on 2026/9/24.
 //
 
+import Combine
 import Foundation
 import SwiftUI
 
@@ -44,11 +45,11 @@ enum OSSConnectionBootstrapError: Error {
 
 /// 只完成旧项目的 HTTP Host 选用和 TCP 候选准备；不把普通 TCP 连通当作 ECDH 成功。
 @MainActor
-final class OSSConnectionBootstrap {
+final class OSSConnectionBootstrap: ObservableObject {
     static let shared = OSSConnectionBootstrap()
 
     /// 当前邀请码的待连接方案；切换邀请码时清空，最新导航缓存仍保留。
-    private(set) var current: OSSConnectionPlan?
+    @Published private(set) var current: OSSConnectionPlan?
 
     private init() {}
 
@@ -97,6 +98,20 @@ final class OSSConnectionBootstrap {
 
     func clearCurrent() {
         current = nil
+    }
+
+    /// SDK 重连时可能切换 HTTP 节点；文件下载和 API 请求须共用更新后的 Host。
+    func updateHTTPHost(_ address: String) {
+        guard let plan = current, let apiHost = Self.httpsURL(from: address) else { return }
+        guard plan.apiHost != apiHost else { return }
+        current = OSSConnectionPlan(
+            lastLiceseId: plan.lastLiceseId,
+            apiHost: apiHost,
+            getFileHost: apiHost,
+            uploadFileHost: apiHost.appending(path: "oss"),
+            tcpCandidates: plan.tcpCandidates
+        )
+        OSSSelectedHTTPHostStorage().value = apiHost.absoluteString
     }
 
     /// 供后续重连链路读取上次选用的 HTTP Host，不代表该地址仍然可达。

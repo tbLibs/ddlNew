@@ -14,7 +14,7 @@ nonisolated final class SDKConversationsDelegate: NSObject, NoaToolSessionDelega
     private let userUID: String
     private let onChange: @Sendable (ConversationsChange) -> Void
     private let lock = NSLock()
-    /// 全量分页的最新消息不随会话模型入库，暂存到同步结束后批量写入消息表。
+    /// 同步期间收到的最新消息不随会话模型入库，暂存到同步结束后批量写入消息表。
     private var latestMessages: [NoaIMChatMessageModel] = []
     private var syncing = false
     /// 后台持久化可能晚于下一轮同步；版本号用于丢弃过期写入与回调。

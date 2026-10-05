@@ -11,6 +11,7 @@ import Kingfisher
 /// SDK 会话列表。聊天页接入真实消息前，列表只展示数据库状态。
 struct MessageView: View {
     @ObservedObject var store: ConversationsStore
+    @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @State private var query = ""
     @State private var filter: ConversationFilter = .all
     @FocusState private var searchFocused: Bool
@@ -221,11 +222,8 @@ struct MessageView: View {
     }
 
     private func avatar(for conversation: ConversationRecord) -> some View {
-        let fileHost = OSSConnectionBootstrap.shared.current?.getFileHost
-        let resolved = URL(string: conversation.avatarURL, relativeTo: fileHost)?.absoluteURL
-        let url = !conversation.avatarURL.isEmpty
-            && ["http", "https"].contains(resolved?.scheme?.lowercased() ?? "") && resolved?.host != nil
-            ? resolved : nil
+        let fileHost = connection.current?.getFileHost
+        let url = RemoteAvatarURL.resolve(conversation.avatarURL, relativeTo: fileHost)
         return KFImage(url)
             .downloader(NetworkImageDownloader.downloader(for: fileHost))
             .downsampling(size: CGSize(width: 50, height: 50))

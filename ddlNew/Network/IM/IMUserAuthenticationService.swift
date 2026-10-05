@@ -117,6 +117,10 @@ final class IMUserAuthenticationService: ObservableObject {
                       self.sdk.myUserID() == userUID, self.sdk.myUserToken() == token else { return }
                 do { try self.onTokenRefreshed?(token, userUID) }
                 catch { self.fail(error, runID: runID) }
+            },
+            httpNodeUpdated: { [weak self] httpNode in
+                guard let self, self.generation == runID, self.userUID != nil else { return }
+                OSSConnectionBootstrap.shared.updateHTTPHost(httpNode)
             }
         )
         self.delegate = delegate

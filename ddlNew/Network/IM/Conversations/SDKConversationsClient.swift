@@ -40,7 +40,7 @@ final class SDKConversationsClient: ConversationsClient {
     func loadConversations(for userUID: String) async throws -> [ConversationRecord] {
         try await Task.detached {
             let sdk = NoaIMSDKManager.sharedTool()
-            // 与 SDK 用户配置、关闭数据库及预览写库共用锁，避免检查后读到另一账号的库。
+            // 与本适配层的预览写库和失效处理共用锁，并校验当前 UID 与数据库就绪状态。
             objc_sync_enter(sdk)
             defer { objc_sync_exit(sdk) }
             guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady() else { throw UserSessionError.databaseNotReady }
@@ -57,9 +57,16 @@ final class SDKConversationsClient: ConversationsClient {
                 let message = model.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: id)
                 let preview = isDraft ? draft : ConversationPreview.text(for: message)
                 let millis = model.sessionLatestTime
+                // 旧项目单聊优先读好友库最新头像；会话头像只在好友记录缺失时兜底。
+                let avatar: String
+                if kind == .single, let friend = sdk.toolCheckMyFriend(with: id) {
+                    avatar = friend.disableStatus == 4 ? "" : (friend.avatar ?? "")
+                } else {
+                    avatar = model.sessionAvatar ?? ""
+                }
                 return ConversationRecord(
                     id: id, title: model.sessionName?.isEmpty == false ? model.sessionName! : id,
-                    avatarURL: model.sessionAvatar ?? "", kind: kind,
+                    avatarURL: avatar, kind: kind,
                     preview: preview, latestTime: millis > 0 ? Date(timeIntervalSince1970: TimeInterval(millis) / 1000) : nil,
                     unreadCount: max(0, model.sessionUnreadCount), isMarkedUnread: model.readTag > 0,
                     isPinned: model.sessionTop, isMuted: model.sessionNoDisturb, isDraft: isDraft

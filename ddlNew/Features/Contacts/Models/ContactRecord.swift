@@ -62,8 +62,6 @@ nonisolated struct ContactRecord: Identifiable, Equatable, Sendable {
     /// 相对头像使用导航的文件 Host；已注销账号统一显示本地占位头像。
     func avatarURL(relativeTo fileHost: URL?) -> URL? {
         guard !isDeleted, !avatar.isEmpty else { return nil }
-        let url = URL(string: avatar, relativeTo: fileHost)?.absoluteURL
-        guard let url, ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else { return nil }
-        return url
+        return RemoteAvatarURL.resolve(avatar, relativeTo: fileHost)
     }
 }

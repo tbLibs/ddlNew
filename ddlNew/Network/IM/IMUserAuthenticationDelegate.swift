@@ -15,15 +15,18 @@ final class IMUserAuthenticationDelegate: NSObject, NoaToolUserDelegate, NoaTool
     private let disconnected: @MainActor @Sendable () -> Void
     private let rejected: @MainActor @Sendable (Int, String) -> Void
     private let tokenRefreshed: @MainActor @Sendable (String) -> Void
+    private let httpNodeUpdated: @MainActor @Sendable (String) -> Void
 
     init(authenticated: @escaping @MainActor @Sendable () -> Void,
          disconnected: @escaping @MainActor @Sendable () -> Void,
          rejected: @escaping @MainActor @Sendable (Int, String) -> Void,
-         tokenRefreshed: @escaping @MainActor @Sendable (String) -> Void) {
+         tokenRefreshed: @escaping @MainActor @Sendable (String) -> Void,
+         httpNodeUpdated: @escaping @MainActor @Sendable (String) -> Void) {
         self.authenticated = authenticated
         self.disconnected = disconnected
         self.rejected = rejected
         self.tokenRefreshed = tokenRefreshed
+        self.httpNodeUpdated = httpNodeUpdated
     }
 
     nonisolated func cimToolUserConnectSuccess() {
@@ -54,5 +57,9 @@ final class IMUserAuthenticationDelegate: NSObject, NoaToolUserDelegate, NoaTool
     nonisolated func imSdkRefreshUsetToken(_ userToken: String, errorMsg msg: String?) {
         guard !userToken.isEmpty else { return }
         Task { @MainActor in tokenRefreshed(userToken) }
+    }
+
+    nonisolated func cimUserUpdateHttpNode(_ httpNode: String) {
+        Task { @MainActor in httpNodeUpdated(httpNode) }
     }
 }
