@@ -143,6 +143,8 @@ struct ClubField: View {
     var secure = false
     var keyboard: UIKeyboardType = .default
     var focus: FocusState<Bool>.Binding? = nil
+    var identifier: String? = nil
+    var contentType: UITextContentType? = nil
     @FocusState private var localFocus: Bool
     @State private var passwordVisible = false
     var body: some View {
@@ -162,14 +164,16 @@ struct ClubField: View {
                     .keyboardType(keyboard).submitLabel(.done).autocapitalization(.none)
                     .disableAutocorrection(true)
                     .focused(focus ?? $localFocus)
-                    .textContentType(secure ? .password : (keyboard == .numberPad ? .oneTimeCode : .username))
-                    .accessibilityLabel(title).accessibilityIdentifier("field.\(icon)")
+                    .textContentType(contentType ?? (secure ? .password : (keyboard == .numberPad ? .oneTimeCode : .username)))
+                    .accessibilityLabel(title).accessibilityIdentifier(identifier ?? "field.\(icon)")
                     .frame(height: 36)
                 if secure {
                     Button { passwordVisible.toggle() } label: {
                         ClubIcon(name: "eye").frame(width: 44, height: 44)
                             .background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 14))
-                    }.accessibilityLabel(passwordVisible ? "隐藏密码" : "显示密码")
+                    }
+                    .accessibilityLabel(passwordVisible ? "隐藏密码" : "显示密码")
+                    .accessibilityIdentifier("\(identifier ?? "field.\(icon)").visibility")
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 14)

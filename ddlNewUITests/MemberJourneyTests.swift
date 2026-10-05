@@ -2,6 +2,53 @@ import XCTest
 
 @MainActor
 final class MemberJourneyTests: XCTestCase {
+    func testRegisterAccountCanSignOutLogInAndRestoreSession() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["CLUB_UI_TEST_DATABASE_ID"] = UUID().uuidString
+        app.launch()
+
+        let invite = app.textFields["field.shield"]
+        XCTAssertTrue(invite.waitForExistence(timeout: 10))
+        enter("100001", in: invite)
+        app.buttons["connectClub"].tap()
+        let register = app.buttons["registerAccount"]
+        XCTAssertTrue(register.waitForExistence(timeout: 5))
+        register.tap()
+        let account = app.textFields["registerAccountField"]
+        XCTAssertTrue(account.waitForExistence(timeout: 5))
+        enter("trailuser", in: account)
+        app.buttons["registerPasswordField.visibility"].tap()
+        app.buttons["registerConfirmationField.visibility"].tap()
+        enter("trailpass", in: app.textFields["registerPasswordField"])
+        enter("trailpass", in: app.textFields["registerConfirmationField"])
+        let submit = app.buttons["submitRegistration"]
+        XCTAssertTrue(submit.isEnabled)
+        submit.tap()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["trailuser，欢迎回来"].exists)
+
+        selectTab("我的", in: app)
+        XCTAssertTrue(app.staticTexts["trailuser"].waitForExistence(timeout: 5))
+        app.buttons["打开设置"].tap()
+        app.buttons["退出登录"].tap()
+        app.alerts.buttons["退出登录"].tap()
+        let loginAccount = app.textFields["field.person"]
+        XCTAssertTrue(loginAccount.waitForExistence(timeout: 5))
+        enter("trailuser", in: loginAccount)
+        enter("wrong", in: app.secureTextFields["field.lock"])
+        app.buttons["login"].tap()
+        XCTAssertTrue(app.staticTexts["账号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
+        enter("trailpass", in: app.secureTextFields["field.lock"])
+        app.buttons["login"].tap()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["trailuser，欢迎回来"].exists)
+    }
+
     func testProfileSecondaryNavigationHasOneBar() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -117,7 +164,7 @@ final class MemberJourneyTests: XCTestCase {
         enter("wrong", in: app.secureTextFields["field.lock"])
         dismissKeyboard(in: app)
         app.buttons["login"].tap()
-        XCTAssertTrue(app.staticTexts["会员卡号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["账号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
         enter("123456", in: app.secureTextFields["field.lock"])
         app.buttons["login"].tap()
         XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))

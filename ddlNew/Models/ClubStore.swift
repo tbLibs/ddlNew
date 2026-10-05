@@ -48,6 +48,8 @@ nonisolated struct ClubSnapshot: Codable, Sendable {
     var participation: [String: Participation] = ["hike": .available, "ride": .registered, "bird": .waiting]
     // Optional for compatibility with snapshots saved before account deletion existed.
     var accountDeleted: Bool? = nil
+    var localAccount: String? = nil
+    var activeAccount: String? = nil
 }
 
 nonisolated final class ClubStateRow: TableCodable {
@@ -112,7 +114,12 @@ actor ClubRepository {
     @Published var showToast = false
     let activities = ClubActivity.samples
     private let repository = ClubRepository()
+    private let credentials = LocalCredentialStore()
     private var restored = false
+    var memberDisplayName: String { snapshot.activeAccount ?? "林夏" }
+    var memberAccountDescription: String {
+        "远山户外俱乐部 · \(snapshot.activeAccount ?? "YS****18")"
+    }
     func restore() async {
         guard !restored else { return }
         restored = true
@@ -135,14 +142,37 @@ actor ClubRepository {
     }
     func login(card: String, password: String) async -> Bool {
         try? await Task.sleep(nanoseconds: 500_000_000)
-        guard snapshot.accountDeleted != true, card == "YS20260018", password == "123456" else { return false }
+        let local = try? credentials.load()
+        let localMatch = snapshot.localAccount == card && local?.account == card && local?.password == password
+        let sampleMatch = snapshot.accountDeleted != true && card == "YS20260018" && password == "123456"
+        guard localMatch || sampleMatch else { return false }
         snapshot.signedIn = true
+        snapshot.activeAccount = localMatch ? card : nil
         await persist()
         stage = .member
         return true
     }
+    func registerAccount(account: String, password: String) async throws {
+        guard snapshot.connected, !account.isEmpty, !password.isEmpty else { throw LocalCredentialError.invalidData }
+        let previous = try credentials.load()
+        try credentials.save(LocalCredentials(account: account, password: password))
+        var updated = snapshot
+        updated.localAccount = account
+        updated.activeAccount = account
+        updated.signedIn = true
+        do { try await repository.save(updated) }
+        catch {
+            if let previous { try? credentials.save(previous) }
+            else { try? credentials.delete() }
+            throw error
+        }
+        snapshot = updated
+        stage = .member
+        notify("注册成功")
+    }
     func signOut(changeClub: Bool = false) async {
         snapshot.signedIn = false
+        snapshot.activeAccount = nil
         if changeClub { snapshot.connected = false }
         selectedTab = .home
         await persist()
@@ -150,8 +180,13 @@ actor ClubRepository {
     }
     func deleteAccount() async throws {
         let deleted = ClubSnapshot(connected: false, signedIn: false, participation: [:], accountDeleted: true)
-        // Commit first: a failed write must not look like successful deletion.
-        try await repository.save(deleted)
+        let previous = try? credentials.load()
+        try credentials.delete()
+        do { try await repository.save(deleted) }
+        catch {
+            if let previous { try? credentials.save(previous) }
+            throw error
+        }
         snapshot = deleted
         selectedTab = .home
         stage = .invite

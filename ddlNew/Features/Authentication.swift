@@ -91,6 +91,7 @@ struct LoginScreen: View {
     @State private var invalid = false
     @State private var loading = false
     @State private var showHelp = false
+    @State private var showRegistration = false
     @FocusState private var cardFocused: Bool
     @FocusState private var passwordFocused: Bool
 
@@ -111,10 +112,10 @@ struct LoginScreen: View {
                 }.padding(.top, 48)
                 ClubCard(padding: 20) {
                     VStack(alignment: .leading, spacing: 10) {
-                        ClubField(title: "会员卡号", placeholder: "请输入会员卡号", icon: "person", text: $card, focus: $cardFocused)
-                        Text("例如 YS20260018，会员卡号区分字母和数字").font(.system(size: 11)).foregroundColor(ClubTheme.secondary)
+                        ClubField(title: "会员卡号或账号", placeholder: "请输入会员卡号或账号", icon: "person", text: $card, focus: $cardFocused)
+                        Text("例如 YS20260018；也可使用本机注册的账号").font(.system(size: 11)).foregroundColor(ClubTheme.secondary)
                         ClubField(title: "密码", placeholder: "请输入密码", icon: "lock", text: $password, secure: true, focus: $passwordFocused).padding(.top, 12)
-                        Text(invalid ? (store.snapshot.accountDeleted == true ? "本机账号已注销，无法再次登录。" : "会员卡号或密码不正确，请重新输入。") : "密码由俱乐部创建会员账户时提供")
+                        Text(invalid ? (store.snapshot.accountDeleted == true && card == "YS20260018" ? "本机账号已注销，无法再次登录。" : "账号或密码不正确，请重新输入。") : "会员密码由俱乐部提供；本机账号使用注册时设置的密码")
                             .font(.system(size: 11)).foregroundColor(invalid ? ClubTheme.error : ClubTheme.secondary)
                             .accessibilityIdentifier("loginHint")
                         Button(loading ? "正在登录…" : "登录") {
@@ -128,6 +129,15 @@ struct LoginScreen: View {
                             }
                         }.buttonStyle(ClubButtonStyle()).disabled(card.isEmpty || password.isEmpty || loading)
                             .padding(.top, 10).accessibilityIdentifier("login")
+                        Button("注册账号") {
+                            dismissKeyboard()
+                            showRegistration = true
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(ClubTheme.darkTeal)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .disabled(loading)
+                        .accessibilityIdentifier("registerAccount")
                     }
                 }
                 HStack(spacing: 32) {
@@ -140,5 +150,70 @@ struct LoginScreen: View {
             .introspect(.scrollView, on: .iOS(.v15, .v16, .v17, .v18, .v26, .v27)) { $0.keyboardDismissMode = .interactive }
             .modifier(ClubKeyboardDismissal(isFocused: cardFocused || passwordFocused, dismiss: dismissKeyboard))
             .sheet(isPresented: $showHelp) { InformationSheet(page: .loginHelp) }
+            .sheet(isPresented: $showRegistration) { AccountRegistrationScreen() }
+    }
+}
+
+struct AccountRegistrationScreen: View {
+    @EnvironmentObject private var store: ClubStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var account = ""
+    @State private var password = ""
+    @State private var confirmation = ""
+    @State private var saving = false
+    @State private var errorMessage: String?
+
+    private var normalizedAccount: String { account.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canRegister: Bool {
+        !normalizedAccount.isEmpty && !password.isEmpty && password == confirmation && !saving
+    }
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 22) {
+                    ClubLogo(size: 60).padding(.top, 28)
+                    Text("创建本机账号").font(.system(size: 25, weight: .bold))
+                    Text("设置账号和密码，注册后即可进入会员空间")
+                        .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
+                    ClubCard(padding: 20) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            ClubField(title: "账号", placeholder: "请输入账号", icon: "person", text: $account, identifier: "registerAccountField")
+                            ClubField(title: "密码", placeholder: "请输入密码", icon: "lock", text: $password, secure: true, identifier: "registerPasswordField", contentType: .newPassword)
+                            ClubField(title: "确认密码", placeholder: "请再次输入密码", icon: "lock", text: $confirmation, secure: true, identifier: "registerConfirmationField", contentType: .newPassword)
+                            if !confirmation.isEmpty && password != confirmation {
+                                Text("两次输入的密码不一致")
+                                    .font(.system(size: 12)).foregroundColor(ClubTheme.error)
+                            }
+                            if let errorMessage {
+                                Text(errorMessage).font(.system(size: 12)).foregroundColor(ClubTheme.error)
+                            }
+                            Button(saving ? "正在注册…" : "注册") {
+                                saving = true
+                                errorMessage = nil
+                                Task {
+                                    do { try await store.registerAccount(account: normalizedAccount, password: password) }
+                                    catch {
+                                        errorMessage = "本机保存失败，请重试。"
+                                        saving = false
+                                    }
+                                }
+                            }
+                            .buttonStyle(ClubButtonStyle())
+                            .disabled(!canRegister)
+                            .accessibilityIdentifier("submitRegistration")
+                        }
+                    }
+                }
+                .padding(.horizontal, 24).padding(.bottom, 28)
+                .frame(maxWidth: 460).frame(maxWidth: .infinity)
+            }
+            .background(ClubBackground())
+            .navigationTitle("注册账号")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
+        }
+        .navigationViewStyle(.stack)
+        .interactiveDismissDisabled(saving)
     }
 }

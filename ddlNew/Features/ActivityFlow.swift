@@ -131,8 +131,9 @@ struct RegistrationScreen: View {
                                 HStack(spacing: 12) {
                                     MemberAvatar()
                                     VStack(alignment: .leading, spacing: 7) {
-                                        Text("林夏").font(.system(size: 15, weight: .semibold))
-                                        Text("会员卡号 YS****18").font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
+                                        Text(store.memberDisplayName).font(.system(size: 15, weight: .semibold))
+                                        Text(store.snapshot.activeAccount.map { "账号 \($0)" } ?? "会员卡号 YS****18")
+                                            .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                                     }
                                     Spacer()
                                     ClubBadge(text: "本人")
