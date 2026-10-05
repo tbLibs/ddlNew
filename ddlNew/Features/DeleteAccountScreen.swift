@@ -19,7 +19,7 @@ struct DeleteAccountScreen: View {
                     .font(.body).foregroundColor(ClubTheme.secondary).lineSpacing(5)
                 ClubCard {
                     VStack(alignment: .leading, spacing: 18) {
-                        explanation("清除本机记录", "清除登录状态、俱乐部连接、报名、候补和签到记录。")
+                        explanation("清除本机记录", "清除登录状态、俱乐部连接、报名、候补、签到、黑名单和举报记录。")
                         Divider()
                         explanation("结束聊天会话", "清除本次会话中的聊天记录、草稿和常用联系人。")
                         Divider()

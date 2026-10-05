@@ -2,6 +2,99 @@ import XCTest
 
 @MainActor
 final class MemberJourneyTests: XCTestCase {
+    func testBlacklistHidesAndRestoresContactConversation() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["CLUB_UI_TEST_DATABASE_ID"] = UUID().uuidString
+        app.launch()
+        let invite = app.textFields["field.shield"]
+        XCTAssertTrue(invite.waitForExistence(timeout: 10))
+        enter("100001", in: invite)
+        app.buttons["connectClub"].tap()
+        let card = app.textFields["field.person"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        enter("YS20260018", in: card)
+        enter("123456", in: app.secureTextFields["field.lock"])
+        app.buttons["login"].tap()
+        XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
+
+        selectTab("通讯录", in: app)
+        let contact = app.buttons["contact.chenmo"]
+        XCTAssertTrue(contact.waitForExistence(timeout: 5))
+        contact.tap()
+        XCTAssertTrue(app.textFields["chatInput"].waitForExistence(timeout: 5))
+        app.buttons["chatContactDetails"].tap()
+        let block = app.buttons["blockContact"]
+        XCTAssertTrue(block.waitForExistence(timeout: 5))
+        block.tap()
+        app.buttons["confirmBlockContact"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["已拉黑这位好友，移出黑名单后可继续发送消息。"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["chatInput"].exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertFalse(contact.exists)
+        selectTab("消息", in: app)
+        XCTAssertFalse(app.buttons["message.contact-chenmo"].exists)
+
+        selectTab("我的", in: app)
+        app.swipeUp()
+        app.buttons["blacklistEntry"].tap()
+        XCTAssertTrue(app.navigationBars["黑名单"].waitForExistence(timeout: 5))
+        let unblock = app.buttons["unblock.chenmo"]
+        XCTAssertTrue(unblock.waitForExistence(timeout: 5))
+        unblock.tap()
+        XCTAssertTrue(app.staticTexts["黑名单为空"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+        selectTab("通讯录", in: app)
+        XCTAssertTrue(contact.waitForExistence(timeout: 5))
+        selectTab("消息", in: app)
+        XCTAssertTrue(app.buttons["message.contact-chenmo"].waitForExistence(timeout: 5))
+    }
+
+    func testReportIncomingMessageAndRestoreHistory() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["CLUB_UI_TEST_DATABASE_ID"] = UUID().uuidString
+        app.launch()
+        let invite = app.textFields["field.shield"]
+        XCTAssertTrue(invite.waitForExistence(timeout: 10))
+        enter("100001", in: invite)
+        app.buttons["connectClub"].tap()
+        let card = app.textFields["field.person"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        enter("YS20260018", in: card)
+        enter("123456", in: app.secureTextFields["field.lock"])
+        app.buttons["login"].tap()
+        XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
+
+        selectTab("消息", in: app)
+        app.buttons["message.hike-reminder"].tap()
+        let report = app.buttons["reportMessage.hike-reminder.initial"]
+        XCTAssertTrue(report.waitForExistence(timeout: 5))
+        report.tap()
+        let submit = app.buttons["submitMessageReport"]
+        XCTAssertFalse(submit.isEnabled)
+        app.buttons["reportReason.骚扰辱骂"].tap()
+        XCTAssertTrue(submit.isEnabled)
+        submit.tap()
+        XCTAssertTrue(app.navigationBars["周六日落轻徒步"].waitForExistence(timeout: 5))
+
+        report.tap()
+        XCTAssertTrue(app.staticTexts["这条消息已记录过举报。"].waitForExistence(timeout: 5))
+        app.buttons["取消"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        selectTab("我的", in: app)
+        app.swipeUp()
+        app.buttons["reportHistoryEntry"].tap()
+        XCTAssertTrue(app.staticTexts["骚扰辱骂"].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        selectTab("我的", in: app)
+        app.swipeUp()
+        app.buttons["reportHistoryEntry"].tap()
+        XCTAssertTrue(app.staticTexts["骚扰辱骂"].waitForExistence(timeout: 5))
+    }
+
     func testRegisterAccountCanSignOutLogInAndRestoreSession() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -391,7 +484,9 @@ final class MemberJourneyTests: XCTestCase {
     private func selectTab(_ title: String, in app: XCUIApplication) {
         let tab = app.tabBars.buttons[title]
         if tab.exists {
-            tab.tap()
+            tab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: tab)
+            XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 5), .completed)
         } else {
             let more = app.tabBars.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "更多", "More")).firstMatch
             XCTAssertTrue(more.waitForExistence(timeout: 5))

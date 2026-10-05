@@ -50,6 +50,9 @@ nonisolated struct ClubSnapshot: Codable, Sendable {
     var accountDeleted: Bool? = nil
     var localAccount: String? = nil
     var activeAccount: String? = nil
+    // Optional so snapshots written by earlier app versions still decode.
+    var blockedContactsByAccount: [String: Set<String>]? = nil
+    var messageReports: [MessageReport]? = nil
 }
 
 nonisolated final class ClubStateRow: TableCodable {
@@ -119,6 +122,16 @@ actor ClubRepository {
     var memberDisplayName: String { snapshot.activeAccount ?? "林夏" }
     var memberAccountDescription: String {
         "远山户外俱乐部 · \(snapshot.activeAccount ?? "YS****18")"
+    }
+    private var accountKey: String { snapshot.activeAccount.map { "local:\($0)" } ?? "sample:YS20260018" }
+    var blockedContactIDs: Set<String> { snapshot.blockedContactsByAccount?[accountKey] ?? [] }
+    var reportRecords: [MessageReport] {
+        (snapshot.messageReports ?? []).filter { $0.accountKey == accountKey }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+    func isBlocked(_ contactID: String) -> Bool { blockedContactIDs.contains(contactID) }
+    func hasReported(conversationID: String, messageID: String) -> Bool {
+        reportRecords.contains { $0.conversationID == conversationID && $0.messageID == messageID }
     }
     func restore() async {
         guard !restored else { return }
@@ -191,6 +204,39 @@ actor ClubRepository {
         selectedTab = .home
         stage = .invite
         notify("本机账号已注销")
+    }
+    func blockContact(_ contactID: String) async throws {
+        guard ClubContact.samples.contains(where: { $0.id == contactID }), !isBlocked(contactID) else { return }
+        var updated = snapshot
+        var blocks = updated.blockedContactsByAccount ?? [:]
+        blocks[accountKey, default: []].insert(contactID)
+        updated.blockedContactsByAccount = blocks
+        try await repository.save(updated)
+        snapshot = updated
+        notify("已加入黑名单")
+    }
+    func unblockContact(_ contactID: String) async throws {
+        guard isBlocked(contactID) else { return }
+        var updated = snapshot
+        var blocks = updated.blockedContactsByAccount ?? [:]
+        blocks[accountKey]?.remove(contactID)
+        updated.blockedContactsByAccount = blocks
+        try await repository.save(updated)
+        snapshot = updated
+        notify("已移出黑名单")
+    }
+    func reportMessage(conversation: ClubMessage, entry: ChatEntry, reason: ReportReason, details: String) async throws -> Bool {
+        guard !entry.isOutgoing, !entry.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !hasReported(conversationID: conversation.id, messageID: entry.id) else { return false }
+        let report = MessageReport(id: UUID(), accountKey: accountKey, conversationID: conversation.id,
+                                   messageID: entry.id, sourceTitle: conversation.title, messageText: entry.text,
+                                   reason: reason, details: String(details.prefix(300)), createdAt: Date())
+        var updated = snapshot
+        updated.messageReports = (updated.messageReports ?? []) + [report]
+        try await repository.save(updated)
+        snapshot = updated
+        notify("已记录举报")
+        return true
     }
     func status(_ activity: ClubActivity) -> Participation { snapshot.participation[activity.id] ?? .available }
     func activities(with states: Set<Participation>) -> [ClubActivity] { activities.filter { states.contains(status($0)) } }
