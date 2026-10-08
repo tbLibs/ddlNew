@@ -73,7 +73,7 @@ struct ActivityDetailScreen: View {
         .alert("确认取消参与？", isPresented: $showCancellation) {
             Button("保留", role: .cancel) { }
             Button("确认取消", role: .destructive) { Task { await store.cancel(activity) } }
-        } message: { Text("取消后将更新本机参与状态，不会向俱乐部发送请求。") }
+        } message: { Text("取消后，活动参与状态将更新。") }
     }
     private var statusHeadline: String {
         switch status {

@@ -171,8 +171,8 @@ actor ClubRepository {
         try credentials.save(LocalCredentials(account: account, password: password))
         var updated = snapshot
         updated.localAccount = account
-        updated.activeAccount = account
-        updated.signedIn = true
+        updated.activeAccount = nil
+        updated.signedIn = false
         do { try await repository.save(updated) }
         catch {
             if let previous { try? credentials.save(previous) }
@@ -180,8 +180,8 @@ actor ClubRepository {
             throw error
         }
         snapshot = updated
-        stage = .member
-        notify("注册成功")
+        stage = .login
+        notify("注册成功，请登录")
     }
     func signOut(changeClub: Bool = false) async {
         snapshot.signedIn = false
@@ -203,7 +203,7 @@ actor ClubRepository {
         snapshot = deleted
         selectedTab = .home
         stage = .invite
-        notify("本机账号已注销")
+        notify("账号已注销")
     }
     func blockContact(_ contactID: String) async throws {
         guard ClubContact.samples.contains(where: { $0.id == contactID }), !isBlocked(contactID) else { return }
@@ -261,6 +261,6 @@ actor ClubRepository {
     func notify(_ text: String) { toastMessage = text; showToast = true }
     private func persist() async {
         do { try await repository.save(snapshot) }
-        catch { notify("本地保存失败，变更仅保留在本次使用中") }
+        catch { notify("操作未保存，请重试") }
     }
 }

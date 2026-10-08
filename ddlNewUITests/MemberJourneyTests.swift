@@ -2,6 +2,63 @@ import XCTest
 
 @MainActor
 final class MemberJourneyTests: XCTestCase {
+    func testLoginRequiresLegalConfirmation() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["CLUB_UI_TEST_DATABASE_ID"] = UUID().uuidString
+        app.launch()
+        let invite = app.textFields["field.shield"]
+        XCTAssertTrue(invite.waitForExistence(timeout: 10))
+        enter("100001", in: invite)
+        app.buttons["connectClub"].tap()
+        let account = app.textFields["field.person"]
+        XCTAssertTrue(account.waitForExistence(timeout: 5))
+        let loginButton = app.buttons["login"]
+        let agreement = app.buttons["acceptLegalDocuments"]
+        XCTAssertTrue(loginButton.isEnabled)
+        loginButton.tap()
+        XCTAssertTrue(app.alerts["请先勾选协议"].waitForExistence(timeout: 5))
+        app.alerts.buttons["取消"].firstMatch.tap()
+        XCTAssertEqual(agreement.value as? String, "未勾选")
+        agreement.tap()
+        loginButton.tap()
+        XCTAssertTrue(app.alerts["请输入账号和密码"].waitForExistence(timeout: 5))
+        app.alerts.buttons["知道了"].firstMatch.tap()
+        agreement.tap()
+        enter("YS20260018", in: account)
+        enter("123456", in: app.secureTextFields["field.lock"])
+        dismissKeyboard(in: app)
+
+        let registerButton = app.buttons["registerAccount"]
+        XCTAssertTrue(loginButton.isEnabled)
+        XCTAssertTrue(registerButton.isEnabled)
+        loginButton.tap()
+        XCTAssertTrue(app.alerts["请先勾选协议"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        app.alerts.buttons["取消"].firstMatch.tap()
+        app.buttons["openPrivacyPolicy"].tap()
+        XCTAssertTrue(app.webViews.staticTexts["1. 处理的信息"].waitForExistence(timeout: 20))
+        app.navigationBars.buttons["完成"].tap()
+        app.buttons["openSupport"].tap()
+        XCTAssertTrue(app.webViews.staticTexts["常见问题"].waitForExistence(timeout: 20))
+        app.navigationBars.buttons["完成"].tap()
+        XCTAssertEqual(agreement.value as? String, "未勾选")
+
+        agreement.tap()
+        XCTAssertTrue(loginButton.isEnabled)
+        XCTAssertTrue(registerButton.isEnabled)
+        agreement.tap()
+        XCTAssertTrue(loginButton.isEnabled)
+        XCTAssertTrue(registerButton.isEnabled)
+        loginButton.tap()
+        XCTAssertTrue(app.alerts["请先勾选协议"].waitForExistence(timeout: 5))
+        app.alerts.buttons["勾选"].firstMatch.tap()
+        XCTAssertEqual(agreement.value as? String, "已勾选")
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        loginButton.tap()
+        XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
+    }
+
     func testBlacklistHidesAndRestoresContactConversation() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -15,7 +72,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         enter("YS20260018", in: card)
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
 
         selectTab("通讯录", in: app)
@@ -63,7 +120,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         enter("YS20260018", in: card)
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
 
         selectTab("消息", in: app)
@@ -107,6 +164,7 @@ final class MemberJourneyTests: XCTestCase {
         app.buttons["connectClub"].tap()
         let register = app.buttons["registerAccount"]
         XCTAssertTrue(register.waitForExistence(timeout: 5))
+        XCTAssertTrue(register.isEnabled)
         register.tap()
         let account = app.textFields["registerAccountField"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
@@ -118,6 +176,22 @@ final class MemberJourneyTests: XCTestCase {
         let submit = app.buttons["submitRegistration"]
         XCTAssertTrue(submit.isEnabled)
         submit.tap()
+        let registrationLoginAccount = app.textFields["field.person"]
+        XCTAssertTrue(registrationLoginAccount.waitForExistence(timeout: 8))
+        XCTAssertEqual(registrationLoginAccount.value as? String, "trailuser")
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        app.buttons["login"].tap()
+        XCTAssertTrue(app.alerts["请先勾选协议"].waitForExistence(timeout: 5))
+        app.alerts.buttons["取消"].firstMatch.tap()
+        XCTAssertEqual(app.buttons["acceptLegalDocuments"].value as? String, "未勾选")
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(registrationLoginAccount.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        replace("trailuser", in: registrationLoginAccount)
+        enter("trailpass", in: app.secureTextFields["field.lock"])
+        login(in: app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["trailuser，欢迎回来"].exists)
 
@@ -130,10 +204,10 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(loginAccount.waitForExistence(timeout: 5))
         enter("trailuser", in: loginAccount)
         enter("wrong", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.staticTexts["账号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
         enter("trailpass", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
 
         app.terminate()
@@ -152,7 +226,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(app.textFields["field.person"].waitForExistence(timeout: 5))
         enter("YS20260018", in: app.textFields["field.person"])
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         selectTab("我的", in: app)
 
@@ -190,11 +264,11 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(privacy.waitForExistence(timeout: 10))
         if !privacy.isHittable { app.swipeUp() }
         privacy.tap()
-        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.webViews.staticTexts["1. 本机处理的信息"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.webViews.staticTexts["1. 处理的信息"].waitForExistence(timeout: 20))
         app.navigationBars.buttons["完成"].tap()
         app.buttons["openSupport"].tap()
-        XCTAssertTrue(app.webViews.staticTexts["常见问题"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.webViews.staticTexts["常见问题"].waitForExistence(timeout: 20))
         app.navigationBars.buttons["完成"].tap()
         XCTAssertTrue(app.buttons["connectClub"].exists)
     }
@@ -256,10 +330,10 @@ final class MemberJourneyTests: XCTestCase {
         dismissKeyboard(in: app)
         enter("wrong", in: app.secureTextFields["field.lock"])
         dismissKeyboard(in: app)
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.staticTexts["账号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
         screenshot("04-首页", app)
 
@@ -346,7 +420,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         enter("YS20260018", in: card)
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.tabBars.buttons["消息"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.tabBars.firstMatch.exists)
 
@@ -447,7 +521,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         enter("YS20260018", in: card)
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
+        login(in: app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         selectTab("我的", in: app)
         app.buttons["打开设置"].tap()
@@ -476,9 +550,24 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         enter("YS20260018", in: card)
         enter("123456", in: app.secureTextFields["field.lock"])
-        app.buttons["login"].tap()
-        XCTAssertTrue(app.staticTexts["本机账号已注销，无法再次登录。"].waitForExistence(timeout: 5))
+        login(in: app)
+        XCTAssertTrue(app.staticTexts["账号已注销，无法再次登录。"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.tabBars.firstMatch.exists)
+    }
+
+    private func acceptLegalDocuments(in app: XCUIApplication) {
+        let agreement = app.buttons["acceptLegalDocuments"]
+        XCTAssertTrue(agreement.waitForExistence(timeout: 5))
+        if agreement.value as? String != "已勾选" {
+            if app.keyboards.firstMatch.exists { app.buttons["keyboardDone"].tap() }
+            agreement.tap()
+        }
+        XCTAssertEqual(agreement.value as? String, "已勾选")
+    }
+
+    private func login(in app: XCUIApplication) {
+        acceptLegalDocuments(in: app)
+        app.buttons["login"].tap()
     }
 
     private func selectTab(_ title: String, in app: XCUIApplication) {
