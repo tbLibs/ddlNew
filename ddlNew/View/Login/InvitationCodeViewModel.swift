@@ -49,7 +49,7 @@ final class InvitationCodeViewModel: ObservableObject {
     private var raceRunID = UUID()
     
     /// 点击连接俱乐部
-    func clickClub() {
+    func clickClub(onConnected: (@MainActor () async throws -> Void)? = nil) {
         let appID = invitationCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !appID.isEmpty else {
             statusMessage = "请输入邀请码"
@@ -103,6 +103,9 @@ final class InvitationCodeViewModel: ObservableObject {
                     guard self.raceRunID == runID else { return }
                     systemConfig = configuration
                     debugPrint("[系统配置] 获取成功：登录方式=\(configuration.loginMethod)，验证码渠道=\(configuration.captchaChannel)")
+                    try await onConnected?()
+                    try Task<Never, Never>.checkCancellation()
+                    guard self.raceRunID == runID else { return }
                     // 配置已保存，切换根页面到登录页。
                     RouterTool.shared.showAppPage = .login
                     return
@@ -113,7 +116,7 @@ final class InvitationCodeViewModel: ObservableObject {
                     if case SystemConfigCryptoError.unavailableOnSimulator = error {
                         statusMessage = "导航已保存；系统配置签名需要真机运行"
                     } else {
-                        statusMessage = "导航已保存，系统配置获取失败"
+                        statusMessage = "登录准备失败，请重试"
                     }
                     debugPrint("[系统配置] 获取失败：\(error)")
                 }

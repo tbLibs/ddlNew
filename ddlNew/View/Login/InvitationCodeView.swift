@@ -9,8 +9,9 @@ import SwiftUI
 import TBBasicLib
 import UIAdapter
 
-/// 邀请码入口页，仅负责界面展示，不包含校验、网络请求或页面跳转逻辑。
+/// 邀请码入口页，连接逻辑由 ViewModel 管理。
 struct InvitationCodeView: View {
+    @EnvironmentObject private var store: ClubStore
     
     /// 页面状态和后续业务逻辑统一由 ViewModel 管理。
     @StateObject private var viewModel = InvitationCodeViewModel()
@@ -35,12 +36,10 @@ struct InvitationCodeView: View {
                 VStack(alignment: .leading, spacing: 10.zoom()) {
                     InvitationCodeField(text: $viewModel.invitationCode)
 
-                    Text("请输入俱乐部提供的邀请码")
-                        .font(.system(size: 11.zoom()))
-                        .foregroundStyle(InvitationCodePalette.secondary)
-
                     Button("连接俱乐部") {
-                        viewModel.clickClub()
+                        viewModel.clickClub {
+                            try await store.prepareForConnectedLogin()
+                        }
                     }
                     .buttonStyle(InvitationCodeButtonStyle())
                     .padding(.top, 10.zoom())
@@ -64,20 +63,7 @@ struct InvitationCodeView: View {
                 }
                 .padding(.top, 4.zoom())
 
-                // 辅助提示
-                Text("没有邀请码？请联系俱乐部工作人员获取。")
-                    .font(.system(size: 11.zoom()))
-                    .foregroundStyle(InvitationCodePalette.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14.zoom())
-                    .background(InvitationCodePalette.card.opacity(0.7))
-                    .clipShape(RoundedRectangle(cornerRadius: 15.zoom(), style: .continuous))
-
-                // 仅保留入口文字，暂不接入跳转逻辑
-                HStack(spacing: 24.zoom()) {
-                    Text("隐私政策")
-                    Text("使用支持")
-                }
+                LegalEntryLinks()
                 .font(.footnote)
                 .foregroundStyle(InvitationCodePalette.darkTeal)
                 .frame(minHeight: 44.zoom())

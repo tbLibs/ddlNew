@@ -3,17 +3,20 @@ import UIKit
 import SwiftUIIntrospect
 
 struct ChatScreen: View {
+    @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var community: ClubCommunity
     @FocusState private var composerFocused: Bool
     @State private var showingContact = false
+    @State private var reportEntry: ChatEntry?
     let conversation: ClubMessage
 
     private var entries: [ChatEntry] { community.conversations[conversation.id] ?? [] }
     private var contact: ClubContact? { community.contacts.first { $0.id == conversation.contactID } }
+    private var isBlocked: Bool { contact.map { store.isBlocked($0.id) } ?? false }
     private var draft: Binding<String> {
         Binding(get: { community.drafts[conversation.id] ?? "" }, set: { community.drafts[conversation.id] = $0 })
     }
-    private var canSend: Bool { !draft.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var canSend: Bool { !isBlocked && !draft.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,7 +43,15 @@ struct ChatScreen: View {
                 .onChange(of: entries.count) { _ in scrollToLatest(proxy) }
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in scrollToLatest(proxy) }
             }
-            composer
+            if isBlocked {
+                Text("已拉黑这位好友，移出黑名单后可继续发送消息。")
+                    .font(.subheadline).foregroundColor(ClubTheme.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 64)
+                    .background(ClubTheme.card.ignoresSafeArea(edges: .bottom))
+                    .accessibilityIdentifier("blockedChatNotice")
+            } else {
+                composer
+            }
         }
         .background(ClubTheme.background)
         .navigationBarHidden(false)
@@ -68,6 +79,7 @@ struct ChatScreen: View {
         .sheet(isPresented: $showingContact) {
             if let contact { ContactDetailSheet(contact: contact).environmentObject(community) }
         }
+        .sheet(item: $reportEntry) { ReportMessageSheet(conversation: conversation, entry: $0) }
         .onDisappear { composerFocused = false }
     }
 
@@ -118,7 +130,19 @@ struct ChatScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay(RoundedRectangle(cornerRadius: 20).stroke(entry.isOutgoing ? ClubTheme.darkTeal.opacity(0.16) : ClubTheme.border, lineWidth: 1))
                     .accessibilityIdentifier(entry.isOutgoing ? "outgoingMessage" : "incomingMessage")
-                Text(entry.time).font(.caption2).foregroundColor(ClubTheme.secondary)
+                HStack(spacing: 8) {
+                    Text(entry.time).font(.caption2).foregroundColor(ClubTheme.secondary)
+                    if !entry.isOutgoing {
+                        Button { reportEntry = entry } label: {
+                            Image(systemName: "ellipsis").font(.caption.weight(.semibold))
+                                .foregroundColor(ClubTheme.secondary)
+                                .frame(width: 44, height: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("举报这条消息")
+                        .accessibilityIdentifier("reportMessage.\(entry.id)")
+                    }
+                }
             }
             if entry.isOutgoing { avatar(outgoing: true) }
             if !entry.isOutgoing { Spacer(minLength: 38) }
@@ -134,7 +158,7 @@ struct ChatScreen: View {
 
     private func send() {
         guard canSend else { return }
-        community.sendMessage(in: conversation.id)
+        community.sendMessage(in: conversation.id, blockedContactIDs: store.blockedContactIDs)
     }
 
     private func scrollToLatest(_ proxy: ScrollViewProxy) {

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Sentry
+import AlertToast
 
 
 @main
@@ -36,6 +37,12 @@ struct ddlNewApp: App {
                 }
             }
             .environmentObject(oldVersionStore)
+            .tint(ClubTheme.teal)
+            .preferredColorScheme(.light)
+            .toast(isPresenting: $oldVersionStore.showToast, duration: 2.5) {
+                AlertToast(displayMode: .hud, type: .regular, title: oldVersionStore.toastMessage,
+                           style: .style(backgroundColor: ClubTheme.card, titleColor: ClubTheme.ink))
+            }
             .onReceive(oldVersionStore.$stage) { stage in
                 // OldVersion 的登录、退出和更换俱乐部结果同步到当前根路由。
                 switch stage {
@@ -51,4 +58,5 @@ struct ddlNewApp: App {
             }
         }
     }
+
 }

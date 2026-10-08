@@ -31,7 +31,7 @@ struct MemberTabs: View {
         .tabItem {
             Label { Text(tab.rawValue) } icon: { Image("club-\(tab.icon)") }
         }
-        .badge(tab == .messages ? community.unreadCount : 0)
+        .badge(tab == .messages ? community.unreadCount(excluding: store.blockedContactIDs) : 0)
         .tag(tab)
     }
 }
@@ -93,7 +93,7 @@ struct HomeScreen: View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 24) {
                 HStack {
-                    ScreenHeading(eyebrow: "远山户外俱乐部 · 下午好", title: "林夏，欢迎回来")
+                    ScreenHeading(eyebrow: "远山户外俱乐部 · 下午好", title: "\(store.memberDisplayName)，欢迎回来")
                     IconButton(icon: "bell", label: "查看通知") { showNews = true }
                 }
                 ClubCard(padding: 24, highlighted: true) {
@@ -312,8 +312,8 @@ struct ProfileScreen: View {
                     HStack(spacing: 14) {
                         MemberAvatar()
                         VStack(alignment: .leading, spacing: 9) {
-                            Text("林夏").font(.system(size: 23, weight: .bold))
-                            Text("远山户外俱乐部 · YS****18").font(.system(size: 12))
+                            Text(store.memberDisplayName).font(.system(size: 23, weight: .bold))
+                            Text(store.memberAccountDescription).font(.system(size: 12))
                         }
                     }
                 }
@@ -334,6 +334,16 @@ struct ProfileScreen: View {
                         Divider()
                         Button { showSwitch = true } label: { ClubMenuRow(title: "更换俱乐部", icon: "settings") }
                         Divider()
+                        NavigationLink(destination: BlacklistScreen()) {
+                            ClubMenuRow(title: "黑名单", icon: "lock", detail: "\(store.blockedContactIDs.count)人")
+                        }
+                        .accessibilityIdentifier("blacklistEntry")
+                        Divider()
+                        NavigationLink(destination: ReportHistoryScreen()) {
+                            ClubMenuRow(title: "举报记录", icon: "note", detail: "\(store.reportRecords.count)条")
+                        }
+                        .accessibilityIdentifier("reportHistoryEntry")
+                        Divider()
                         Button { info = .privacy } label: { ClubMenuRow(title: "隐私与安全", icon: "lock") }
                     }.buttonStyle(.plain)
                 }
@@ -352,8 +362,11 @@ struct ProfileScreen: View {
 }
 
 struct MemberAvatar: View {
+    @EnvironmentObject private var store: ClubStore
     var body: some View {
-        Text("LX").font(.system(size: 12)).foregroundColor(.white).frame(width: 40, height: 40).background(ClubTheme.teal).clipShape(Circle()).accessibilityHidden(true)
+        Text(store.snapshot.activeAccount.map { String($0.prefix(2)).uppercased() } ?? "LX")
+            .font(.system(size: 12)).foregroundColor(.white).frame(width: 40, height: 40)
+            .background(ClubTheme.teal).clipShape(Circle()).accessibilityHidden(true)
     }
 }
 struct ClubMenuRow: View {
