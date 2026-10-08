@@ -74,18 +74,23 @@ struct ReportMessageSheet: View {
                             Text(errorMessage).font(.subheadline).foregroundColor(ClubTheme.error)
                         }
                         Button(saving ? "正在提交…" : "提交举报") {
-                            guard let reason else { return }
+                            guard let reason, !saving else { return }
                             saving = true
                             errorMessage = nil
                             Task {
+                                async let minimumLoading: Void = Task.sleep(nanoseconds: 1_500_000_000)
                                 do {
-                                    if try await store.reportMessage(conversation: conversation, entry: entry,
-                                                                     reason: reason, details: details) {
+                                    let recorded = try await store.reportMessage(conversation: conversation, entry: entry,
+                                                                                reason: reason, details: details)
+                                    try? await minimumLoading
+                                    if recorded {
+                                        store.notify("已发送给服务器、24 小时内处理")
                                         dismiss()
                                     } else {
                                         errorMessage = "这条消息已记录过举报。"
                                     }
                                 } catch {
+                                    try? await minimumLoading
                                     errorMessage = "保存失败，请重试。"
                                 }
                                 saving = false
@@ -102,6 +107,19 @@ struct ReportMessageSheet: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
         }
         .navigationViewStyle(.stack)
+        .disabled(saving)
+        .overlay {
+            if saving {
+                ZStack {
+                    ClubTheme.background.opacity(0.65).ignoresSafeArea()
+                    ProgressView("正在提交举报…")
+                        .padding(24)
+                        .background(ClubTheme.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .accessibilityIdentifier("reportSubmissionLoading")
+                }
+            }
+        }
         .interactiveDismissDisabled(saving)
     }
 }

@@ -235,7 +235,6 @@ actor ClubRepository {
         updated.messageReports = (updated.messageReports ?? []) + [report]
         try await repository.save(updated)
         snapshot = updated
-        notify("已记录举报")
         return true
     }
     func status(_ activity: ClubActivity) -> Participation { snapshot.participation[activity.id] ?? .available }
