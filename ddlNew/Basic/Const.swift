@@ -33,10 +33,10 @@ let publicIPLookupURLs = [
 ]
 
 /// 阿里 HTTPDNS SDK 使用的账号、访问密钥和测试域名。
-let aliyunDNSAccountId = "818331"
-let aliyunDNSAccessKeyId = "818331_32775143437188096"
-let aliyunDNSAccesskeySecret = "72ca8c7c99ee47bbb37db2f4ec774d47"
-let ali_httpdns_test_domain  = "znav.znav.coerua.com"
+let aliyunDNSAccountId = "899981"
+let aliyunDNSAccessKeyId = "899981_32929921960122368"
+let aliyunDNSAccesskeySecret = "d298cd440c204fc28f9170a01f7d45e6"
+let ali_httpdns_test_domain  = "nav.ziyouyi.com"
 
 /// 对应旧项目的 Z_DNS_TXT_AES_SECRET
 let zDNSTXTAESSecret = "aslkdhiwuhdliqsjdh"
@@ -54,7 +54,7 @@ let aliARecordBaseURLs = aliDoHBaseURLs + ["https://dns.alidns.com/resolve"]
 let dnsARecordServers = ["119.29.29.29", "114.114.114.114"]
 
 /// 腾讯 DoH AAAA 查询域名和主备服务地址。
-let tencent_httpdns_test_domain  = "fbar.fbar.coerua.com"
+let tencent_httpdns_test_domain  = "nav.ziyouyi.com"
 let tencentURl = [
     "https://doh.pub/dns-query",
     "https://dns.pub/dns-query"
