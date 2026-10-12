@@ -52,7 +52,7 @@ struct ddlNewApp: App {
                         .overlay(alignment: .bottom) {
                             VStack(spacing: 10) {
                                 ProgressView()
-                                Text(connection.phase == .idle ? "正在恢复本地入口…" : connection.phase.message)
+                                Text(startupMessage)
                                     .font(.footnote)
                                     .multilineTextAlignment(.center)
                             }
@@ -76,7 +76,9 @@ struct ddlNewApp: App {
                     try Task<Never, Never>.checkCancellation()
                     router.showAppPage = page
                     hasRestoredLocalEntry = true
+                    LoginSessionService.shared.finishStartupRestoration()
                 } catch is CancellationError {
+                    LoginSessionService.shared.cancelStartupRestoration()
                     connection.reset()
                 } catch {
                     debugPrint("[启动恢复] 初始化失败：\(error)")
@@ -99,5 +101,11 @@ struct ddlNewApp: App {
                 }
             }
         }
+    }
+
+    /// 连接就绪后继续展示用户认证阶段，避免等待 AUTH 时仍显示连接完成。
+    private var startupMessage: String {
+        if authentication.state == .authenticating { return "正在恢复登录状态…" }
+        return connection.phase == .idle ? "正在恢复本地入口…" : connection.phase.message
     }
 }

@@ -23,13 +23,22 @@ nonisolated struct SystemConfigRecord: Mappable {
     var projectLogo = ""
     /// 注册时是否必须填写邀请码。
     var isMustInviteCode = ""
+    /// 是否要求注册密码包含英文符号。
+    var checkEnglishSymbol = false
 
     init() {}
     init?(map: Map) {}
 
     mutating func mapping(map: Map) {
         loginMethod <- map["loginMethod"]
-        registerMethod <- map["registerMethod"]
+        let stringValue = TransformOf<String, Any>(
+            fromJSON: { value in
+                if let text = value as? String { return text }
+                if let number = value as? NSNumber { return number.stringValue }
+                return nil
+            }, toJSON: { $0 }
+        )
+        registerMethod <- (map["registerMethod"], stringValue)
         tenantCode <- map["tenantCode"]
         // 服务端可能把验证码渠道作为数字或数字字符串返回，缓存时统一写成数字。
         captchaChannel <- (map["captchaChannel"], TransformOf<Int, Any>(
@@ -42,7 +51,14 @@ nonisolated struct SystemConfigRecord: Mappable {
         ))
         projectName <- map["projectName"]
         projectLogo <- map["projectLogo"]
-        isMustInviteCode <- map["isMustInviteCode"]
+        isMustInviteCode <- (map["isMustInviteCode"], stringValue)
+        checkEnglishSymbol <- (map["checkEnglishSymbol"], TransformOf<Bool, Any>(
+            fromJSON: { value in
+                if let number = value as? NSNumber { return number.boolValue }
+                if let text = value as? String { return ["1", "true", "yes"].contains(text.lowercased()) }
+                return nil
+            }, toJSON: { $0 }
+        ))
     }
 
     /// 缺少租户或登录方式时，不把响应当成可供登录的系统配置。

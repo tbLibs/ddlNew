@@ -10,7 +10,7 @@ import Foundation
 /// 本地入口决定是否恢复，缓存启动等待连接就绪后才结束启动等待页。
 @MainActor
 enum AppStartupCoordinator {
-    /// 当前还没有真实账号会话，只恢复邀请码或登录页，不恢复演示账号的登录状态。
+    /// 先恢复邀请码连接，再用成对缓存进行真实用户 AUTH，不依赖演示账号状态。
     static func restoreLocalEntry() async throws -> ShowAppPageType {
         OSSConnectionBootstrap.shared.clearCurrent()
         if let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() {
@@ -19,7 +19,6 @@ enum AppStartupCoordinator {
             // 缓存仅用于恢复节点，必须完成正式握手和配置刷新后才显示登录页。
             do {
                 try await IMConnectionCoordinator.shared.waitForLoginReadiness()
-                return .login
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
@@ -28,6 +27,18 @@ enum AppStartupCoordinator {
                 OSSConnectionBootstrap.shared.clearCurrent()
                 debugPrint("[启动恢复] 连接失败，返回邀请码页：\(error)")
                 return .invitationCode
+            }
+            do {
+                let restored = try await LoginSessionService.shared.restoreCachedSession(lastLiceseId: lastLiceseId)
+                try Task<Never, Never>.checkCancellation()
+                return restored ? .tabbar : .login
+            } catch is CancellationError {
+                LoginSessionService.shared.cancelStartupRestoration()
+                throw CancellationError()
+            } catch {
+                // 连接已就绪但用户认证失败时允许重新登录，不把账号失败当作邀请码失败。
+                debugPrint("[启动恢复] 未能恢复用户会话，返回登录页")
+                return .login
             }
         }
 

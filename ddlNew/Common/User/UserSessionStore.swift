@@ -39,7 +39,7 @@ final class UserSessionStore: ObservableObject {
         return record
     }
 
-    /// 提供成对的缓存读取；仅供后续恢复使用，本步骤不自动登录或跳转。
+    /// 读取本地资料时核对用户凭据；此读取本身不代表已经通过 AUTH。
     func cachedUser() throws -> UserInfo? {
         guard !userInfoJSON.isEmpty else { return nil }
         guard let user = Mapper<UserInfo>().map(JSONString: userInfoJSON),
@@ -47,6 +47,28 @@ final class UserSessionStore: ObservableObject {
             throw UserSessionError.invalidData
         }
         return user
+    }
+
+    /// 资料与凭据必须成对且属于同一俱乐部；旧账号缓存不能跨入口恢复。
+    func loadCachedSession(lastLiceseId: String) throws -> (user: UserInfo, credentials: UserSessionCredentials)? {
+        let record = try credentials.load()
+        if userInfoJSON.isEmpty, record == nil { return nil }
+        guard let record, record.isValid, record.lastLiceseId == lastLiceseId,
+              let user = Mapper<UserInfo>().map(JSONString: userInfoJSON),
+              !user.userUID.isEmpty, record.userUID == user.userUID else {
+            throw UserSessionError.invalidData
+        }
+        return (user, record)
+    }
+
+    /// 认证期间允许保存 SDK 刷新的 Token；根路由仍须等待 AUTH 成功。
+    func activateCachedUser(_ user: UserInfo) {
+        currentUser = user
+    }
+
+    /// 暂时断网或取消恢复只撤销内存资格，不删除下次启动可重试的凭据。
+    func revokeCurrentUser() {
+        currentUser = nil
     }
 
     func updateToken(_ token: String, userUID: String) throws {

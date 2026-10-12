@@ -7,6 +7,7 @@ trap 'rm -rf "$test_dir"' EXIT
 
 xcrun swiftc -swift-version 5 -parse-as-library \
   "$repo_root/ddlNew/Features/Login/Models/AccountLoginContext.swift" \
+  "$repo_root/ddlNew/Features/Login/Models/LoginVerification.swift" \
   "$repo_root/ddlNew/Features/Login/Models/AccountLoginError.swift" \
   "$repo_root/ddlNew/Features/Login/Models/AccountLoginPhase.swift" \
   "$repo_root/ddlNew/Features/Login/Services/AccountLoginServicing.swift" \

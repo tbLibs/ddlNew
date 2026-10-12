@@ -28,19 +28,23 @@ final class AccountLoginService: AccountLoginServicing {
             }
             return encrypted
             #endif
-        }
+        },
+        challengePresenter: LoginVerificationCoordinator.shared
     )
 
     private let driver: any AccountLoginSDKDriving
     private let context: @MainActor () -> AccountLoginContext?
     private let encrypt: @MainActor (String) throws -> String
+    private let challengePresenter: (any AccountLoginChallengePresenting)?
 
     init(driver: any AccountLoginSDKDriving,
          context: @escaping @MainActor () -> AccountLoginContext?,
-         encrypt: @escaping @MainActor (String) throws -> String) {
+         encrypt: @escaping @MainActor (String) throws -> String,
+         challengePresenter: (any AccountLoginChallengePresenting)? = nil) {
         self.driver = driver
         self.context = context
         self.encrypt = encrypt
+        self.challengePresenter = challengePresenter
     }
 
     func login(account: String, password: String,
@@ -55,39 +59,181 @@ final class AccountLoginService: AccountLoginServicing {
         guard ["1", "5", "6", "7"].contains(originalContext.loginMethod) else {
             throw AccountLoginError.unsupportedAccountLogin
         }
+        defer {
+            // 本轮结束后恢复验证码渠道；连接变化时保留新俱乐部的配置。
+            if context() == originalContext { driver.restoreCaptchaChannel(originalContext.captchaChannel) }
+        }
 
         progress(.checkingAccount)
         try check(originalContext)
         debugPrint("[账号登录] 开始检查账号是否存在")
-        let accountExists = try await driver.checkAccountExists(account: account)
-        try check(originalContext)
+        let accountExists: Bool
+        do {
+            accountExists = try await driver.checkAccountExists(account: account)
+            try check(originalContext)
+        } catch {
+            try check(originalContext)
+            throw error
+        }
         // 旧项目在 userExit=false 时提示 2036，不继续领取密钥或提交登录。
         guard accountExists else { throw AccountLoginError.businessFailure(code: 2036, message: "") }
 
-        progress(.fetchingKey)
-        debugPrint("[账号登录] 开始获取加密密钥")
-        let encryptKey = try await driver.fetchEncryptKey()
-        try check(originalContext)
-        guard !encryptKey.isEmpty else { throw AccountLoginError.invalidEncryptKey }
-        // 密钥只用于本次请求，重试必须重新领取，不缓存、不自动复用。
-        let userPw = try encrypt(encryptKey + password)
-        guard !userPw.isEmpty else { throw AccountLoginError.encryptionFailed }
-        try check(originalContext)
+        var answer = LoginVerificationAnswer()
+        var captchaChannel = originalContext.captchaChannel
+        var verificationAttempts = 0
+        while true {
+            let encryptKey = try await freshKey(originalContext, progress: progress)
+            let userPw = try encrypt(encryptKey + password)
+            guard !userPw.isEmpty else { throw AccountLoginError.encryptionFailed }
+            let parameters: [String: Any] = [
+                "loginInfo": account, "loginType": 1, "areaCode": "", "type": 2,
+                "encryptKey": encryptKey, "userPw": userPw,
+                "loginFailVerifyCode": answer.imageCode, "ticket": answer.ticket,
+                "randstr": answer.randstr, "captchaVerifyParam": answer.captchaVerifyParam,
+                "code": ""
+            ]
+            progress(.submitting)
+            try check(originalContext)
+            do {
+                let response = try await driver.submit(parameters: parameters, captchaChannel: captchaChannel)
+                try check(originalContext)
+                guard response.isValid else { throw AccountLoginError.invalidResponse }
+                return response
+            } catch {
+                // 失败回调也要核对连接轮次，避免为新俱乐部继续旧账号的验证。
+                try check(originalContext)
+                guard case let AccountLoginError.businessFailure(code, message) = error else { throw error }
+                if code == 10009 {
+                    guard !message.isEmpty else { throw AccountLoginError.securityVerificationExpired }
+                    return try await verifySecurityCode(scKey: message, originalContext: originalContext,
+                                                        verificationAttempts: &verificationAttempts,
+                                                        progress: progress)
+                }
+                let kind: LoginVerificationKind
+                switch code {
+                case 40064, 50002:
+                    switch captchaChannel {
+                    case 2: kind = .imageCaptcha
+                    case 3: kind = .tencentCaptcha
+                    case 4: kind = .aliyunCaptcha(interactive: false)
+                    default: throw AccountLoginError.verificationUnavailable
+                    }
+                case 51002: kind = .aliyunCaptcha(interactive: true)
+                case 51006, 450010: kind = .imageCaptcha
+                default: throw error
+                }
+                answer = try await present(kind: kind, account: account,
+                                           message: code == 450010 || code == 50002 ? "验证码不正确，请重新验证" : "请完成验证码验证",
+                                           originalContext: originalContext,
+                                           verificationAttempts: &verificationAttempts,
+                                           progress: progress)
+                // 与旧项目一致，图文回退请求使用渠道 2，原俱乐部配置仍用于校验连接。
+                if kind == .imageCaptcha { captchaChannel = 2 }
+                else if case .aliyunCaptcha = kind { captchaChannel = 4 }
+            }
+        }
+    }
 
-        let parameters: [String: Any] = [
-            "loginInfo": account, "loginType": 1, "areaCode": "", "type": 2,
-            "encryptKey": encryptKey, "userPw": userPw,
-            "loginFailVerifyCode": "", "ticket": "", "randstr": "",
-            "captchaVerifyParam": "", "code": ""
-        ]
-        progress(.submitting)
+    /// 每次密码或安全码提交前重新领取密钥；密钥只保留到本轮请求结束。
+    private func freshKey(_ originalContext: AccountLoginContext,
+                          progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> String {
+        progress(.fetchingKey)
         try check(originalContext)
-        debugPrint("[账号登录] 密码已加密，开始发送登录请求")
-        let response = try await driver.submit(parameters: parameters, captchaChannel: originalContext.captchaChannel)
+        do {
+            let key = try await driver.fetchEncryptKey()
+            try check(originalContext)
+            guard !key.isEmpty else { throw AccountLoginError.invalidEncryptKey }
+            return key
+        } catch {
+            try check(originalContext)
+            throw error
+        }
+    }
+
+    private func present(kind: LoginVerificationKind, account: String, message: String,
+                         originalContext: AccountLoginContext, verificationAttempts: inout Int,
+                         progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> LoginVerificationAnswer {
+        guard verificationAttempts < 3 else { throw AccountLoginError.verificationAttemptsExceeded }
+        guard let challengePresenter else { throw AccountLoginError.verificationUnavailable }
+        verificationAttempts += 1
+        progress(.verifying)
         try check(originalContext)
-        guard response.isValid else { throw AccountLoginError.invalidResponse }
-        debugPrint("[账号登录] 登录请求成功，开始处理用户会话")
-        return response
+        var imageData: Data?
+        if kind == .imageCaptcha {
+            do {
+                imageData = try await driver.fetchImageCaptcha(account: account)
+                try check(originalContext)
+                guard imageData?.isEmpty == false else { throw AccountLoginError.invalidResponse }
+            } catch {
+                try check(originalContext)
+                throw error
+            }
+        }
+        try check(originalContext)
+        do {
+            var answer = try await challengePresenter.present(LoginVerificationRequest(kind: kind, message: message, imageData: imageData))
+            try check(originalContext)
+            switch kind {
+            case .imageCaptcha:
+                answer.imageCode = answer.imageCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !answer.imageCode.isEmpty else { throw AccountLoginError.invalidVerificationAnswer }
+                return LoginVerificationAnswer(imageCode: answer.imageCode)
+            case .tencentCaptcha:
+                guard !answer.ticket.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      !answer.randstr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw AccountLoginError.invalidVerificationAnswer
+                }
+                return LoginVerificationAnswer(ticket: answer.ticket, randstr: answer.randstr)
+            case .aliyunCaptcha:
+                guard !answer.captchaVerifyParam.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw AccountLoginError.invalidVerificationAnswer
+                }
+                return LoginVerificationAnswer(captchaVerifyParam: answer.captchaVerifyParam)
+            case .securityCode:
+                answer.securityCode = answer.securityCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !answer.securityCode.isEmpty else { throw AccountLoginError.invalidVerificationAnswer }
+                return LoginVerificationAnswer(securityCode: answer.securityCode)
+            }
+        } catch {
+            try check(originalContext)
+            throw error
+        }
+    }
+
+    /// scKey 仅在服务内部传给 SDK；不交给验证页面、不记录、不持久化。
+    /// 错误安全码允许有限重试；过期或设备不匹配则结束验证，要求重新密码登录。
+    private func verifySecurityCode(scKey: String, originalContext: AccountLoginContext,
+                                    verificationAttempts: inout Int,
+                                    progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> AccountLoginResponse {
+        var message = "在新设备登录需要验证，请输入设备安全码"
+        while true {
+            let answer = try await present(kind: .securityCode, account: "", message: message,
+                                           originalContext: originalContext, verificationAttempts: &verificationAttempts,
+                                           progress: progress)
+            let key = try await freshKey(originalContext, progress: progress)
+            let encrypted = try encrypt(key + answer.securityCode)
+            guard !encrypted.isEmpty else { throw AccountLoginError.encryptionFailed }
+            let parameters: [String: Any] = ["scKey": scKey, "encryptKey": key, "securityCode": encrypted]
+            progress(.submitting)
+            try check(originalContext)
+            do {
+                let response = try await driver.submitSecurityCode(parameters: parameters)
+                try check(originalContext)
+                guard response.isValid else { throw AccountLoginError.invalidResponse }
+                return response
+            } catch {
+                try check(originalContext)
+                guard case let AccountLoginError.businessFailure(code, _) = error else { throw error }
+                switch code {
+                case 40069, 40070, 40071:
+                    message = "安全码不正确，请重新输入六位数字和字母组成的安全码"
+                case 40072, 40073: throw AccountLoginError.securityVerificationExpired
+                default:
+                    // 安全验证响应可能包含临时凭据，页面仅显示固定提示。
+                    throw AccountLoginError.businessFailure(code: code, message: "安全码验证失败，请重新登录")
+                }
+            }
+        }
     }
 
     private func check(_ originalContext: AccountLoginContext) throws {

@@ -11,6 +11,7 @@ enum AccountLoginPhase: Equatable {
     case checkingAccount
     case fetchingKey
     case submitting
+    case verifying
     case savingSession
     case configuringSDK
     case authenticating
@@ -19,7 +20,7 @@ enum AccountLoginPhase: Equatable {
 
     var isBusy: Bool {
         switch self {
-        case .checkingAccount, .fetchingKey, .submitting, .savingSession, .configuringSDK, .authenticating: return true
+        case .checkingAccount, .fetchingKey, .submitting, .verifying, .savingSession, .configuringSDK, .authenticating: return true
         default: return false
         }
     }
@@ -29,6 +30,7 @@ enum AccountLoginPhase: Equatable {
         case .checkingAccount: return "正在检查账号…"
         case .fetchingKey: return "正在获取加密密钥…"
         case .submitting: return "正在登录…"
+        case .verifying: return "等待完成验证…"
         case .savingSession: return "正在保存会话…"
         case .configuringSDK: return "正在配置用户…"
         case .authenticating: return "正在认证 TCP 用户…"

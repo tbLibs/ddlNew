@@ -95,3 +95,18 @@ let tencentURl = [
 /// Cloudflare DoH 服务地址及查询域名。
 let cf_doh_base_url = "https://cloudflare-dns.com/dns-query"
 let cf_doh_test_domain = "jndnav.jiguanged.com"
+
+
+// MARK: - 邀请码导航降级（旧版 Resolver / TCP / OSS HTTP）
+let legacyNavigationDomain = "nav.rnzkzw.com"
+let builtInNavigationDomesticAddresses = [
+    "nav.hoqxy.com:18087",
+    "ga-bp1ejvtbm2atv7ih5glwg.aliyunga0018.com:18087",
+    "awsnav.hoqxy.com:18087",
+    "aws1nav.hoqxy.com:18087"
+]
+let builtInNavigationOverseasAddresses: [String] = []
+let builtInOSSHTTPBaseURLs = [
+    "https://prnav1.oss-accelerate.aliyuncs.com",
+    "https://cmnav1.oss-accelerate.aliyuncs.com"
+]

@@ -73,7 +73,7 @@ enum OSSAuthResponseDecoder {
     nonisolated static func navigation(from body: IMServerListResponseBody) throws -> OSSNavigationResult {
         let usable = body.imEndpoints.filter { endpoint in
             endpoint.status != "INACTIVE" &&
-                !endpoint.ip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                OSSLegacyConfigurationParser.validHost(endpoint.ip) &&
                 endpoint.port > 0 && endpoint.port <= Int32(UInt16.max)
         }
         // 同一节点可能同时支持 TCP 和 HTTP，因此两类筛选不能互斥。
