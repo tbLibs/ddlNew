@@ -15,6 +15,8 @@ struct LoginView: View {
     @ObservedObject private var connection = IMConnectionCoordinator.shared
     /// AUTH 与访客连接分开，登录后继续显示 SDK 的重连和认证状态。
     @ObservedObject private var authentication = IMUserAuthenticationService.shared
+    /// 验证弹窗按请求标识隔离；旧弹窗关闭不能取消下一次验证。
+    @ObservedObject private var verification = LoginVerificationCoordinator.shared
     /// 用户输入的会员卡号与密码；勾选记住密码时仅写入 Keychain。
     @State private var card = ""
     @State private var password = ""
@@ -24,6 +26,7 @@ struct LoginView: View {
     @State private var didRestoreRememberedLogin = false
     /// 两个网页入口共用一个 Safari 弹窗，避免同时呈现多个浏览器。
     @State private var webLink: TBBasicLib.WebLink?
+    @State private var showingRegistration = false
     /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
     @FocusState private var cardFocused: Bool
     @FocusState private var passwordFocused: Bool
@@ -53,6 +56,16 @@ struct LoginView: View {
             TBBasicLib.SafariView(url: link.url)
                 .ignoresSafeArea()
         }
+        .sheet(item: $verification.request) { request in
+            LoginVerificationSheet(
+                request: request,
+                submit: { verification.submit($0, for: request.id) },
+                cancel: { verification.cancel(requestID: request.id) }
+            )
+            .onDisappear { verification.cancel(requestID: request.id) }
+        }
+        .sheet(isPresented: $showingRegistration) { AccountRegistrationView() }
+        .onChange(of: verification.request?.id) { _ in dismissKeyboard() }
         .onAppear(perform: restoreRememberedLogin)
         .onChange(of: rememberPassword) { enabled in
             if !enabled { viewModel.clearRememberedLogin() }
@@ -170,7 +183,7 @@ struct LoginView: View {
     @ViewBuilder
     private var loginRequestStatus: some View {
         switch viewModel.loginPhase {
-        case .fetchingKey, .submitting, .savingSession, .configuringSDK, .authenticating:
+        case .checkingAccount, .fetchingKey, .submitting, .verifying, .savingSession, .configuringSDK, .authenticating:
             ProgressView()
                 .accessibilityLabel(viewModel.loginPhase.buttonTitle)
         case .succeeded:
@@ -190,8 +203,16 @@ struct LoginView: View {
 
     private var auxiliaryActions: some View {
         HStack(spacing: 32) {
-            // 仅保留帮助入口样式，暂不打开帮助页面。
-            Button("登录遇到问题？", action: dismissKeyboard)
+            if AccountRegistrationService.currentContext()?.allowsAccountRegistration == true {
+                Button("注册账号") {
+                    dismissKeyboard()
+                    viewModel.cancelLogin()
+                    password = ""
+                    showingRegistration = true
+                }
+                .disabled(viewModel.loginPhase.isBusy || verification.request != nil)
+                .accessibilityIdentifier("openAccountRegistration")
+            }
             Button("更换俱乐部", action: changeClub)
                 .accessibilityIdentifier("changeClub")
         }
@@ -211,6 +232,7 @@ struct LoginView: View {
         .font(.footnote)
         .foregroundColor(LoginPalette.darkTeal)
         .frame(minHeight: 44)
+        .disabled(viewModel.loginPhase.isBusy)
     }
 
     private var keyboardDismissBar: some View {

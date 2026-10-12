@@ -16,6 +16,7 @@
 #import "NoaLocalLogger.h"
 #import "NoaIMSDKManager.h"
 #import <QuartzCore/QuartzCore.h>
+#import <UIKit/UIKit.h>
 
 // echo 加密
 #import "NoaIMSocketManager+EchoEncryption.h"
@@ -696,6 +697,55 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         // 即使当前没有底层连接、不会产生断线回调，也能继续恢复。
         [self startingSocketReconnect];
     });
+}
+
+/// 主线程核对邀请码与前台状态，串行队列原子核对连接所有权并替换 Socket。
+- (void)switchAuthenticatedSocketWithHost:(NSString *)host port:(uint16_t)port
+                                  userID:(NSString *)userID liceseId:(NSString *)liceseId
+                              completion:(void (^)(BOOL))completion {
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self switchAuthenticatedSocketWithHost:host port:port userID:userID liceseId:liceseId completion:completion];
+        });
+        return;
+    }
+    NoaIMSDKManager *sdk = [NoaIMSDKManager sharedTool];
+    if (host.length == 0 || port == 0 || userID.length == 0 || liceseId.length == 0 ||
+        [UIApplication sharedApplication].applicationState != UIApplicationStateActive ||
+        ![[sdk currentLiceseId] isEqualToString:liceseId] || ![[sdk myUserID] isEqualToString:userID] ||
+        ![sdk isUserAuthenticated]) {
+        if (completion) completion(NO);
+        return;
+    }
+    // 同步仅执行本地状态切换：主线程期间不会插入退出、后台或更换邀请码操作。
+    __block BOOL accepted = NO;
+    dispatch_sync(self.internalQueue, ^{
+        if (!self.isCanReconnect || !self.isCanConnectNet || self.isTcpRacing || self.reconnectScheduled ||
+            self.connectState != LingIMSocketConnectStateConnected || !SOCKETMANAGERTOOL.isAuth ||
+            ![self.socketUserID isEqualToString:userID] || self.socketUserToken.length == 0 ||
+            ![self.socketUserToken isEqualToString:[sdk myUserToken]] ||
+            ([self.socketHost isEqualToString:host] && self.socketPort == port)) return;
+        [self stopSocketReconnectWithReason:@"network_quality_switch"];
+        [self stopSocketHeartbeat];
+        [self resetSocketHeartNoPongCount];
+        self.foregroundProbeSequence++;
+        self.foregroundProbeMessageID = nil;
+        [self cancelAuthPhase];
+        [self stopKeyExchangeTimer];
+        GCDAsyncSocket *oldSocket = self->_gcdSocket;
+        self->_gcdSocket = nil;
+        oldSocket.delegate = nil;
+        [oldSocket disconnect];
+        [self clearKeyExchangeInfo];
+        self.novDecryptorManager = [[NovDecryptorManager alloc] init];
+        [self cleanupReceiveBuffers];
+        self.socketHost = host;
+        self.socketPort = port;
+        [self updateConnectState:LingIMSocketConnectStateDisconnected];
+        accepted = YES;
+        [self startSocketConnect];
+    });
+    if (completion) completion(accepted);
 }
 
 /// 在 internalQueue 上取消本轮竞速；探测的迟到回调不能再启动连接。
@@ -1448,6 +1498,8 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 #pragma mark - <GCDAsyncSocketDelegate>
 //socket连接成功的回调
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port {
+    // 被替换的旧 Socket 已派发的回调不能影响新连接。
+    if (sock != _gcdSocket) return;
     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=TCP_CONNECTED host=%@ port=%u", host, port]];
     [NoaLocalLogger info:[NSString stringWithFormat:@"[socket] 收到连接成功回调(建立socket连接)，地址：%@端口：%u", host, port]];
     [self recordInitializationSentryStage:@"tcp_connected" result:@YES reason:nil];
@@ -1479,6 +1531,8 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 //socket连接失败的回调
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err {
+    // 被替换的旧 Socket 已派发的回调不能影响新连接。
+    if (sock != _gcdSocket) return;
     BOOL disconnectedDuringAuth = self.isAuthPhaseActive;
     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SOCKET_DISCONNECTED host=%@ port=%ld error=%ld duringAuth=%d allow=%d", self.socketHost, (long)self.socketPort, (long)err.code, disconnectedDuringAuth, self.isCanReconnect]];
     if (err) {
@@ -1546,6 +1600,8 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 //socket接收到数据
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag {
+    // 被替换的旧 Socket 已派发的回调不能影响新连接。
+    if (sock != _gcdSocket) return;
     CIMLog(@"[TCP请求追踪] socket:接收到数据，数据标识:%ld，数据长度:%lu字节", tag, (unsigned long)data.length);
     
     // 数据有效性检查

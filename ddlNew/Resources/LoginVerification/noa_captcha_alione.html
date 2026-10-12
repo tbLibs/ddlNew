@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>登录验证</title>
+<!-- 由旧项目 CandyTalk 验证码资源适配，沿用服务商标识与 SDK 地址。 -->
+<script>
+function reportCaptchaState(state) {
+  if (window.webkit && window.webkit.messageHandlers.captchaStatus) {
+    window.webkit.messageHandlers.captchaStatus.postMessage(JSON.stringify({state: state}));
+  }
+}
+</script>
+<style>html,body{background:transparent;margin:0;padding:0;height:100%;}#captcha-element{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);}</style>
+<script src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js" onerror="reportCaptchaState('failed')"></script>
+</head>
+<body>
+<div id="captcha-element"></div>
+<div id="button"></div>
+<script>
+var captcha;
+window.testInterface = {
+  closeWebView: function () {
+    if (window.webkit && window.webkit.messageHandlers.closeWebView) {
+      window.webkit.messageHandlers.closeWebView.postMessage('{}');
+    }
+  }
+};
+function getInstance(instance) {
+  captcha = instance;
+  reportCaptchaState('ready');
+  document.getElementById('button').click();
+}
+// 原样转交服务商生成的验证参数，由应用向登录服务端提交校验。
+async function captchaVerifyCallback(captchaVerifyParam) {
+  try {
+    return await sendMessageToNative('getVerifyResult', captchaVerifyParam);
+  } catch (error) {
+    reportCaptchaState('failed');
+    return {captchaResult: false, bizResult: false};
+  }
+}
+function onBizResultCallback(bizResult) {
+  if (bizResult === true) { window.testInterface.closeWebView(); }
+}
+function sendMessageToNative(action, data) {
+  return new Promise(function (resolve, reject) {
+    const callbackName = 'cb_' + Math.random().toString(36).substring(2);
+    const timeout = setTimeout(function () {
+      delete window[callbackName];
+      reject(new Error('verification_timeout'));
+    }, 60000);
+    window[callbackName] = function (response) {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      try { resolve(JSON.parse(response)); } catch (error) { reject(error); }
+    };
+    const bridge = window.webkit && window.webkit.messageHandlers[action];
+    if (!bridge) {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      reject(new Error('bridge_unavailable'));
+      return;
+    }
+    bridge.postMessage(JSON.stringify({data: data, callback: callbackName}));
+  });
+}
+try {
+  window.initAliyunCaptcha({
+    // 首次验证与交互重试沿用旧项目各自的场景标识。
+    SceneId: '7dmqqchq8',
+    prefix: 'xxslmpl',
+    mode: 'embed',
+    immediate: true,
+    element: '#captcha-element',
+    button: '#button',
+    captchaVerifyCallback: captchaVerifyCallback,
+    onBizResultCallback: onBizResultCallback,
+    getInstance: getInstance,
+    // 按弹窗内网页宽度缩放，保留服务商要求的 320 像素下限。
+    slideStyle: {width: Math.max(320, Math.min(359, document.documentElement.clientWidth || window.innerWidth)), height: 40},
+    language: 'cn',
+    region: 'sgp'
+  });
+} catch (error) { reportCaptchaState('failed'); }
+</script>
+</body>
+</html>

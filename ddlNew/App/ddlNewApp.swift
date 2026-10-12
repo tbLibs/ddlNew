@@ -75,7 +75,9 @@ struct ddlNewApp: App {
                         router.showAppPage = page
                     }
                     hasRestoredLocalEntry = true
+                    LoginSessionService.shared.finishStartupRestoration()
                 } catch is CancellationError {
+                    LoginSessionService.shared.cancelStartupRestoration()
                     connection.reset()
                 } catch {
                     debugPrint("[启动恢复] 初始化失败：\(error)")

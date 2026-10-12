@@ -8,16 +8,19 @@
 import Foundation
 import Combine
 
-/// 消息和通讯录共享的本地演示状态，尚未替换为 SDK 业务数据。
+/// 保留旧演示聊天状态，不作为真实消息列表的数据源。
 @MainActor final class ClubCommunity: ObservableObject {
     @Published private(set) var messages = ClubMessage.samples
     @Published private(set) var favorites: Set<String> = ["azhe", "xiaoyu"]
     @Published private(set) var conversations: [String: [ChatEntry]] = Dictionary(uniqueKeysWithValues:
-        ClubMessage.samples.map { ($0.id, [ChatEntry(text: $0.body, isOutgoing: false, time: $0.time)]) }
+        ClubMessage.samples.map { ($0.id, [ChatEntry(id: "\($0.id).initial", text: $0.body, isOutgoing: false, time: $0.time)]) }
     )
     @Published var drafts: [String: String] = [:]
     let contacts = ClubContact.samples
     var unreadCount: Int { messages.filter(\.unread).count }
+    func unreadCount(excluding blockedContactIDs: Set<String>) -> Int {
+        messages.filter { $0.unread && !($0.contactID.map(blockedContactIDs.contains) ?? false) }.count
+    }
 
     func openConversation(with contact: ClubContact) -> ClubMessage {
         let id = "contact-\(contact.id)"
@@ -35,12 +38,15 @@ import Combine
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].unread = false
     }
-    func markAllRead() {
-        for index in messages.indices { messages[index].unread = false }
+    func markAllRead(excluding blockedContactIDs: Set<String> = []) {
+        for index in messages.indices where !(messages[index].contactID.map(blockedContactIDs.contains) ?? false) {
+            messages[index].unread = false
+        }
     }
-    func sendMessage(in conversationID: String) {
+    func sendMessage(in conversationID: String, blockedContactIDs: Set<String> = []) {
         let text = (drafts[conversationID] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let index = messages.firstIndex(where: { $0.id == conversationID }) else { return }
+        guard !(messages[index].contactID.map(blockedContactIDs.contains) ?? false) else { return }
         let time = Date().formatted(date: .omitted, time: .shortened)
         conversations[conversationID, default: []].append(ChatEntry(text: text, isOutgoing: true, time: time))
         drafts[conversationID] = ""

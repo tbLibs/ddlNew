@@ -56,7 +56,7 @@ final class LoginViewModel: ObservableObject {
         guard !loginPhase.isBusy, loginPhase != .succeeded else { return }
         cancelLogin()
         let runID = loginRunID
-        loginPhase = .fetchingKey
+        loginPhase = .checkingAccount
         loginTask = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -88,7 +88,7 @@ final class LoginViewModel: ObservableObject {
                 self.loginPhase = .failed(error.localizedDescription)
                 // 页面显示业务提示，新增日志不重复输出请求凭据；SDK 原有完整日志仍保留。
                 if case AccountLoginError.businessFailure(let code, _) = error {
-                    debugPrint("[账号登录] 请求失败，业务码：\(code)")
+                    debugPrint("[账号登录] 请求失败，SDK错误码：\(code)")
                 } else {
                     debugPrint("[账号登录] 请求未完成，请查看页面提示")
                 }

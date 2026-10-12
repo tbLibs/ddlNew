@@ -73,11 +73,7 @@ struct InvitationCodeView: View {
                     .background(InvitationCodePalette.card.opacity(0.7))
                     .clipShape(RoundedRectangle(cornerRadius: 15.zoom(), style: .continuous))
 
-                // 仅保留入口文字，暂不接入跳转逻辑
-                HStack(spacing: 24.zoom()) {
-                    Text("隐私政策")
-                    Text("使用支持")
-                }
+                LegalEntryLinks()
                 .font(.footnote)
                 .foregroundStyle(InvitationCodePalette.darkTeal)
                 .frame(minHeight: 44.zoom())

@@ -15,12 +15,13 @@ final class LoginSessionService: LoginSessionServicing {
     private let store = UserSessionStore.shared
     private let authentication = IMUserAuthenticationService.shared
     private let connection = IMConnectionCoordinator.shared
-    /// 与手动登录、缓存恢复共用生命周期的真实通讯录状态。
+    /// 真实通讯录和会话在 AUTH 前订阅、完成认证后读库，退出时统一清理。
     let contacts = ContactsStore(client: SDKContactsClient())
-    /// 与 AUTH 前后的 SDK 会话同步共用生命周期。
     let conversations = ConversationsStore(client: SDKConversationsClient())
     private var sessionID: UUID?
     private var pendingID: UUID?
+    /// 启动 AUTH 已成功但根页面尚未接收结果时，仍需允许取消并释放运行时会话。
+    private var startupRestoreID: UUID?
 
     private init() {}
 
@@ -47,47 +48,63 @@ final class LoginSessionService: LoginSessionServicing {
         }
     }
 
-    /// 重启只使用用户资料、token 和设备凭据，不调用账号密码登录或读取记住的密码。
-    func restoreCachedSession() async throws -> Bool {
+    /// 使用已有 Token 恢复，不重放密码登录；SDK 负责过期 Token 的刷新与认证。
+    func restoreCachedSession(lastLiceseId: String,
+                              progress: @escaping @MainActor (AccountLoginPhase) -> Void = { _ in }) async throws -> Bool {
         try Task<Never, Never>.checkCancellation()
-        guard let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() else { return false }
-        let snapshot: UserSessionSnapshot
-        do {
-            guard let cached = try store.cachedSession() else { return false }
-            snapshot = cached
-        } catch {
-            if (error as? UserSessionError)?.invalidatesCachedSession == true {
-                try store.clear()
-            }
-            throw error
-        }
-        // 导航只有一份，但账号凭据仍属于原俱乐部，不能拿去认证其他俱乐部。
-        guard snapshot.credentials.lastLiceseId == lastLiceseId else {
-            try store.clear()
-            return false
-        }
         guard sessionID == nil, let connectionID = connection.loginConnectionID else {
             throw AccountLoginError.connectionNotReady
+        }
+        let cached: (user: UserInfo, credentials: UserSessionCredentials)
+        do {
+            guard let value = try store.loadCachedSession(lastLiceseId: lastLiceseId) else { return false }
+            guard value.credentials.isValid, value.credentials.userUID == value.user.userUID,
+                  value.credentials.lastLiceseId == lastLiceseId else { throw UserSessionError.invalidData }
+            cached = value
+        } catch {
+            // 缓存结构损坏应清理；Keychain 暂时不可读时保留，允许用户稍后重试。
+            if case UserSessionError.invalidData = error { try? store.clear() }
+            throw error
         }
         let runID = UUID()
         sessionID = runID
         pendingID = runID
+        startupRestoreID = runID
+        store.activateCachedUser(cached.user)
         do {
-            try store.restore(snapshot)
-            try await authenticate(user: snapshot.user, credentials: snapshot.credentials,
-                                   connectionID: connectionID, runID: runID, progress: { _ in })
-            debugPrint("[启动会话] 缓存用户 AUTH 成功，进入主页")
+            try await authenticate(user: cached.user, credentials: cached.credentials,
+                                   connectionID: connectionID, runID: runID, progress: progress)
+            debugPrint("[启动恢复] 缓存会话已通过 TCP 用户认证")
             return true
         } catch {
             if sessionID == runID {
-                let preserve = (error as? UserSessionError)?.invalidatesCachedSession != true
-                invalidateSession(error, preserveCache: preserve)
+                // 明确认证拒绝才删除凭据；网络超时、断线和取消均不等于账号失效。
+                let clearStoredSession: Bool
+                switch error {
+                case UserSessionError.authenticationRejected, UserSessionError.invalidData:
+                    clearStoredSession = true
+                default:
+                    clearStoredSession = false
+                }
+                invalidateSession(error, clearStoredSession: clearStoredSession,
+                                  reconnect: !(error is CancellationError))
             }
             throw error
         }
     }
 
-    /// 手动登录和缓存恢复复用同一套 SDK/建库/AUTH 流程，以及 token 更新和下线回调。
+    /// 根页面接收启动结果后交出取消权限，后续页面变化不能注销正常会话。
+    func finishStartupRestoration() {
+        startupRestoreID = nil
+    }
+
+    /// 处理 AUTH 成功与启动路由接收之间的取消窗口，保留磁盘凭据供下次恢复。
+    func cancelStartupRestoration() {
+        guard let id = startupRestoreID, sessionID == id else { return }
+        invalidateSession(CancellationError(), clearStoredSession: false, reconnect: false)
+    }
+
+    /// 手动登录、注册和缓存恢复共用同一连接交接、建库、AUTH 与失效监听。
     private func authenticate(user: UserInfo, credentials: UserSessionCredentials,
                               connectionID: UUID, runID: UUID,
                               progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws {
@@ -129,6 +146,7 @@ final class LoginSessionService: LoginSessionServicing {
     func clearSession() throws {
         sessionID = nil
         pendingID = nil
+        startupRestoreID = nil
         contacts.reset()
         conversations.reset()
         authentication.reset()
@@ -136,21 +154,21 @@ final class LoginSessionService: LoginSessionServicing {
         try store.clear()
     }
 
-    private func invalidateSession(_ error: Error, preserveCache: Bool = false) {
+    private func invalidateSession(_ error: Error, clearStoredSession: Bool = true, reconnect: Bool = true) {
         sessionID = nil
         pendingID = nil
+        startupRestoreID = nil
         contacts.reset()
         conversations.reset()
         authentication.reset()
-        if preserveCache {
-            store.deactivate()
-        } else {
+        if clearStoredSession {
             do { try store.clear() }
             catch { debugPrint("[用户会话] 清理本地会话失败：\(error)") }
-            if !(error is CancellationError) { authentication.markFailed(error.localizedDescription) }
+        } else {
+            store.revokeCurrentUser()
         }
+        if !(error is CancellationError) { authentication.markFailed(error.localizedDescription) }
         // 恢复可重新领取登录密钥的访客链路，不继续使用残留用户 token。
-        // 手动登录取消后仍恢复访客链路；启动恢复被取消则由根启动任务决定是否重连。
-        connection.releaseUserConnection(reconnect: !preserveCache || !(error is CancellationError))
+        connection.releaseUserConnection(reconnect: reconnect)
     }
 }

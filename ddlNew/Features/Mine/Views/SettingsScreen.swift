@@ -16,13 +16,16 @@ struct SettingsScreen: View {
         NavigationView {
             Form {
                 Section("会员账户") {
-                    LabeledContentCompat(title: "昵称", value: "林夏")
-                    LabeledContentCompat(title: "会员卡号", value: "YS****18")
+                    if let account = store.snapshot.activeAccount {
+                        LabeledContentCompat(title: "账号", value: account)
+                    } else {
+                        LabeledContentCompat(title: "昵称", value: "林夏")
+                        LabeledContentCompat(title: "会员卡号", value: "YS****18")
+                    }
                 }
                 Section("隐私与支持") {
                     Button("隐私政策") { legalDocument = .privacy }
                     Button("使用支持") { legalDocument = .support }
-                    Button("开源许可") { legalDocument = .licenses }
                 }
                 Section {
                     Button("退出登录", role: .destructive) { confirmLogout = true }
@@ -35,7 +38,7 @@ struct SettingsScreen: View {
                 .alert("退出会员空间？", isPresented: $confirmLogout) {
                     Button("取消", role: .cancel) { }
                     Button("退出登录", role: .destructive) { dismiss(); Task { await store.signOut() } }
-                } message: { Text("活动记录会保留在本机。") }
+                } message: { Text("退出登录后，活动记录会保留。") }
                 .sheet(item: $legalDocument) { LegalDocumentScreen(document: $0) }
         }.navigationViewStyle(.stack).tint(ClubTheme.darkTeal)
     }

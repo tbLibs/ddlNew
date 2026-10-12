@@ -30,7 +30,7 @@ enum OSSAuthRequestBuilder {
         lastLiceseId: String,
         signingKeyID: String,
         signingKeySecret: String,
-        appType: IMServerListRequest.DataType = .common,
+        appType: IMServerListRequest.DataType = DefaultAppType,
         clientVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
         region: String = Locale.current.region?.identifier ?? "",
         clientIP: String = "",

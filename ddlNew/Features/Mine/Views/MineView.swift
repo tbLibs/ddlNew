@@ -24,8 +24,8 @@ struct MineView: View {
                     HStack(spacing: 14) {
                         MemberAvatar()
                         VStack(alignment: .leading, spacing: 9) {
-                            Text("林夏").font(.system(size: 23, weight: .bold))
-                            Text("远山户外俱乐部 · YS****18").font(.system(size: 12))
+                            Text(store.memberDisplayName).font(.system(size: 23, weight: .bold))
+                            Text(store.memberAccountDescription).font(.system(size: 12))
                         }
                     }
                 }
@@ -45,6 +45,14 @@ struct MineView: View {
                         NavigationLink(value: ClubHomeDestination.club) { ClubMenuRow(title: "当前俱乐部", icon: "shield", detail: "远山户外") }
                         Divider()
                         Button { showSwitch = true } label: { ClubMenuRow(title: "更换俱乐部", icon: "settings") }
+                        Divider()
+                        NavigationLink(destination: BlacklistScreen()) {
+                            ClubMenuRow(title: "黑名单", icon: "lock", detail: "\(store.blockedContactIDs.count)人")
+                        }.accessibilityIdentifier("blacklistEntry")
+                        Divider()
+                        NavigationLink(destination: ReportHistoryScreen()) {
+                            ClubMenuRow(title: "举报记录", icon: "note", detail: "\(store.reportRecords.count)条")
+                        }.accessibilityIdentifier("reportHistoryEntry")
                         Divider()
                         Button { info = .privacy } label: { ClubMenuRow(title: "隐私与安全", icon: "lock") }
                     }.buttonStyle(.plain)

@@ -17,7 +17,7 @@ struct OriginalHomeView: View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 24) {
                 HStack {
-                    ScreenHeading(eyebrow: "远山户外俱乐部 · 下午好", title: "林夏，欢迎回来")
+                    ScreenHeading(eyebrow: "远山户外俱乐部 · 下午好", title: "\(store.memberDisplayName)，欢迎回来")
                     IconButton(icon: "bell", label: "查看通知") { showNews = true }
                 }
                 ClubCard(padding: 24, highlighted: true) {

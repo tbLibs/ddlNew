@@ -69,7 +69,7 @@ class HostNodeRaceManager {
 
 extension HostNodeRaceManager {
     /// 阿里 DNSResolver 的 AAAA 记录中包含分片编码的节点 JSON。
-    func aliAAATest(completion: @escaping ([DNSResolvedHost]) -> Void) {
+    func aliAAATest(domain: String = ali_httpdns_test_domain, completion: @escaping ([DNSResolvedHost]) -> Void) {
         guard let resolver = DNSResolver.share() else {
             completion([])
             return
@@ -84,7 +84,7 @@ extension HostNodeRaceManager {
         // DNSResolverSchemeHttp 的原始值为 0，Swift OptionSet 用 [] 表示。
         resolver.scheme = []
         resolver.clearHostCache([])
-        resolver.getIpv6Data(withDomain: ali_httpdns_test_domain) { records in
+        resolver.getIpv6Data(withDomain: domain) { records in
             DispatchQueue.main.async {
                 completion(DNSPayloadDecoder.hosts(fromEncodedIPv6: records ?? []))
             }

@@ -97,6 +97,15 @@ typedef void (^NoaTcpRaceCompletion)(NSString * _Nullable host, NSInteger port, 
 /// 保留登录信息，因可恢复的 AUTH 错误断开并持续重试。
 - (void)retryConnectionAfterAuthFailure:(NSInteger)code;
 
+/// 仅接受已认证前台会话的择优切换；返回 YES 表示开始连接，后续仍需 ECDH 和 AUTH。
+/// 只更新 TCP 节点，不清空用户、Token、租户或数据库。
+- (void)switchAuthenticatedSocketWithHost:(NSString *)host
+                                    port:(uint16_t)port
+                                  userID:(NSString *)userID
+                                liceseId:(NSString *)liceseId
+                              completion:(void (^)(BOOL accepted))completion
+    NS_SWIFT_NAME(switchAuthenticatedSocket(host:port:userID:liceseId:completion:));
+
 /// 当前socket连接状态
 - (BOOL)currentSocketConnectStatus;
 

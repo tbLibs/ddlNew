@@ -57,6 +57,9 @@ final class IMUserAuthenticationService: ObservableObject {
             options.userNickname = user.nickname
             options.userAvatar = user.avatar
             self.sdk.configSDKUser(with: options)
+            // 用户配置完成即接管重连，AUTH 期间断线也能竞速；此处不清理用户或重新建库。
+            IMLoggedInReconnectCoordinator.shared.start(userUID: user.userUID,
+                                                        lastLiceseId: credentials.lastLiceseId)
             do {
                 try self.database.requireReady(for: user.userUID)
                 debugPrint("[用户数据库] 初始化成功，用户：\(user.userUID)")
@@ -80,6 +83,8 @@ final class IMUserAuthenticationService: ObservableObject {
 
     func reset() {
         generation = UUID()
+        // 先撤销业务竞速与迟到回调，再清理 SDK，避免退出后旧任务重新连接。
+        IMLoggedInReconnectCoordinator.shared.stop()
         if let delegate {
             sdk.removeUserDelegate(delegate)
             sdk.removeConnectDelegate(delegate)

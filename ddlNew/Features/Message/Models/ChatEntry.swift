@@ -7,15 +7,15 @@
 
 import Foundation
 
-/// 本地聊天记录，区别于 SDK 接收到的真实消息。
+/// 本地演示聊天记录；消息标识保持稳定以支持重复举报检查。
 struct ChatEntry: Identifiable {
-    let id: UUID
+    let id: String
     let text: String
     let isOutgoing: Bool
     let time: String
 
-    init(text: String, isOutgoing: Bool, time: String) {
-        id = UUID()
+    init(id: String = UUID().uuidString, text: String, isOutgoing: Bool, time: String) {
+        self.id = id
         self.text = text
         self.isOutgoing = isOutgoing
         self.time = time

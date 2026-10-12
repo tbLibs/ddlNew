@@ -7,11 +7,16 @@
 
 import Foundation
 
-/// 俱乐部本地展示快照，不作为真实登录或 AUTH 成功的依据。
+/// 本地演示快照及按账号隔离的演示黑名单、举报记录。
 nonisolated struct ClubSnapshot: Codable, Sendable {
     var connected = false
     var signedIn = false
     var participation: [String: Participation] = ["hike": .available, "ride": .registered, "bird": .waiting]
-    // 可选字段用于读取引入注销功能前保存的本地快照。
+    // Optional for compatibility with snapshots saved before account deletion existed.
     var accountDeleted: Bool? = nil
+    var localAccount: String? = nil
+    var activeAccount: String? = nil
+    // Optional so snapshots written by earlier app versions still decode.
+    var blockedContactsByAccount: [String: Set<String>]? = nil
+    var messageReports: [MessageReport]? = nil
 }

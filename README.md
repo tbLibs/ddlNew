@@ -13,7 +13,7 @@
 | `ddlNew/Features/Message`、`Contacts`、`Mine` | 消息、通讯录、个人中心及各自的二级页面 |
 | `ddlNew/Features/Activities`、`Club` | 活动列表、报名签到、参与记录，以及俱乐部介绍和信息页面 |
 | `ddlNew/Common/Club`、`Community` | 跨页面共享的本地俱乐部和社区展示状态 |
-| `ddlNew/Common/Components`、`Design`、`Legal` | 通用 UI 组件、共用配色和本地法律文档展示 |
+| `ddlNew/Common/Components`、`Design`、`Legal` | 通用 UI 组件、共用配色和在线法律文档展示 |
 | `ddlNew/Common/User` | 用户资料与会话凭据存储 |
 | `ddlNew/Common/Database` | 用户数据库生命周期管理和俱乐部本地快照数据库 |
 | `ddlNew/Common/Crypto` | 通用加解密工具 |
@@ -36,11 +36,11 @@
 
 ## 当前边界
 
-应用页面已经按功能迁入 `Features`，不再保留 `Main` 和 `OldVersion` 目录。主界面路径为 `ddlNewApp → TabbarView → ClubHomeView / MessageView / ContactsView / MineView`。原版首页、邀请码页和登录页分别以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView` 保留在对应功能目录中，不接入当前应用入口。
+应用页面已经按功能迁入 `Features`，不再保留 `Main` 和 `OldVersion` 目录。主界面路径为 `ddlNewApp → TabbarView → ClubHomeView / MessageView / ContactsView / MineView`。原版首页、邀请码页、登录页、演示消息和演示通讯录分别以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView`、`OriginalMessagesView`、`OriginalContactsView` 保留在对应功能目录中，不接入当前真实业务入口。旧演示注册、拉黑和举报逻辑保留在对应功能及共享状态目录中，不使用其本地成功状态代替 SDK 业务结果。
 
 通讯录已经使用 SDK 好友数据库：登录前注册用户代理，AUTH 后读取缓存，同步完成及好友变化时刷新。沿用老项目的系统账号过滤、备注优先、拼音首字母分组和已注销账号置后规则。点击好友展示真实资料，聊天收发、好友申请和修改备注留待后续接入。通讯录展示状态在退出、账号失效和更换账号时清空，好友持久化仍由 SDK 管理。
 
-活动仍使用原有本地演示数据；消息 Tab 已接 SDK 的真实只读会话列表和未读角标，聊天页与列表操作尚未接入。本地法律文档资源统一放在 `Resources/Legal`，按原有资源名称读取。
+活动仍使用原有本地演示数据；消息 Tab 已接 SDK 的真实只读会话列表和未读角标，聊天页与列表操作尚未接入。隐私与支持通过在线法律页面展示，地址从 `Resources/Legal/LegalLinks.json` 读取；本地 HTML 和开源许可入口已移除。
 
 `NoaChatSDKCore`、`NetWorkStatus`、Pods 和静态库不属于本次应用目录整理范围。`ddlNew/Basic/LXChatEncrypt` 保持原位，以保留静态库链接和头文件路径。
 

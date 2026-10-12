@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>登录验证</title>
+<!-- 由旧项目 CandyTalk 验证码资源适配，沿用服务商标识与 SDK 地址。 -->
+<script>
+function reportCaptchaState(state) {
+  if (window.webkit && window.webkit.messageHandlers.captchaStatus) {
+    window.webkit.messageHandlers.captchaStatus.postMessage(JSON.stringify({state: state}));
+  }
+}
+</script>
+<style>html,body{background:transparent;margin:0;padding:0;height:100%;}#captcha-element{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);}</style>
+<script src="https://ca.turing.captcha.qcloud.com/TCaptcha-global.js" onerror="reportCaptchaState('failed')"></script>
+</head>
+<body>
+<script>
+// 仅转交腾讯 SDK 的真实回调，由原生侧检查成功状态和验证凭据。
+function globalCallback(res) {
+  if (window.webkit && window.webkit.messageHandlers.iosJSBridge) {
+    window.webkit.messageHandlers.iosJSBridge.postMessage(JSON.stringify(res));
+  }
+}
+window.onload = function () {
+  try {
+    const captcha = new TencentCaptcha('189974576', globalCallback, {
+      needFeedBack: false,
+      enableDarkMode: false,
+      loading: false,
+      ready: function () { reportCaptchaState('ready'); }
+    });
+    captcha.show();
+  } catch (error) { reportCaptchaState('failed'); }
+};
+</script>
+</body>
+</html>

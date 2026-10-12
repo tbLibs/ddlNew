@@ -1,6 +1,6 @@
 # ddlNew 项目交接文档
 
-更新时间：2026-09-30
+更新时间：2026-10-12
 
 本文供新的 Codex 对话接手项目。先执行“接手检查”，再根据任务读取对应源码；不要只凭本文修改代码，因为分支和工作区可能已经变化。
 
@@ -43,6 +43,7 @@
 → TCP/ECDH 节点竞速与正式连接
 → 获取 systemConfig
 → 登录页
+→ 检查账号是否存在
 → 获取登录加密密钥并加密密码
 → 发送账号登录请求
 → 保存用户资料和凭据
@@ -51,7 +52,7 @@
 → 进入四栏主界面
 ```
 
-应用重启时，如果存在可用入口和会话凭据，会一直显示与 LaunchScreen 一致的等待页，在后台完成连接恢复和用户 AUTH；只有 AUTH 成功后才进入主界面。没有可用入口时显示邀请码页；有入口但没有有效用户会话时显示登录页。
+应用重启时先显示与 LaunchScreen 一致的等待页并恢复邀请码连接。连接失败停止启动恢复并返回邀请码页，保留上次入口；连接成功后读取同一俱乐部的成对资料、Token 和设备凭据，AUTH 成功才进入主界面。没有缓存会话或用户认证失败时显示登录页；暂时超时保留凭据，明确失效才删除。AUTH 成功但根路由尚未接收结果的取消窗口会撤销运行时会话，避免下一次恢复被残留所有权阻塞。
 
 ## 启动与路由
 
@@ -69,7 +70,7 @@
 - 本地有用户资料或 token 不代表登录成功。
 - 账号登录 HTTP/TCP 请求返回成功也不代表登录成功。
 - 必须收到 SDK 用户 AUTH ACK，并确认连接轮次、用户 UID、数据库状态仍一致，才允许进入主界面和请求后续业务数据。
-- 临时断网时保留凭据并退避重试；明确的账号失效才清理缓存。
+- 已登录后的临时断网保留凭据，由 SDK 重连；启动连接失败回邀请码页，启动 AUTH 超时回登录页，均不删除有效缓存。明确的账号失效才清理缓存。
 - “更换俱乐部”清除启动入口和当前会话，再回到邀请码页。
 
 ## DNS、OSS 与导航
@@ -144,7 +145,7 @@
 
 登录请求复用 SDK 已有的验签、解密和 HTTP 转 TCP 通道：
 
-1. 获取一次性 `encryptKey`。
+1. 检查账号是否存在，不存在时返回对应业务提示，再获取一次性 `encryptKey`。
 2. 使用 `LXChatEncrypt.method4(encryptKey + password)` 加密密码。
 3. 发送账号登录请求。
 4. 用 ObjectMapper 映射响应。
@@ -185,7 +186,7 @@
 | 通讯录 | 已接 SDK 好友数据库、同步代理、排序搜索、资料详情和真实头像 |
 | 我的 | UI 已迁移；退出登录、更换俱乐部和基础设置可用，业务接口仍需逐项接入 |
 
-活动导航统一由 `ActivityNavigationScope` 注入，避免二级页面缺失 `ActivityNavigation` 环境对象。旧的 `Main` 和 `OldVersion` 目录已经删除；保留的原版演示页面以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView` 命名，不接当前入口。
+活动导航统一由 `ActivityNavigationScope` 注入，避免二级页面缺失 `ActivityNavigation` 环境对象。旧的 `Main` 和 `OldVersion` 目录保持删除；演示页面以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView`、`OriginalMessagesView`、`OriginalContactsView` 保留在各功能目录中，不接真实主入口。用户确认保留的演示注册存储放在 `Features/Login/Services/LocalCredentialStore.swift`，演示拉黑与举报状态放在 `Common/Club`、`Common/Community/Models`，页面放在 `Features/Contacts`、`Message`、`Mine`。这些演示逻辑不等于 SDK 拉黑或服务端举报，真实会话和通讯录仍使用各自的 SDK Store。
 
 网络图片使用 Kingfisher。通讯录和消息页头像统一通过 `RemoteAvatarURL` 处理完整 HTTP(S) 地址、OSS 相对路径和中文路径；相对路径使用当前文件 Host。SDK 的 `cimUserUpdateHttpNode` 回调会同步更新 API／文件／上传 Host，主界面观察 Host 变化以重新生成图片 URL。图片仅对当前文件 Host 使用项目现有的临时证书策略，其他 Host 仍按系统规则校验。
 
@@ -296,3 +297,19 @@ xcodebuild \
 9. 项目结构整理、依赖迁移与本轮安全警告清理。
 
 新对话应以当前源码和 Git 历史为准，把本文当作导航和决策记录，而不是替代代码检查。
+
+## 2026-10-12 分支合并记录
+
+本次将 `feature-IMSDK-2`（`6b7c653`）合入 `feature-message-4`（合并前 `0c25315`）。用户确认：
+
+- Sentry 使用 `feature-IMSDK-2` 配置；文档不记录 DSN 或认证信息。
+- 保留旧演示注册、拉黑和举报逻辑，按现有目录拆分迁入，不恢复 `OldVersion` 或覆盖真实消息/通讯录入口。
+- 隐私政策与使用支持采用在线页面，删除本地 HTML 与开源许可入口。
+
+合并后的登录增强包括账号预检查、验证码、安全码、真实账号注册和缓存 AUTH 恢复；手机号/邮箱登录、验证码登录和找回密码暂缓。注册成功后复用会话编排，AUTH 前订阅通讯录和消息，AUTH 后读 SDK 数据库，并再次核对会话所有权。
+
+登录后断线竞速、导航兜底和网络质量检测统一管理。巡检受导航 `enableNetworkDetect` 控制，仅在已 AUTH 且前台运行，30 秒巡检，使用临时 TCP/ECDH 完整握手 RTT 比较节点，切换有 60 秒冷却；退出、后台和 SDK 断线竞速会取消业务等待并隔离迟到回调。临时探测 Socket 无 SDK 取消句柄，最长约 10 秒自行回收。
+
+验证入口增加 `Tests/Login`、`AccountLifecycle`、`SessionRestore`、`Network`、`NetworkQuality`、`Verification` 中的 `run-checks.sh`；合并仍应保留执行既有 `Tests/Contacts` 与 `Tests/Conversations`。离线检查和构建不代替真机账号注册、验证码、自动恢复、弱网切换与消息同步验收。
+
+本次合并验证：无签名真机目标 `clean build` 为 `BUILD SUCCEEDED`；上述八组离线检查全部通过，通讯录生产逻辑 43 项、SDK 分页 19 项、登录 25 项通过。构建前执行 `pod install --deployment --no-repo-update` 同步本地安装记录，未升级锁定依赖；CocoaPods 对工程空数组的自动改写已还原。`git diff --check` 通过。合并提交与最终工作区状态以 `git log -1`、`git status` 为准。
