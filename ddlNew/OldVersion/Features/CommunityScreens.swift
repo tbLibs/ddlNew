@@ -6,6 +6,7 @@ private enum MessageFilter: String, CaseIterable, Identifiable {
 }
 
 struct MessagesScreen: View {
+    @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var community: ClubCommunity
     @State private var query = ""
     @State private var filter: MessageFilter = .all
@@ -15,6 +16,7 @@ struct MessagesScreen: View {
 
     private var filtered: [ClubMessage] {
         community.messages.filter {
+            !($0.contactID.map(store.blockedContactIDs.contains) ?? false) &&
             (query.isEmpty || ($0.title + $0.preview + $0.body).localizedCaseInsensitiveContains(query)) &&
             (filter == .all || (filter == .unread && $0.unread) || (filter == .notices && $0.isNotice))
         }
@@ -25,15 +27,17 @@ struct MessagesScreen: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
                     ScreenHeading(eyebrow: "远山户外俱乐部", title: "消息")
-                    Button("全部已读") { community.markAllRead() }
+                    Button("全部已读") { community.markAllRead(excluding: store.blockedContactIDs) }
                         .font(.subheadline.weight(.medium)).foregroundColor(ClubTheme.darkTeal)
-                        .frame(minHeight: 44).disabled(community.unreadCount == 0)
-                        .opacity(community.unreadCount == 0 ? 0.45 : 1)
+                        .frame(minHeight: 44).disabled(community.unreadCount(excluding: store.blockedContactIDs) == 0)
+                        .opacity(community.unreadCount(excluding: store.blockedContactIDs) == 0 ? 0.45 : 1)
                         .accessibilityIdentifier("markAllMessagesRead")
                 }
                 HStack(spacing: 8) {
                     ClubIcon(name: "messages", size: 16)
-                    Text(community.unreadCount == 0 ? "消息都已读，期待下一次相聚" : "有 \(community.unreadCount) 条未读消息，看看伙伴们的新动态")
+                    Text(community.unreadCount(excluding: store.blockedContactIDs) == 0
+                         ? "消息都已读，期待下一次相聚"
+                         : "有 \(community.unreadCount(excluding: store.blockedContactIDs)) 条未读消息，看看伙伴们的新动态")
                         .font(.subheadline)
                 }.foregroundColor(ClubTheme.secondary)
                 CommunitySearchField(placeholder: "搜索消息", text: $query, focus: $searchFocused, identifier: "messageSearch")
@@ -107,6 +111,7 @@ private enum ContactFilter: String, CaseIterable, Identifiable {
 }
 
 struct ContactsScreen: View {
+    @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var community: ClubCommunity
     @State private var query = ""
     @State private var filter: ContactFilter = .all
@@ -116,10 +121,12 @@ struct ContactsScreen: View {
 
     private var filtered: [ClubContact] {
         community.contacts.filter {
+            !store.isBlocked($0.id) &&
             (query.isEmpty || ($0.name + $0.initial + $0.role + $0.interests).localizedCaseInsensitiveContains(query)) &&
             (filter == .all || (filter == .leaders && $0.isLeader) || (filter == .favorites && community.favorites.contains($0.id)))
         }
     }
+    private var visibleContacts: [ClubContact] { community.contacts.filter { !store.isBlocked($0.id) } }
     private var initials: [String] { Array(Set(filtered.map(\.initial))).sorted() }
 
     var body: some View {
@@ -133,7 +140,7 @@ struct ContactsScreen: View {
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 5) {
                             Text("认识同行的伙伴").font(.headline)
-                            Text("\(community.contacts.count) 位伙伴 · \(community.contacts.filter(\.isLeader).count) 位领队")
+                            Text("\(visibleContacts.count) 位伙伴 · \(visibleContacts.filter(\.isLeader).count) 位领队")
                                 .font(.subheadline).foregroundColor(ClubTheme.secondary)
                         }
                         Spacer(minLength: 0)
@@ -153,6 +160,7 @@ struct ContactsScreen: View {
                                     VStack(spacing: 0) {
                                         ForEach(filtered.filter { $0.initial == initial }) { contact in
                                             Button {
+                                                guard !store.isBlocked(contact.id) else { return }
                                                 searchFocused = false
                                                 selectedConversation = community.openConversation(with: contact)
                                                 showingChat = true
@@ -210,7 +218,11 @@ private struct ContactAvatar: View {
 
 struct ContactDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var community: ClubCommunity
+    @State private var confirmBlock = false
+    @State private var blocking = false
+    @State private var errorMessage: String?
     let contact: ClubContact
     var body: some View {
         NavigationView {
@@ -230,13 +242,93 @@ struct ContactDetailSheet: View {
                             Text(contact.interests).font(.subheadline).foregroundColor(ClubTheme.secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    Button(community.favorites.contains(contact.id) ? "移出常用联系人" : "添加为常用联系人") {
-                        community.toggleFavorite(contact.id)
-                    }.buttonStyle(ClubButtonStyle()).accessibilityIdentifier("toggleFavoriteContact")
+                    if store.isBlocked(contact.id) {
+                        Text("这位好友已在黑名单中，可在“我的 > 黑名单”移出。")
+                            .font(.subheadline).foregroundColor(ClubTheme.secondary)
+                    } else {
+                        Button(community.favorites.contains(contact.id) ? "移出常用联系人" : "添加为常用联系人") {
+                            community.toggleFavorite(contact.id)
+                        }.buttonStyle(ClubButtonStyle()).accessibilityIdentifier("toggleFavoriteContact")
+                        Button("拉黑好友", role: .destructive) { confirmBlock = true }
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(ClubTheme.error)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .accessibilityIdentifier("blockContact")
+                    }
+                    if let errorMessage {
+                        Text(errorMessage).font(.subheadline).foregroundColor(ClubTheme.error)
+                    }
                 }.padding(24)
             }.navigationTitle("成员资料").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() }.accessibilityIdentifier("closeContact") } }
+                .disabled(blocking)
+                .alert("拉黑\(contact.name)？", isPresented: $confirmBlock) {
+                    Button("取消", role: .cancel) { }
+                    Button("确认拉黑", role: .destructive) {
+                        blocking = true
+                        Task {
+                            do { try await store.blockContact(contact.id); dismiss() }
+                            catch {
+                                errorMessage = "保存黑名单失败，请重试。"
+                                blocking = false
+                            }
+                        }
+                    }.accessibilityIdentifier("confirmBlockContact")
+                } message: { Text("私聊会话将从消息列表隐藏，也不能继续向这位好友发送消息。移出黑名单后会恢复显示。") }
         }.navigationViewStyle(.stack)
+    }
+}
+
+struct BlacklistScreen: View {
+    @EnvironmentObject private var store: ClubStore
+    @State private var removingID: String?
+    @State private var errorMessage: String?
+
+    private var blockedContacts: [ClubContact] {
+        ClubContact.samples.filter { store.isBlocked($0.id) }
+    }
+
+    var body: some View {
+        ClubScroll {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("拉黑的好友不会出现在通讯录和私聊消息列表中。")
+                    .font(.subheadline).foregroundColor(ClubTheme.secondary)
+                if let errorMessage {
+                    Text(errorMessage).font(.subheadline).foregroundColor(ClubTheme.error)
+                }
+                if blockedContacts.isEmpty {
+                    EmptyClubState(title: "黑名单为空", message: "在成员资料中可以拉黑好友。")
+                } else {
+                    ForEach(blockedContacts) { contact in
+                        ClubCard {
+                            HStack(spacing: 14) {
+                                ContactAvatar(contact: contact, size: 44)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(contact.name).font(.body.weight(.semibold))
+                                    Text(contact.role).font(.caption).foregroundColor(ClubTheme.secondary)
+                                }
+                                Spacer()
+                                Button("移出黑名单") {
+                                    removingID = contact.id
+                                    errorMessage = nil
+                                    Task {
+                                        do { try await store.unblockContact(contact.id) }
+                                        catch { errorMessage = "移出失败，请重试。" }
+                                        removingID = nil
+                                    }
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(ClubTheme.darkTeal)
+                                .disabled(removingID != nil)
+                                .accessibilityIdentifier("unblock.\(contact.id)")
+                            }
+                        }
+                    }
+                }
+            }.padding(20)
+        }
+        .navigationTitle("黑名单").navigationBarTitleDisplayMode(.inline)
+        .modifier(ClubDetailChrome())
     }
 }
 

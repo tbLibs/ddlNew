@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Sentry
+import AlertToast
 
 
 @main
@@ -62,6 +63,12 @@ struct ddlNewApp: App {
                 }
             }
             .environmentObject(oldVersionStore)
+            .tint(ClubTheme.teal)
+            .preferredColorScheme(.light)
+            .toast(isPresenting: $oldVersionStore.showToast, duration: 2.5) {
+                AlertToast(displayMode: .hud, type: .regular, title: oldVersionStore.toastMessage,
+                           style: .style(backgroundColor: ClubTheme.card, titleColor: ClubTheme.ink))
+            }
             .task {
                 guard !hasRestoredLocalEntry else { return }
                 do {
