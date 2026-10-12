@@ -7,6 +7,11 @@
 
 import Foundation
 
+// MARK: - App 打包类型
+
+/// 默认 appType：.common = 0（公共打包），.independent = 1（独立打包）。
+let DefaultAppType: IMServerListRequest.DataType = .common
+
 // MARK: - 本地状态存储
 
 /// 保存最新一份 OSS 导航状态的固定 AppStorage key，不拼接邀请码。

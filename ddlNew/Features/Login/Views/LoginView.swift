@@ -170,7 +170,7 @@ struct LoginView: View {
     @ViewBuilder
     private var loginRequestStatus: some View {
         switch viewModel.loginPhase {
-        case .fetchingKey, .submitting, .savingSession, .configuringSDK, .authenticating:
+        case .checkingAccount, .fetchingKey, .submitting, .savingSession, .configuringSDK, .authenticating:
             ProgressView()
                 .accessibilityLabel(viewModel.loginPhase.buttonTitle)
         case .succeeded:
@@ -190,8 +190,6 @@ struct LoginView: View {
 
     private var auxiliaryActions: some View {
         HStack(spacing: 32) {
-            // 仅保留帮助入口样式，暂不打开帮助页面。
-            Button("登录遇到问题？", action: dismissKeyboard)
             Button("更换俱乐部", action: changeClub)
                 .accessibilityIdentifier("changeClub")
         }

@@ -134,10 +134,13 @@ final class IMConnectionCoordinator: ObservableObject {
         }
     }
 
-    /// 启动页持续等待，不把历史配置或单次探测成功当作登录链路已经就绪。
+    /// 启动页等待本轮恢复结果；连接失败时交由启动流程返回邀请码页。
     func waitForLoginReadiness() async throws {
         while !isLoginReady {
             try Task<Never, Never>.checkCancellation()
+            if case .failed = phase {
+                throw IMConnectionError.connectionLost
+            }
             try await Task<Never, Never>.sleep(nanoseconds: 250_000_000)
         }
         try Task<Never, Never>.checkCancellation()

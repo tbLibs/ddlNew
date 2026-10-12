@@ -14,7 +14,35 @@ import ObjectMapper
 final class SDKAccountLoginClient: AccountLoginSDKDriving {
     private var sdk: NoaIMSDKManager { NoaIMSDKManager.sharedTool() }
 
+    /// 与旧项目一致，先检查账号；服务端字段名为 userExit。
+    func checkAccountExists(account: String) async throws -> Bool {
+        let parameters: [String: Any] = ["loginInfo": account, "loginType": 1, "areaCode": ""]
+        let startedAt = Date()
+        let waiter = SDKLoginRequestWaiter<Bool>()
+        return try await waiter.run {
+            self.sdk.authUserExistAndHasPwd(with: NSMutableDictionary(dictionary: parameters), onSuccess: { data, _ in
+                let result: Result<Bool, AccountLoginError>
+                if let json = data as? [String: Any],
+                   let exists = (json["userExit"] as? NSNumber)?.boolValue
+                    ?? (json["userExit"] as? NSString)?.boolValue {
+                    result = .success(exists)
+                } else {
+                    result = .failure(.invalidResponse)
+                }
+                Task { @MainActor in waiter.finish(result) }
+            }, onFailure: { code, message, traceID in
+                let error = AccountLoginError.businessFailure(code: code, message: message ?? "")
+                Task { @MainActor in
+                    let elapsed = String(format: "%.2f", Date().timeIntervalSince(startedAt))
+                    debugPrint("[账号登录][检查账号] SDK请求失败，code=\(code)，耗时=\(elapsed)s，traceId=\(traceID ?? "无")")
+                    waiter.finish(.failure(error))
+                }
+            })
+        }
+    }
+
     func fetchEncryptKey() async throws -> String {
+        let startedAt = Date()
         let waiter = SDKLoginRequestWaiter<String>()
         return try await waiter.run {
             self.sdk.authGetEncryptKeySuccess({ data, _ in
@@ -25,9 +53,13 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
                     result = .failure(.invalidEncryptKey)
                 }
                 Task { @MainActor in waiter.finish(result) }
-            }, onFailure: { code, message, _ in
+            }, onFailure: { code, message, traceID in
                 let error = AccountLoginError.businessFailure(code: code, message: message ?? "")
-                Task { @MainActor in waiter.finish(.failure(error)) }
+                Task { @MainActor in
+                    let elapsed = String(format: "%.2f", Date().timeIntervalSince(startedAt))
+                    debugPrint("[账号登录][领取密钥] SDK请求失败，code=\(code)，耗时=\(elapsed)s，traceId=\(traceID ?? "无")")
+                    waiter.finish(.failure(error))
+                }
             })
         }
     }
@@ -37,6 +69,7 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
         let credentials = try UserCredentialStore.shared.load()
         let matches = credentials?.loginInfo == parameters["loginInfo"] as? String
             && credentials?.lastLiceseId == sdk.currentLiceseId()
+        let startedAt = Date()
         let waiter = SDKLoginRequestWaiter<AccountLoginResponse>()
         return try await waiter.run {
             self.sdk.configSDKCaptchaChannel(captchaChannel)
@@ -51,9 +84,13 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
                     result = .failure(.invalidResponse)
                 }
                 Task { @MainActor in waiter.finish(result) }
-            }, onFailure: { code, message, _ in
+            }, onFailure: { code, message, traceID in
                 let error = AccountLoginError.businessFailure(code: code, message: message ?? "")
-                Task { @MainActor in waiter.finish(.failure(error)) }
+                Task { @MainActor in
+                    let elapsed = String(format: "%.2f", Date().timeIntervalSince(startedAt))
+                    debugPrint("[账号登录][提交登录] SDK请求失败，code=\(code)，耗时=\(elapsed)s，captchaChannel=\(captchaChannel)，traceId=\(traceID ?? "无")")
+                    waiter.finish(.failure(error))
+                }
             })
         }
     }

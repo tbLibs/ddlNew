@@ -17,8 +17,18 @@ enum AppStartupCoordinator {
             restoreConnectionPlan(lastLiceseId: lastLiceseId)
             IMConnectionCoordinator.shared.startCachedReconnect()
             // 缓存仅用于恢复节点，必须完成正式握手和配置刷新后才显示登录页。
-            try await IMConnectionCoordinator.shared.waitForLoginReadiness()
-            return .login
+            do {
+                try await IMConnectionCoordinator.shared.waitForLoginReadiness()
+                return .login
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                // 停止后台恢复，保留上次邀请码，允许用户从入口重新连接。
+                IMConnectionCoordinator.shared.reset()
+                OSSConnectionBootstrap.shared.clearCurrent()
+                debugPrint("[启动恢复] 连接失败，返回邀请码页：\(error)")
+                return .invitationCode
+            }
         }
 
         // 没有入口就显示邀请码页，不从历史缓存推断，避免撤销用户的更换俱乐部操作。

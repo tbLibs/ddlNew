@@ -37,7 +37,7 @@ nonisolated enum AccountLoginError: LocalizedError {
             // 不绕过服务端校验；验证码和安全码页面在下一阶段接入。
             switch code {
             case 2036, 40019, 50000, 50001:
-                return "账号或密码错误，请重新输入（\(code)）"
+                return "账号或密码错误，请重新输入，错误码：\(code)"
             case 40064, 50002, 51002, 51006, 450010:
                 return "需要完成验证码验证（\(code)），验证码流程尚未接入"
             case 10009:

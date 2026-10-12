@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 只负责“账号密码 → 加密密钥 → 登录请求”，不配置已登录用户、不跳转、不保存会话。
+/// 负责账号检查、获取加密密钥与登录请求；会话和 AUTH 由会话服务处理。
 @MainActor
 final class AccountLoginService: AccountLoginServicing {
     static let shared = AccountLoginService(
@@ -56,8 +56,15 @@ final class AccountLoginService: AccountLoginServicing {
             throw AccountLoginError.unsupportedAccountLogin
         }
 
-        progress(.fetchingKey)
+        progress(.checkingAccount)
         try check(originalContext)
+        debugPrint("[账号登录] 开始检查账号是否存在")
+        let accountExists = try await driver.checkAccountExists(account: account)
+        try check(originalContext)
+        // 旧项目在 userExit=false 时提示 2036，不继续领取密钥或提交登录。
+        guard accountExists else { throw AccountLoginError.businessFailure(code: 2036, message: "") }
+
+        progress(.fetchingKey)
         debugPrint("[账号登录] 开始获取加密密钥")
         let encryptKey = try await driver.fetchEncryptKey()
         try check(originalContext)

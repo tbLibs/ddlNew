@@ -13,7 +13,7 @@ import Combine
 final class InvitationCodeViewModel: ObservableObject {
     
     /// 用户输入的邀请码。
-    @Published var invitationCode = "10001" {
+    @Published var invitationCode = "1000" {
         didSet {
             guard invitationCode != oldValue else { return }
             // 输入变化后，旧邀请码的竞速结果不能继续显示或覆盖新状态。
