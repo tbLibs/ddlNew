@@ -13,13 +13,14 @@ struct TabbarView: View {
     /// 角标随真实 SDK 会话快照变化；ClubCommunity 仍供其他演示页面使用。
     @ObservedObject private var conversations = LoginSessionService.shared.conversations
     @ObservedObject private var contacts = LoginSessionService.shared.contacts
+    @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @StateObject private var community = ClubCommunity()
 
     var body: some View {
         TabView(selection: $store.selectedTab) {
             tab(.home) {
-                ClubHomeView(userName: UserSessionStore.shared.currentUser?.nickname ?? "")
+                ClubHomeView(userName: userSession.currentUser?.nickname ?? "")
             }
             tab(.messages) { MessageView(store: conversations) }
             tab(.contacts) {

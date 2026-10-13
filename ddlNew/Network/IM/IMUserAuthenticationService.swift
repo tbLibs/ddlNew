@@ -126,6 +126,7 @@ final class IMUserAuthenticationService: ObservableObject {
             httpNodeUpdated: { [weak self] httpNode in
                 guard let self, self.generation == runID, self.userUID != nil else { return }
                 OSSConnectionBootstrap.shared.updateHTTPHost(httpNode)
+                SessionMaintenanceCoordinator.shared.refreshConfigurationAfterNodeChange()
             }
         )
         self.delegate = delegate

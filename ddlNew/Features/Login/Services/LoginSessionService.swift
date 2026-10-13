@@ -22,8 +22,20 @@ final class LoginSessionService: LoginSessionServicing {
     private var pendingID: UUID?
     /// 启动 AUTH 已成功但根页面尚未接收结果时，仍需允许取消并释放运行时会话。
     private var startupRestoreID: UUID?
+    private var signOutTask: Task<Void, Error>?
 
     private init() {}
+
+    /// 维护回调使用会话轮次，同 UID 退出后重新登录也属于另一轮身份。
+    var maintenanceSessionID: UUID? { sessionID }
+
+    func handleMaintenanceRejection(code: Int, message: String, userUID: String,
+                                    lastLiceseId: String, sessionID: UUID) {
+        guard self.sessionID == sessionID, store.currentUser?.userUID == userUID,
+              OSSNavigationStore.shared.lastUsableLiceseId() == lastLiceseId,
+              [40015, 40029, 40030, 90018, 900017].contains(code) else { return }
+        invalidateSession(UserSessionError.authenticationRejected(code: code, message: message))
+    }
 
     func completeLogin(_ response: AccountLoginResponse, account: String,
                        progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws {
@@ -136,6 +148,8 @@ final class LoginSessionService: LoginSessionServicing {
             throw AccountLoginError.connectionChanged
         }
         pendingID = nil
+        SessionMaintenanceCoordinator.shared.start(userUID: user.userUID, lastLiceseId: credentials.lastLiceseId)
+        LoginSecurityCoordinator.shared.start(userUID: user.userUID, lastLiceseId: credentials.lastLiceseId)
     }
 
     func cancelPendingLogin() {
@@ -143,10 +157,30 @@ final class LoginSessionService: LoginSessionServicing {
         invalidateSession(CancellationError())
     }
 
+    /// 用户主动退出时先发送当前 UID/Token；不阻塞本地退出，也不让迟到结果清理新会话。
+    func signOut() async throws {
+        if let existing = signOutTask { return try await existing.value }
+        let run = sessionID
+        let task = Task { @MainActor [self] in
+            SessionMaintenanceCoordinator.shared.stop()
+            if authentication.isAuthenticated, let snapshot = try? store.cachedSession() {
+                await SDKSessionMaintenanceClient().logout(userUID: snapshot.credentials.userUID,
+                                                           token: snapshot.credentials.token)
+            }
+            guard sessionID == run else { return }
+            try clearSession()
+        }
+        signOutTask = task
+        defer { signOutTask = nil }
+        try await task.value
+    }
+
     func clearSession() throws {
         sessionID = nil
         pendingID = nil
         startupRestoreID = nil
+        SessionMaintenanceCoordinator.shared.stop()
+        LoginSecurityCoordinator.shared.stop(clearCachedRequirement: true)
         contacts.reset()
         conversations.reset()
         authentication.reset()
@@ -155,9 +189,14 @@ final class LoginSessionService: LoginSessionServicing {
     }
 
     private func invalidateSession(_ error: Error, clearStoredSession: Bool = true, reconnect: Bool = true) {
+        if case UserSessionError.authenticationRejected = error {
+            LoginSecurityNoticeStore.shared.record(message: error.localizedDescription)
+        }
         sessionID = nil
         pendingID = nil
         startupRestoreID = nil
+        SessionMaintenanceCoordinator.shared.stop()
+        LoginSecurityCoordinator.shared.stop(clearCachedRequirement: clearStoredSession)
         contacts.reset()
         conversations.reset()
         authentication.reset()

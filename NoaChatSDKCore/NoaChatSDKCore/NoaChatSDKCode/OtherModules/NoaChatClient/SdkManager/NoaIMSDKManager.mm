@@ -283,6 +283,8 @@ NoaGroupDelegate
 
 /// 清除用户信息及当前请求使用的设备凭证
 - (void)clearMyUserInfo {
+    // 主动退出不依赖 Socket 断开代理；旧 logout 等待请求不能留给下次 AUTH 重发。
+    [SOCKETMANAGERTOOL invalidateSessionRequests];
     @synchronized (self) {
         [self invalidateContactsSync];
         _userID = nil;

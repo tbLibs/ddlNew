@@ -33,6 +33,8 @@ struct OSSNavigationResult: Sendable {
     let tcpEndpoints: [IMServerEndpoint]
     /// 未标记 INACTIVE 且支持 HTTP 的节点。
     let httpEndpoints: [IMServerEndpoint]
+    /// 只由旧 JSON 导航提供；新版 Protobuf 没有对应字段时保持 nil。
+    var httpNodePreference: OSSLegacyHTTPNodePreference? = nil
 }
 
 /// 按旧协议校验并解密 OSS Auth 的 Protobuf 响应。

@@ -28,6 +28,7 @@ let businessDeviceUUIDAppStorageKey = "ddlNew.businessDeviceUUID.v1"
 
 /// 最新用户资料的固定 key；不保存 token、deviceSecret 或密码。
 let userInfoAppStorageKey = "ddlNew.userInfo.v1"
+let userRoleAuthorityAppStorageKey = "ddlNew.userRoleAuthority.v1"
 
 /// 当前会话凭据的 Keychain 标识，不拼接邀请码。
 let userCredentialKeychainService = "ddlNew.userSession"
@@ -110,3 +111,6 @@ let builtInOSSHTTPBaseURLs = [
     "https://prnav1.oss-accelerate.aliyuncs.com",
     "https://cmnav1.oss-accelerate.aliyuncs.com"
 ]
+
+/// 已确认强制修改密码的最小身份标记；只含用户 UID 与所属俱乐部。
+let loginForcedPasswordRequirementAppStorageKey = "ddlNew.loginForcedPasswordRequirement.v1"

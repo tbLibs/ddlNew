@@ -43,7 +43,9 @@ enum OSSHTTPConfigurationClient {
         meta.navVersion = parsed.version
         navigation.meta = meta
         // 旧 JSON 没有新的 TTL，不伪造有效期；登录重连可以读取过期缓存后主动刷新。
-        return try OSSAuthResponseDecoder.navigation(from: navigation)
+        var result = try OSSAuthResponseDecoder.navigation(from: navigation)
+        result.httpNodePreference = parsed.httpNodePreference
+        return result
     }
 
     private static func endpoint(_ node: OSSLegacyEndpoint, transport: String) -> IMServerEndpoint {

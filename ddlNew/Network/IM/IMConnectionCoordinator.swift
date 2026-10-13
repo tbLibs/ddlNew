@@ -14,7 +14,8 @@ final class IMConnectionCoordinator: ObservableObject {
     static let shared = IMConnectionCoordinator(
         driver: IMSDKConnectionAdapter(),
         fetchConfiguration: { try await SystemConfigService.shared.fetchAndCache(for: $0) },
-        markUsable: { try OSSNavigationStore.shared.markLastUsableEntry(lastLiceseId: $0) }
+        markUsable: { try OSSNavigationStore.shared.markLastUsableEntry(lastLiceseId: $0) },
+        configurationReady: { SessionMaintenanceCoordinator.shared.startGuest(lastLiceseId: $0) }
     )
 
     @Published private(set) var phase: IMConnectionPhase = .idle
@@ -25,6 +26,7 @@ final class IMConnectionCoordinator: ObservableObject {
     private let driver: any IMSDKConnectionDriving
     private let fetchConfiguration: @MainActor (OSSConnectionPlan) async throws -> SystemConfigRecord
     private let markUsable: @MainActor (String) throws -> Void
+    private let configurationReady: @MainActor (String) -> Void
     /// 所有 await 后都核对本轮标识，防止更换俱乐部后旧请求覆盖新连接。
     private var generation = UUID()
     private var reconnectTask: Task<Void, Never>?
@@ -34,10 +36,12 @@ final class IMConnectionCoordinator: ObservableObject {
 
     init(driver: any IMSDKConnectionDriving,
          fetchConfiguration: @escaping @MainActor (OSSConnectionPlan) async throws -> SystemConfigRecord,
-         markUsable: @escaping @MainActor (String) throws -> Void) {
+         markUsable: @escaping @MainActor (String) throws -> Void,
+         configurationReady: @escaping @MainActor (String) -> Void = { _ in }) {
         self.driver = driver
         self.fetchConfiguration = fetchConfiguration
         self.markUsable = markUsable
+        self.configurationReady = configurationReady
     }
 
     /// 登录请求发送前应再次查询；页面显示或旧缓存存在均不代表可以发送请求。
@@ -164,6 +168,7 @@ final class IMConnectionCoordinator: ObservableObject {
         try markUsable(plan.lastLiceseId)
         configuration = result
         phase = .ready
+        configurationReady(plan.lastLiceseId)
         debugPrint("[IM连接] 登录链路已就绪，验证码渠道：\(result.captchaChannel)")
         return result
     }
@@ -199,6 +204,12 @@ final class IMConnectionCoordinator: ObservableObject {
                 }
             }
         }
+    }
+
+    /// 页面读取本轮配置；刷新不改变连接归属或重置认证状态。
+    func applyRefreshedConfiguration(_ value: SystemConfigRecord) {
+        guard value.isValidForLogin else { return }
+        configuration = value
     }
 
     private func check(_ runID: UUID) throws {

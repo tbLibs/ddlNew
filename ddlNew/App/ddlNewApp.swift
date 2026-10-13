@@ -17,6 +17,8 @@ struct ddlNewApp: App {
     
     /// 根页面根据共享路由状态在邀请码、登录和主界面之间切换。
     @StateObject var router = RouterTool.shared
+    @Environment(\.scenePhase) private var scenePhase
+    @ObservedObject private var loginSecurity = LoginSecurityCoordinator.shared
 
     /// 供活动与俱乐部页面展示；真实登录资格由用户会话与 AUTH 控制。
     @StateObject private var clubStore = ClubStore()
@@ -62,8 +64,17 @@ struct ddlNewApp: App {
                 }
             }
             .environmentObject(clubStore)
+            .fullScreenCover(item: Binding(get: { loginSecurity.request }, set: { _ in loginSecurity.dismiss() })) { request in
+                PasswordChangeView(request: request, coordinator: loginSecurity)
+            }
+            .onChange(of: scenePhase) { phase in
+                loginSecurity.setForegroundActive(phase == .active)
+                SessionMaintenanceCoordinator.shared.setForegroundActive(phase == .active)
+            }
             .task {
                 guard !hasRestoredLocalEntry else { return }
+                loginSecurity.setForegroundActive(scenePhase == .active)
+                SessionMaintenanceCoordinator.shared.setForegroundActive(scenePhase == .active)
                 do {
                     let page = try await AppStartupCoordinator.restoreLocalEntry()
                     try Task<Never, Never>.checkCancellation()
@@ -84,17 +95,23 @@ struct ddlNewApp: App {
                 }
             }
             .onReceive(authentication.$state) { state in
+                loginSecurity.setAuthenticated(state == .ready)
+                SessionMaintenanceCoordinator.shared.setAuthenticated(state == .ready)
                 AppSessionRouter.handleAuthenticationState(state)
             }
             .onReceive(clubStore.$stage) { stage in
                 // 展示状态只转发用户主动退出的意图，不允许演示登录绕过真实 AUTH。
                 switch stage {
                 case .login:
-                    do { try AppSessionRouter.signOut(changeClub: false) }
-                    catch { debugPrint("[退出登录] 清理会话失败：\(error)") }
+                    Task {
+                        do { try await AppSessionRouter.signOut(changeClub: false) }
+                        catch { debugPrint("[退出登录] 清理会话失败：\(error)") }
+                    }
                 case .invite:
-                    do { try AppSessionRouter.signOut(changeClub: true) }
-                    catch { debugPrint("[更换俱乐部] 清理会话失败：\(error)") }
+                    Task {
+                        do { try await AppSessionRouter.signOut(changeClub: true) }
+                        catch { debugPrint("[更换俱乐部] 清理会话失败：\(error)") }
+                    }
                 case .member, .splash, .restoreFailed:
                     break
                 }

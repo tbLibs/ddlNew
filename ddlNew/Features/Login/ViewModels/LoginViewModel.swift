@@ -76,7 +76,11 @@ final class LoginViewModel: ObservableObject {
                 try Task<Never, Never>.checkCancellation()
                 guard self.loginRunID == runID else { return }
                 self.userInfo = response.userInfo
+                LoginSecurityNoticeStore.shared.clear()
                 self.updateRememberedLogin(account: account, password: password, enabled: rememberPassword)
+                if let club = OSSNavigationStore.shared.lastUsableLiceseId(), let userUID = response.userInfo?.userUID {
+                    LoginSecurityCoordinator.shared.prepareManualLoginPassword(password, userUID: userUID, lastLiceseId: club)
+                }
                 // 跳转会触发 LoginView.onDisappear；先结束任务，不能让页面退出取消已认证会话。
                 self.loginTask = nil
                 self.loginPhase = .succeeded

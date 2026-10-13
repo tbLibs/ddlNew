@@ -10,6 +10,8 @@ final class IMLoggedInReconnectCoordinator {
     private var socket: NoaIMSocketManager { NoaIMSocketManager.sharedTool() }
     private var engine: IMLoggedInReconnectEngine?
     private var quality: IMNetworkQualityEngine?
+    private var httpPreference: IMHTTPNodePreferenceEngine?
+    private var foregroundGate = IMForegroundSessionGate(isInBackground: false)
     private var reconnectRacing = false
     private var observers: [NSObjectProtocol] = []
     private var installation = UUID()
@@ -21,6 +23,7 @@ final class IMLoggedInReconnectCoordinator {
         guard !userUID.isEmpty, !lastLiceseId.isEmpty else { return }
         let session = IMReconnectSession(userUID: userUID, lastLiceseId: lastLiceseId)
         let installID = installation
+        foregroundGate = IMForegroundSessionGate(isInBackground: UIApplication.shared.applicationState == .background)
         engine = IMLoggedInReconnectEngine(session: session,
             isCurrentSession: { [weak self] in self?.owns($0, installation: installID) == true },
             cachedNodes: {
@@ -47,6 +50,7 @@ final class IMLoggedInReconnectCoordinator {
                 // 断线竞速先抢占质量检测，不能同时更新节点或刷新导航。
                 self.reconnectRacing = true
                 self.quality?.cancel()
+                self.httpPreference?.cancel()
                 self.engine?.begin { node, reason in
                     completion(node?.host, node.map { Int($0.port) } ?? 0, reason)
                 }
@@ -57,7 +61,10 @@ final class IMLoggedInReconnectCoordinator {
                 guard let self, self.installation == installID else { return }
                 self.engine?.cancel()
                 self.reconnectRacing = false
-                if UIApplication.shared.applicationState == .active { self.quality?.start() }
+                if UIApplication.shared.applicationState == .active {
+                    self.quality?.start()
+                    self.httpPreference?.start()
+                }
             }
         }
         quality = IMNetworkQualityEngine(
@@ -101,11 +108,42 @@ final class IMLoggedInReconnectCoordinator {
                     }
                 }
             })
+        httpPreference = IMHTTPNodePreferenceEngine(
+            context: { [weak self] in self?.httpContext(session, installation: installID) },
+            current: {
+                guard let host = OSSConnectionBootstrap.shared.current?.apiHost else { return nil }
+                return IMHTTPNodePreferenceURL.base(host.absoluteString)
+            },
+            hostRevision: { OSSConnectionBootstrap.shared.httpHostRevision },
+            probe: { node in
+                try await IMHTTPNodePreferenceProbe.measure(node, path: NetworkPath.httpNodePreference)
+            },
+            select: { [weak self] node, context in
+                guard let self, self.httpContext(session, installation: installID) == context,
+                      OSSConnectionBootstrap.shared.current?.lastLiceseId == session.lastLiceseId else { return false }
+                // SDK 下次请求和业务 API／头像／上传共用同一 Host，不重配用户、Token 或数据库。
+                self.sdk.configApiHost(node.absoluteString)
+                self.sdk.configSDKSsoInfo(session.lastLiceseId)
+                OSSConnectionBootstrap.shared.updateHTTPHost(node.absoluteString)
+                SessionMaintenanceCoordinator.shared.refreshConfigurationAfterNodeChange()
+                return true
+            })
         observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification,
             object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self, self.installation == installID else { return }
+                    self.foregroundGate.enteredBackground()
                     self.quality?.cancel()
+                    self.httpPreference?.cancel()
+                }
+            })
+        observers.append(NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification,
+            object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, self.owns(session, installation: installID),
+                          self.foregroundGate.takeForegroundCheck() else { return }
+                    // 检查当前正式 Socket；SDK 自己处理 PING 超时和重连，不能建立访客连接。
+                    self.socket.verifyConnectionOnForeground()
                 }
             })
         observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
@@ -113,9 +151,13 @@ final class IMLoggedInReconnectCoordinator {
                 Task { @MainActor [weak self] in
                     guard let self, self.owns(session, installation: installID) else { return }
                     self.quality?.start()
+                    self.httpPreference?.start()
                 }
             })
-        if UIApplication.shared.applicationState == .active { quality?.start() }
+        if UIApplication.shared.applicationState == .active {
+            quality?.start()
+            httpPreference?.start()
+        }
     }
 
     /// 先撤销回调和竞速，退出后迟到的结果不能更新下一次登录。
@@ -124,6 +166,7 @@ final class IMLoggedInReconnectCoordinator {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         observers.removeAll()
         quality?.cancel(); quality = nil
+        httpPreference?.cancel(); httpPreference = nil
         reconnectRacing = false
         socket.raceTcpNodeBlock = nil
         socket.cancelTcpNodeRaceBlock = nil
@@ -136,6 +179,18 @@ final class IMLoggedInReconnectCoordinator {
               UIApplication.shared.applicationState == .active, sdk.isUserAuthenticated(),
               let snapshot = try? OSSNavigationStore.shared.load(), snapshot.lastLiceseId == session.lastLiceseId else { return false }
         return snapshot.configuration?.enableNetworkDetect == true
+    }
+
+    private func httpContext(_ session: IMReconnectSession, installation: UUID) -> IMHTTPNodePreferenceContext? {
+        guard owns(session, installation: installation), !reconnectRacing,
+              UIApplication.shared.applicationState == .active, sdk.isUserAuthenticated(),
+              let record = try? OSSNavigationStore.shared.loadSSOInfo(),
+              let snapshot = try? record.snapshot(), snapshot.lastLiceseId == session.lastLiceseId else { return nil }
+        return IMHTTPNodePreferenceContext(userUID: session.userUID, lastLiceseId: session.lastLiceseId,
+            navigationGeneration: "\(snapshot.savedAt.timeIntervalSince1970):\(record.ossRacingModel.version)",
+            enabled: record.ossRacingModel.isMergeVersion,
+            interval: TimeInterval(record.ossRacingModel.pingIntervalSecond),
+            nodes: record.ossRacingModel.httpArr.compactMap { IMHTTPNodePreferenceURL.base($0.ip) })
     }
 
     private func refreshNodes(_ session: IMReconnectSession, installation: UUID,
@@ -154,6 +209,7 @@ final class IMLoggedInReconnectCoordinator {
         guard plan.lastLiceseId == session.lastLiceseId else { throw CancellationError() }
         // 更新导航沿用重连已有行为；不调用访客连接或重新配置用户、Token、数据库。
         sdk.configApiHost(plan.apiHost.absoluteString)
+        SessionMaintenanceCoordinator.shared.refreshConfigurationAfterNodeChange()
         return plan.tcpCandidates.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) }
     }
 

@@ -9,6 +9,33 @@ struct UserSessionCredentials {
     var isValid: Bool { !userUID.isEmpty && !token.isEmpty && !lastLiceseId.isEmpty }
 }
 struct AccountLoginResponse { let userInfo: UserInfo? }
+struct UserSessionSnapshot { let user: UserInfo; let credentials: UserSessionCredentials }
+@MainActor final class SessionMaintenanceCoordinator {
+    static let shared = SessionMaintenanceCoordinator()
+    var startCount = 0
+    var stopCount = 0
+    func start(userUID: String, lastLiceseId: String) { startCount += 1 }
+    func stop() { stopCount += 1 }
+}
+@MainActor final class LoginSecurityCoordinator {
+    static let shared = LoginSecurityCoordinator()
+    var startCount = 0
+    func start(userUID: String, lastLiceseId: String) { startCount += 1 }
+    func stop(clearCachedRequirement: Bool = false) {}
+}
+@MainActor final class LoginSecurityNoticeStore {
+    static let shared = LoginSecurityNoticeStore()
+    var message: String?
+    func record(message: String) { self.message = message }
+}
+@MainActor final class SDKSessionMaintenanceClient {
+    static var logoutCalls: [(String, String)] = []
+    static var logoutDelay: UInt64 = 0
+    func logout(userUID: String, token: String) async {
+        Self.logoutCalls.append((userUID, token))
+        try? await Task.sleep(nanoseconds: Self.logoutDelay)
+    }
+}
 enum AccountLoginError: Error { case connectionNotReady, connectionChanged }
 enum ShowAppPageType: Equatable { case login, tabbar, invitationCode }
 struct Plan { let apiHost = URL(string: "https://example.invalid")!; let tcpCandidates = [1] }
@@ -53,6 +80,10 @@ struct SDKConversationsClient {}
     func updateToken(_ token: String, userUID: String) throws {
         guard currentUser?.userUID == userUID, let cached else { throw UserSessionError.invalidData }
         self.cached = (cached.user, .init(userUID: userUID, token: token, lastLiceseId: cached.credentials.lastLiceseId))
+    }
+    func cachedSession() throws -> UserSessionSnapshot? {
+        guard let cached else { return nil }
+        return UserSessionSnapshot(user: cached.user, credentials: cached.credentials)
     }
     func clear() throws { clearCount += 1; cached = nil; currentUser = nil }
 }
@@ -189,6 +220,44 @@ struct SDKConversationsClient {}
 
         try reset(); OSSNavigationStore.shared.license = nil
         expect(try await AppStartupCoordinator.restoreLocalEntry() == .invitationCode, "没有邀请码不能根据缓存绕过入口")
+        try reset(); seed(); _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        expect(SessionMaintenanceCoordinator.shared.startCount > 0 && LoginSecurityCoordinator.shared.startCount > 0,
+               "真实 AUTH 后启动维护和安全检查")
+        SDKSessionMaintenanceClient.logoutCalls = []
+        SDKSessionMaintenanceClient.logoutDelay = 30_000_000
+        let firstLogout = Task { try await service.signOut() }
+        let secondLogout = Task { try await service.signOut() }
+        try await firstLogout.value; try await secondLogout.value
+        expect(SDKSessionMaintenanceClient.logoutCalls.count == 1, "并发退出只发一次服务端请求")
+        expect(SDKSessionMaintenanceClient.logoutCalls.first?.0 == "user"
+               && SDKSessionMaintenanceClient.logoutCalls.first?.1 == "fixture", "退出请求使用当时的 UID 与 Token")
+        expect(store.currentUser == nil && store.cached == nil && !auth.isAuthenticated, "服务端退出后清理本地会话")
+        try reset(); seed(); _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        let delayedLogout = Task { try await service.signOut() }
+        try await Task.sleep(nanoseconds: 5_000_000)
+        auth.onSessionInvalidated?(UserSessionError.authenticationRejected(code: 11, message: ""))
+        seed(uid: "new", credentialUID: "new")
+        _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        try await delayedLogout.value
+        expect(store.currentUser?.userUID == "new" && auth.isAuthenticated, "旧退出请求返回不清理新账号")
+        expect(LoginSecurityNoticeStore.shared.message?.contains("设备") == true, "强制下线保留具体原因")
+        try reset()
+        SDKSessionMaintenanceClient.logoutCalls = []
+        try await service.signOut()
+        expect(SDKSessionMaintenanceClient.logoutCalls.isEmpty, "访客退出不发送用户退出请求")
+        try reset(); seed(); _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        let previousMaintenanceSession = service.maintenanceSessionID!
+        service.handleMaintenanceRejection(code: 40029, message: "", userUID: "user", lastLiceseId: "club",
+                                           sessionID: previousMaintenanceSession)
+        expect(store.currentUser == nil && store.cached == nil, "维护接口明确设备封禁撤销当前会话")
+        seed(); _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        service.handleMaintenanceRejection(code: 40015, message: "", userUID: "user", lastLiceseId: "club",
+                                           sessionID: previousMaintenanceSession)
+        expect(store.currentUser?.userUID == "user" && auth.isAuthenticated, "同UID重登后旧维护封禁回调不能清理新会话")
+        service.handleMaintenanceRejection(code: 0, message: "timeout", userUID: "user", lastLiceseId: "club",
+                                           sessionID: service.maintenanceSessionID!)
+        expect(auth.isAuthenticated, "维护请求临时失败不撤销会话")
+        try reset()
         print("Session restore checks passed")
     }
 }

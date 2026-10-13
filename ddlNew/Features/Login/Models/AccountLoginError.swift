@@ -42,6 +42,7 @@ nonisolated enum AccountLoginError: LocalizedError {
         case .verificationAttemptsExceeded: return "验证尝试次数过多，请重新登录"
         case .securityVerificationExpired: return "安全码验证已失效，请重新登录"
         case .businessFailure(let code, let message):
+            if let notice = LoginSecurityNotice.businessMessage(code: code, message: message) { return notice }
             switch code {
             case 2036, 40019, 50000, 50001:
                 return "账号或密码错误，请重新输入，错误码：\(code)"

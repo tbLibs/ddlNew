@@ -11,6 +11,7 @@ import TBBasicLib
 /// 独立的登录页面，支持更换俱乐部和打开网页，不依赖旧版页面或会员状态。
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
+    @ObservedObject private var securityNotice = LoginSecurityNoticeStore.shared
     /// 共享登录前连接状态；页面显示不代表 SDK 已完成握手。
     @ObservedObject private var connection = IMConnectionCoordinator.shared
     /// AUTH 与访客连接分开，登录后继续显示 SDK 的重连和认证状态。
@@ -35,6 +36,16 @@ struct LoginView: View {
         ScrollView {
             VStack(spacing: 24) {
                 brandHeader
+                if let message = securityNotice.message {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(message).font(.callout).foregroundStyle(.primary)
+                        Button("知道了") { securityNotice.clear() }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityIdentifier("loginSecurityNotice")
+                }
                 loginForm
                 auxiliaryActions
                 legalEntries

@@ -125,10 +125,11 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
                     result = .failure(.invalidResponse)
                 }
                 Task { @MainActor in waiter.finish(result) }
-            }, onFailure: { code, _, _ in
-                // 安全码失败响应可能携带短期验证凭据，禁止向页面转发原始消息。
+            }, onFailure: { code, message, _ in
+                // 白名单错误仅传递实际 IP；其他响应可能携带短期验证凭据，不转发原始消息。
+                let notice = code == 90018 ? LoginSecurityNotice.whitelistAddress(from: message ?? "") : "安全码验证失败，请重新登录"
                 Task { @MainActor in
-                    waiter.finish(.failure(.businessFailure(code: code, message: "安全码验证失败，请重新登录")))
+                    waiter.finish(.failure(.businessFailure(code: code, message: notice)))
                 }
             })
         }

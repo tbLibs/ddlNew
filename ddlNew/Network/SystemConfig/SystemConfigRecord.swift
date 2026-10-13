@@ -30,7 +30,6 @@ nonisolated struct SystemConfigRecord: Mappable {
     init?(map: Map) {}
 
     mutating func mapping(map: Map) {
-        loginMethod <- map["loginMethod"]
         let stringValue = TransformOf<String, Any>(
             fromJSON: { value in
                 if let text = value as? String { return text }
@@ -38,6 +37,7 @@ nonisolated struct SystemConfigRecord: Mappable {
                 return nil
             }, toJSON: { $0 }
         )
+        loginMethod <- (map["loginMethod"], stringValue)
         registerMethod <- (map["registerMethod"], stringValue)
         tenantCode <- map["tenantCode"]
         // 服务端可能把验证码渠道作为数字或数字字符串返回，缓存时统一写成数字。

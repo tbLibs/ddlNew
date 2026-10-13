@@ -23,6 +23,7 @@ nonisolated struct OSSNavigationRecord: Mappable {
 
     init(lastLiceseId: String, source: DNSHostSource, ossNode: DNSResolvedHost,
          savedAt: Date, body: IMServerListResponseBody,
+         httpNodePreference: OSSLegacyHTTPNodePreference? = nil,
          previous: OSSNavigationRecord? = nil) throws {
         let result = try OSSAuthResponseDecoder.navigation(from: body)
         liceseId = lastLiceseId
@@ -31,6 +32,8 @@ nonisolated struct OSSNavigationRecord: Mappable {
         ipDomainPortStr = previous?.ipDomainPortStr ?? ""
         lastIPDomainPortStr = previous?.lastIPDomainPortStr ?? ""
         ossRacingModel = OSSNetRacingRecord(lastLiceseId: lastLiceseId, body: body, result: result)
+        ossRacingModel.isMergeVersion = httpNodePreference?.enabled ?? false
+        ossRacingModel.pingIntervalSecond = httpNodePreference?.intervalSeconds ?? 0
         navigation = OSSNavigationPayloadRecord(
             source: source,
             ossNode: ossNode,

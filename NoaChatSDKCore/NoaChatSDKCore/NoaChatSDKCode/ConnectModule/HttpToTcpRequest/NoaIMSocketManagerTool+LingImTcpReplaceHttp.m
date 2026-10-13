@@ -6,6 +6,7 @@
 //
 
 #import "NoaIMSocketManagerTool+LingImTcpReplaceHttp.h"
+#import "NoaIMRequestSessionFence.h"
 
 // 长连接工具单例
 #import "NoaIMSocketManager.h"
@@ -185,6 +186,7 @@
 /// 消息调度
 /// - Parameter requestModel: http转tcp请求模型
 - (void)enqueueTcpRequest:(LingIMTcpRequestModel *)requestModel {
+    if (!NoaIMBindRequestToSession(self, requestModel)) return;
     __weak typeof(self) weakSelf = self;
     dispatch_async(self.tcpRequestQueue, ^{
         __strong typeof(weakSelf) self = weakSelf;
@@ -192,6 +194,7 @@
             return;
         }
         
+        if (!NoaIMRequestIsCurrent(self, requestModel)) return;
         BOOL isRefreshTokenRequest = [requestModel.url isEqualToString:Auth_Refresh_Token_Url];
         BOOL transportReady = SOCKETMANAGER.gcdSocket.isConnected && [self isExchangeEcdhKeySuccess];
         BOOL requestChannelReady = isRefreshTokenRequest ? transportReady : [self socketConnectStatus];
@@ -200,7 +203,7 @@
             // 密钥交换不成功也不要发请求，否则会无法解密
             dispatch_async(self.waitSendQueue, ^{
                 __strong typeof(weakSelf) self = weakSelf;
-                if (!self) return;
+                if (!self || !NoaIMRequestIsCurrent(self, requestModel)) return;
             
                 if ([requestModel.url isEqualToString:Auth_Refresh_Token_Url]) {
                     // token要第一条发送
@@ -235,7 +238,7 @@
                 // 如果token过期时，请求的是刷新token，就不要将其添加在缓存中
                 dispatch_async(self.waitSendQueue, ^{
                     __strong typeof(weakSelf) self = weakSelf;
-                    if (!self) return;
+                    if (!self || !NoaIMRequestIsCurrent(self, requestModel)) return;
                     [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，刷新Token中/Token失效，请求进入 pending：%@", requestModel.url]];
                     [self.waitSendRequestModelArr addObject:requestModel];
                 });
@@ -254,6 +257,7 @@
 }
 
 - (void)executeTcpRequest:(LingIMTcpRequestModel *)requestModel {
+    if (!NoaIMRequestIsCurrent(self, requestModel)) return;
     IMMessage *message = requestModel.sendMessage;
     //发送消息
     [SOCKETMANAGER sendSocketMessage:message timeOut:kMessageTimeOut tag:LingIMMessageTag];
@@ -271,10 +275,12 @@
     }
     // 在进入串行队列前先占用刷新状态，防止多个业务请求同时排入重复刷新任务。
     self.isTokenRefreshing = YES;
+    NSUUID *session = NoaIMRequestSession(self);
     __weak typeof(self) weakSelf = self;
     dispatch_async(self.tokenRefreshQueue, ^{
         __strong typeof(weakSelf) self = weakSelf;
         if (!self) return;
+        if (![session isEqual:NoaIMRequestSession(self)]) return;
         [NoaLocalLogger info:@"[短连接转长连接] 当前无请求Token刷新队列，创建"];
         [NoaLocalLogger info:@"[AUTH链路] stage=TOKEN_REFRESH_START"];
         
@@ -319,11 +325,18 @@
     });
     [NoaLocalLogger info:@"[短连接转长连接] socket连接成功、也可能是token刷新成功"];
     for (LingIMTcpRequestModel *requestModel in requestModelArr) {
+        if (!NoaIMRequestIsCurrent(self, requestModel)) continue;
         [NoaLocalLogger info:@"[短连接转长连接] 将requestModel中的token信息进行更新"];
         [requestModel refreshToken];
         [NoaLocalLogger info:@"[短连接转长连接] 重新发送之前所有缓存的requestModel"];
         [self enqueueTcpRequest:requestModel];
     }
+}
+
+/// 先撤销模型归属，已复制出的缓存和已排入串行队列的旧请求也不能再次发送。
+- (void)invalidateSessionRequests {
+    NoaIMInvalidateRequestSession(self);
+    [self releaseAllCacheRequest];
 }
 
 /// 退出账号后，将之前缓存的消息清除
@@ -359,6 +372,7 @@
 /// @param failureCallBack Token 刷新失败回调，返回错误码、错误信息与 traceId。
 - (void)authRefreshTokenExpiredWithSuccessFunc:(LingTcpRequestSuccessCallback)successCallBack
                                    FailureFunc:(LingIMTcpRequestFailureCallback)failureCallBack {
+    NSUUID *session = NoaIMRequestSession(self);
     NSString *token = IMSDKManager.myUserToken;
     NSString *myUserId = IMSDKManager.myUserID;
     if (!token || token.length == 0 || !myUserId || myUserId.length == 0) {
@@ -375,7 +389,7 @@
     
     [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:Auth_Refresh_Token_Url Method:LingRequestPost SuccessFunc:^(id  _Nullable data, NSString * _Nullable traceId) {
         // 退出或切换账号/Token 后，旧刷新回调不能覆盖当前登录信息。
-        if (!SOCKETMANAGER.isCanReconnect || ![IMSDKManager.myUserID isEqualToString:myUserId] ||
+        if (![session isEqual:NoaIMRequestSession(self)] || !SOCKETMANAGER.isCanReconnect || ![IMSDKManager.myUserID isEqualToString:myUserId] ||
             ![IMSDKManager.myUserToken isEqualToString:token]) return;
         NSString *newToken = (NSString *)data;
         if(newToken.length == 0 || newToken == nil) {
@@ -416,7 +430,7 @@
             }
         }
     } FailureFunc:^(NSInteger code, NSString * _Nullable msg, NSString * _Nullable traceId) {
-        if (!SOCKETMANAGER.isCanReconnect || ![IMSDKManager.myUserID isEqualToString:myUserId] ||
+        if (![session isEqual:NoaIMRequestSession(self)] || !SOCKETMANAGER.isCanReconnect || ![IMSDKManager.myUserID isEqualToString:myUserId] ||
             ![IMSDKManager.myUserToken isEqualToString:token]) return;
         [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接]  token更新失败，code = %ld, msg = %@. traceId = %@", code, msg, traceId]];
         if ([self.userDelegate respondsToSelector:@selector(noaSdkRefreshUsetToken: errorMsg:)]) {

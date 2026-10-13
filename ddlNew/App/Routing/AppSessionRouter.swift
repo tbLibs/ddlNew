@@ -31,9 +31,11 @@ enum AppSessionRouter {
     }
 
     /// 旧版页面只传递退出/更换俱乐部意图，实际凭据、数据库与连接由真实会话层清理。
-    static func signOut(changeClub: Bool) throws {
+    static func signOut(changeClub: Bool) async throws {
         do {
-            try LoginSessionService.shared.clearSession()
+            try await LoginSessionService.shared.signOut()
+            // 等待期间若另一会话已建立，旧退出不能再改变新用户的入口。
+            guard UserSessionStore.shared.currentUser == nil else { return }
             if changeClub { try OSSNavigationStore.shared.clearLastUsableEntry() }
         } catch {
             RouterTool.shared.resetTabNavigation()

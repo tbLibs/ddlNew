@@ -223,11 +223,13 @@ final class AccountLoginService: AccountLoginServicing {
                 return response
             } catch {
                 try check(originalContext)
-                guard case let AccountLoginError.businessFailure(code, _) = error else { throw error }
+                guard case let AccountLoginError.businessFailure(code, failureMessage) = error else { throw error }
                 switch code {
                 case 40069, 40070, 40071:
                     message = "安全码不正确，请重新输入六位数字和字母组成的安全码"
                 case 40072, 40073: throw AccountLoginError.securityVerificationExpired
+                case 90018:
+                    throw AccountLoginError.businessFailure(code: code, message: LoginSecurityNotice.whitelistAddress(from: failureMessage))
                 default:
                     // 安全验证响应可能包含临时凭据，页面仅显示固定提示。
                     throw AccountLoginError.businessFailure(code: code, message: "安全码验证失败，请重新登录")

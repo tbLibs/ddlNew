@@ -22,6 +22,11 @@ nonisolated enum UserSessionError: LocalizedError {
         }
     }
 
+    var isAuthenticationRejected: Bool {
+        if case .authenticationRejected = self { return true }
+        return false
+    }
+
     var errorDescription: String? {
         switch self {
         case .invalidData: return "用户会话数据不完整，请重新登录"
@@ -29,7 +34,7 @@ nonisolated enum UserSessionError: LocalizedError {
         case .databaseNotReady: return "用户数据库初始化失败，请重新登录"
         case .authenticationTimedOut: return "TCP 用户认证超时，请检查网络后重新登录"
         case .authenticationRejected(let code, let message):
-            return message.isEmpty ? "用户认证失效，请重新登录（\(code)）" : "\(message)（\(code)）"
+            return LoginSecurityNotice.sessionMessage(code: code, message: message)
         }
     }
 }

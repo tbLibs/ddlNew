@@ -9,6 +9,8 @@ import Foundation
 
 /// 业务服务端的接口路径，DNS 服务地址仍由各自的 Moya 目标管理。
 enum NetworkPath {
+    /// 旧导航 HTTP 节点择优使用真实 GET 请求测量 RTT。
+    static let httpNodePreference = "/zlcpig"
     /// 获取未登录系统配置。
     static let systemConfig = "/biz/system/v2/getSystemConfig"
     /// 获取本次密码登录使用的加密密钥，不提交账号信息。

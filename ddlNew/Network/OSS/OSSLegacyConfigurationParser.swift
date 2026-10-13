@@ -12,6 +12,13 @@ nonisolated struct OSSLegacyConfiguration: Sendable {
     let version: String
     let http: [OSSLegacyEndpoint]
     let tcp: [OSSLegacyEndpoint]
+    let httpNodePreference: OSSLegacyHTTPNodePreference
+}
+
+/// 旧导航 HTTP 择优开关与周期独立于新版 TCP enable_network_detect。
+nonisolated struct OSSLegacyHTTPNodePreference: Equatable, Sendable {
+    let enabled: Bool
+    let intervalSeconds: Int
 }
 
 enum OSSLegacyConfigurationError: Error {
@@ -75,7 +82,15 @@ nonisolated enum OSSLegacyConfigurationParser {
         let http = try nodes("http")
         let tcp = try nodes("tcp")
         guard !http.isEmpty, !tcp.isEmpty else { throw OSSLegacyConfigurationError.missingEndpoints }
-        return OSSLegacyConfiguration(version: root["version"] as? String ?? "", http: http, tcp: tcp)
+        let enabled: Bool
+        if let value = root["is_merge_version"] as? NSNumber { enabled = value.boolValue }
+        else if let value = root["is_merge_version"] as? String {
+            enabled = ["true", "1"].contains(value.lowercased())
+        } else { enabled = false }
+        let interval = (root["ping_interval_second"] as? NSNumber)?.intValue
+            ?? (root["ping_interval_second"] as? String).flatMap(Int.init) ?? 0
+        return OSSLegacyConfiguration(version: root["version"] as? String ?? "", http: http, tcp: tcp,
+            httpNodePreference: OSSLegacyHTTPNodePreference(enabled: enabled, intervalSeconds: interval))
     }
 
     static func endpoint(_ address: String, defaultPort: Int, http: Bool = false) -> OSSLegacyEndpoint? {

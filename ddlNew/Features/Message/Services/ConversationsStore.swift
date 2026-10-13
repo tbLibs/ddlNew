@@ -25,6 +25,8 @@ final class ConversationsStore: ObservableObject {
     /// 合并同一轮内的多次 SDK 事件；读取期间又有变化时再补读一次。
     private var reloadTask: Task<Void, Never>?
     private var reloadRequested = false
+    private var allConversations: [ConversationRecord] = []
+    private var fileAssistantVisible = false
 
     init(client: any ConversationsClient) { self.client = client }
 
@@ -67,9 +69,8 @@ final class ConversationsStore: ObservableObject {
                     let records = try await self.client.loadConversations(for: userUID)
                     let snapshot = await Task.detached { ConversationSorter.sorted(records) }.value
                     guard !Task.isCancelled, self.generation == runID else { return }
-                    self.conversations = snapshot
-                    // 仅统计已展示的已知类型会话；SDK 原始总未读还可能包含隐藏或未知类型。
-                    self.totalUnreadCount = ConversationUnread.total(snapshot)
+                    self.allConversations = snapshot
+                    self.publishVisibleConversations()
                     self.cacheError = nil
                 } catch {
                     guard !Task.isCancelled, self.generation == runID else { return }
@@ -95,6 +96,18 @@ final class ConversationsStore: ObservableObject {
         }
     }
 
+    /// 旧端文件助手是单聊系统账号 100002；权限更新只重算展示，保留 SDK 缓存。
+    func setFileAssistantVisible(_ visible: Bool) {
+        fileAssistantVisible = visible
+        publishVisibleConversations()
+    }
+
+    private func publishVisibleConversations() {
+        conversations = allConversations.filter { fileAssistantVisible || $0.kind != .single || $0.id != "100002" }
+        // 角标与实际可见列表保持一致，权限关闭不能残留隐藏会话未读数。
+        totalUnreadCount = ConversationUnread.total(conversations)
+    }
+
     private func updateError() { errorMessage = syncError ?? cacheError }
 
     func reset() {
@@ -104,6 +117,8 @@ final class ConversationsStore: ObservableObject {
         reloadRequested = false
         client.stopObserving()
         userUID = nil
+        allConversations = []
+        fileAssistantVisible = false
         conversations = []
         totalUnreadCount = 0
         isSyncing = false

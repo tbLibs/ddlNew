@@ -250,6 +250,17 @@ enum CheckFailure: Error { case assertion(String) }
                 do { try await f.login(); throw CheckFailure.assertion("Stale safe response accepted") }
                 catch AccountLoginError.connectionChanged {}
             }),
+            ("security login preserves actual whitelist IP in failure", {
+                let f = LoginFixture()
+                f.driver.submitFailures = [.businessFailure(code: 10009, message: "fixture-scKey")]
+                f.driver.safeFailures = [.businessFailure(code: 90018, message: "203.0.113.42")]
+                f.presenter.answers = [LoginVerificationAnswer(securityCode: "safe01")]
+                do { try await f.login(); throw CheckFailure.assertion("Whitelist rejection accepted") }
+                catch let AccountLoginError.businessFailure(code, message) {
+                    try require(code == 90018, "Whitelist code changed")
+                    try require(message == "203.0.113.42", "Actual whitelist IP was discarded")
+                }
+            }),
             ("security retry limit prevents endless challenge loop", {
                 let f = LoginFixture()
                 f.driver.submitFailures = [.businessFailure(code: 10009, message: "secret-key")]

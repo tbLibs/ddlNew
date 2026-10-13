@@ -47,4 +47,13 @@ nonisolated struct UserInfo: Mappable, Sendable {
         showOfflineStatus <- map["showOfflineStatus"]
         hasSecurityCode <- map["hasSecurityCode"]
     }
+    /// 资料刷新允许部分响应，所属 UID 不一致时拒绝写入。
+    func applyingProfile(_ fields: [String: Any], expectedUID: String) -> Self? {
+        guard userUID == expectedUID,
+              fields["userUID"] == nil || fields["userUID"] as? String == expectedUID else { return nil }
+        let merged = toJSON().merging(fields) { _, value in value }
+        guard let result = Mapper<Self>().map(JSON: merged), result.userUID == expectedUID else { return nil }
+        return result
+    }
+
 }

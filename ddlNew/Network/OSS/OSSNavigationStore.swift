@@ -80,6 +80,7 @@ final class OSSNavigationStore {
             ossNode: winner.node,
             savedAt: savedAt,
             body: body,
+            httpNodePreference: winner.navigation.httpNodePreference,
             previous: previousRecord
         )
         let mapper = Mapper<OSSNavigationRecord>()

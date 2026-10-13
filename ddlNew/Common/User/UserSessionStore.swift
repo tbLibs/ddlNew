@@ -97,6 +97,20 @@ final class UserSessionStore: ObservableObject {
         try credentials.save(record.replacingToken(token))
     }
 
+    /// 资料接口可能只返回部分字段；合并资料而不改写 Token 或设备凭据。
+    func updateProfile(_ fields: [String: Any], userUID: String, lastLiceseId: String) throws {
+        guard let user = currentUser, user.userUID == userUID,
+              let record = try credentials.load(), record.userUID == userUID,
+              record.lastLiceseId == lastLiceseId,
+              fields["userUID"] == nil || fields["userUID"] as? String == userUID else {
+            throw UserSessionError.invalidData
+        }
+        guard let updated = user.applyingProfile(fields, expectedUID: userUID),
+              let json = Mapper<UserInfo>().toJSONString(updated) else { throw UserSessionError.invalidData }
+        userInfoJSON = json
+        currentUser = updated
+    }
+
     func clear() throws {
         // 即使 Keychain 删除失败，也先撤销内存和资料缓存，不能继续显示已登录。
         currentUser = nil

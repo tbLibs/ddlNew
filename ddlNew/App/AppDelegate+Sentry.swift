@@ -23,7 +23,6 @@ extension AppDelegate {
 
             options.tracesSampleRate = 1.0
         }
-        SentrySDK.logger.info("test ddlnew111")
     }
     
 }

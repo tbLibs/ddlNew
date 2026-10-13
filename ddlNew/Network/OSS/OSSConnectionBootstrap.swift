@@ -50,6 +50,8 @@ final class OSSConnectionBootstrap: ObservableObject {
 
     /// 当前邀请码的待连接方案；切换邀请码时清空，最新导航缓存仍保留。
     @Published private(set) var current: OSSConnectionPlan?
+    /// Host 每次准备、切换或清除都推进版本，防止 A→B→A 后旧测速轮次误判为仍有效。
+    private(set) var httpHostRevision: UInt64 = 0
 
     private init() {}
 
@@ -92,11 +94,14 @@ final class OSSConnectionBootstrap: ObservableObject {
         )
         // 对齐旧项目的 CONNECT_LOCAL_CACHE：固定 key 保存最新已选 API Host。
         OSSSelectedHTTPHostStorage().value = apiHost.absoluteString
+        httpHostRevision += 1
         current = plan
         return plan
     }
 
     func clearCurrent() {
+        guard current != nil else { return }
+        httpHostRevision += 1
         current = nil
     }
 
@@ -104,6 +109,7 @@ final class OSSConnectionBootstrap: ObservableObject {
     func updateHTTPHost(_ address: String) {
         guard let plan = current, let apiHost = Self.httpsURL(from: address) else { return }
         guard plan.apiHost != apiHost else { return }
+        httpHostRevision += 1
         current = OSSConnectionPlan(
             lastLiceseId: plan.lastLiceseId,
             apiHost: apiHost,

@@ -53,6 +53,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// 退出账号后，将之前缓存的消息清除
 - (void)releaseAllCacheRequest;
 
+/// 明确退出/切换身份时撤销全部旧请求归属，再清理待发送队列。
+- (void)invalidateSessionRequests;
+
 /// 刷新token
 - (void)authRefreshTokenExpiredWithSuccessFunc:(nullable LingTcpRequestSuccessCallback)successCallBack
                                    FailureFunc:(nullable LingIMTcpRequestFailureCallback)failureCallBack;
