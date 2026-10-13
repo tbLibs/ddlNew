@@ -19,7 +19,7 @@ struct ContactRecordAvatar: View {
         let currentHost = connection.current?.getFileHost ?? fileHost
         KFImage(contact.avatarURL(relativeTo: currentHost))
             .downloader(NetworkImageDownloader.downloader(for: currentHost))
-            .downsampling(size: CGSize(width: size, height: size))
+            .setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: size, height: size)))
             .cacheOriginalImage()
             .cancelOnDisappear(true)
             .placeholder {

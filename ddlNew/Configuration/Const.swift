@@ -29,6 +29,8 @@ let businessDeviceUUIDAppStorageKey = "ddlNew.businessDeviceUUID.v1"
 /// 最新用户资料的固定 key；不保存 token、deviceSecret 或密码。
 let userInfoAppStorageKey = "ddlNew.userInfo.v1"
 let userRoleAuthorityAppStorageKey = "ddlNew.userRoleAuthority.v1"
+/// 好友申请本机隐藏与已读状态按用户、邀请码隔离保存。
+let contactsApplicationStateKey = "ddlNew.contacts.applicationState.v1"
 
 /// 当前会话凭据的 Keychain 标识，不拼接邀请码。
 let userCredentialKeychainService = "ddlNew.userSession"

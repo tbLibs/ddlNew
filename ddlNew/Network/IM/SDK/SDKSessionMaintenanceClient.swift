@@ -13,6 +13,7 @@ import NoaChatCore
 final class SDKSessionMaintenanceClient {
     private var sdk: NoaIMSDKManager { NoaIMSDKManager.sharedTool() }
 
+    /// 启动和登录后维护都用 SDK 配置通道；结果仅作为内存快照交给调用方映射。
     func configuration(host: URL, loggedIn: Bool, onRejected: @escaping @MainActor (Int, String) -> Void = { _, _ in }) async throws -> String {
         try await dictionary(onRejected: onRejected) { success, failure in
             self.sdk.appGetSystemConfigInfo(withBaseUrl: host.absoluteString,

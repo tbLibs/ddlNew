@@ -18,6 +18,7 @@ final class SDKContactsClient: ContactsClient {
     private var generation = UUID()
     private var remarkRequests = ContactRequestVersions()
 
+    /// AUTH前注册好友同步代理，旧会话事件由客户端轮次隔离。
     func observe(_ onChange: @escaping @MainActor (ContactsChange) -> Void) {
         stopObserving()
         let runID = generation
@@ -35,13 +36,16 @@ final class SDKContactsClient: ContactsClient {
         sdk.addUserDelegate(delegate)
     }
 
+    /// 结束旧会话观察，同时撤销跨客户端的资料写入版本。
     func stopObserving() {
         generation = UUID()
         remarkRequests = ContactRequestVersions()
+        ContactProfileRequestGate.shared.reset()
         if let delegate { sdk.removeUserDelegate(delegate) }
         delegate = nil
     }
 
+    /// 在SDK数据库共用锁内映射真实好友及角色字段。
     func loadContacts(for userUID: String) async throws -> [ContactRecord] {
         try await Task.detached {
             let sdk = NoaIMSDKManager.sharedTool()
@@ -56,7 +60,7 @@ final class SDKContactsClient: ContactsClient {
                               nickname: friend.nickname ?? "", remarks: friend.remarks ?? "",
                               description: friend.descRemark ?? "", avatar: friend.avatar ?? "",
                               isOnline: friend.onlineStatus, disableStatus: friend.disableStatus, userType: friend.userType,
-                              nicknamePinyin: friend.nicknamePinyin ?? "", remarksPinyin: friend.remarksPinyin ?? "")
+                              nicknamePinyin: friend.nicknamePinyin ?? "", remarksPinyin: friend.remarksPinyin ?? "", roleID: friend.roleId)
             }
         }.value
     }
@@ -67,13 +71,19 @@ final class SDKContactsClient: ContactsClient {
         let userUID = sdk.myUserID()
         guard !friendUID.isEmpty, !userUID.isEmpty else { return }
         let version = remarkRequests.begin(for: friendUID)
+        let license = OSSNavigationStore.shared.lastUsableLiceseId() ?? ""
+        let profileVersion = ContactProfileRequestGate.shared.begin(userUID: userUID, license: license, friendUID: friendUID)
         let params: NSMutableDictionary = ["userUid": userUID, "friendUserUid": friendUID]
         sdk.getFriendInfo(with: params, onSuccess: { @Sendable [weak self] data, _ in
             let payload = (data as? [String: Any]).flatMap { Mapper<ContactProfilePayload>().map(JSON: $0) }
             Task { @MainActor [weak self] in
                 guard let self, self.generation == runID,
-                      self.remarkRequests.accepts(version, for: friendUID) else { return }
-                defer { self.remarkRequests.finish(version, for: friendUID) }
+                      self.remarkRequests.accepts(version, for: friendUID),
+                      ContactProfileRequestGate.shared.accepts(profileVersion, userUID: userUID, license: license, friendUID: friendUID) else { return }
+                defer {
+                    self.remarkRequests.finish(version, for: friendUID)
+                    ContactProfileRequestGate.shared.finish(profileVersion, userUID: userUID, license: license, friendUID: friendUID)
+                }
                 guard let payload else {
                     onChange(.syncFailed("好友资料响应格式错误，请稍后重试"))
                     return
@@ -81,7 +91,8 @@ final class SDKContactsClient: ContactsClient {
                 let sdk = self.sdk
                 objc_sync_enter(sdk)
                 defer { objc_sync_exit(sdk) }
-                guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady(),
+                guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady(), OSSNavigationStore.shared.lastUsableLiceseId() == license,
+                      ContactProfileRequestGate.shared.accepts(profileVersion, userUID: userUID, license: license, friendUID: friendUID),
                       let friend = sdk.toolCheckMyFriend(with: friendUID) else { return }
                 if let value = payload.nickname {
                     friend.nickname = value
@@ -103,7 +114,9 @@ final class SDKContactsClient: ContactsClient {
         }, onFailure: { @Sendable [weak self] _, message, _ in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == runID, self.sdk.myUserID() == userUID,
-                      self.remarkRequests.accepts(version, for: friendUID) else { return }
+                      self.remarkRequests.accepts(version, for: friendUID),
+                      ContactProfileRequestGate.shared.accepts(profileVersion, userUID: userUID, license: license, friendUID: friendUID) else { return }
+                ContactProfileRequestGate.shared.finish(profileVersion, userUID: userUID, license: license, friendUID: friendUID)
                 self.remarkRequests.finish(version, for: friendUID)
                 onChange(.syncFailed(message ?? "好友备注更新失败，请稍后重试"))
             }

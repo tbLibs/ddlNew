@@ -10,5 +10,6 @@ xcrun swiftc -swift-version 5 -parse-as-library \
   "$repo_root/ddlNew/Common/User/UserSessionError.swift" \
   "$repo_root/ddlNew/Features/Login/Models/LoginSecurityNotice.swift" \
   "$repo_root/ddlNew/App/Startup/AppStartupCoordinator.swift" \
+  "$repo_root/Tests/SessionRestore/SessionBusinessStubs.swift" \
   "$repo_root/Tests/SessionRestore/SessionRestoreChecks.swift" -o "$test_dir/checks"
 "$test_dir/checks"

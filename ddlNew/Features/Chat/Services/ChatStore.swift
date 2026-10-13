@@ -1,0 +1,372 @@
+//
+//  ChatStore.swift
+//  ddlNew
+//
+//  Created by taobo on 2026/10/13.
+//
+
+import Foundation
+import Combine
+
+/// 聊天状态只拥有当前会话快照，SDK承担落库、网络重试和最终ACK。
+@MainActor final class ChatStore: ObservableObject {
+    @Published var input = ""
+    @Published private(set) var messages: [ChatMessageRecord] = []
+    @Published private(set) var permission = ChatPermission(canSend: false)
+    @Published private(set) var isLoading = false
+    @Published private(set) var hasMore = true
+    @Published var errorMessage: String?
+    @Published var reference: ChatMessageRecord?
+    @Published private(set) var mentions: [ChatMentionSegment] = []
+    private var previousInput = ""
+    @Published private(set) var selectedIDs: Set<String> = []
+    @Published private(set) var busyIDs: Set<String> = []
+    @Published private(set) var unreadArrivals = 0
+    @Published private(set) var locatedMessageID: String?
+    var isAtBottom = true
+    var isForeground = true
+    var isVisible = true
+    /// 运行时接收原消息失效，状态层不直接依赖播放器或下载实现。
+    var onMessageUnavailable: (@MainActor (ChatMessageRecord?, ChatContext) -> Void)?
+    private var visibleIDs: Set<String> = []
+    private var queuedReads: [String: ChatMessageRecord] = [:]
+    private var readFlushTask: Task<Void, Never>?
+    private(set) var context: ChatContext?
+    private let client: any ChatClient
+    private var generation = UUID()
+    private var records: [ChatMessageRecord] = []
+    private var eventRevision = 0
+    private var clearRevision = UUID()
+    private var changedIDs: [String: Int] = [:]
+    private var offset = 0
+    private var lastSend: Date?
+    private var readIDs: Set<String> = []
+    private var pendingReadIDs: Set<String> = []
+
+    /// 测试注入可暂停客户端，生产注入真实SDK。
+    init(client: any ChatClient) { self.client = client }
+
+    /// 订阅先于缓存与补页，避免首屏读取期间漏掉实时消息。
+    func open(_ context: ChatContext) async {
+        if self.context == context { isForeground = true; return }
+        close()
+        self.context = context
+        let run = generation
+        client.observe(context: context) { [weak self] event in
+            guard let self, self.generation == run, self.context == context else { return }
+            self.receive(event)
+        }
+        do {
+            merge(try client.cached(context: context, offset: 0), history: true)
+            permission = try client.permissions(context: context)
+            let draft = try client.draft(context: context)
+            input = draft.text; previousInput = input; mentions = draft.mentions
+            if !draft.referenceID.isEmpty { reference = messages.first { $0.serverID == draft.referenceID } ?? ChatMessageRecord(localID: "reference:" + draft.referenceID, serverID: draft.referenceID, conversationID: context.route.id, senderID: "", senderName: "", text: "引用原文尚未加载，点击定位", timestamp: 0, state: .sent) }
+        } catch { errorMessage = error.localizedDescription }
+        await loadPage(before: nil)
+        if let target = context.route.targetMessageID { await locate(target) }
+    }
+
+    /// 固定游标取更旧100条；请求失败保留现有快照与重试入口。
+    func loadMore() async {
+        guard hasMore else { return }
+        await loadPage(before: messages.first(where: { !$0.serverID.isEmpty })?.serverID)
+    }
+
+    /// 合并远程补页而非覆盖实时消息；轮次改变后不发布任何结果。
+    private func loadPage(before: String?) async {
+        guard let context, !isLoading else { return }
+        let run = generation
+        let beganAt = eventRevision
+        let clearAtStart = clearRevision
+        isLoading = true
+        defer { if generation == run { isLoading = false } }
+        do {
+            let page = try await client.history(context: context, before: before, offset: before == nil ? 0 : offset)
+            guard !Task.isCancelled, generation == run, self.context == context, clearRevision == clearAtStart else { return }
+            for message in page.messages {
+                let changedAfterRequest = (changedIDs[message.localID] ?? 0) > beganAt || (changedIDs[message.serverID] ?? 0) > beganAt
+                merge([message], history: changedAfterRequest)
+            }
+            offset = messages.count
+            hasMore = page.hasMore
+        } catch {
+            guard generation == run, !Task.isCancelled else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 提交前复核权限；原文入SDK队列后清输入，失败记录保留可重发内容。
+    func sendText() {
+        guard let context, !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        do {
+            try checkSend(context)
+            reconcileMentions()
+            var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id,
+                senderID: context.userUID, senderName: "我", text: input,
+                timestamp: Int64(Date().timeIntervalSince1970 * 1000), referenceID: reference?.serverID ?? "")
+            if !mentions.isEmpty { record.type = 10; record.mentions = mentions }
+            record = try client.prepareMessage(record, context: context)
+            try client.send(record, context: context)
+            merge([record])
+            input = ""; previousInput = ""; mentions = []; reference = nil; lastSend = Date(); persistDraft()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    /// 复核实时群权限和普通成员频控，管理者不受发送间隔限制。
+    private func checkSend(_ context: ChatContext, messageType: Int? = nil) throws {
+        permission = try client.permissions(context: context)
+        guard permission.isActive, permission.canSend else { throw ChatClientError.permission(permission.reason.isEmpty ? "当前会话暂不能发送消息" : permission.reason) }
+        if let messageType, [1, 2, 5].contains(messageType), !(messageType == 5 ? permission.canUploadFile : permission.canUpload) { throw ChatClientError.permission("当前账号不允许上传此附件") }
+        if context.route.kind == .group, permission.role == 0, let lastSend,
+           Date().timeIntervalSince(lastSend) < permission.sendInterval { throw ChatClientError.permission("发送过于频繁，请稍后重试") }
+    }
+
+    /// 已上传附件再入SDK消息队列，提交时重新校验实时禁言和频控。
+    func sendAttachment(_ message: ChatMessageRecord) throws {
+        guard let context, message.conversationID == context.route.id, message.senderID == context.userUID else { throw ChatClientError.sessionExpired }
+        try checkSend(context, messageType: message.type)
+        try client.send(message, context: context)
+        merge([message]); lastSend = Date()
+    }
+
+    /// 人工重发复用原本地ID；成功消息和发送中消息不重复入队。
+    func retry(_ id: String) {
+        guard let context, let index = messages.firstIndex(where: { $0.id == id }), messages[index].state == .failed else { return }
+        do {
+            try checkSend(context, messageType: messages[index].type)
+            var message = messages[index]
+            message.state = .sending; message.failure = nil
+            message.timestamp = Int64(Date().timeIntervalSince1970 * 1000)
+            try client.send(message, context: context)
+            merge([message]); lastSend = Date()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    /// 可见收到正文才已读；语音必须已经开始播放，后台与离页不触发。
+    func markVisible(_ id: String, voicePlayed: Bool = false) async {
+        guard isForeground, (isVisible || voicePlayed), let context,
+              let item = messages.first(where: { $0.id == id }), item.senderID != context.userUID,
+              item.isBody, !item.isRead, !item.serverID.isEmpty,
+              (item.type != 4 || voicePlayed), !readIDs.contains(item.serverID), !pendingReadIDs.contains(item.serverID) else { return }
+        if voicePlayed {
+            let run = generation; pendingReadIDs.insert(item.serverID)
+            do {
+                try await client.read([item], context: context)
+                guard generation == run else { return }
+                readIDs.insert(item.serverID)
+                if var changed = messages.first(where: { $0.id == id }) { changed.isRead = true; merge([changed]) }
+            } catch { if generation == run { errorMessage = error.localizedDescription } }
+            if generation == run { pendingReadIDs.remove(item.serverID) }
+        } else {
+            queuedReads[item.serverID] = item
+            if readFlushTask == nil {
+                let run = generation
+                readFlushTask = Task { [weak self] in
+                    do { try await Task.sleep(nanoseconds: 2_000_000_000) } catch { return }
+                    guard let self, self.generation == run else { return }
+                    self.readFlushTask = nil; await self.flushVisibleReads()
+                }
+            }
+        }
+    }
+
+    /// 视口变化同步当前可见ID，离开视口的正文在批处理时不会误上报。
+    func setVisibleMessageIDs(_ ids: Set<String>) { visibleIDs = ids }
+
+    /// 两秒内的可见正文合为一个SDK已读消息，前后台和取消仍核对所有权。
+    func flushVisibleReads() async {
+        guard isForeground, isVisible, let context else { queuedReads.removeAll(); return }
+        let run = generation
+        let values = queuedReads.values.filter { visibleIDs.contains($0.id) && !readIDs.contains($0.serverID) && !pendingReadIDs.contains($0.serverID) }
+        queuedReads.removeAll()
+        guard !values.isEmpty else { return }
+        pendingReadIDs.formUnion(values.map(\.serverID))
+        do {
+            try await client.read(Array(values), context: context)
+            guard generation == run else { return }
+            readIDs.formUnion(values.map(\.serverID))
+            for var value in values { value.isRead = true; merge([value]) }
+        } catch { if generation == run { errorMessage = error.localizedDescription } }
+        if generation == run { pendingReadIDs.subtract(values.map(\.serverID)) }
+    }
+
+    /// 引用摘要即时读取原记录，原文编辑、撤回和删除不显示旧副本。
+    func referenceSummary(_ serverID: String) -> String {
+        guard let original = records.first(where: { $0.serverID == serverID }) else { return "引用原文尚未加载，点击定位" }
+        if original.status == .deleted { return "原消息已删除" }
+        return original.senderName + ": " + original.displayText
+    }
+
+    /// 附件详情重试前读取真实墓碑，不能因气泡隐藏后又下载被删原条。
+    func isMessageDeleted(_ message: ChatMessageRecord) -> Bool { records.contains { $0.status != .normal && (!$0.localID.isEmpty && $0.localID == message.localID || !$0.serverID.isEmpty && $0.serverID == message.serverID) } }
+
+    /// 管理删除成员消息后保留墓碑，迟到历史不能复活被删正文。
+    func removeSenderMessages(_ ids: Set<String>) {
+        clearRevision = UUID()
+        eventRevision += 1
+        let removed = records.filter { ids.contains($0.senderID) }.map { record -> ChatMessageRecord in var value = record; value.status = .deleted; return value }
+        merge(removed)
+        selectedIDs = selectedIDs.intersection(messages.map(\.id))
+        queuedReads = queuedReads.filter { !ids.contains($0.value.senderID) }
+    }
+
+    /// 选择只保留允许类型，最多100条稳定ID。
+    func toggleSelection(_ id: String) {
+        if selectedIDs.contains(id) { selectedIDs.remove(id); return }
+        guard let context, let item = messages.first(where: { $0.id == id }),
+              ChatActionPolicy.allowed(for: item, userUID: context.userUID, permission: permission).contains(.select) else { return }
+        guard selectedIDs.count < 100 else { errorMessage = "一次最多选择100条消息"; return }
+        selectedIDs.insert(id)
+    }
+
+    /// 取消多选保留编辑中的正文与引用。
+    func cancelSelection() { selectedIDs.removeAll() }
+
+    /// 长按操作提交前重新校验权限，服务端成功后才改本地消息范围。
+    @discardableResult func perform(_ action: ChatMessageAction, id: String) async -> Bool {
+        guard let context, !busyIDs.contains(id), let item = messages.first(where: { $0.id == id }) else { return false }
+        let run = generation
+        defer { if generation == run { busyIDs.remove(id) } }
+        do {
+            permission = try client.permissions(context: context)
+            guard ChatActionPolicy.allowed(for: item, userUID: context.userUID, permission: permission).contains(action) else { throw ChatClientError.permission("当前消息已不允许此操作") }
+            busyIDs.insert(id)
+            try await client.perform(action, message: item, context: context)
+            guard generation == run, !Task.isCancelled else { return false }
+            if action == .delete || action == .deleteBoth { var deleted = item; deleted.status = .deleted; merge([deleted]); selectedIDs.remove(id) }
+            if action == .recall { var recalled = item; recalled.status = .recalled; merge([recalled]) }
+            return true
+        } catch { if generation == run { errorMessage = error.localizedDescription }; return false }
+    }
+
+    /// 多选逐条真实提交并保留失败选择，未确认项不能当作批量成功。
+    func deleteSelected(both: Bool) async {
+        guard let context else { return }
+        let ids = messages.filter { selectedIDs.contains($0.id) }.map(\.id)
+        var failures: [String] = []; var successCount = 0
+        for (index, id) in ids.enumerated() {
+            guard self.context == context, !Task.isCancelled else { return }
+            if await perform(both ? .deleteBoth : .delete, id: id) { successCount += 1 }
+            else { failures.append("第\(index + 1)条：" + (errorMessage ?? "未获得删除确认")) }
+        }
+        guard self.context == context else { return }
+        errorMessage = failures.isEmpty ? nil : "已确认删除\(successCount)条，\(failures.count)条未删除\n" + failures.joined(separator: "\n")
+    }
+
+    /// ACK必须含服务端ID，成功后迟到失败不再改变气泡。
+    private func receive(_ event: ChatEvent) {
+        switch event {
+        case .upsert(let item):
+            eventRevision += 1; changedIDs[item.localID] = eventRevision; changedIDs[item.serverID] = eventRevision
+            guard item.conversationID == context?.route.id else { return }
+            let isNew = !messages.contains { $0.localID == item.localID || (!item.serverID.isEmpty && $0.serverID == item.serverID) }
+            merge([item])
+            if isNew && !isAtBottom { unreadArrivals += 1 }
+            selectedIDs = selectedIDs.intersection(messages.filter { $0.state == .sent && $0.isBody }.map(\.id))
+        case .ack(let localID, let serverID, let timestamp):
+            guard !serverID.isEmpty, var item = messages.first(where: { $0.localID == localID }) else { return }
+            item.serverID = serverID; item.state = .sent; item.failure = nil
+            if timestamp > 0 { item.timestamp = timestamp }
+            eventRevision += 1; changedIDs[localID] = eventRevision; changedIDs[serverID] = eventRevision
+            merge([item], ack: true)
+        case .failed(let localID, let reason):
+            guard let index = messages.firstIndex(where: { $0.localID == localID }), messages[index].state != .sent else { return }
+            var failed = messages[index]; failed.state = .failed; failed.failure = reason; merge([failed])
+        case .cleared:
+            if let context { onMessageUnavailable?(nil, context) }
+            clearRevision = UUID(); hasMore = false; records.removeAll(); messages.removeAll(); selectedIDs.removeAll(); offset = 0
+        case .memberHistoryDeleted(let ids): removeSenderMessages(Set(ids))
+        case .memberMetadataChanged(let members):
+            remapSenders(members)
+        case .memberMetadataRefresh: break
+        case .permissionsChanged:
+            if let context { do { permission = try client.permissions(context: context) } catch { permission.canSend = false } }
+        case .refresh:
+            if let context { do { merge(try client.cached(context: context, offset: 0), history: true) } catch { errorMessage = error.localizedDescription } }
+        }
+    }
+
+    /// 外部群资料刷新按当前完整上下文更新作者元数据，禁止串群串账号。
+    func applyMemberMetadata(_ members: [ChatGroupMember], context: ChatContext) { if self.context == context { remapSenders(members) } }
+
+    /// 成员昵称与角色刷新仅替换作者展示，不回退正文、ACK、引用和删除墓碑。
+    private func remapSenders(_ members: [ChatGroupMember]) {
+        let mapping = Dictionary(members.map { ($0.id, $0) }, uniquingKeysWith: { _, newest in newest })
+        records = records.map { item in
+            guard let member = mapping[item.senderID] else { return item }
+            var result = item; result.senderName = member.name; result.avatarURL = member.isDeleted ? "" : member.avatar; result.senderRole = member.role
+            return result
+        }
+        messages = records.filter { $0.status != .deleted }
+        if let reference, let current = records.first(where: { $0.serverID == reference.serverID }) { self.reference = current }
+    }
+
+    /// 编辑或转发回执只合并属于当前会话且登录上下文仍相同的消息。
+    func applyOperationMessages(_ incoming: [ChatMessageRecord], context: ChatContext) {
+        guard self.context == context else { return }
+        for item in incoming where item.conversationID == context.route.id {
+            eventRevision += 1; changedIDs[item.localID] = eventRevision; changedIDs[item.serverID] = eventRevision
+            merge([item])
+        }
+    }
+
+    /// 用户编辑和离页时保存SDK草稿，保留失败发送之外的新输入。
+    func persistDraft() {
+        guard let context else { return }
+        do { try client.saveDraft(ChatDraft(text: input, referenceID: reference?.serverID ?? "", mentions: mentions), context: context) }
+        catch { errorMessage = error.localizedDescription }
+    }
+
+    /// 从成员选择追加完整片段，重名依然持有对应UID。
+    func insertMention(_ member: ChatGroupMember) {
+        guard permission.canSend, !(permission.role == 0 && permission.isPrivateChat), !member.isDeleted else { return }
+        let display = "@" + member.name + " "
+        let start = (input as NSString).length
+        mentions.append(ChatMentionSegment(id: UUID(), userUID: member.id, name: member.name, location: start, length: (display as NSString).length))
+        input += display; previousInput = input; persistDraft()
+    }
+
+    /// 文本编辑更新片段范围，局部删@时自动去掉完整片段。
+    func reconcileMentions() {
+        guard previousInput != input else { return }
+        let result = ChatMentionEngine.editing(old: previousInput, new: input, segments: mentions)
+        mentions = result.1; previousInput = result.0
+        if input != result.0 { input = result.0 }
+    }
+
+    /// 隐藏删除消息但保留墓碑，迟到历史不能把原文重新插入。
+    private func merge(_ incoming: [ChatMessageRecord], history: Bool = false, ack: Bool = false) {
+        records = ChatMessageMerge.merge(records, with: incoming, history: history, ack: ack)
+        messages = records.filter { $0.status != .deleted }
+        if let context { for item in records where item.status != .normal { onMessageUnavailable?(item, context) } }
+        if let reference, let refreshed = records.first(where: { $0.serverID == reference.serverID }) { self.reference = refreshed }
+    }
+
+    /// 按双ID定位搜索命中；每次补页仍验证当前登录轮次和游标进展。
+    func locate(_ target: String) async {
+        let run = generation
+        while generation == run {
+            if let item = messages.first(where: { $0.localID == target || $0.serverID == target }) { locatedMessageID = item.id; return }
+            guard hasMore, !isLoading else { break }
+            let previous = messages.first?.id
+            await loadMore()
+            guard messages.first?.id != previous else { break }
+        }
+        if generation == run { errorMessage = "当前历史中未找到这条消息，可能已删除或不可访问" }
+    }
+
+    /// 用户点新消息提示时只更新浏览状态，由页面滚动到实际最新ID。
+    func returnToLatest() { isAtBottom = true; unreadArrivals = 0 }
+
+    /// 退出同时释放代理和身份，所有旧轮次异步结果失效。
+    func close() {
+        persistDraft()
+        readFlushTask?.cancel(); readFlushTask = nil; queuedReads.removeAll(); visibleIDs.removeAll()
+        generation = UUID(); client.stop(); context = nil
+        records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
+        readIDs.removeAll(); pendingReadIDs.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
+        isLoading = false; hasMore = true; offset = 0; lastSend = nil; unreadArrivals = 0
+        permission = ChatPermission(canSend: false); locatedMessageID = nil; errorMessage = nil
+    }
+}

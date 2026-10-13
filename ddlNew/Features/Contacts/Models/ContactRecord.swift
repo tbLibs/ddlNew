@@ -26,13 +26,16 @@ nonisolated struct ContactRecord: Identifiable, Equatable, Sendable {
     let disableStatus: Int
     /// 0 为普通好友，1 为文件助手等系统账号。
     let userType: Int
+    /// 角色标识只用于匹配服务端角色名称，不能作为群角色使用。
+    let roleID: Int
     /// 映射时一次性生成排序键，避免列表比较时反复执行中文转换。
     let sortName: String
 
+    /// 将SDK好友映射为值快照，同时预计算排序与搜索键。
     init(id: String, account: String = "", nickname: String = "", remarks: String = "",
          description: String = "", avatar: String = "", isOnline: Bool = false,
          disableStatus: Int = 0, userType: Int = 0,
-         nicknamePinyin: String = "", remarksPinyin: String = "") {
+         nicknamePinyin: String = "", remarksPinyin: String = "", roleID: Int = 0) {
         self.id = id
         self.account = account
         self.nickname = nickname
@@ -44,6 +47,7 @@ nonisolated struct ContactRecord: Identifiable, Equatable, Sendable {
         self.isOnline = isOnline
         self.disableStatus = disableStatus
         self.userType = userType
+        self.roleID = roleID
         let name = [remarks, nickname, account, id].first { !$0.isEmpty } ?? id
         self.sortName = ContactSorter.sortName(for: name + account)
     }

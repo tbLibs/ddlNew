@@ -15,6 +15,8 @@ final class ConversationsStore: ObservableObject {
     @Published private(set) var isSyncing = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var totalUnreadCount = 0
+    @Published private(set) var busyConversationIDs: Set<String> = []
+    @Published private(set) var operationError: String?
 
     private let client: any ConversationsClient
     /// UID 与轮次共同隔离退出、切换账号后的迟到代理事件和异步读取结果。
@@ -28,8 +30,10 @@ final class ConversationsStore: ObservableObject {
     private var allConversations: [ConversationRecord] = []
     private var fileAssistantVisible = false
 
+    /// 注入数据与操作客户端，便于隔离 SDK 和离线回归。
     init(client: any ConversationsClient) { self.client = client }
 
+    /// AUTH 前绑定当前账号，丢弃旧轮次回调。
     func prepare(for userUID: String) {
         reset()
         self.userUID = userUID
@@ -56,6 +60,7 @@ final class ConversationsStore: ObservableObject {
         }
     }
 
+    /// 合并同时到达的缓存读取请求，保留同步失败时的已有数据。
     func reload() async {
         guard let userUID else { return }
         if let reloadTask { await reloadTask.value; return }
@@ -84,6 +89,7 @@ final class ConversationsStore: ObservableObject {
         await task.value
     }
 
+    /// 读取期间发生变化时补读一次。
     private func requestReload() {
         if reloadTask != nil {
             reloadRequested = true
@@ -102,14 +108,42 @@ final class ConversationsStore: ObservableObject {
         publishVisibleConversations()
     }
 
+    /// 按当前角色权限生成列表与角标。
     private func publishVisibleConversations() {
         conversations = allConversations.filter { fileAssistantVisible || $0.kind != .single || $0.id != "100002" }
         // 角标与实际可见列表保持一致，权限关闭不能残留隐藏会话未读数。
         totalUnreadCount = ConversationUnread.total(conversations)
     }
 
+    /// 同步错误优先展示，缓存失败允许页面单独重试。
     private func updateError() { errorMessage = syncError ?? cacheError }
 
+    /// 操作按会话去重；退出或换账号后不能写入旧请求的结果与错误。
+    func perform(_ action: ConversationAction, conversationID: String) async {
+        guard let userUID, !busyConversationIDs.contains(conversationID),
+              let conversation = conversations.first(where: { $0.id == conversationID }),
+              ConversationActionPolicy.allowed(for: conversation).contains(action),
+              let operations = client as? any ConversationOperationsClient else { return }
+        let runID = generation
+        busyConversationIDs.insert(conversationID)
+        operationError = nil
+        defer {
+            if generation == runID { busyConversationIDs.remove(conversationID) }
+        }
+        do {
+            try await operations.perform(action, conversation: conversation, userUID: userUID)
+            guard generation == runID, self.userUID == userUID, !Task.isCancelled else { return }
+            await reload()
+        } catch {
+            guard generation == runID, self.userUID == userUID, !(error is CancellationError) else { return }
+            operationError = error.localizedDescription
+        }
+    }
+
+    /// 关闭操作提示不会改变 SDK 数据。
+    func clearOperationError() { operationError = nil }
+
+    /// 登出释放订阅和正在运行的读取，移除所有用户快照。
     func reset() {
         generation = UUID()
         reloadTask?.cancel()
@@ -125,5 +159,7 @@ final class ConversationsStore: ObservableObject {
         errorMessage = nil
         syncError = nil
         cacheError = nil
+        busyConversationIDs = []
+        operationError = nil
     }
 }

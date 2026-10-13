@@ -15,6 +15,10 @@ final class SDKConversationsClient: ConversationsClient {
     private var delegate: SDKConversationsDelegate?
     private var generation = UUID()
 
+    /// 操作适配器通过同一订阅轮次拒绝退出后迟到的请求。
+    var observationGeneration: UUID { generation }
+
+    /// AUTH 前注册会话事件，并绑定这一轮用户会话。
     func observe(for userUID: String, _ onChange: @escaping @MainActor (ConversationsChange) -> Void) {
         stopObserving()
         let runID = generation
@@ -28,6 +32,7 @@ final class SDKConversationsClient: ConversationsClient {
         sdk.addSessionDelegate(delegate)
     }
 
+    /// 失效旧轮次并移除 SDK 代理。
     func stopObserving() {
         generation = UUID()
         if let delegate {
@@ -37,6 +42,7 @@ final class SDKConversationsClient: ConversationsClient {
         delegate = nil
     }
 
+    /// 在数据库锁内读取当前用户的会话、草稿和消息预览。
     func loadConversations(for userUID: String) async throws -> [ConversationRecord] {
         try await Task.detached {
             let sdk = NoaIMSDKManager.sharedTool()
@@ -55,7 +61,7 @@ final class SDKConversationsClient: ConversationsClient {
                 let isDraft = !draft.isEmpty
                 // 最新消息不随会话模型入库；同步预览写入消息表后从该表补读。
                 let message = model.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: id)
-                let preview = isDraft ? draft : ConversationPreview.text(for: message)
+                let preview = isDraft ? draft : ConversationPreview.text(for: message, kind: kind, userUID: userUID, sdk: sdk)
                 let millis = model.sessionLatestTime
                 // 旧项目单聊优先读好友库最新头像；会话头像只在好友记录缺失时兜底。
                 let avatar: String
@@ -82,6 +88,7 @@ private enum ConversationsClientError: LocalizedError {
 }
 
 private extension ConversationKind {
+    /// 将 SDK 类型转换为明确的业务类型，未知类型不进入列表。
     nonisolated init?(sdkType: Int) {
         switch sdkType {
         case 1: self = .single
@@ -96,9 +103,28 @@ private extension ConversationKind {
 }
 
 private enum ConversationPreview {
-    nonisolated static func text(for message: NoaIMChatMessageModel?) -> String {
+    /// 为不同消息生成列表摘要，正文仍由真实聊天页呈现。
+    nonisolated static func text(for message: NoaIMChatMessageModel?, kind: ConversationKind, userUID: String,
+                                 sdk: NoaIMSDKManager) -> String {
         guard let message else { return "暂无消息" }
-        switch Int(message.messageType.rawValue) {
+        let type = Int(message.messageType.rawValue)
+        let text = body(for: message, type: type, userUID: userUID)
+        var senderName = message.fromNickname ?? ""
+        if kind == .group, let sender = message.fromID, !sender.isEmpty {
+            let cached: LingIMGroupMemberModel? = sdk.imSdkCheckGroupMember(with: sender, groupID: message.toID ?? "")
+            if let member = cached {
+                senderName = member.disableStatus == 4 ? "账号已注销" : [member.remarks ?? "", member.showName ?? "", senderName].first { !$0.isEmpty } ?? senderName
+            }
+        }
+        let mentions = message.atUsersInfoList as? [[String: Any]] ?? []
+        let mentionsMe = type == 10 && mentions.contains { $0[userUID] != nil || $0["-1"] != nil }
+        return ConversationPreviewText.render(text, kind: kind, senderName: senderName, senderUID: message.fromID ?? "",
+            userUID: userUID, mentionsMe: mentionsMe, includeSender: ![8, 9, 13, 15, 16, 1000].contains(type))
+    }
+
+    /// @正文复用聊天解析器，资源类型使用摘要而不泄露内部文件路径。
+    nonisolated private static func body(for message: NoaIMChatMessageModel, type: Int, userUID: String) -> String {
+        switch type {
         case 0: return message.textContent ?? ""
         case 1: return "[图片]"
         case 2: return "[视频]"
@@ -107,7 +133,7 @@ private enum ConversationPreview {
         case 5: return message.showFileName ?? message.fileName ?? "[文件]"
         case 6: return "[名片]"
         case 8: return "[消息已撤回]"
-        case 10: return message.showContent ?? message.atContent ?? "[@消息]"
+        case 10: return SDKChatMessageMapper.record(message, userUID: userUID).text
         case 12, 21: return "[表情]"
         case 16: return message.groupNoticeContent ?? "[群公告]"
         case 18: return "[聊天记录]"

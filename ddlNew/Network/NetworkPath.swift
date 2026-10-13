@@ -9,6 +9,12 @@ import Foundation
 
 /// 业务服务端的接口路径，DNS 服务地址仍由各自的 Moya 目标管理。
 enum NetworkPath {
+    /// 老端 Minio 上传先获取临时加密公钥，随后提交单文件或五十 MiB 分片。
+    static let chatUploadPublicKey = "/public-key/getKey"
+    static let chatUploadFile = "/file/upload"
+    static let chatUploadMultipartID = "/file/multi/getId"
+    static let chatUploadMultipartPart = "/file/multi/upload"
+    static let chatUploadMultipartComplete = "/file/multi/complete"
     /// 旧导航 HTTP 节点择优使用真实 GET 请求测量 RTT。
     static let httpNodePreference = "/zlcpig"
     /// 获取未登录系统配置。

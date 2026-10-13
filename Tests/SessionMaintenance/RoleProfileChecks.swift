@@ -2,8 +2,10 @@ import Foundation
 import ObjectMapper
 
 @main struct RoleProfileChecks {
+    /// 验证权限、聊天策略与资料合并的真实映射和缓存边界。
     static func main() {
         var count = 0
+        /// 失败立即终止并保留具体约束名称。
         func check(_ value: Bool, _ name: String) { precondition(value, name); count += 1 }
         let empty = Mapper<UserRoleAuthority>().map(JSON: [:])!
         check(!empty.allows("upFile"), "未下发文件上传默认关闭")
@@ -28,6 +30,20 @@ import ObjectMapper
         check(values.configurationData["upFile"] == "1024", "保留服务端权限限制数据")
         let restored = Mapper<UserRoleAuthority>().map(JSONString: values.toJSONString()!)!
         check(restored.allows("upFile") && restored.configurationData["upFile"] == "1024", "权限缓存往返保留限制数据")
+        let timed = Mapper<UserRoleAuthority>().map(JSON: ["edited_message_sent": ["configValue": "15"]])!
+        check(timed.positiveMinutes("edited_message_sent") == 15, "编辑分钟限制不能当作布尔开关")
+        check(empty.positiveMinutes("edited_message_sent") == 0, "缺少编辑权限默认关闭")
+        let config = Mapper<SystemConfigRecord>().map(JSON: ["groupMessageInterval": "2500", "messageRecallTime": 2,
+            "groupMangerMessageRecallTime": "1", "onlyAllowAdminViewGroupPersonCount": "0"])!
+        check(config.groupMessageInterval == 2500 && config.messageRecallTime == "2", "系统聊天配置兼容数字和字符串")
+        check(config.groupMangerMessageRecallTime == "1" && config.onlyAllowAdminViewGroupPersonCount == "0", "保留群管理策略")
+        let cachedConfig = Mapper<SystemConfigRecord>().map(JSONString: config.toJSONString()!)!
+        check(cachedConfig.groupMessageInterval == 2500 && cachedConfig.messageRecallTime == "2", "聊天配置缓存往返")
+        let upload = Mapper<SystemConfigRecord>().map(JSON: ["oss_config_type": 0, "oss_config_bucket_name": "test-bucket",
+            "oss_obs_custom_domain_put": "https://upload.example.invalid"])!
+        check(upload.ossConfigType == "0" && upload.ossConfigBucketName == "test-bucket", "存储供应商数字兼容")
+        let uploadCached = Mapper<SystemConfigRecord>().map(JSONString: upload.toJSONString()!)!
+        check(uploadCached.ossOBSUploadDomain == "https://upload.example.invalid", "存储路由缓存保持")
         let old = Mapper<UserInfo>().map(JSON: ["userUID":"u1", "nickname":"old", "avatar":"old-avatar", "roleId":3, "hasSecurityCode":true])!
         let updated = old.applyingProfile(["nickname":"new"], expectedUID:"u1")!
         check(updated.nickname == "new" && updated.avatar == "old-avatar", "部分资料合并不删除头像")

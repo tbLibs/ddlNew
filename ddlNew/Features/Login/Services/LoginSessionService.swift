@@ -18,17 +18,23 @@ final class LoginSessionService: LoginSessionServicing {
     /// 真实通讯录和会话在 AUTH 前订阅、完成认证后读库，退出时统一清理。
     let contacts = ContactsStore(client: SDKContactsClient())
     let conversations = ConversationsStore(client: SDKConversationsClient())
+    /// 关系操作与群列表复用同一登录所有者，权限始终读取当前角色快照。
+    let contactBusiness = ContactsBusinessStore.shared
+    let groups = GroupsStore.shared
+    let globalSearch = GlobalSearchStore(client: SDKGlobalSearchClient())
     private var sessionID: UUID?
     private var pendingID: UUID?
     /// 启动 AUTH 已成功但根页面尚未接收结果时，仍需允许取消并释放运行时会话。
     private var startupRestoreID: UUID?
     private var signOutTask: Task<Void, Error>?
 
+    /// 保持单一认证编排所有者，页面不能创建第二套 SDK 会话。
     private init() {}
 
     /// 维护回调使用会话轮次，同 UID 退出后重新登录也属于另一轮身份。
     var maintenanceSessionID: UUID? { sessionID }
 
+    /// 只有当前用户、邀请码和会话轮次的明确拒绝才撤销身份。
     func handleMaintenanceRejection(code: Int, message: String, userUID: String,
                                     lastLiceseId: String, sessionID: UUID) {
         guard self.sessionID == sessionID, store.currentUser?.userUID == userUID,
@@ -37,6 +43,7 @@ final class LoginSessionService: LoginSessionServicing {
         invalidateSession(UserSessionError.authenticationRejected(code: code, message: message))
     }
 
+    /// 保存真实凭据后执行统一 AUTH，并在失败时释放这一轮身份。
     func completeLogin(_ response: AccountLoginResponse, account: String,
                        progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws {
         try Task<Never, Never>.checkCancellation()
@@ -132,6 +139,9 @@ final class LoginSessionService: LoginSessionServicing {
         // AUTH 后 SDK 会自动同步好友和会话；提前订阅，避免首轮回调在页面创建前丢失。
         contacts.prepare(for: user.userUID)
         conversations.prepare(for: user.userUID)
+        contactBusiness.prepare(userUID: user.userUID, license: credentials.lastLiceseId)
+        groups.prepare(userUID: user.userUID, license: credentials.lastLiceseId)
+        globalSearch.prepare(userUID: user.userUID)
         try await authentication.authenticate(user: user, credentials: credentials, progress: progress)
         try Task<Never, Never>.checkCancellation()
         guard sessionID == runID, connection.isUserConnectionCurrent(connectionID),
@@ -148,10 +158,19 @@ final class LoginSessionService: LoginSessionServicing {
             throw AccountLoginError.connectionChanged
         }
         pendingID = nil
+        ChatRuntime.shared.activate(userUID: user.userUID, tenantID: credentials.lastLiceseId, sessionID: runID)
+        // 业务 HTTP 列表不能阻塞登录；已有会话轮次在完成后再次核验，退出时 Store 会失效。
+        Task { [weak self] in
+            guard let self, self.sessionID == runID else { return }
+            await self.contactBusiness.reload()
+            guard self.sessionID == runID else { return }
+            await self.groups.reload()
+        }
         SessionMaintenanceCoordinator.shared.start(userUID: user.userUID, lastLiceseId: credentials.lastLiceseId)
         LoginSecurityCoordinator.shared.start(userUID: user.userUID, lastLiceseId: credentials.lastLiceseId)
     }
 
+    /// 只取消尚未交付页面的手动登录，不影响运行中的正常会话。
     func cancelPendingLogin() {
         guard pendingID != nil else { return }
         invalidateSession(CancellationError())
@@ -175,6 +194,7 @@ final class LoginSessionService: LoginSessionServicing {
         try await task.value
     }
 
+    /// 撤销全部业务资格后再关闭数据库及清理本地凭据。
     func clearSession() throws {
         sessionID = nil
         pendingID = nil
@@ -183,11 +203,16 @@ final class LoginSessionService: LoginSessionServicing {
         LoginSecurityCoordinator.shared.stop(clearCachedRequirement: true)
         contacts.reset()
         conversations.reset()
+        contactBusiness.reset()
+        groups.reset()
+        globalSearch.reset()
+        ChatRuntime.shared.close()
         authentication.reset()
         connection.releaseUserConnection(reconnect: false)
         try store.clear()
     }
 
+    /// 认证失效、恢复失败和取消共用清理，网络失败可保留磁盘恢复凭据。
     private func invalidateSession(_ error: Error, clearStoredSession: Bool = true, reconnect: Bool = true) {
         if case UserSessionError.authenticationRejected = error {
             LoginSecurityNoticeStore.shared.record(message: error.localizedDescription)
@@ -199,6 +224,10 @@ final class LoginSessionService: LoginSessionServicing {
         LoginSecurityCoordinator.shared.stop(clearCachedRequirement: clearStoredSession)
         contacts.reset()
         conversations.reset()
+        contactBusiness.reset()
+        groups.reset()
+        globalSearch.reset()
+        ChatRuntime.shared.close()
         authentication.reset()
         if clearStoredSession {
             do { try store.clear() }

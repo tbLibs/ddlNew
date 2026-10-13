@@ -6,10 +6,7 @@
 //
 
 import Foundation
-import Moya
 import ObjectMapper
-import RxMoya
-import RxSwift
 
 /// 系统配置请求已返回后，在业务响应解析与导航一致性校验中产生的错误。
 enum SystemConfigServiceError: Error {
@@ -25,42 +22,26 @@ enum SystemConfigServiceError: Error {
     case staleNavigation
 }
 
-/// 正式 ECDH 完成后，使用 OSS 选中的 Host 获取未登录业务配置，再由协调器配置 SDK。
+/// 正式 ECDH 完成后复用旧 SDK 的配置请求通道，再由协调器应用登录策略。
 @MainActor
 final class SystemConfigService {
     static let shared = SystemConfigService()
+    private let client = SDKSessionMaintenanceClient()
+    private var requestGeneration = UUID()
 
+    /// 连接协调器统一拥有启动配置，避免页面重复创建请求所有者。
     private init() {}
 
+    /// SDK 在已配置 Socket 时走 TCP，HTTP 不可达不能阻断已经成功的 ECDH 链路。
     func fetchAndCache(for plan: OSSConnectionPlan) async throws -> SystemConfigRecord {
         try _Concurrency.Task<Never, Never>.checkCancellation()
-        let timestamp = Int64(Date().timeIntervalSince1970)
-        let signature = try SystemConfigCrypto.signature(timestamp: timestamp)
-        let headers = BusinessRequestHeaders.make(timestamp: timestamp, signature: signature)
-
-        let provider = BusinessApiRequest.provider(for: plan.apiHost)
-        let response = try await provider.rx
-            .request(.systemConfig(baseURL: plan.apiHost, headers: headers))
-            .filterSuccessfulStatusCodes()
-            .value
+        let run = UUID()
+        requestGeneration = run
+        // 与旧项目初始化及现有会话维护共用签名、解密和有界 SDK 等待。
+        let json = try await client.configuration(host: plan.apiHost, loggedIn: false)
         try _Concurrency.Task<Never, Never>.checkCancellation()
-
-        let envelope = try response.mapObject(BusinessResponseStatus.self)
-        guard envelope.code == 10000 else {
-            throw SystemConfigServiceError.businessFailure(
-                code: envelope.code,
-                message: envelope.message
-            )
-        }
-        guard let root = try response.mapJSON() as? [String: Any] else {
-            throw SystemConfigServiceError.invalidResponse
-        }
-        guard let payload = root["data"], !(payload is NSNull) else {
-            throw SystemConfigServiceError.missingData
-        }
-        let dictionary = try SystemConfigCrypto.configurationDictionary(from: payload)
-        
-        guard let configuration = Mapper<SystemConfigRecord>().map(JSON: dictionary),
+        guard requestGeneration == run else { throw SystemConfigServiceError.staleNavigation }
+        guard let configuration = Mapper<SystemConfigRecord>().map(JSONString: json),
               configuration.isValidForLogin else {
             throw SystemConfigServiceError.invalidConfiguration
         }

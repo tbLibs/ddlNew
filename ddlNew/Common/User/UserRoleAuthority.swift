@@ -18,7 +18,9 @@ nonisolated struct UserRoleAuthority: Mappable, Sendable {
                        "showRoleName", "upFile", "showTeam", "upImageVideoFile", "showUserRead",
                        "isShowFileAssistant", "translation_switch", "group_msg_pinning",
                        "user_dialog_msg_pinning", "edited_message_sent"]
+    /// 映射器初始化，字段缺失时由具体权限规则提供默认值。
     init?(map: Map) {}
+    /// 保留开关、数值限制与配置数据，支持持久化往返。
     mutating func mapping(map: Map) {
         if map.mappingType == .fromJSON {
             for key in Self.keys {
@@ -43,11 +45,18 @@ nonisolated struct UserRoleAuthority: Mappable, Sendable {
             }
         }
     }
+    /// 开关只接受明确开启值，时长权限应使用 positiveMinutes。
     func allows(_ key: String) -> Bool {
         guard Self.keys.contains(key) else { return false }
         guard let value = values[key], !value.isEmpty else { return defaultAllowed(key) }
         return ["1", "true", "yes"].contains(value.lowercased())
     }
+    /// 编辑时限单位为分钟，未知、无效或非正数一律关闭。
+    func positiveMinutes(_ key: String) -> Int {
+        guard Self.keys.contains(key), let raw = values[key], let value = Int(raw), value > 0 else { return 0 }
+        return value
+    }
+    /// 按旧端约定处理缺失权限，显式损坏不应用宽松默认。
     private func defaultAllowed(_ key: String) -> Bool {
         // 图片视频上传仅缺失时开启；翻译空值也默认开启。
         key == "translation_switch" || (key == "upImageVideoFile" && values[key] == nil)

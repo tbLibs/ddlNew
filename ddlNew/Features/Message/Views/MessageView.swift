@@ -8,13 +8,19 @@
 import SwiftUI
 import Kingfisher
 
-/// SDK 会话列表。聊天页接入真实消息前，列表只展示数据库状态。
+/// 真实 SDK 会话列表，操作经服务端确认后回读数据库。
 struct MessageView: View {
     @ObservedObject var store: ConversationsStore
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
+    @ObservedObject private var authentication = IMUserAuthenticationService.shared
+    @ObservedObject private var permissions = UserRoleAuthorityStore.shared
+    @ObservedObject private var groups = LoginSessionService.shared.groups
     @State private var query = ""
     @State private var filter: ConversationFilter = .all
     @FocusState private var searchFocused: Bool
+    @State private var deletingConversation: ConversationRecord?
+    @State private var selectingMembers = false
+    @State private var createdRoute: ChatRoute?
 
     private enum ConversationFilter: String, CaseIterable, Identifiable {
         case all = "全部"
@@ -33,35 +39,89 @@ struct MessageView: View {
     }
 
     var body: some View {
-        ClubScroll {
+        List {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 CommunitySearchField(placeholder: "搜索会话或消息预览", text: $query,
                                      focus: $searchFocused, identifier: "messageSearch")
                 CommunityFilters(selection: $filter)
+                if authentication.state != .ready {
+                    Label(authentication.state.message, systemImage: "wifi.exclamationmark")
+                        .font(.callout).foregroundStyle(ClubTheme.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("messageConnectionState")
+                }
                 if let error = store.errorMessage { errorNotice(error) }
-                if visibleConversations.isEmpty {
-                    emptyState
-                } else {
-                    LazyVStack(spacing: 10) {
-                        ForEach(visibleConversations) { conversation in
-                            conversationRow(conversation)
-                                .accessibilityIdentifier("conversation.\(conversation.id)")
+            }
+            .listRowInsets(EdgeInsets(top: 18, leading: 20, bottom: 8, trailing: 20))
+            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            if visibleConversations.isEmpty {
+                emptyState.listRowBackground(Color.clear).listRowSeparator(.hidden)
+            } else {
+                ForEach(visibleConversations) { conversation in
+                    conversationLink(conversation)
+                        .contextMenu { conversationActions(conversation) }
+                        .accessibilityActions { conversationActions(conversation) }
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            conversationActions(conversation, actions: [.togglePin, .toggleMute])
                         }
-                    }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            conversationActions(conversation, actions: [.delete, .toggleUnread])
+                        }
+                        .disabled(store.busyConversationIDs.contains(conversation.id))
+                        .accessibilityIdentifier("conversation.\(conversation.id)")
+                        .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
         }
+        .listStyle(.plain).scrollContentBackground(.hidden).background(ClubTheme.background)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
         .task { await store.reload() }
+        .refreshable { await store.reload() }
+        .sheet(isPresented: $selectingMembers) {
+            GroupMemberPickerView(contacts: LoginSessionService.shared.contacts.contacts,
+                recentIDs: store.conversations.filter { $0.kind == .single }.map(\.id),
+                friendGroups: LoginSessionService.shared.contactBusiness.groups,
+                submissionError: groups.errorMessage, onSubmit: { members in
+                    guard let group = await groups.create(members: members,
+                        nickname: UserSessionStore.shared.currentUser?.nickname ?? "") else { return false }
+                    createdRoute = ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar)
+                    return true
+                }, onConfirm: { _ in })
+        }
+        .navigationDestination(isPresented: Binding(get: { createdRoute != nil }, set: { if !$0 { createdRoute = nil } })) {
+            if let createdRoute { ChatRoomView(route: createdRoute) }
+        }
+        .alert("删除会话？", isPresented: Binding(get: { deletingConversation != nil }, set: { if !$0 { deletingConversation = nil } })) {
+            Button("取消", role: .cancel) { deletingConversation = nil }
+            Button("删除", role: .destructive) {
+                if let id = deletingConversation?.id { Task { await store.perform(.delete, conversationID: id) } }
+                deletingConversation = nil
+            }
+        } message: { Text("删除后会移除会话，聊天记录仍保留。") }
+        .alert("会话操作失败", isPresented: Binding(get: { store.operationError != nil }, set: { if !$0 { store.clearOperationError() } })) {
+            Button("好") { store.clearOperationError() }
+        } message: { Text(store.operationError ?? "请稍后重试") }
     }
 
     private var header: some View {
         HStack(alignment: .bottom, spacing: 12) {
             ScreenHeading(eyebrow: "与伙伴保持联系", title: "消息")
                 .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0)
+            NavigationLink(value: ContactsPageRoute.globalSearch) {
+                Image(systemName: "magnifyingglass").frame(width: 44, height: 44)
+            }.accessibilityLabel("搜索好友、群聊和聊天内容")
+                .accessibilityIdentifier("openGlobalSearch")
+            Menu {
+                if permissions.current?.allows("allowAddFriend") == true {
+                    NavigationLink("添加好友", value: ContactsPageRoute.addFriend)
+                }
+                if permissions.current?.allows("createGroup") == true { Button("创建群聊") { selectingMembers = true } }
+                NavigationLink("扫一扫", value: ContactsPageRoute.scanner)
+            } label: { Image(systemName: "plus").frame(width: 44, height: 44) }
+                .accessibilityLabel("消息页面更多操作")
             if store.isSyncing {
                 ProgressView()
                     .tint(ClubTheme.darkTeal)
@@ -77,6 +137,7 @@ struct MessageView: View {
         }
     }
 
+    /// 同步与本地读取失败保持现有列表，提供明确的重试入口。
     private func errorNotice(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
@@ -139,6 +200,43 @@ struct MessageView: View {
         .accessibilityIdentifier("conversationsEmptyState")
     }
 
+    /// 单群聊打开真实聊天，特殊业务只显示已接入的明确入口。
+    @ViewBuilder private func conversationLink(_ conversation: ConversationRecord) -> some View {
+        switch conversation.kind {
+        case .single, .group:
+            NavigationLink(value: ChatRoute(id: conversation.id, kind: conversation.kind,
+                title: conversation.title, avatarURL: conversation.avatarURL)) { conversationRow(conversation) }
+                .buttonStyle(.plain)
+        case .systemMessage:
+            NavigationLink(value: ContactsPageRoute.groupAssistant) { conversationRow(conversation) }.buttonStyle(.plain)
+        default: conversationRow(conversation)
+        }
+    }
+
+    /// 上下文菜单复用同一操作策略，助手与特殊会话不会出现无效操作。
+    @ViewBuilder private func conversationActions(_ conversation: ConversationRecord, actions: [ConversationAction] = [.togglePin, .toggleMute, .toggleUnread, .delete]) -> some View {
+        let allowed = ConversationActionPolicy.allowed(for: conversation).filter { actions.contains($0) }
+        if allowed.contains(.togglePin) {
+            Button {
+                Task { await store.perform(.togglePin, conversationID: conversation.id) }
+            } label: { Label(conversation.isPinned ? "取消置顶" : "置顶", systemImage: conversation.isPinned ? "pin.slash" : "pin") }
+        }
+        if allowed.contains(.toggleMute) {
+            Button {
+                Task { await store.perform(.toggleMute, conversationID: conversation.id) }
+            } label: { Label(conversation.isMuted ? "取消免打扰" : "免打扰", systemImage: "bell.slash") }
+        }
+        if allowed.contains(.toggleUnread) {
+            Button {
+                Task { await store.perform(.toggleUnread, conversationID: conversation.id) }
+            } label: { Label(conversation.unreadCount > 0 || conversation.isMarkedUnread ? "清除未读" : "标记未读", systemImage: "envelope.badge") }
+        }
+        if allowed.contains(.delete) {
+            Button(role: .destructive) { deletingConversation = conversation } label: { Label("删除会话", systemImage: "trash") }
+        }
+    }
+
+    /// 卡片承载列表摘要与状态，操作入口由父级导航和菜单提供。
     private func conversationRow(_ conversation: ConversationRecord) -> some View {
         HStack(alignment: .top, spacing: 13) {
             avatar(for: conversation)
@@ -190,6 +288,7 @@ struct MessageView: View {
         .accessibilityLabel(accessibilityLabel(for: conversation))
     }
 
+    /// 草稿仅替代最新摘要，不修改消息历史。
     private func preview(for conversation: ConversationRecord) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             if conversation.isDraft {
@@ -203,6 +302,7 @@ struct MessageView: View {
     }
 
     @ViewBuilder
+    /// 真实未读与手动未读分别呈现，免打扰使用静音颜色。
     private func unreadIndicator(for conversation: ConversationRecord) -> some View {
         if conversation.unreadCount > 0 {
             Text(conversation.unreadCount > 99 ? "99+" : String(conversation.unreadCount))
@@ -221,12 +321,13 @@ struct MessageView: View {
         }
     }
 
+    /// 相对头像从当前文件节点加载，失败显示对应会话占位。
     private func avatar(for conversation: ConversationRecord) -> some View {
         let fileHost = connection.current?.getFileHost
         let url = RemoteAvatarURL.resolve(conversation.avatarURL, relativeTo: fileHost)
         return KFImage(url)
             .downloader(NetworkImageDownloader.downloader(for: fileHost))
-            .downsampling(size: CGSize(width: 50, height: 50))
+            .setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: 50, height: 50)))
             .cacheOriginalImage()
             .cancelOnDisappear(true)
             .placeholder { avatarPlaceholder(for: conversation.kind) }
@@ -237,6 +338,7 @@ struct MessageView: View {
             .accessibilityHidden(true)
     }
 
+    /// 使用可辨识的系统图标表示无头像的会话类型。
     private func avatarPlaceholder(for kind: ConversationKind) -> some View {
         let symbol: String
         switch kind {
@@ -254,6 +356,7 @@ struct MessageView: View {
             .background(ClubTheme.pale)
     }
 
+    /// 合并状态文案供 VoiceOver 读取整条会话。
     private func accessibilityLabel(for conversation: ConversationRecord) -> String {
         var parts = [conversation.title.isEmpty ? "未命名会话" : conversation.title]
         if conversation.isPinned { parts.append("已置顶") }
@@ -266,6 +369,7 @@ struct MessageView: View {
         return parts.joined(separator: "，")
     }
 
+    /// 使用本地日历区分今日、昨天与较早日期。
     private static func displayTime(_ date: Date) -> String {
         let calendar = Calendar.current
         let formatter = DateFormatter()

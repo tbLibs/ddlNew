@@ -13,6 +13,8 @@ struct TabbarView: View {
     /// 角标随真实 SDK 会话快照变化；ClubCommunity 仍供其他演示页面使用。
     @ObservedObject private var conversations = LoginSessionService.shared.conversations
     @ObservedObject private var contacts = LoginSessionService.shared.contacts
+    @ObservedObject private var contactBusiness = LoginSessionService.shared.contactBusiness
+    @ObservedObject private var groups = LoginSessionService.shared.groups
     @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @StateObject private var community = ClubCommunity()
@@ -24,7 +26,7 @@ struct TabbarView: View {
             }
             tab(.messages) { MessageView(store: conversations) }
             tab(.contacts) {
-                ContactsView(store: contacts,
+                ContactsView(store: contacts, businessStore: contactBusiness, groupsStore: groups,
                              fileHost: connection.current?.getFileHost)
             }
             tab(.profile) { MineView() }
@@ -37,15 +39,26 @@ struct TabbarView: View {
         }
     }
 
+    /// 四个 Tab 在各自原导航栈注册稳定ID路由，聊天与资料不再嵌套导航栈。
     private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
         ActivityNavigationScope {
             content()
                 .navigationBarHidden(true)
+                .navigationDestination(for: ChatRoute.self) { route in ChatRoomView(route: route) }
+                .navigationDestination(for: ContactsRoute.self) { route in
+                    ContactRecordDetailView(store: contacts, businessStore: contactBusiness,
+                        contactID: route.contactID, fileHost: connection.current?.getFileHost,
+                        sourceGroupID: route.sourceGroupID, applicationID: route.applicationID)
+                }
+                .navigationDestination(for: ContactsPageRoute.self) { route in
+                    ContactsPageDestination(route: route, businessStore: contactBusiness,
+                        fileHost: connection.current?.getFileHost)
+                }
         }
         .tabItem {
             Label(tab.rawValue, systemImage: tab.icon)
         }
-        .badge(tab == .messages ? conversations.totalUnreadCount : 0)
+        .badge(tab == .messages ? conversations.totalUnreadCount : (tab == .contacts ? contactBusiness.unreadCount : 0))
         .tag(tab)
     }
 }

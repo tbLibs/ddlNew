@@ -8,7 +8,7 @@
 import Foundation
 import ObjectMapper
 
-/// 老项目 NoaSystemSettingModel 中登录前需要的字段；不缓存音视频等服务端密钥。
+/// 老项目 NoaSystemSettingModel 的登录及聊天策略；不缓存音视频等服务端密钥。
 nonisolated struct SystemConfigRecord: Mappable {
     /// 1～7 对应账号、邮箱、手机号及其组合。
     var loginMethod = ""
@@ -25,10 +25,30 @@ nonisolated struct SystemConfigRecord: Mappable {
     var isMustInviteCode = ""
     /// 是否要求注册密码包含英文符号。
     var checkEnglishSymbol = false
+    /// 群消息最小发送间隔，单位毫秒；零值由聊天策略沿用旧端 2000 毫秒。
+    var groupMessageInterval: Int64 = 0
+    /// 本人消息允许撤回的分钟数，非正数关闭撤回。
+    var messageRecallTime = "0"
+    /// 是否允许群管理撤回他人消息，0 关闭，1 开启。
+    var groupMangerMessageRecallTime = "0"
+    /// 仅管理员可查看群人数，缺失时沿用旧端开启默认。
+    var onlyAllowAdminViewGroupPersonCount = "1"
+    /// 存储类型：0 Minio、1 阿里云、2 AWS、3 腾讯云、4 华为云；未下发不假定供应商。
+    var ossConfigType = ""
+    var ossConfigBucketName = ""
+    var ossConfigEndPoint = ""
+    var ossConfigRegionID = ""
+    var ossOBSBucketName = ""
+    var ossOBSEndPoint = ""
+    var ossOBSUploadDomain = ""
+    var ossOBSDownloadDomain = ""
 
+    /// 提供安全的缺省策略供首次配置尚未返回的页面读取。
     init() {}
+    /// ObjectMapper 使用同一映射入口解析网络及缓存。
     init?(map: Map) {}
 
+    /// 兼容服务端数字和数字字符串，同时保持字段原始语义。
     mutating func mapping(map: Map) {
         let stringValue = TransformOf<String, Any>(
             fromJSON: { value in
@@ -52,6 +72,23 @@ nonisolated struct SystemConfigRecord: Mappable {
         projectName <- map["projectName"]
         projectLogo <- map["projectLogo"]
         isMustInviteCode <- (map["isMustInviteCode"], stringValue)
+        messageRecallTime <- (map["messageRecallTime"], stringValue)
+        groupMangerMessageRecallTime <- (map["groupMangerMessageRecallTime"], stringValue)
+        onlyAllowAdminViewGroupPersonCount <- (map["onlyAllowAdminViewGroupPersonCount"], stringValue)
+        ossConfigType <- (map["oss_config_type"], stringValue)
+        ossConfigBucketName <- map["oss_config_bucket_name"]
+        ossConfigEndPoint <- map["oss_config_end_point"]
+        ossConfigRegionID <- map["oss_config_region_id"]
+        ossOBSBucketName <- map["oss_obs_bucket_name"]
+        ossOBSEndPoint <- map["oss_obs_end_point"]
+        ossOBSUploadDomain <- map["oss_obs_custom_domain_put"]
+        ossOBSDownloadDomain <- map["oss_obs_custom_domain_get"]
+        groupMessageInterval <- (map["groupMessageInterval"], TransformOf<Int64, Any>(
+            fromJSON: { value in
+                if let number = value as? NSNumber { return max(0, number.int64Value) }
+                if let text = value as? String, let number = Int64(text) { return max(0, number) }
+                return nil
+            }, toJSON: { $0 }))
         checkEnglishSymbol <- (map["checkEnglishSymbol"], TransformOf<Bool, Any>(
             fromJSON: { value in
                 if let number = value as? NSNumber { return number.boolValue }
@@ -72,8 +109,10 @@ nonisolated struct BusinessResponseStatus: Mappable {
     var code = 0
     var message = ""
 
+    /// 业务响应必须经统一成功码检查。
     init?(map: Map) {}
 
+    /// 解析响应状态，不把 HTTP 成功当作业务成功。
     mutating func mapping(map: Map) {
         code <- map["code"]
         message <- map["message"]
@@ -88,6 +127,7 @@ nonisolated struct SystemConfigCacheRecord: Mappable {
     var fetchedAt: TimeInterval = 0
     var configuration = SystemConfigRecord()
 
+    /// 将配置与取得配置的导航上下文一起保存。
     init(lastLiceseId: String, apiHost: URL, configuration: SystemConfigRecord) {
         self.lastLiceseId = lastLiceseId
         self.apiHost = apiHost.absoluteString
@@ -95,10 +135,12 @@ nonisolated struct SystemConfigCacheRecord: Mappable {
         self.configuration = configuration
     }
 
+    /// 拒绝未知缓存格式，避免旧数据误解释为有效配置。
     init?(map: Map) {
         guard map.JSON["schemaVersion"] as? Int == 1 else { return nil }
     }
 
+    /// 序列化缓存身份、时间及完整业务策略。
     mutating func mapping(map: Map) {
         schemaVersion <- map["schemaVersion"]
         lastLiceseId <- map["lastLiceseId"]
