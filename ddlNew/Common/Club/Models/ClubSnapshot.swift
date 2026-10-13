@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 本地演示快照及按账号隔离的演示黑名单、举报记录。
+/// 本地演示账号和活动快照；旧 JSON 中已经移除的字段由解码器忽略。
 nonisolated struct ClubSnapshot: Codable, Sendable {
     var connected = false
     var signedIn = false
@@ -16,7 +16,4 @@ nonisolated struct ClubSnapshot: Codable, Sendable {
     var accountDeleted: Bool? = nil
     var localAccount: String? = nil
     var activeAccount: String? = nil
-    // Optional so snapshots written by earlier app versions still decode.
-    var blockedContactsByAccount: [String: Set<String>]? = nil
-    var messageReports: [MessageReport]? = nil
 }

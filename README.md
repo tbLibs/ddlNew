@@ -36,7 +36,7 @@
 
 ## 当前边界
 
-应用页面已经按功能迁入 `Features`，不再保留 `Main` 和 `OldVersion` 目录。主界面路径为 `ddlNewApp → TabbarView → ClubHomeView / MessageView / ContactsView / MineView`。原版首页、邀请码页、登录页、演示消息和演示通讯录分别以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView`、`OriginalMessagesView`、`OriginalContactsView` 保留在对应功能目录中，不接入当前真实业务入口。旧演示注册、拉黑和举报逻辑保留在对应功能及共享状态目录中，不使用其本地成功状态代替 SDK 业务结果。
+应用页面已经按功能迁入 `Features`，不再保留 `Main` 和 `OldVersion` 目录。主界面路径为 `ddlNewApp → TabbarView → ClubHomeView / MessageView / ContactsView / MineView`。原版首页、邀请码页、登录页、演示消息和演示通讯录分别以 `OriginalHomeView`、`OriginalInvitationCodeView`、`OriginalLoginView`、`OriginalMessagesView`、`OriginalContactsView` 保留在对应功能目录中，不接入当前真实业务入口。旧演示注册逻辑保留在对应功能及共享状态目录中；演示拉黑和举报已删除。
 
 通讯录已经使用 SDK 好友数据库：登录前注册用户代理，AUTH 后读取缓存，同步完成及好友变化时刷新。沿用老项目的系统账号过滤、备注优先、拼音首字母分组和已注销账号置后规则。点击好友展示真实资料，聊天收发、好友申请和修改备注留待后续接入。通讯录展示状态在退出、账号失效和更换账号时清空，好友持久化仍由 SDK 管理。
 

@@ -14,7 +14,6 @@ private enum OriginalContactFilter: String, CaseIterable, Identifiable {
 }
 
 struct OriginalContactsView: View {
-    @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var community: ClubCommunity
     @State private var query = ""
     @State private var filter: OriginalContactFilter = .all
@@ -24,12 +23,10 @@ struct OriginalContactsView: View {
 
     private var filtered: [ClubContact] {
         community.contacts.filter {
-            !store.isBlocked($0.id) &&
             (query.isEmpty || ($0.name + $0.initial + $0.role + $0.interests).localizedCaseInsensitiveContains(query)) &&
             (filter == .all || (filter == .leaders && $0.isLeader) || (filter == .favorites && community.favorites.contains($0.id)))
         }
     }
-    private var visibleContacts: [ClubContact] { community.contacts.filter { !store.isBlocked($0.id) } }
     private var initials: [String] { Array(Set(filtered.map(\.initial))).sorted() }
 
     var body: some View {
@@ -43,7 +40,7 @@ struct OriginalContactsView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 5) {
                             Text("认识同行的伙伴").font(.headline)
-                            Text("\(visibleContacts.count) 位伙伴 · \(visibleContacts.filter(\.isLeader).count) 位领队")
+                            Text("\(community.contacts.count) 位伙伴 · \(community.contacts.filter(\.isLeader).count) 位领队")
                                 .font(.subheadline).foregroundColor(ClubTheme.secondary)
                         }
                         Spacer(minLength: 0)
@@ -63,7 +60,6 @@ struct OriginalContactsView: View {
                                     VStack(spacing: 0) {
                                         ForEach(filtered.filter { $0.initial == initial }) { contact in
                                             Button {
-                                                guard !store.isBlocked(contact.id) else { return }
                                                 searchFocused = false
                                                 selectedConversation = community.openConversation(with: contact)
                                                 showingChat = true
@@ -80,10 +76,9 @@ struct OriginalContactsView: View {
             }.padding(.horizontal, 20).padding(.top, 18)
         }
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
-        .background {
-            NavigationLink(isActive: $showingChat) {
-                if let selectedConversation { ChatScreen(conversation: selectedConversation).id(selectedConversation.id) }
-            } label: { EmptyView() }.hidden()
+        // 使用所在导航栈呈现聊天，返回时由系统同步 showingChat。
+        .navigationDestination(isPresented: $showingChat) {
+            if let selectedConversation { ChatScreen(conversation: selectedConversation).id(selectedConversation.id) }
         }
     }
 

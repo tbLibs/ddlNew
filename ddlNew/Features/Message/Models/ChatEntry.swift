@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 本地演示聊天记录；消息标识保持稳定以支持重复举报检查。
+/// 本地演示聊天记录；消息标识用于稳定的列表展示。
 struct ChatEntry: Identifiable {
     let id: String
     let text: String

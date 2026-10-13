@@ -46,14 +46,6 @@ struct MineView: View {
                         Divider()
                         Button { showSwitch = true } label: { ClubMenuRow(title: "更换俱乐部", icon: "settings") }
                         Divider()
-                        NavigationLink(destination: BlacklistScreen()) {
-                            ClubMenuRow(title: "黑名单", icon: "lock", detail: "\(store.blockedContactIDs.count)人")
-                        }.accessibilityIdentifier("blacklistEntry")
-                        Divider()
-                        NavigationLink(destination: ReportHistoryScreen()) {
-                            ClubMenuRow(title: "举报记录", icon: "note", detail: "\(store.reportRecords.count)条")
-                        }.accessibilityIdentifier("reportHistoryEntry")
-                        Divider()
                         Button { info = .privacy } label: { ClubMenuRow(title: "隐私与安全", icon: "lock") }
                     }.buttonStyle(.plain)
                 }

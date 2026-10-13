@@ -18,10 +18,6 @@ import Combine
     @Published var drafts: [String: String] = [:]
     let contacts = ClubContact.samples
     var unreadCount: Int { messages.filter(\.unread).count }
-    func unreadCount(excluding blockedContactIDs: Set<String>) -> Int {
-        messages.filter { $0.unread && !($0.contactID.map(blockedContactIDs.contains) ?? false) }.count
-    }
-
     func openConversation(with contact: ClubContact) -> ClubMessage {
         let id = "contact-\(contact.id)"
         if let index = messages.firstIndex(where: { $0.id == id }) {
@@ -38,15 +34,14 @@ import Combine
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].unread = false
     }
-    func markAllRead(excluding blockedContactIDs: Set<String> = []) {
-        for index in messages.indices where !(messages[index].contactID.map(blockedContactIDs.contains) ?? false) {
+    func markAllRead() {
+        for index in messages.indices {
             messages[index].unread = false
         }
     }
-    func sendMessage(in conversationID: String, blockedContactIDs: Set<String> = []) {
+    func sendMessage(in conversationID: String) {
         let text = (drafts[conversationID] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let index = messages.firstIndex(where: { $0.id == conversationID }) else { return }
-        guard !(messages[index].contactID.map(blockedContactIDs.contains) ?? false) else { return }
         let time = Date().formatted(date: .omitted, time: .shortened)
         conversations[conversationID, default: []].append(ChatEntry(text: text, isOutgoing: true, time: time))
         drafts[conversationID] = ""

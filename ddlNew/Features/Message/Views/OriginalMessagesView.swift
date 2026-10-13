@@ -14,7 +14,6 @@ private enum OriginalMessageFilter: String, CaseIterable, Identifiable {
 }
 
 struct OriginalMessagesView: View {
-    @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var community: ClubCommunity
     @State private var query = ""
     @State private var filter: OriginalMessageFilter = .all
@@ -24,7 +23,6 @@ struct OriginalMessagesView: View {
 
     private var filtered: [ClubMessage] {
         community.messages.filter {
-            !($0.contactID.map(store.blockedContactIDs.contains) ?? false) &&
             (query.isEmpty || ($0.title + $0.preview + $0.body).localizedCaseInsensitiveContains(query)) &&
             (filter == .all || (filter == .unread && $0.unread) || (filter == .notices && $0.isNotice))
         }
@@ -35,17 +33,17 @@ struct OriginalMessagesView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
                     ScreenHeading(eyebrow: "远山户外俱乐部", title: "消息")
-                    Button("全部已读") { community.markAllRead(excluding: store.blockedContactIDs) }
+                    Button("全部已读") { community.markAllRead() }
                         .font(.subheadline.weight(.medium)).foregroundColor(ClubTheme.darkTeal)
-                        .frame(minHeight: 44).disabled(community.unreadCount(excluding: store.blockedContactIDs) == 0)
-                        .opacity(community.unreadCount(excluding: store.blockedContactIDs) == 0 ? 0.45 : 1)
+                        .frame(minHeight: 44).disabled(community.unreadCount == 0)
+                        .opacity(community.unreadCount == 0 ? 0.45 : 1)
                         .accessibilityIdentifier("markAllMessagesRead")
                 }
                 HStack(spacing: 8) {
                     ClubIcon(name: "messages", size: 16)
-                    Text(community.unreadCount(excluding: store.blockedContactIDs) == 0
+                    Text(community.unreadCount == 0
                          ? "消息都已读，期待下一次相聚"
-                         : "有 \(community.unreadCount(excluding: store.blockedContactIDs)) 条未读消息，看看伙伴们的新动态")
+                         : "有 \(community.unreadCount) 条未读消息，看看伙伴们的新动态")
                         .font(.subheadline)
                 }.foregroundColor(ClubTheme.secondary)
                 CommunitySearchField(placeholder: "搜索消息", text: $query, focus: $searchFocused, identifier: "messageSearch")
@@ -80,10 +78,9 @@ struct OriginalMessagesView: View {
             }.padding(.horizontal, 20).padding(.top, 18)
         }
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
-        .background {
-            NavigationLink(isActive: $showingChat) {
-                if let selected { ChatScreen(conversation: selected).id(selected.id) }
-            } label: { EmptyView() }.hidden()
+        // 使用所在导航栈呈现聊天，返回时由系统同步 showingChat。
+        .navigationDestination(isPresented: $showingChat) {
+            if let selected { ChatScreen(conversation: selected).id(selected.id) }
         }
     }
 
