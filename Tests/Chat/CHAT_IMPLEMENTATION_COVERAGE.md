@@ -86,9 +86,9 @@
 | 1 个人禁言仅upsert，旧groupMute不失效 | N/SDKChatDelegate.swift从真实model.serverMessage识别221个人禁言；F/Models/ChatGroupEventPolicy.swift产生permissionsChanged；N/SDKChatClient.swift立即清旧权限缓存并真实回读 | ReviewSemantic协议用例先红后绿；真实SwiftSDK桥接签名已通过签名build2 |
 | 2 他端移除/删除成员历史仍显示 | 原SDKGroupDeleteMemberHistoryNotification的gid/deleteMemberUidList及KickGroupMessage204.msgDel→memberHistoryDeleted；Runtime失效内容轮次/清该会话媒体、已打开被删作者预览停播/停下载且禁重试，Store保墓碑、清选择/待读并即时同步引用；旧等待页不能回写SDK | 生产Store新增他端删除/迟到页/引用/再改昵称用例通过 |
 | 3 晚到历史覆写SDK正文/读状态 | N/SDKChatClient.swift发HTTP前抓当前SDK完整缓存版本，回写前比最新SDK条目；原条被物理删不重插；期间编辑/读/ACK/墓碑变更选最新完整SDK对象；读字段单调；F/Models/ChatHistoryCachePolicy.swift只比真实字段，排除@每次新UUID，允许未变缓存接纳离线另端编辑正文 | ReviewSemantic真实版本/删除/@临时UUID与远端编辑用例实际先红后绿；签名build3验证最终版 |
-| 4 QR写错status参数 | N/SDKChatSettingsClient.swift.qr专用isShowQrCode数字，根已核对旧GroupManage242及现SDKGroup.h252 | 根ReviewActionChecks字段用例；根3项修复所有权 |
+| 4 QR写错status参数 | N/SDKChatSettingsClient.swift.qr专用isShowQrCode数字，根已核对旧GroupManage242及现SDKGroup.h252 | 旧项目/SDK参数及生产源码核对，签名构建；没有专用QR字段离线断言 |
 | 5 管理撤他人错套自己分钟窗 | F/Models/ChatActionPolicy.swift本人窗口与他人管理规则分开，保持群角色/目标层次/支持类型条件 | 根ReviewActionChecks9项先红后绿 |
-| 6 转发自己未读+1 | N/SDKChatActionsClient.swift真实转发新记录chatMessageReaded=true；SDKSession按该标志不增未读 | 根ReviewActionChecks发送记录规则；签名build2已包含 |
+| 6 转发自己未读+1 | N/SDKChatActionsClient.swift真实转发新记录chatMessageReaded=true；SDKSession按该标志不增未读 | 生产源码及SDKSession读标志分支核对；签名构建已包含，未实测本人转发未读数 |
 | 7 媒体后台close后回来空白 | F/Views/ChatMediaDetailView.swift后台停止并置空播放器，返回active且本轮身份仍有效时重新load，重建视频播放器；下载失败仍有重试 | 编译后源分支核对；实际前后台媒体播放需QA/真实资源验收，未声称已实测 |
 | CHAT-035角色成员预览 | F/Components/ChatGroupMemberPreview.swift + Models/ChatGroupMember.swift：普通5名/管理4名，群主→管理→普通，真实头像/角色，邀请与管理移除入口；member API完成才开放完整名单；资料路由sourceGroupID和private/security守卫 | GroupChecks新增角色预览2项先红后绿；14/14 |
 | CHAT-040当前禁言列表/状态 | N/SDKChatSettingsClient.swift真实GetUserNotalkState/GetNotalkList，DTO保服务器forbidUserUid/name/icon/expireTime/updateTime；群管理当前名单+期限/永久/解除，成员名单已禁言标识；旧超过30整天远期日期识别永久 | ReviewSemantic永久期限用例；SDKSwift签名build2通过；实际禁言名单/解除需双端验收 |
@@ -97,3 +97,9 @@
 追加脚本：`run-review-semantic-checks.sh` 12项、`run-message-forwarder-checks.sh` 4项、根`run-review-action-checks.sh` 9项。全Chat自有及根协助回归分项合计77项；以本次各脚本真实输出为准。第2轮设备签名构建成功日志`/tmp/ddlNew-chat-review-corrections-build2.log`；最终字段语义修正需第3轮日志确认后由根更新签名包，尚未自行重装设备。
 
 不存在用“后端未验证”代替此次三个明确缺失子能力的情况：代码/真实接口/入口已经补齐。剩余后台媒体实际恢复、另一端禁言/删历史/昵称响应等产品行为仍需QA实际双端验证；本文件的回归与编译证据只证明对应接线与可控离线竞态。
+
+## 暂停时最新补充（2026-10-13）
+
+用户要求停止，当前状态见[迁移交接文档](../../Docs/CONTACTS_MESSAGE_MIGRATION_HANDOFF_2026-10-13.md)。上文77项/设备尚未更新为较早快照：根已补后台close后的消息失效识别与停播/禁重载，PreviewInvalidation9项通过，核心Store现23项通过；Chat各入口合计88项，完整仓库最新38个离线入口exit0。键盘工具栏重叠已由根默认字号匿名宿主复测。最新系统配置SDK/TCP修正后的签名workspace构建通过并更新两端，但这些最后根修正尚待新的独立审查及真实媒体回流验收。
+
+最新两端邀请码1000连接与真实身份已确认，授权群B到A文本实收1条；最新A到B尚未发送，ACK/已读和完整后台恢复不标通过。测试报告保留逐需求状态。

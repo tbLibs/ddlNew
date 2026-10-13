@@ -1,6 +1,6 @@
 # 通讯录与消息独立测试报告
 
-日期：2026-10-13；分支：feature-message-4。独立QA维护，开发仍进行中。
+日期：2026-10-13；分支：feature-message-4。**用户已要求暂停开发与联调。** 本报告保留独立QA历史证据，根追加最新暂停时复测结果；详见[交接文档](CONTACTS_MESSAGE_MIGRATION_HANDOFF_2026-10-13.md)。
 
 ## 状态口径与执行策略
 
@@ -21,16 +21,16 @@
 | Tests/Contacts/run-checks.sh | Passed | 43生产逻辑 + 19SDK分页，exit0；ObjectMapper既有警告 |
 | Tests/Contacts/run-business-checks.sh | Passed | 原业务规则exit0，脚本未打印断言数 |
 | Tests/Conversations/run-checks.sh | Passed | 排序/Store/操作3入口exit0 |
-| Tests/Chat/run-checks.sh | Passed | 原Chat脚本8项exit0 |
+| Tests/Chat/run-checks.sh | Passed | 最新根复测23项exit0，包含撤回/清历史失效回调；此前8项为历史快照 |
 | Tests/Groups/run-checks.sh | Passed | 原群选择规则exit0 |
 | Tests/MigrationAcceptance/run-contacts-checks.sh | Passed | 最新独立16/16：原9项加缺资料、删除/新增关系、搜索加载/乱序/清空；新增后实际exit0 |
 | Tests/MigrationAcceptance/run-chat-checks.sh | Passed | 首轮14/15、新增旧错误后15/16均保留历史；最新修复16/16，exit0 |
 | 真实两端登录与业务 | Blocked | 实际运行端为iPhone与电脑My Mac，独立通过添加好友页“我的账号”确认手机账号B、Mac账号A；第二台已连接手机仅有安装记录，未证实AUTH。8101 WDA与目标应用AX已可控制；当前已安装评审修复前版本的授权群双向QA文本实收已观察：两端各精确1条，本端输入清空；服务ACK字段、已读计数与最新安装版本复验仍待观察，不由本端气泡推断这些通过 |
 | 生产App阻塞截图 | Blocked | /tmp/ddlNew-qa-invitation-blocked.png，无凭据；不证明当前代码登录能力或加密根因 |
-| 全工程clean build | Blocked | 待根统一提供实际执行日志 |
-| 隔离UI宿主 | Failed：新键盘工具栏局部 | 最新冻结生产UI独立编译exit0并安装iPhone12；AXXXL首次进入末条正文与2列媒体按钮可见，设置往返草稿保留。新keyboard工具栏在默认字号遮发送右下区域，已反馈根待修；图片/GIF网络替代仅测试包，不能证明GIF播放或真实后端 |
+| 全工程clean build | Passed：较早源码快照 | 根签名clean build日志/tmp/ddlNew-contacts-message-final-clean.log；最新三项修正由增量签名workspace构建验证，/tmp/ddlNew-contacts-message-system-config-transport-build.log |
+| 隔离UI宿主 | Passed：已执行布局子场景 | 独立QA此前确认最大字号首屏与草稿；QA-20工具栏重叠由根修复并默认字号宿主复测，/tmp/ddlNew-qa-keyboard-final-green.png；最新最大字号、真实VoiceOver/iPad仍待测，图片/GIF替身不证明真实业务 |
 | Tests/MigrationAcceptance/run-waiter-checks.sh | Passed | 独立4/4：两等待器重复回调、提前取消、Task取消及迟到结果 |
-| 全部离线脚本汇总 | Passed | 最新评审修复冻结后独立实际36/36入口exit0，总106.59秒，日志/tmp/ddlNew-migration-qa-postreview/summary.json；新增ReviewAction9、ReviewSemantic12、Forwarder4、Group14通过。此前33/33为历史快照，不能代替最新结果 |
+| 全部离线脚本汇总 | Passed | 最新根实际38/38入口exit0，总151.07秒，/tmp/ddlNew-migration-qa-final-transport/summary.json；含PreviewInvalidation9、SystemConfigTransport3和Chat核心23。此前独立36/36为前一快照，/tmp/ddlNew-migration-qa-postreview/summary.json，总106.59秒 |
 
 ## 新增独立执行
 
@@ -67,7 +67,7 @@
 | QA-17 群头像101包装兼容 | CHAT-034 | Passed | 旧xgd群头像明确isEncrypt:YES；原生产codec未包含101，根补齐；新增独立type101包装/解码与云策略通过 |
 | QA-18 群申请事件在途丢失 | M-021 | Passed | 原加载中refresh直接返回，新增独立a100→事件应补读a101红；根修复合并pendingRefresh后独立16/16通过 |
 | QA-19 列表等待期间新通知被提前读 | M-021 | Passed | 根与QA静态确认旧mark取等待后最新游标；改为每Page不可变快照；独立14/14含m1列表/m2新通知及筛选反序验证 |
-| QA-20 新键盘工具栏遮composer | CHAT-003/M-028 | Failed：隔离UI，真机待复验 | 最新生产ChatRoom输入后发送y453..473、Toolbar y461..509、收起键盘y467..503；截图/tmp/ddlNew-qa-postreview-keyboard.png显示工具栏遮发送下半区域。收起后正文保留，根已收到待修 |
+| QA-20 新键盘工具栏遮composer | CHAT-003/M-028 | 修复Passed：默认字号隔离UI | 历史失败截图/tmp/ddlNew-qa-postreview-keyboard.png。根移除系统工具栏，收起行归入composer，发送按钮44×44；/tmp/ddlNew-qa-keyboard-final-green.png确认不重叠且收起后正文保留。生产Mac输入及最新最大字号/VoiceOver/iPad仍待验收 |
 
 ## 逐需求验收矩阵
 
@@ -140,7 +140,7 @@
 | M-025 | 双击消息Tab循环定位未读 | Deferred | — | Deferred | Deferred | P2；交互保留待用户审阅 |
 | M-026 | 多端会话事件、删除与退出清理 | Blocked | Conversations对应检查Passed | Blocked | Blocked | P0；建议迁移 |
 | M-027 | 消息角色权限与系统业务配置缺口 | Blocked | — | Blocked | Blocked | P0；建议迁移 |
-| M-028 | 加载/空/错误、键盘和可访问性 | Failed | — | Failed：QA-20新工具栏覆盖发送 | Blocked | P1；其他用例尚待验证 |
+| M-028 | 加载/空/错误、键盘和可访问性 | Blocked | — | QA-20默认字号宿主已修复复测 | Blocked | P1；真实VoiceOver/iPad及其他未执行用例仍待验证 |
 | M-029 | 通知/深链打开真实会话与Badge依赖 | Deferred | — | Deferred | Deferred | P2；推送/深链独立待确认 |
 | CHAT-001 | 真实单群聊建立与路由上下文 | Blocked | — | Blocked | Blocked | P1；建议迁移 |
 | CHAT-002 | 历史首屏、本地缓存与100条游标分页 | Blocked | 独立Chat对应断言Passed | Blocked | Blocked | P1；建议迁移 |
@@ -329,7 +329,7 @@
 | M-027-A1 | 布尔、分钟、配额、缺省和非法条目各测试，edit窗口不当bool。 | Blocked |
 | M-027-A2 | 依赖列表明确缺消息系统字段，未拿默认常量冒充服务端配置。 | Blocked |
 | M-028-A1 | 当前空态与可访问摘要不回归；可见缓存不会被错误全屏遮住。 | Blocked |
-| M-028-A2 | 新操作及聊天页的返回/键盘/VoiceOver有验收用例且本轮未标通过。 | Failed：QA-20新工具栏覆盖发送；VoiceOver仍Blocked |
+| M-028-A2 | 新操作及聊天页的返回/键盘/VoiceOver有验收用例且本轮未标通过。 | Blocked：QA-20默认字号宿主复测Passed，真实VoiceOver/iPad仍待验收 |
 | M-029-A1 | 未来纳入后冷启动/后台/前台同目标一致，权限和账号核对有效。 | Deferred |
 | M-029-A2 | 旧入口链待验证，未列为旧已完成推送能力或本轮通过。 | Deferred |
 | CHAT-001-A1 | 由列表/通讯录/搜索进入同会话且路由身份一致；不使用ClubCommunity发送。 | Blocked |
@@ -438,7 +438,7 @@
 | 页面/动作 | 结果 | 截图/证据 |
 | --- | --- | --- |
 | 聊天默认深色、长文本/emoji/未知消息 | 局部Passed | /tmp/ddlNew-qa-chat-default.png；未知占位与失败原因可见 |
-| 聊天输入与键盘 | Failed：最新局部 | 历史输入在键盘上方；最新新工具栏遮发送下半部，/tmp/ddlNew-qa-postreview-keyboard.png；收起有效且输入保留。待修复复验 |
+| 聊天输入与键盘 | 修复Passed：默认字号局部 | QA-20根复测/tmp/ddlNew-qa-keyboard-final-green.png；发送与输入无工具栏重叠，收起保留正文。最终最大字号及生产端输入仍待验收 |
 | 聊天设置往返草稿 | 修复局部Passed | /tmp/ddlNew-qa-chat-draft-retest.png；设置往返保留匿名草稿 |
 | 聊天搜索按钮与正文label | 修复Passed | 最新辅助树搜索44×44、TextField label消息正文 |
 | 聊天AXXXL最大字号/浅色首屏 | 修复局部Passed | /tmp/ddlNew-qa-chat-maxfont-green.png；最新首屏末条正文4可见、4媒体按钮2列文字完整；旧空白截图只代表历史失败 |
@@ -476,3 +476,14 @@
 COS请求参数名称在签名前规范为小写；该断言依据[腾讯云请求签名规范](https://intl.cloud.tencent.com/zh/document/product/436/7778?lang=zh)。Ali与OBS的规范资源包含合法子资源，acl差异必须进入签名；依据[阿里OSS V1签名规范](https://www.alibabacloud.com/help/en/oss/developer-reference/include-signatures-in-the-authorization-header)与[华为OBS头部鉴权规范](https://support.huaweicloud.com/intl/en-us/api-obs/obs_04_0010.html)。当前上传入口没有查询子资源，历史失败是离线合同缺陷，已修复复验；不作为已经观测到的线上上传失败。
 
 静态对照xgd的NoaFileUploadTask/Tools：供应商1至4、AWS region字段、OBS自定义put/get域名、聊天日期目录及独立avatar_group目录与旧端相符。CloudUploadSessionDelegate沿系统TLS验证且拒绝HTTP重定向；本轮objectURL将HTTP配置升级HTTPS并移除80端口，独立云策略14/14通过。真实四供应商可达性未验证。
+
+## 用户暂停时的最新增补（根执行）
+
+本节及交接文档优先于前文真实设备章节的历史快照；暂停后没有继续开发或业务测试。
+
+- 最新38/38离线脚本实际exit0，新增附件后台失效9项和系统配置传输3项；不计为38项需求完成。
+- 邀请码1000失败时现场为ECDH成功、HTTP系统配置超时；SystemConfigService改复用既有SDK配置/TCP路径并加轮次守卫，最新签名workspace构建成功。用户反馈登录成功，实际账号UI再次确认两端身份。
+- 最新版本在专用群中iPhone B发送QA_20261013_1600_B2A，My Mac A实收精确1条。最新A到B输入未核对成功，因此未发送；不将其标为发送失败或通过。ACK字段、已读计数、单聊、群管理、真实媒体及恢复仍未完成。
+- 较早双向标记在更新重启后仍可见，仅作历史恢复子证据，不能推断完整持久化/草稿恢复验收。
+- 键盘重叠默认字号宿主修复复测通过；M-028整体Blocked。最新根修正尚缺新的独立人员完整审查，既有子代理因模型容量失败未继续产出。
+- 本任务真机自动化已停止；整理期间检测到新增提交4c8f593包含代码与测试，当前只剩交接记录修改。本助手未执行提交/推送，远端状态未联网核验。继续顺序、授权边界和工具现场见交接文档。
