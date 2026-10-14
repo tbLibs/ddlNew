@@ -176,6 +176,10 @@ import ObjectiveC
             try validateAllowedFriend(id, identity: identity, adding: false)
             params["friendUserUid"] = id; params["remark"] = remark; params["descRemark"] = description
             response.success = try boolean(await call(identity) { sdk.friendSetFriendRemarkAndDes(with: params, onSuccess: $0, onFailure: $1) })
+            if response.success {
+                response.profile = try persistSavedRemark(id: id, remark: remark, description: description, identity: identity)
+                response.isFriend = true
+            }
         case .deleteFriend(let id):
             try validateAllowedFriend(id, identity: identity, adding: false)
             params["friendUserUid"] = id
@@ -271,6 +275,29 @@ import ObjectiveC
         } else {
             guard let friend = sdk.toolCheckMyFriend(with: id), friend.disableStatus != 4 else { throw ContactBusinessError.invalidInput("好友关系已变化，请刷新资料") }
         }
+    }
+
+    /// 服务器确认保存后立即写入SDK好友缓存，避免紧接着的旧资料回读恢复旧备注。
+    private func persistSavedRemark(id: String, remark: String, description: String, identity: ContactsIdentity) throws -> ContactRecord {
+        let sdk = self.sdk
+        objc_sync_enter(sdk); defer { objc_sync_exit(sdk) }
+        try validate(identity, revision: generation)
+        guard let friend = sdk.toolCheckMyFriend(with: id), friend.disableStatus != 4 else {
+            throw ContactBusinessError.invalidInput("好友关系已变化，请刷新资料")
+        }
+        // 撤销保存前的资料读取，旧请求不能迟到覆盖本次已确认修改。
+        let version = ContactProfileRequestGate.shared.begin(userUID: identity.userUID, license: identity.license, friendUID: id)
+        defer { ContactProfileRequestGate.shared.finish(version, userUID: identity.userUID, license: identity.license, friendUID: id) }
+        friend.remarks = remark; friend.descRemark = description
+        friend.remarksPinyin = ContactSorter.searchPinyin(for: remark)
+        friend.showName = remark.isEmpty ? friend.nickname : remark
+        guard sdk.toolUpdateMyFriend(with: friend) else {
+            throw ContactBusinessError.invalidInput("备注已保存，但本机缓存更新失败，请刷新重试")
+        }
+        return ContactRecord(id: id, account: friend.userName ?? "", nickname: friend.nickname ?? "",
+                             remarks: remark, description: description, avatar: friend.avatar ?? "",
+                             isOnline: friend.onlineStatus, disableStatus: friend.disableStatus, userType: friend.userType,
+                             nicknamePinyin: friend.nicknamePinyin ?? "", remarksPinyin: friend.remarksPinyin ?? "", roleID: friend.roleId)
     }
 
     /// 在数据库共用锁内写入完整资料，避免写入其他登录会话。

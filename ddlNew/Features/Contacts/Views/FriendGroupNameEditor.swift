@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIAdapter
+import AlertToast
 
 /// 分组名称编辑留在sheet内等待回执，失败保留输入与目标分组。
 struct FriendGroupNameEditor: View {
@@ -24,24 +25,26 @@ struct FriendGroupNameEditor: View {
     }
 
     private var isDirty: Bool { name != originalName }
+    private var canSave: Bool {
+        !businessStore.isSubmitting && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && (groupID == nil || isDirty)
+    }
     var body: some View {
         NavigationStack {
             Form {
                 Section("分组名称") { TextField("请输入分组名称", text: $name).frame(minHeight: 44).accessibilityLabel("分组名称").disabled(businessStore.isSubmitting) }
-                if businessStore.isSubmitting { ProgressView("正在保存分组") }
-                if let error = businessStore.errorMessage { Text(error).foregroundStyle(MessagingTheme.error) }
             }
             .listRowBackground(MessagingTheme.surface)
             .navigationTitle(groupID == nil ? "添加分组" : "重命名分组")
             .modifier(MessagingPageChrome())
+        .messagingFeedbackToast(businessStore.errorMessage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(businessStore.isSubmitting) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button { Task { await save() } } label: {
-                    Text(businessStore.isSubmitting ? "正在保存" : "保存").frame(maxWidth: .infinity).frame(minHeight: max(44, 50.zoom()))
-                }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
-                    .disabled(businessStore.isSubmitting || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (groupID != nil && !isDirty))
+                    Text("保存").frame(maxWidth: .infinity)
+                }.buttonStyle(MessagingActionButtonStyle())
+                    .disabled(!canSave)
                     .padding(16.zoom()).background(MessagingTheme.surface)
             }
             .interactiveDismissDisabled(businessStore.isSubmitting || isDirty)
@@ -49,6 +52,10 @@ struct FriendGroupNameEditor: View {
                 Button("继续编辑", role: .cancel) {}
                 Button("放弃修改", role: .destructive) { dismiss() }
             }
+        }
+        .toast(isPresenting: Binding(get: { businessStore.isSubmitting }, set: { _ in }), duration: 0, tapToDismiss: false) {
+            AlertToast(type: .loading, title: "正在保存",
+                       style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)

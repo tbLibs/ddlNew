@@ -36,21 +36,19 @@ struct DeleteAccountScreen: View {
                 Toggle("我已了解注销后果", isOn: $acknowledged)
                     .font(.body).tint(ClubTheme.darkTeal)
                     .accessibilityIdentifier("acknowledgeAccountDeletion")
-                if let errorMessage {
-                    Text(errorMessage).font(.subheadline).foregroundColor(ClubTheme.error)
-                        .accessibilityIdentifier("accountDeletionError")
-                }
+
                 Button { confirming = true } label: {
                     HStack {
-                        if deleting { ProgressView().tint(.white) }
-                        Text(deleting ? "正在注销…" : "确认注销账号")
-                    }.frame(maxWidth: .infinity, minHeight: 44)
+                        Text("确认注销账号")
+                    }.frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent).tint(ClubTheme.error)
+                .buttonStyle(MessagingActionButtonStyle(fill: ClubTheme.error, foreground: .white))
                 .disabled(!acknowledged || deleting)
                 .accessibilityIdentifier("confirmAccountDeletion")
             }.padding(24).disabled(deleting)
         }
+        .messagingLoadingToast(deleting, title: "正在注销")
+        .messagingFeedbackToast(errorMessage)
         .navigationTitle("注销账号").navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(deleting)
         .alert("确定注销账号？", isPresented: $confirming) {

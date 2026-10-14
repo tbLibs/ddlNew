@@ -157,6 +157,10 @@ import ObjectiveC
     /// 真实群详情同步SDK群表和会话标题，让来源群私聊守卫立即读取最新策略。
     func updateGroupCache(_ json: [String: Any], context: ChatContext) {
         guard validSession(context), let group = (sdk.toolCheckMyGroup(with: context.route.id) as LingIMGroupModel?) else { return }
+        let previousCount = group.memberCount
+        if let count = Int((json["memberCount"] as? NSNumber)?.stringValue ?? json["memberCount"] as? String ?? ""), count > 0 {
+            group.memberCount = count
+        }
         group.groupName = json["groupName"] as? String ?? group.groupName
         group.groupAvatar = json["groupAvatar"] as? String ?? group.groupAvatar
         group.userGroupRole = (json["userGroupRole"] as? NSNumber)?.intValue ?? Int(json["userGroupRole"] as? String ?? "") ?? 0
@@ -169,7 +173,11 @@ import ObjectiveC
         group.isShowHistory = (json["isShowHistory"] as? NSNumber)?.boolValue ?? false
         group.isShowQrCode = (json["isShowQrCode"] as? NSNumber)?.boolValue ?? false
         group.closeSearchUser = (json["closeSearchUser"] as? NSNumber)?.boolValue ?? group.closeSearchUser
-        sdk.toolInsertOrUpdateGroupModel(with: group)
+        if sdk.toolInsertOrUpdateGroupModel(with: group), group.memberCount != previousCount {
+            // 单纯写群表不会发代理；人数实际变化时通知列表，避免重启后才更新。
+            // 相同人数不重复通知，防止聊天权限刷新与群代理形成回查循环。
+            sdk.groupDelegate.cimToolGroupUpdate?(with: group)
+        }
         if let session = (sdk.toolCheckMySession(with: context.route.id) as LingIMSessionModel?) {
             session.sessionName = group.groupName; session.sessionAvatar = group.groupAvatar; sdk.toolUpdateSession(with: session)
         }

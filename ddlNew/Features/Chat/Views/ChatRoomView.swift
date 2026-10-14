@@ -57,14 +57,12 @@ struct ChatRoomView: View {
                 if let pinned = pinnedMessages.first {
                     Button { showPinnedMessages = true } label: { HStack { Image(systemName: "pin.fill"); Text(pinned.text).lineLimit(1); Spacer(); Text("\(pinnedMessages.count)条") }.padding(10.zoom()) }.accessibilityLabel("查看置顶消息")
                 }
-                if let error = store.errorMessage {
-                    HStack { Text(error).font(.callout); Spacer(); Button("关闭") { store.errorMessage = nil } }.padding(10.zoom()).background(MessagingTheme.error.opacity(0.08))
-                }
+
                 ScrollView {
                     VStack(spacing: 14.zoom()) {
                         if store.hasMore {
                             Button { Task { let anchor = store.messages.first?.id; await store.loadMore(); if let anchor { proxy.scrollTo(anchor, anchor: .top) } } }
-                            label: { if store.isLoading { ProgressView() } else { Text("加载更早消息") } }.disabled(store.isLoading).padding()
+                            label: { Text("加载更早消息") }.disabled(store.isLoading).padding()
                         }
                         ForEach(displayedMessages) { message in messageRow(message) }
                         Color.clear.frame(height: 1).id("latest")
@@ -108,7 +106,6 @@ struct ChatRoomView: View {
         .navigationTitle(route.title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarHidden(false)
-        .toolbar(.hidden, for: .tabBar)
         .tint(MessagingTheme.accent)
         .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -156,6 +153,8 @@ struct ChatRoomView: View {
     /// 业务观察和确认操作独立于展示组件，继续保留原回调边界。
     var body: some View {
         chatPresentations
+        .messagingLoadingToast(store.isLoading, title: "正在加载聊天记录")
+        .messagingFeedbackToast(store.errorMessage, isEnabled: !showSettings && !showStickers && !showForward && mediaMessage == nil && editingMessage == nil && pinningMessage == nil)
         .onChange(of: store.messages) { _ in
             pinRefreshTask?.cancel(); pinRefreshTask = Task { do { try await Task.sleep(nanoseconds: 300_000_000); await reloadPins() } catch {} }
         }
@@ -181,7 +180,7 @@ struct ChatRoomView: View {
             if let reference = store.reference { HStack { Text("回复：" + reference.displayText).font(.caption).lineLimit(2); Spacer(); Button("取消引用") { store.reference = nil } } }
             if !store.selectedIDs.isEmpty { HStack { Text("已选择\(store.selectedIDs.count)/100"); Spacer(); Button("删除", role: .destructive) { showDeleteSelection = true }; Button("转发") { forwardingMessages = store.messages.filter { store.selectedIDs.contains($0.id) }; showForward = true }; Button("取消多选") { store.cancelSelection() } } }
             if showAttachments && !composerFocused && route.kind == .group && !(store.permission.role == 0 && store.permission.isPrivateChat) {
-                Button("@成员") { Task { await loadMentionMembers() } }.frame(minHeight: max(44, 44.zoom())).disabled(!store.permission.canSend)
+                Button("@成员") { Task { await loadMentionMembers() } }.disabled(!store.permission.canSend)
             }
             HStack(alignment: .bottom, spacing: 10.zoom()) {
                 if !dynamicTypeSize.isAccessibilitySize { attachmentToggle }
@@ -191,7 +190,7 @@ struct ChatRoomView: View {
                     stickerButton
                     if composerFocused { keyboardDismissButton }
                 }
-                Button { store.sendText() } label: { Text("发送").font(.subheadline.weight(.semibold)).frame(minWidth: max(44, 44.zoom()), minHeight: max(44, 44.zoom())) }.buttonStyle(.borderedProminent).tint(MessagingTheme.outgoingBubble).disabled(!store.permission.canSend || store.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button { store.sendText() } label: { Text("发送").font(.subheadline.weight(.semibold)).frame(minWidth: max(44, 44.zoom())) }.buttonStyle(MessagingActionButtonStyle()).disabled(!store.permission.canSend || store.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             if dynamicTypeSize.isAccessibilitySize {
                 HStack(spacing: 12.zoom()) {

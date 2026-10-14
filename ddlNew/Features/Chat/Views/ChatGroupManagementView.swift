@@ -57,13 +57,12 @@ struct ChatGroupManagementView: View {
                         }
                     }
                 }
-                if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
-                if let feedback { Text(feedback).font(.footnote).foregroundStyle(MessagingTheme.accent).accessibilityLabel(feedback) }
             }.padding(16.zoom())
         }
         .disabled(store.busy)
-        .overlay { if store.busy { ProgressView("正在更新").padding().background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 10.zoom())) } }
         .navigationTitle("群管理").modifier(MessagingPageChrome())
+        .messagingFeedbackToast(store.errorMessage ?? feedback)
+        .messagingLoadingToast(store.busy, title: "正在更新")
     }
 
     private var divider: some View { Rectangle().fill(MessagingTheme.divider).frame(height: 1).padding(.leading, 16.zoom()) }

@@ -31,9 +31,7 @@ struct ChatSettingsView: View {
     var body: some View {
         MessagingScroll {
             VStack(spacing: 12.zoom()) {
-                if let error = store.errorMessage {
-                    MessagingCard { VStack(alignment: .leading, spacing: 8.zoom()) { Text(error).foregroundStyle(MessagingTheme.error); Button("重新加载") { Task { await store.reload() } }.frame(minHeight: 44) } }
-                }
+                if store.errorMessage != nil { Button("重新加载") { Task { await store.reload() } }.frame(minHeight: 44) }
                 if let group = store.snapshot?.group {
                     MessagingCard {
                         VStack(spacing: 16.zoom()) {
@@ -44,8 +42,8 @@ struct ChatSettingsView: View {
                                     Spacer(); chevron
                                 }.frame(minHeight: 56.zoom())
                             }.buttonStyle(MessagingRowStyle())
-                            if group.membersSyncReady { ChatGroupMemberPreview(group: group, onInvite: { showInvite = true }, onRemove: { showMembers = true }) }
-                            Button { showMembers = true } label: { row("查看群成员", value: canShowCount(group) ? "\(group.memberCount)人" : "") }.buttonStyle(MessagingRowStyle()).disabled(!group.membersSyncReady)
+                            if group.membersSyncReady { ChatGroupMemberPreview(group: group, onOpenMembers: { showMembers = true }, onInvite: { showInvite = true }, onRemove: { showMembers = true }) }
+                            Button { showMembers = true } label: { row("查看群成员", value: canShowCount(group) ? "\(group.memberCount)人" : "") }.buttonStyle(MessagingRowStyle()).disabled(!group.membersSyncReady || !canOpenMembers(group))
                         }
                     }
                     MessagingCard(padding: 0) {
@@ -67,7 +65,7 @@ struct ChatSettingsView: View {
                 }
                 MessagingCard(padding: 0) {
                     VStack(spacing: 0) {
-                        Button { showHistorySearch = true } label: { row("查找聊天记录", icon: "magnifyingglass") }.buttonStyle(MessagingRowStyle())
+                        Button { showHistorySearch = true } label: { row("查找聊天记录") }.buttonStyle(MessagingRowStyle())
                         separator
                         Toggle("置顶会话", isOn: Binding(get: { store.snapshot?.isPinned ?? false }, set: { value in Task { await store.setConversation(pinned: value) } })).padding(16.zoom()).frame(minHeight: 52.zoom())
                         if route.id != "100002" { separator; Toggle("消息免打扰", isOn: Binding(get: { store.snapshot?.isMuted ?? false }, set: { value in Task { await store.setConversation(muted: value) } })).padding(16.zoom()).frame(minHeight: 52.zoom()) }
@@ -84,9 +82,10 @@ struct ChatSettingsView: View {
             }.padding(16.zoom())
         }
         .disabled(store.busy)
-        .overlay { if store.busy { ProgressView("正在更新").padding(16.zoom()).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 10.zoom())) } }
         .navigationTitle(route.kind == .group ? "群聊设置" : "聊天设置")
         .modifier(MessagingPageChrome())
+        .messagingLoadingToast(store.busy && !presentingChild, title: "正在更新")
+        .messagingFeedbackToast(store.errorMessage, isEnabled: !presentingChild)
         .task { if let context = ChatRuntime.shared.context(for: route) { await store.open(context) } }
         .onDisappear { store.leaveSettingsView(presentingChild: showAvatar || showMembers || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor) }
         .sheet(isPresented: $showHistorySearch) { if let context = ChatRuntime.shared.context(for: route) { NavigationStack { ChatHistorySearchView(context: context) { id in createdRoute = ChatRoute(id: route.id, kind: route.kind, title: route.title, avatarURL: route.avatarURL, targetMessageID: id) } } } }
@@ -119,6 +118,13 @@ struct ChatSettingsView: View {
         .navigationDestination(isPresented: Binding(get: { createdRoute != nil }, set: { if !$0 { createdRoute = nil } })) { if let createdRoute { ChatRoomView(route: createdRoute) } }
     }
 
+    /// 沿用旧版群安全权限：普通成员禁止私聊时不打开成员列表。
+    private func canOpenMembers(_ group: ChatGroupDetail) -> Bool {
+        [1, 2].contains(group.role) || !group.isPrivateChat || UserRoleAuthorityStore.shared.current?.allows("groupSecurity") == true
+    }
+
+    private var presentingChild: Bool { showAvatar || showMembers || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor }
+
     private var chevron: some View { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }
     private var separator: some View { Rectangle().fill(MessagingTheme.divider).frame(height: 1).padding(.leading, 16.zoom()) }
 
@@ -144,24 +150,67 @@ private struct ChatGroupNameEditor: View {
     @State private var original = ""
     @State private var confirmDiscard = false
     @FocusState private var focused: Bool
+    private var canSave: Bool { !store.busy && valid && input != original }
     private var valid: Bool { editingName ? !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty : input.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 30 }
 
     var body: some View {
         NavigationStack {
             MessagingScroll {
                 VStack(alignment: .leading, spacing: 12.zoom()) {
-                    Text(editingName ? "群名称" : "我的群昵称").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
-                    MessagingCard { TextField(editingName ? "输入群名称" : "输入群昵称", text: $input, axis: .vertical).focused($focused).submitLabel(.done).accessibilityLabel(editingName ? "群名称" : "我的群昵称").frame(minHeight: 44) }
-                    if !editingName { Text("最多30字").font(.footnote).foregroundStyle(valid ? MessagingTheme.secondaryText : MessagingTheme.error) }
-                    if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
-                    if store.busy { ProgressView("正在保存") }
+                    Text(editingName ? "群名称" : "我的群昵称")
+                        .font(.footnote)
+                        .foregroundStyle(MessagingTheme.secondaryText)
+                    MessagingCard {
+                        TextField(
+                            editingName ? "输入群名称" : "输入群昵称",
+                            text: $input,
+                            axis: .vertical
+                        )
+                        .focused($focused)
+                        .submitLabel(.done)
+                        .accessibilityLabel(editingName ? "群名称" : "我的群昵称")
+                        .frame(minHeight: 44)
+                    }
+                    if !editingName {
+                        Text("最多30字")
+                            .font(.footnote)
+                            .foregroundStyle(
+                                valid ? MessagingTheme.secondaryText : MessagingTheme.error
+                            )
+                    }
                 }.padding(16.zoom())
-            }.navigationTitle(editingName ? "修改群名称" : "我的群昵称").modifier(MessagingPageChrome())
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("取消") { if input != original { confirmDiscard = true } else { dismiss() } }.disabled(store.busy) }
-                    ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { if await store.groupAction(editingName ? .rename(input) : .nickname(input)) { dismiss() } } }.disabled(store.busy || !valid || input == original) }
+            }
+            .navigationTitle(editingName ? "修改群名称" : "我的群昵称").modifier(MessagingPageChrome())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        if input != original { confirmDiscard = true } else {
+                            dismiss()
+                        }
+                    }
+                    .disabled(store.busy)
                 }
-        }.interactiveDismissDisabled(store.busy || input != original)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        Task {
+                            if await store
+                                .groupAction(editingName ? .rename(input) : .nickname(input)) {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(
+                        canSave ? MessagingTheme.primaryAction : MessagingTheme.secondaryText
+                    )
+                    .frame(minHeight: 44)
+                    .disabled(!canSave)
+                }
+            }
+        }
+        .messagingLoadingToast(store.busy, title: "正在保存")
+        .messagingFeedbackToast(store.errorMessage)
+        .interactiveDismissDisabled(store.busy || input != original)
             .onAppear { original = editingName ? store.snapshot?.group?.name ?? "" : store.snapshot?.group?.nickname ?? ""; input = original; focused = true }
             .confirmationDialog("放弃本次修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() } }
     }

@@ -30,6 +30,8 @@ struct LoginVerificationSheet: View {
             }
             .padding(24)
             .background(LoginPalette.background)
+            .messagingLoadingToast(isProviderCaptcha && loadState == .loading, title: "正在加载验证")
+            .messagingFeedbackToast(verificationFeedback, presentInitial: true)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -40,6 +42,16 @@ struct LoginVerificationSheet: View {
                 }
             }
         }
+    }
+
+    /// 只有网页验证码有异步加载；图片和安全码输入不会被loading遮住。
+    private var isProviderCaptcha: Bool {
+        switch request.kind { case .tencentCaptcha, .aliyunCaptcha: return true; default: return false }
+    }
+    private var verificationFeedback: String? {
+        if request.kind == .imageCaptcha, request.imageData.flatMap({ UIImage(data: $0) }) == nil { return "验证码图片加载失败，请取消后重新登录。" }
+        if isProviderCaptcha, case .failed(let message) = loadState { return message }
+        return nil
     }
 
     private var title: String {
@@ -62,8 +74,7 @@ struct LoginVerificationSheet: View {
                 .onSubmit(submitInput)
             continueButton
         } else {
-            Label("验证码图片加载失败，请取消后重新登录。", systemImage: "exclamationmark.triangle")
-                .foregroundStyle(.secondary)
+            Color.clear.frame(height: 100)
         }
     }
 
@@ -104,16 +115,7 @@ struct LoginVerificationSheet: View {
                 .id(attemptID)
                 .opacity(loadState.isFailed ? 0 : 1)
 
-                if loadState == .loading {
-                    ProgressView("正在加载验证…")
-                        .padding(20)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                }
-                if case .failed(let message) = loadState {
-                    Label(message, systemImage: "exclamationmark.triangle")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                }
+
             }
             .frame(minHeight: 340, maxHeight: .infinity)
             if loadState.isFailed {

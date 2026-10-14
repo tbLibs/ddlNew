@@ -107,7 +107,7 @@ struct ClubHomeView: View {
                                    detail: "\(store.activities(with: [.waiting]).count) 项等待中")
                 }
                 .accessibilityIdentifier("home.waiting")
-                NavigationLink(destination: CheckInSelectionScreen()) {
+                NavigationLink(value: ActivityRoute.checkInSelection) {
                     HomeQuickEntry(title: "活动签到", symbol: "qrcode.viewfinder", detail: "到场后签到")
                 }
                 .accessibilityIdentifier("home.checkIn")

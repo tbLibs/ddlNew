@@ -41,8 +41,6 @@ struct AddFriendView: View {
                     .contextMenu { Button { copyAccount(user.userName) } label: { Label("复制账号", systemImage: "doc.on.doc") } }
                     .accessibilityHint("查看我的二维码，也可通过操作菜单复制账号")
                 }
-                if let copyNotice { Text(copyNotice).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
-                if businessStore.isSearching { ProgressView("正在查找用户").frame(minHeight: 80.zoom()) }
                 if searched && !businessStore.isSearching && businessStore.errorMessage == nil && businessStore.searchResults.isEmpty {
                     EmptyClubState(title: "没有找到用户", message: "请核对用户账号，或扫描对方的业务二维码。")
                 }
@@ -60,17 +58,23 @@ struct AddFriendView: View {
                         }.buttonStyle(MessagingRowStyle())
                     }
                 }.clipShape(RoundedRectangle(cornerRadius: 10.zoom()))
-                if let error = businessStore.errorMessage { Text(error).foregroundStyle(MessagingTheme.error).frame(maxWidth: .infinity, alignment: .leading) }
             }.padding(16.zoom())
         }
         .navigationTitle("添加好友")
+        .messagingLoadingToast(businessStore.isSearching, title: "正在查找用户")
         .modifier(MessagingPageChrome())
+        .messagingFeedbackToast(businessStore.errorMessage ?? copyNotice)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink(value: ContactsPageRoute.scanner) { Image(systemName: "qrcode.viewfinder").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("扫一扫")
             }
         }
-        .onChange(of: query) { value in if value.isEmpty { searched = false; Task { await businessStore.search("") } } }
+        .onAppear {
+            query = ""; searched = false; copyNotice = nil
+            businessStore.clearSearch()
+        }
+        .onDisappear { businessStore.clearSearch() }
+        .onChange(of: query) { value in if value.isEmpty { searched = false; businessStore.clearSearch() } }
     }
 
     /// 复制当前公开账号，给出可见反馈。

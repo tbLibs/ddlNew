@@ -18,4 +18,12 @@ nonisolated struct GroupRecord: Identifiable, Equatable, Sendable {
     var isShowQRCode: Bool = false
     var isPrivateChat: Bool = false
     var isAllMuted: Bool = false
+
+    /// 部分群缓存可能人数为0；仅保留已确认人数，其余资料仍取最新快照。
+    func preservingKnownMemberCount(from previous: GroupRecord?) -> GroupRecord {
+        guard memberCount <= 0, let previous, previous.memberCount > 0 else { return self }
+        return GroupRecord(id: id, name: name, avatar: avatar, role: role, memberCount: previous.memberCount,
+                           isNeedVerify: isNeedVerify, isShowQRCode: isShowQRCode,
+                           isPrivateChat: isPrivateChat, isAllMuted: isAllMuted)
+    }
 }

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// 关联二级页共用旧版导航层级，push 后隐藏底栏并保留系统返回手势。
+/// 关联二级页共用导航样式；底栏由Tab导航容器按路径控制。
 struct MessagingPageChrome: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -18,7 +18,6 @@ struct MessagingPageChrome: ViewModifier {
             .controlSize(.large)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarHidden(false)
-            .toolbar(.hidden, for: .tabBar)
             .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }

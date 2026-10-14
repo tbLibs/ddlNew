@@ -49,10 +49,7 @@ struct PasswordChangeView: View {
                         }
                     }
                 }
-                if coordinator.isBusy { ProgressView("正在处理…") }
-                if let message = coordinator.message {
-                    Section { Text(message).foregroundStyle(coordinator.passwordChanged ? Color.primary : Color.red) }
-                }
+
                 Section {
                     Button(coordinator.passwordChanged ? "退出并重新登录" : "退出登录", role: .destructive) {
                         clearInputs()
@@ -69,6 +66,8 @@ struct PasswordChangeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("passwordSecurityScreen")
         }
+        .messagingLoadingToast(coordinator.isBusy, title: "正在处理")
+        .messagingFeedbackToast(coordinator.message)
         .interactiveDismissDisabled(request.isForced || coordinator.passwordChanged || coordinator.isBusy)
         .onChange(of: coordinator.inputResetID) { _ in clearInputs() }
         .onDisappear { clearInputs() }

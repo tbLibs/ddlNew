@@ -36,16 +36,6 @@ struct LoginView: View {
         ScrollView {
             VStack(spacing: 24) {
                 brandHeader
-                if let message = securityNotice.message {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(message).font(.callout).foregroundStyle(.primary)
-                        Button("知道了") { securityNotice.clear() }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityIdentifier("loginSecurityNotice")
-                }
                 loginForm
                 auxiliaryActions
                 legalEntries
@@ -56,6 +46,8 @@ struct LoginView: View {
             .frame(maxWidth: .infinity)
         }
         .background(LoginBackground())
+        .messagingLoadingToast(viewModel.loginPhase.isBusy && verification.request == nil, title: viewModel.loginPhase.buttonTitle)
+        .messagingFeedbackToast(loginFeedback, isEnabled: verification.request == nil && !showingRegistration, presentInitial: true)
         .scrollDismissesKeyboard(.interactively)
         .onSubmit(dismissKeyboard)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -148,12 +140,7 @@ struct LoginView: View {
                 .disabled(viewModel.loginPhase.isBusy)
                 .accessibilityIdentifier("rememberPassword")
 
-            if let message = viewModel.rememberedLoginMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundColor(.red)
-                    .accessibilityIdentifier("rememberPasswordError")
-            }
+
 
             // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
             Button(viewModel.loginPhase.buttonTitle, action: login)
@@ -163,7 +150,6 @@ struct LoginView: View {
                 .padding(.top, 10)
                 .accessibilityIdentifier("login")
 
-            loginRequestStatus
 
             if viewModel.loginPhase != .succeeded {
                 Text(connection.phase.message)
@@ -190,26 +176,9 @@ struct LoginView: View {
         }
     }
 
-    /// 接口成功后继续等待真实 AUTH；全部完成后由 ViewModel 请求根路由进入主界面。
-    @ViewBuilder
-    private var loginRequestStatus: some View {
-        switch viewModel.loginPhase {
-        case .checkingAccount, .fetchingKey, .submitting, .verifying, .savingSession, .configuringSDK, .authenticating:
-            ProgressView()
-                .accessibilityLabel(viewModel.loginPhase.buttonTitle)
-        case .succeeded:
-            Text(authentication.state.message)
-                .font(.footnote)
-                .foregroundColor(LoginPalette.darkTeal)
-                .accessibilityIdentifier("loginRequestSuccess")
-        case .failed(let message):
-            Text(message)
-                .font(.footnote)
-                .foregroundColor(.red)
-                .accessibilityIdentifier("loginRequestError")
-        case .idle:
-            EmptyView()
-        }
+    private var loginFeedback: String? {
+        if case .failed(let message) = viewModel.loginPhase { return message }
+        return viewModel.rememberedLoginMessage ?? securityNotice.message
     }
 
     private var auxiliaryActions: some View {
@@ -265,6 +234,7 @@ struct LoginView: View {
     }
 
     private func login() {
+        securityNotice.clear()
         dismissKeyboard()
         viewModel.login(account: card, password: password, rememberPassword: rememberPassword)
     }

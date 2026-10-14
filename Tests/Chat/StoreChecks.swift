@@ -53,7 +53,7 @@ import Foundation
         let local = client.sent[0].localID
         client.callback?(.ack(localID: local, serverID: "12", timestamp: 300))
         client.callback?(.failed(localID: local, reason: .timeout))
-        expect(store.messages.last?.state == .sent, "迟到失败不能覆盖有效ACK")
+        expect(store.messages.last?.state == .sent && store.errorMessage == nil, "迟到失败不能覆盖有效ACK或触发失败提示")
         client.policy.canSend = false
         store.input = "不应发送"
         store.sendText()
@@ -133,6 +133,8 @@ import Foundation
         var file = message("file", server: "file", type: 5); file.state = .failed; client.callback?(.upsert(file))
         let priorSent = client.sent.count; store.retry("file")
         expect(client.sent.count == priorSent + 1, "文件重发使用upFile而非图片视频权限")
+        client.callback?(.failed(localID: "file", reason: .timeout))
+        expect(store.messages.first(where: { $0.localID == "file" })?.state == .failed && store.errorMessage == ChatFailureReason.timeout.message, "实时发送失败保留重试状态并提供Toast文案")
         store.close()
         client.suspend = false
         var edited = message("metadata", server: "metadata"); edited.text = "已经编辑的正文"; edited.timestamp = 900; edited.isRead = true; edited.readCount = 3
@@ -181,7 +183,7 @@ import Foundation
         await interruptedStore.markVisible("voicePending", voicePlayed: true)
         expect(interruptedClient.readBatches.count == 4 && interruptedStore.messages.first?.isRead == true, "成员历史变化后的旧语音读回执必须释放重播资格")
         interruptedStore.close()
-        print("Chat checks: 32 passed")
+        print("Chat checks: 33 passed")
     }
     /// 构造含双ID的普通消息。
     static func message(_ id: String, server: String, type: Int = 0) -> ChatMessageRecord {

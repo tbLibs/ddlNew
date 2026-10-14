@@ -19,7 +19,7 @@ struct ContactsView: View {
     @State private var filter: ContactsListFilter = .friends
     @State private var managingGroups = false
     @State private var selectingMembers = false
-    @State private var createdRoute: ChatRoute?
+    @EnvironmentObject private var navigation: ActivityNavigation
     @State private var openGroups = Set<String>()
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -57,7 +57,6 @@ struct ContactsView: View {
                                                      text: $query, focus: $searchFocused, identifier: "contactSearch")
                             }.padding(.horizontal, 16.zoom()).padding(.bottom, 12.zoom()).background(MessagingTheme.background)
                         }
-                        errors.padding(16.zoom())
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -72,6 +71,8 @@ struct ContactsView: View {
             .background(MessagingTheme.background.ignoresSafeArea())
         }
         .tint(MessagingTheme.accent)
+        .messagingLoadingToast(!selectingMembers && ((filter == .groups && (groupsStore.isLoading || groupsStore.isCreating)) || (filter == .friendGroups && businessStore.isLoading)))
+        .messagingFeedbackToast(groupsStore.errorMessage ?? businessStore.errorMessage ?? store.errorMessage, isEnabled: !selectingMembers && !managingGroups)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .task { await store.reload(); await businessStore.reload(); await groupsStore.reload() }
         .sheet(isPresented: $managingGroups) { FriendGroupManagerView(businessStore: businessStore) }
@@ -81,13 +82,11 @@ struct ContactsView: View {
                                   friendGroups: businessStore.groups, submissionError: groupsStore.errorMessage,
                                   onSubmit: { members in
                 guard let group = await groupsStore.create(members: members, nickname: UserSessionStore.shared.currentUser?.nickname ?? "") else { return false }
-                createdRoute = ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar)
+                navigation.open(ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar))
                 return true
             }, onConfirm: { _ in })
         }
-        .navigationDestination(isPresented: Binding(get: { createdRoute != nil }, set: { if !$0 { createdRoute = nil } })) {
-            if let createdRoute { ChatRoomView(route: createdRoute) }
-        }
+
     }
 
     /// 紧凑页头固定在安全区域内，搜索和添加均保留44pt点击范围。
@@ -182,18 +181,17 @@ struct ContactsView: View {
                 Label("管理好友分组", systemImage: "slider.horizontal.3").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
             }.buttonStyle(MessagingRowStyle())
             if businessStore.groups.isEmpty {
-                if businessStore.isLoading { ProgressView("正在加载好友分组").padding(16.zoom()) }
-                else if businessStore.errorMessage == nil { emptyState("暂无好友分组", detail: "可创建分组来整理好友。") }
+                if !businessStore.isLoading && businessStore.errorMessage == nil { emptyState("暂无好友分组", detail: "可创建分组来整理好友。") }
             }
             ForEach(businessStore.groups) { group in
                 Button { toggleGroup(group.id) } label: {
                     HStack(spacing: 12.zoom()) {
                         Image(systemName: openGroups.contains(group.id) ? "chevron.down" : "chevron.right").font(.caption).accessibilityHidden(true)
-                        Text(group.name).foregroundStyle(MessagingTheme.text)
+                        Text(group.displayName).foregroundStyle(MessagingTheme.text)
                         Spacer()
                         Text("\(group.members.count)").foregroundStyle(MessagingTheme.secondaryText)
                     }.padding(.horizontal, 16.zoom()).frame(minHeight: 54.zoom())
-                }.buttonStyle(MessagingRowStyle()).accessibilityLabel("\(group.name)，\(group.members.count)位好友")
+                }.buttonStyle(MessagingRowStyle()).accessibilityLabel("\(group.displayName)，\(group.members.count)位好友")
                     .accessibilityValue(openGroups.contains(group.id) ? "已展开" : "已收起")
                 if openGroups.contains(group.id) {
                     ForEach(group.members.filter { query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query) }) { contact in contactLink(contact) }
@@ -205,11 +203,9 @@ struct ContactsView: View {
                     Label("创建群聊", systemImage: "person.2.badge.plus").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
                 }.buttonStyle(MessagingRowStyle()).disabled(groupsStore.isCreating)
             }
-            if groupsStore.isCreating { ProgressView("正在创建群聊").padding(16.zoom()) }
             let visible = groupsStore.groups.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
             if visible.isEmpty {
-                if groupsStore.isLoading { ProgressView("正在加载群聊").padding(16.zoom()) }
-                else if groupsStore.errorMessage == nil { emptyState(query.isEmpty ? "暂无群聊" : "没有找到群聊", detail: "加入或创建群聊后，将在这里显示。") }
+                if !groupsStore.isLoading && groupsStore.errorMessage == nil { emptyState(query.isEmpty ? "暂无群聊" : "没有找到群聊", detail: "加入或创建群聊后，将在这里显示。") }
             }
             ForEach(visible) { group in
                 NavigationLink(value: ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar)) {
@@ -222,15 +218,6 @@ struct ContactsView: View {
                 }.buttonStyle(MessagingRowStyle())
             }
         }
-    }
-
-    /// 所有加载错误仍在所属列表显示，避免视觉改版吞掉业务反馈。
-    private var errors: some View {
-        VStack(alignment: .leading, spacing: 8.zoom()) {
-            if let error = store.errorMessage { Text(error) }
-            if let error = businessStore.errorMessage { Text(error) }
-            if let error = groupsStore.errorMessage { Text(error) }
-        }.font(.subheadline).foregroundStyle(MessagingTheme.error)
     }
 
     /// 空态使用中性排版，真实数据为空时仍说明下一步操作。

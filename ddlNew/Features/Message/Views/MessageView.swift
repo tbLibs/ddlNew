@@ -21,7 +21,7 @@ struct MessageView: View {
     @FocusState private var searchFocused: Bool
     @State private var deletingConversation: ConversationRecord?
     @State private var selectingMembers = false
-    @State private var createdRoute: ChatRoute?
+    @EnvironmentObject private var navigation: ActivityNavigation
 
     private enum ConversationFilter: String, CaseIterable, Identifiable {
         case all = "全部"
@@ -51,7 +51,7 @@ struct MessageView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("messageConnectionState")
                 }
-                if let error = store.errorMessage { errorNotice(error) }
+                if store.errorMessage?.hasPrefix("会话缓存读取失败") == true { Button("重新读取") { Task { await store.reload() } }.frame(minHeight: 44) }
             }
             .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 12.zoom(), trailing: 16.zoom()))
             .listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -80,6 +80,7 @@ struct MessageView: View {
         .background(MessagingTheme.background)
         .safeAreaInset(edge: .top, spacing: 0.zoom()) { header }
         .tint(MessagingTheme.accent)
+        .messagingFeedbackToast(store.operationError ?? store.errorMessage, isEnabled: !selectingMembers)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .task { await store.reload() }
         .refreshable { await store.reload() }
@@ -90,13 +91,11 @@ struct MessageView: View {
                 submissionError: groups.errorMessage, onSubmit: { members in
                     guard let group = await groups.create(members: members,
                         nickname: UserSessionStore.shared.currentUser?.nickname ?? "") else { return false }
-                    createdRoute = ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar)
+                    navigation.open(ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar))
                     return true
                 }, onConfirm: { _ in })
         }
-        .navigationDestination(isPresented: Binding(get: { createdRoute != nil }, set: { if !$0 { createdRoute = nil } })) {
-            if let createdRoute { ChatRoomView(route: createdRoute) }
-        }
+
         .alert("删除会话？", isPresented: Binding(get: { deletingConversation != nil }, set: { if !$0 { deletingConversation = nil } })) {
             Button("取消", role: .cancel) { deletingConversation = nil }
             Button("删除", role: .destructive) {
@@ -104,9 +103,6 @@ struct MessageView: View {
                 deletingConversation = nil
             }
         } message: { Text("删除后会移除会话，聊天记录仍保留。") }
-        .alert("会话操作失败", isPresented: Binding(get: { store.operationError != nil }, set: { if !$0 { store.clearOperationError() } })) {
-            Button("好") { store.clearOperationError() }
-        } message: { Text(store.operationError ?? "请稍后重试") }
     }
 
     /// 固定紧凑页头，保留全局搜索、建群及权限控制的添加菜单。
@@ -136,30 +132,6 @@ struct MessageView: View {
         .foregroundStyle(MessagingTheme.text).padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
         .frame(maxWidth: 720).frame(maxWidth: .infinity)
         .background(MessagingTheme.background)
-    }
-
-    /// 同步与本地读取失败保持现有列表，提供明确的重试入口。
-    private func errorNotice(_ message: String) -> some View {
-        VStack(alignment: .leading, spacing: 8.zoom()) {
-            HStack(alignment: .top, spacing: 10.zoom()) {
-                Image(systemName: "exclamationmark.circle")
-                    .font(.subheadline)
-                    .accessibilityHidden(true)
-                Text(message).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-            }
-            // SDK 同步由 SDK 自行恢复；这里仅重试本地缓存读取失败。
-            if message.hasPrefix("会话缓存读取失败") {
-                Button("重新读取") { Task { await store.reload() } }
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minHeight: max(44, 44.zoom()))
-                    .accessibilityIdentifier("retryConversationsCache")
-            }
-        }
-        .foregroundColor(MessagingTheme.error)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14.zoom())
-        .background(MessagingTheme.error.opacity(0.08), in: RoundedRectangle(cornerRadius: 14.zoom()))
-        .accessibilityIdentifier("conversationsSyncError")
     }
 
     private var emptyState: some View {
@@ -206,8 +178,8 @@ struct MessageView: View {
         switch conversation.kind {
         case .single, .group:
             Button {
-                createdRoute = ChatRoute(id: conversation.id, kind: conversation.kind,
-                    title: conversation.title, avatarURL: conversation.avatarURL)
+                navigation.open(ChatRoute(id: conversation.id, kind: conversation.kind,
+                    title: conversation.title, avatarURL: conversation.avatarURL))
             } label: { conversationRow(conversation) }
                 .buttonStyle(MessagingRowStyle())
         case .systemMessage:

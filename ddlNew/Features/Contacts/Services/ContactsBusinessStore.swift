@@ -137,11 +137,17 @@ import Combine
         if pendingReload { pendingReload = false; await reload() }
     }
 
+    /// 清空本次查找并使迟到回执失效，资料缓存仍供用户资料页使用。
+    func clearSearch() {
+        searchRevision = UUID()
+        searchResults = []; errorMessage = nil; isSearching = false
+    }
+
     /// 搜索只在提交时请求精确账号，清空查询使迟到结果失效。
     func search(_ query: String) async {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let revision = UUID(); searchRevision = revision
-        searchResults = []; errorMessage = nil; isSearching = false
+        clearSearch()
+        let revision = searchRevision
         guard let identity, !query.isEmpty else { return }
         if query == ownAccount()?.trimmingCharacters(in: .whitespacesAndNewlines) { errorMessage = "这是你自己的账号"; return }
         isSearching = true
@@ -152,7 +158,14 @@ import Combine
             searchResults = result.contacts.filter { $0.id != identity.userUID }
             for contact in result.contacts { profiles[contact.id] = contact }
             errorMessage = nil
-        } catch { if self.identity == identity, searchRevision == revision { errorMessage = error.localizedDescription } }
+        } catch {
+            guard self.identity == identity, searchRevision == revision else { return }
+            // 精确搜索的“用户不存在”属于无结果；其他请求失败仍保留真实错误。
+            if case .server(_, let message) = error as? ContactBusinessError,
+               message.contains("用户不存在") || message.contains("用戶不存在") {
+                errorMessage = nil
+            } else { errorMessage = error.localizedDescription }
+        }
     }
 
     /// 群来源访问须读实时群详情；缺失角色、离群或禁私聊均关闭访问。
@@ -212,6 +225,13 @@ import Combine
         }
     }
 
+    /// 老接口接收目标分组现有的ugOrder，不能自行给首尾排序值加减一。
+    @discardableResult func moveGroup(id: String, toIndex: Int) async -> Bool {
+        guard !isSubmitting, groups.indices.contains(toIndex),
+              let source = groups.firstIndex(where: { $0.id == id }), source != toIndex else { return false }
+        return await perform(.reorderGroup(id: id, order: groups[toIndex].order))
+    }
+
     /// 提交前校验输入与权限，服务器回执后重读真实关系而非伪造成功。
     @discardableResult func perform(_ operation: ContactBusinessOperation, sourceGroupID: String? = nil) async -> Bool {
         guard let identity, !isSubmitting else { return false }
@@ -227,7 +247,15 @@ import Combine
             qrContent = response.qrCode; qrExpiry = response.expiry; qrTarget = response.qrTarget
             switch operation {
             case .apply: notice = "好友申请已发送，等待对方验证"
-            case .accept(let friendID), .setRemark(let friendID, _, _), .moveFriend(let friendID, _):
+            case .setRemark(let friendID, _, _):
+                guard let profile = response.profile, profile.id == friendID else { throw ContactBusinessError.malformedResponse }
+                profileRevisions[friendID] = UUID()
+                profiles[friendID] = profile
+                if response.isFriend { friendIDs.insert(friendID) }
+                await reload()
+                guard self.identity == identity, operationRevision == revision else { return false }
+                notice = "操作完成"
+            case .accept(let friendID), .moveFriend(let friendID, _):
                 let accepting: Bool
                 if case .accept = operation { accepting = true } else { accepting = false }
                 let refreshed = await loadProfile(friendID, sourceGroupID: sourceGroupID, allowCreatingFriend: accepting)

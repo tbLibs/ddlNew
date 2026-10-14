@@ -22,9 +22,7 @@ struct ChatStickersView: View {
             VStack(alignment: .leading, spacing: 16.zoom()) {
                 Text("选择表情发送到当前聊天").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                 if !chat.permission.canSend { Text("当前聊天暂不能发送消息").foregroundStyle(MessagingTheme.error).font(.subheadline) }
-                if let sendError { Text(sendError).foregroundStyle(MessagingTheme.error).font(.subheadline) }
-                if let feedback = sentFeedback { Label(feedback, systemImage: "checkmark.circle").font(.subheadline).foregroundStyle(MessagingTheme.accent) }
-                if let error = store.errorMessage { Text(error).foregroundStyle(MessagingTheme.error); Button("重试") { Task { await store.loadMore() } }.frame(minHeight: 44).disabled(store.busy) }
+                if store.errorMessage != nil { Button("重试") { Task { await store.loadMore() } }.frame(minHeight: 44).disabled(store.busy) }
                 if store.stickers.isEmpty && !store.busy && store.errorMessage == nil { Label("暂无已用贴纸或收藏表情", systemImage: "face.smiling").foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 32.zoom()) }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 92.zoom()), spacing: 12.zoom())], spacing: 16.zoom()) {
                     ForEach(store.stickers) { sticker in
@@ -37,9 +35,10 @@ struct ChatStickersView: View {
                     }
                 }
                 if store.hasMore && !store.busy { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: max(44, 44.zoom())) }
-                if store.busy { ProgressView("正在加载表情").frame(maxWidth: .infinity).padding(16.zoom()) }
             }.padding(16.zoom())
         }.navigationTitle("贴纸与表情").modifier(MessagingPageChrome())
+        .messagingFeedbackToast(store.errorMessage ?? sendError ?? sentFeedback)
+        .messagingLoadingToast(store.busy, title: "正在加载表情")
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44) } }
         .task { if let context = chat.context { await store.open(context) } }
         .onDisappear { store.close() }

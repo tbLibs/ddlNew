@@ -44,7 +44,15 @@ import Combine
             let groups = try await client.loadGroups(for: identity.userUID)
             guard self.identity == identity, readRevision == revision else { return }
             var seen = Set<String>()
-            self.groups = groups.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
+            let previousByID = Dictionary(uniqueKeysWithValues: self.groups.map { ($0.id, $0) })
+            let incoming = groups.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
+                .map { $0.preservingKnownMemberCount(from: previousByID[$0.id]) }
+            let latestByID = Dictionary(uniqueKeysWithValues: incoming.map { ($0.id, $0) })
+            let existingIDs = Set(self.groups.map(\.id))
+            // SDK替换写入群资料会改变数据库行顺序；已有群保留位置并取最新资料。
+            // 不再存在的群自动移除，新群按本轮SDK顺序追加，退出时随Store清空顺序。
+            self.groups = self.groups.compactMap { latestByID[$0.id] }
+                + incoming.filter { !existingIDs.contains($0.id) }
             errorMessage = nil
         } catch { if self.identity == identity, readRevision == revision { errorMessage = error.localizedDescription } }
     }
@@ -61,6 +69,9 @@ import Combine
         do {
             let group = try await client.createGroup(userUID: identity.userUID, nickname: nickname, members: selection.selected)
             guard self.identity == identity else { return nil }
+            // 服务端已确认的新群先进入当前快照，避免紧随其后的部分缓存丢失有效人数。
+            if let index = groups.firstIndex(where: { $0.id == group.id }) { groups[index] = group.preservingKnownMemberCount(from: groups[index]) }
+            else { groups.append(group) }
             await reload()
             guard self.identity == identity else { return nil }
             return group

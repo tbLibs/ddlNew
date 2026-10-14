@@ -12,7 +12,7 @@ import AVFoundation
 struct BusinessQRCameraView: UIViewControllerRepresentable {
     let onCode: (String) -> Void
     let onError: (String) -> Void
-    /// 原生相机视图在sheet出现时才创建捕获会话。
+    /// 原生相机视图进入扫码页面时创建捕获会话。
     func makeUIViewController(context: Context) -> BusinessQRCameraController {
         let controller = BusinessQRCameraController(); controller.onCode = onCode; controller.onError = onError; return controller
     }

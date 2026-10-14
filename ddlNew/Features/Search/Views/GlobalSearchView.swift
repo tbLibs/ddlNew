@@ -25,9 +25,8 @@ struct GlobalSearchView: View {
                     if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Label("搜索已同步的好友、群聊和聊天记录", systemImage: "magnifyingglass").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity).padding(.vertical, 40.zoom())
                     }
-                    if store.isSearching { ProgressView("正在搜索").frame(maxWidth: .infinity).padding(16.zoom()) }
-                    if let error = store.errorMessage {
-                        VStack(alignment: .leading, spacing: 8.zoom()) { Text(error).foregroundStyle(MessagingTheme.error); Button("重试") { Task { await store.search(query) } }.frame(minHeight: max(44, 44.zoom())) }.padding(16.zoom())
+                    if store.errorMessage != nil {
+                        VStack(alignment: .leading, spacing: 8.zoom()) { Button("重试") { Task { await store.search(query) } }.frame(minHeight: max(44, 44.zoom())) }.padding(16.zoom())
                     }
                     if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                        !store.isSearching, store.results.isEmpty, store.errorMessage == nil {
@@ -38,6 +37,8 @@ struct GlobalSearchView: View {
             }
         }
         .navigationTitle("全局搜索").modifier(MessagingPageChrome())
+        .messagingFeedbackToast(store.errorMessage)
+        .messagingLoadingToast(store.isSearching, title: "正在搜索")
         .task { searchFocused = true }
         .task(id: query) {
             do { try await Task<Never, Never>.sleep(nanoseconds: 250_000_000) }

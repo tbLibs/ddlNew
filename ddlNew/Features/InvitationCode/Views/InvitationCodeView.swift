@@ -47,12 +47,7 @@ struct InvitationCodeView: View {
                     .accessibilityIdentifier("connectClub")
                     .disabled(viewModel.isRacing)
 
-                    if let statusMessage = viewModel.statusMessage {
-                        Text(statusMessage)
-                            .font(.system(size: 11.zoom()))
-                            .foregroundStyle(InvitationCodePalette.secondary)
-                            .accessibilityIdentifier("ossRaceStatus")
-                    }
+
                 }
                 .padding(20.zoom())
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -86,6 +81,8 @@ struct InvitationCodeView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(InvitationCodeBackground())
+        .messagingLoadingToast(viewModel.isRacing, title: "正在连接俱乐部")
+        .messagingFeedbackToast(viewModel.isRacing ? nil : viewModel.statusMessage)
         .foregroundStyle(InvitationCodePalette.ink)
     }
 }

@@ -47,11 +47,6 @@ struct OriginalLoginView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         ClubField(title: "会员卡号或账号", placeholder: "请输入会员卡号或账号", icon: "person", text: $card, focus: $cardFocused)
                         ClubField(title: "密码", placeholder: "请输入密码", icon: "lock", text: $password, secure: true, focus: $passwordFocused).padding(.top, 12)
-                        if invalid {
-                            Text(store.snapshot.accountDeleted == true && card == "YS20260018" ? "账号已注销，无法再次登录。" : "账号或密码不正确，请重新输入。")
-                                .font(.system(size: 11)).foregroundColor(ClubTheme.error)
-                                .accessibilityIdentifier("loginHint")
-                        }
                         LegalAgreement(isAccepted: $acceptedDocuments)
                             .disabled(loading).padding(.top, 6)
                         Button(loading ? "正在登录…" : "登录") {
@@ -59,7 +54,7 @@ struct OriginalLoginView: View {
                             guard acceptedDocuments else { loginNotice = .agreement; return }
                             let submittedAccount = card.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !submittedAccount.isEmpty, !password.isEmpty else { loginNotice = .credentials; return }
-                            loading = true
+                            invalid = false; loading = true
                             Task {
                                 let success = await store.login(card: submittedAccount, password: password)
                                 invalid = !success
@@ -84,6 +79,8 @@ struct OriginalLoginView: View {
                 }.font(.system(size: 14)).foregroundColor(ClubTheme.darkTeal).padding(.top, 5).disabled(loading)
             }.padding(.horizontal, 24).padding(.bottom, 28).frame(maxWidth: 460).frame(maxWidth: .infinity)
         }.background(ClubBackground())
+            .messagingLoadingToast(loading, title: "正在登录")
+            .messagingFeedbackToast(invalid ? "账号或密码不正确，请重新输入。" : nil)
             .introspect(.scrollView, on: .iOS(.v15, .v16, .v17, .v18, .v26, .v27)) { $0.keyboardDismissMode = .interactive }
             .modifier(ClubKeyboardDismissal(isFocused: cardFocused || passwordFocused, dismiss: dismissKeyboard))
             .alert(item: $loginNotice) { notice in
@@ -141,9 +138,7 @@ struct AccountRegistrationScreen: View {
                                 Text("两次输入的密码不一致")
                                     .font(.system(size: 12)).foregroundColor(ClubTheme.error)
                             }
-                            if let errorMessage {
-                                Text(errorMessage).font(.system(size: 12)).foregroundColor(ClubTheme.error)
-                            }
+
                             Button(saving ? "正在注册…" : "注册") {
                                 guard canRegister else { return }
                                 saving = true
@@ -177,6 +172,8 @@ struct AccountRegistrationScreen: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(saving) } }
         }
         .navigationViewStyle(.stack)
+        .messagingLoadingToast(saving, title: "正在注册")
+        .messagingFeedbackToast(errorMessage)
         .interactiveDismissDisabled(saving)
     }
 }

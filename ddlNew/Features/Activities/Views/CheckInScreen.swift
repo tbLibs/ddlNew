@@ -62,7 +62,6 @@ struct CheckInScreen: View {
         }
         .modifier(ClubKeyboardDismissal(isFocused: codeFocused) { codeFocused = false })
         .navigationBarHidden(false).navigationTitle("个人签到").navigationBarTitleDisplayMode(.inline)
-        .modifier(ClubDetailChrome())
         .onChange(of: code) { code = String($0.filter(\.isNumber).prefix(4)); invalid = false }
     }
 }

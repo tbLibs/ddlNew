@@ -29,8 +29,7 @@ struct ChatMediaComposer: View {
     /// 收拢工具只改变控件布局，组件与上传、录音所有者保持同一身份。
     var body: some View {
         VStack(spacing: 6) {
-            if let error = media.errorMessage ?? recorder.errorMessage { Text(error).font(.caption).foregroundStyle(MessagingTheme.error) }
-            if media.isUploading { HStack { ProgressView(value: media.progress); Button("取消上传") { media.cancel() } } }
+            if media.isUploading { HStack { Button("取消上传") { media.cancel() } } }
             if !compact {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 8.zoom()) {
                 PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
@@ -46,6 +45,8 @@ struct ChatMediaComposer: View {
         }
         .tint(MessagingTheme.accent)
         .task { registerCleanup() }
+        .messagingLoadingToast(media.isUploading, title: "正在上传附件")
+        .messagingFeedbackToast(media.errorMessage ?? recorder.errorMessage)
         .onChange(of: photos) { values in preparePhotos(values) }
         .sheet(isPresented: $showStickers) { NavigationStack { ChatStickersView(chat: chat) } }
         .sheet(isPresented: $showCamera) { ChatCameraPicker { key, value in

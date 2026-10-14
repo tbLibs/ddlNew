@@ -32,14 +32,14 @@ struct ChatMessageEditorView: View {
                     TextEditor(text: $input).font(.body).scrollContentBackground(.hidden)
                         .frame(minHeight: 240.zoom()).focused($editorFocused).accessibilityLabel("编辑消息正文")
                 }
-                if let error { Text(error).foregroundStyle(MessagingTheme.error) }
-                if busy { ProgressView("正在保存修改") }
             }.padding(16.zoom())
         }
-        .navigationTitle("编辑消息").modifier(MessagingPageChrome()).navigationBarBackButtonHidden(true)
+        .navigationTitle("编辑消息").modifier(MessagingPageChrome())
+        .messagingFeedbackToast(error)
+        .messagingLoadingToast(busy, title: "正在保存").navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("取消") { cancel() }.frame(minHeight: 44).disabled(busy) }
-            ToolbarItem(placement: .confirmationAction) { Button("保存") { editorFocused = false; Task { await save() } }.frame(minHeight: 44).disabled(busy || input == message.text || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+            ToolbarItem(placement: .confirmationAction) { Button("保存") { editorFocused = false; Task { await save() } }.buttonStyle(MessagingActionButtonStyle()).disabled(busy || input == message.text || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
         }
         .interactiveDismissDisabled(busy || input != message.text)
         .confirmationDialog("放弃修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {} }

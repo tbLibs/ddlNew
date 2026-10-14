@@ -30,8 +30,8 @@ struct ChatLocationDetailView: View {
                 VStack(alignment: .leading, spacing: 12.zoom()) {
                     Text(message.text.isEmpty ? "位置" : message.text).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
                     if let url = mapURL(coordinate) {
-                        Link(destination: url) { Label("在系统地图打开", systemImage: "arrow.triangle.turn.up.right.diamond").frame(maxWidth: .infinity, minHeight: max(44, 44.zoom())) }
-                            .buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
+                        Link(destination: url) { Label("在系统地图打开", systemImage: "arrow.triangle.turn.up.right.diamond").frame(maxWidth: .infinity) }
+                            .buttonStyle(MessagingActionButtonStyle())
                     }
                 }.frame(maxWidth: 640).padding(16.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
             } else { Spacer(); Label("此位置记录的坐标已不可用", systemImage: "mappin.slash").foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()); Spacer() }

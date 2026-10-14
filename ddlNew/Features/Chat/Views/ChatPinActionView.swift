@@ -35,11 +35,12 @@ struct ChatPinActionView: View {
                     Text(context.route.kind == .group && ![1, 2].contains(permission.role) ? "普通成员可管理自己的置顶，群主和管理员可管理全群置顶。" : "个人置顶只对自己可见，全局置顶对当前聊天中的所有成员可见。")
                         .font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                 }
-                if busy { ProgressView(status == nil ? "正在获取置顶状态" : "正在更新置顶") }
-                if let error { Text(error).foregroundStyle(MessagingTheme.error); if status == nil { Button("重试") { Task { await loadStatus() } }.frame(minHeight: 44) } }
+                if error != nil { if status == nil { Button("重试") { Task { await loadStatus() } }.frame(minHeight: 44) } }
             }.padding(16.zoom()).disabled(busy)
         }
-        .navigationTitle("消息置顶").modifier(MessagingPageChrome()).interactiveDismissDisabled(busy)
+        .navigationTitle("消息置顶").modifier(MessagingPageChrome())
+        .messagingFeedbackToast(error)
+        .messagingLoadingToast(busy, title: "正在处理置顶").interactiveDismissDisabled(busy)
         .task { await loadStatus() }
     }
     /// 查询结果只在当前会话有效时展示，失败可重新请求真实状态。

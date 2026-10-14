@@ -32,21 +32,19 @@ struct ChatGroupAvatarView: View {
                         .resizable().scaledToFit().frame(maxWidth: 280.zoom(), maxHeight: 280.zoom())
                         .clipShape(RoundedRectangle(cornerRadius: 12.zoom())).frame(maxWidth: .infinity).accessibilityLabel("当前群头像")
                 }
-                if let error = errorMessage ?? store.errorMessage { Text(error).font(.subheadline).foregroundStyle(MessagingTheme.error).frame(maxWidth: .infinity, alignment: .leading) }
-                if let feedback { Text(feedback).font(.subheadline).foregroundStyle(MessagingTheme.accent) }
                 if busy {
                     VStack(spacing: 12.zoom()) {
-                        ProgressView(value: progress).tint(MessagingTheme.accent)
-                        Text(progress == 0 ? "正在准备图片" : "正在上传群头像 \(Int(progress * 100))%").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
                         Button("取消上传") { preparation?.cancel(); client.cancel() }.frame(minHeight: 44)
                     }
                 }
                 if [1, 2].contains(store.snapshot?.group?.role ?? 0) {
-                    PhotosPicker(selection: $photo, matching: .images) { Label("选择新群头像", systemImage: "photo").frame(maxWidth: .infinity, minHeight: max(44, 48.zoom())) }
-                        .buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(busy || store.busy)
+                    PhotosPicker(selection: $photo, matching: .images) { Label("选择新群头像", systemImage: "photo").frame(maxWidth: .infinity) }
+                        .buttonStyle(MessagingActionButtonStyle()).disabled(busy || store.busy)
                 }
             }.padding(16.zoom())
         }.navigationTitle("群头像").modifier(MessagingPageChrome())
+        .messagingFeedbackToast(errorMessage ?? store.errorMessage ?? feedback)
+        .messagingLoadingToast(busy || store.busy, title: "正在更新群头像")
         .onChange(of: photo) { item in preparation?.cancel(); preparation = Task { await upload(item) } }
         .onDisappear { preparation?.cancel(); client.cancel() }
     }

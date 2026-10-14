@@ -12,7 +12,8 @@ import Combine
 @MainActor final class ActivityNavigation: ObservableObject {
     @Published var path = NavigationPath()
 
-    func open(_ activity: ClubActivity) {
-        path.append(activity)
+    /// 所有主界面push共享实际路径，底栏显隐只根据这份状态判断。
+    func open<Route: Hashable>(_ route: Route) {
+        path.append(route)
     }
 }

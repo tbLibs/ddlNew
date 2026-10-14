@@ -14,7 +14,7 @@ struct LocalCredentials: Codable {
     let password: String
 }
 
-/// Keeps the demo account password in this device's Keychain, outside the club snapshot.
+/// 把demo账号密码存在这设备的钥匙串里，不在club快照里。
 struct LocalCredentialStore {
     private var service: String {
         let base = "com.ddlNew.club.localAccount"

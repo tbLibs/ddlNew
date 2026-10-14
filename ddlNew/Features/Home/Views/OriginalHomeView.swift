@@ -43,7 +43,7 @@ struct OriginalHomeView: View {
                         NavigationLink(value: RecordKind.waiting) {
                             quickEntry("候补记录", icon: "clock", detail: "\(store.activities(with: [.waiting]).count)项等待中")
                         }
-                        NavigationLink(destination: CheckInSelectionScreen()) {
+                        NavigationLink(value: ActivityRoute.checkInSelection) {
                             quickEntry("去签到", icon: "scan", detail: "查看活动")
                         }
                     }.buttonStyle(.plain)

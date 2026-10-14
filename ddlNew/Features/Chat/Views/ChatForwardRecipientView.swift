@@ -54,7 +54,7 @@ struct ChatForwardRecipientView: View {
             VStack(alignment: .leading, spacing: 12.zoom()) {
                 MessagingSearchField(placeholder: "搜索好友或群聊", text: $query, focus: $searchFocused, identifier: "forwardSearch")
                 ScrollView(.horizontal, showsIndicators: false) { MessagingTabs(selection: $scope) }
-                if messages.count > 1 { Toggle("合并为聊天记录", isOn: $merged).font(.subheadline).frame(minHeight: max(44, 44.zoom())) }
+                if messages.count > 1 { Toggle("合并为聊天记录", isOn: $merged).font(.subheadline) }
                 Text("已选 \(messages.count) 条消息").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                 if messages.count > 100 { Text("一次最多转发 100 条消息，请返回重新选择。").foregroundStyle(MessagingTheme.error).font(.subheadline) }
             }.padding(16.zoom()).background(MessagingTheme.surface)
@@ -66,25 +66,25 @@ struct ChatForwardRecipientView: View {
                                 Image(systemName: selectedIDs.contains(key(route)) ? "checkmark.circle.fill" : "circle").foregroundStyle(selectedIDs.contains(key(route)) ? MessagingTheme.accent : MessagingTheme.secondaryText).accessibilityHidden(true)
                                 ChatSecondaryAvatar(name: route.title, resource: route.avatarURL, isGroup: route.kind == .group)
                                 Text(route.title).font(.body).foregroundStyle(MessagingTheme.text).frame(maxWidth: .infinity, alignment: .leading)
-                            }.padding(16.zoom()).frame(minHeight: max(44, 44.zoom())).contentShape(Rectangle())
+                            }.padding(16.zoom()).contentShape(Rectangle())
                         }.buttonStyle(MessagingRowStyle()).accessibilityLabel(route.title).accessibilityValue(selectedIDs.contains(key(route)) ? "已选中" : "未选中").accessibilityAddTraits(selectedIDs.contains(key(route)) ? .isSelected : [])
                         Divider().overlay(MessagingTheme.divider).padding(.leading, 92.zoom())
                     }
                     if recipients.isEmpty { Text(query.isEmpty ? "暂无可选对象，可切换到好友或群聊" : "没有找到匹配的好友或群聊").foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()) }
-                    if !results.isEmpty {
-                        VStack(alignment: .leading, spacing: 12.zoom()) { Text("处理结果").font(.headline); ForEach(Array(results.enumerated()), id: \.offset) { Text($0.element).font(.subheadline) } }.frame(maxWidth: .infinity, alignment: .leading).padding(16.zoom()).background(MessagingTheme.surface)
-                    }
+
                 }
             }
         }
         .navigationTitle("选择转发对象").modifier(MessagingPageChrome())
+        .messagingLoadingToast(busy, title: "正在发送")
+        .messagingFeedbackToast(!busy && !results.isEmpty ? (Array(results.prefix(3)) + (results.count > 3 ? ["另有\(results.count - 3)项处理结果，尚有\(selectedIDs.count)个会话待重试"] : [])).joined(separator: "\n") : nil)
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44).disabled(busy) } }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 16.zoom()) {
                 Text("已选 \(selectedRecipients.count) 人").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                 Spacer()
-                Button { searchFocused = false; confirming = true } label: { HStack { if busy { ProgressView().tint(.white) }; Text(busy ? "正在发送" : "发送") }.frame(minWidth: 100.zoom(), minHeight: max(44, 44.zoom())) }
-                    .buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(busy || selectedRecipients.isEmpty || messages.isEmpty || messages.count > 100)
+                Button { searchFocused = false; confirming = true } label: { Text("发送").frame(minWidth: 100.zoom()) }
+                    .buttonStyle(MessagingActionButtonStyle()).disabled(busy || selectedRecipients.isEmpty || messages.isEmpty || messages.count > 100)
             }.padding(16.zoom()).background(MessagingTheme.surface)
         }
         .disabled(busy).interactiveDismissDisabled(busy)

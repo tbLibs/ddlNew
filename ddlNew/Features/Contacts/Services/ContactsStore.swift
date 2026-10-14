@@ -60,6 +60,8 @@ final class ContactsStore: ObservableObject {
     func reload() async {
         guard let userUID else { return }
         if let reloadTask {
+            // 保存后的显式刷新可能遇到保存前的读取，完成后需补读最新落库内容。
+            if readingCache { reloadRequested = true }
             await reloadTask.value
             return
         }

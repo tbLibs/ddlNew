@@ -102,6 +102,7 @@ import Combine
     /// 提交前复核权限；原文入SDK队列后清输入，失败记录保留可重发内容。
     func sendText() {
         guard let context, !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        errorMessage = nil
         do {
             try checkSend(context)
             reconcileMentions()
@@ -128,6 +129,7 @@ import Combine
     /// 已上传附件再入SDK消息队列，提交时重新校验实时禁言和频控。
     func sendAttachment(_ message: ChatMessageRecord) throws {
         guard let context, message.conversationID == context.route.id, message.senderID == context.userUID else { throw ChatClientError.sessionExpired }
+        errorMessage = nil
         try checkSend(context, messageType: message.type)
         try client.send(message, context: context)
         merge([message]); lastSend = Date()
@@ -136,6 +138,7 @@ import Combine
     /// 人工重发复用原本地ID；成功消息和发送中消息不重复入队。
     func retry(_ id: String) {
         guard let context, let index = messages.firstIndex(where: { $0.id == id }), messages[index].state == .failed else { return }
+        errorMessage = nil
         do {
             try checkSend(context, messageType: messages[index].type)
             var message = messages[index]
@@ -296,6 +299,8 @@ import Combine
         case .failed(let localID, let reason):
             guard let index = messages.firstIndex(where: { $0.localID == localID }), messages[index].state != .sent else { return }
             var failed = messages[index]; failed.state = .failed; failed.failure = reason; merge([failed])
+            // 仅本轮发送失败触发Toast，历史消息仍保留失败标记和重试入口。
+            errorMessage = reason.message
         case .cleared:
             if let context { onMessageUnavailable?(nil, context) }
             // 清历史同时撤销待发送已读；已在途批次由clearRevision拒绝迟到回写。

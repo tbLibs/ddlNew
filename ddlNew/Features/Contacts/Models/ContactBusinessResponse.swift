@@ -15,6 +15,7 @@ nonisolated struct ContactBusinessResponse: Sendable {
     var unreadVersions: [String: String] = [:]
     var roleLabels: [Int: String] = [:]
     var groups: [FriendBusinessGroup] = []
+    /// 资料读取或备注保存确认后的SDK缓存快照，保存失败不提供新快照。
     var profile: ContactRecord?
     var isFriend: Bool = false
     var canAccessProfile: Bool = false

@@ -60,21 +60,29 @@ struct GroupMemberPickerView: View {
                     if filter == .groups {
                         if friendGroups.isEmpty { empty("暂无好友分组") }
                         ForEach(friendGroups) { group in
-                            Section {
-                                Button(group.members.filter { member in available.contains { $0.id == member.id } }.allSatisfy { selectedIDs.contains($0.id) } ? "取消本组选择" : "选择本组好友") { selectGroup(group) }.frame(minHeight: 44)
-                                ForEach(visible.filter { contact in group.members.contains { $0.id == contact.id } }) { contact in row(contact) }
-                            } header: { Text(group.name).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
+                            // 普通标题行避免系统Section额外的顶部留白，紧接候选来源标签。
+                            Text(group.displayName).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                                .frame(minHeight: 24.zoom(), alignment: .leading)
+                                .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 4.zoom(), trailing: 16.zoom()))
+                                .listRowBackground(MessagingTheme.background).listRowSeparator(.hidden).accessibilityAddTraits(.isHeader)
+                            Button { selectGroup(group) } label: {
+                                Text(group.members.filter { member in available.contains { $0.id == member.id } }.allSatisfy { selectedIDs.contains($0.id) } ? "取消本组选择" : "选择本组好友")
+                                    .frame(maxWidth: .infinity, alignment: .leading).frame(minHeight: max(44, 44.zoom())).contentShape(Rectangle())
+                            }.buttonStyle(MessagingRowStyle())
+                                .listRowInsets(EdgeInsets(top: 0, leading: 16.zoom(), bottom: 0, trailing: 16.zoom()))
+                                .listRowBackground(MessagingTheme.surface)
+                            ForEach(visible.filter { contact in group.members.contains { $0.id == contact.id } }) { contact in row(contact) }
                         }
                     } else {
                         let records = filter == .recent ? recent : visible
                         if records.isEmpty { empty(query.isEmpty ? (filter == .recent ? "暂无最近联系人" : "暂无可选择的好友") : "无搜索结果") }
                         ForEach(records) { contact in row(contact) }
                     }
-                    if submitting { ProgressView("正在提交选择").frame(maxWidth: .infinity, minHeight: 44) }
-                    if failedSubmission { Text(submissionError ?? "提交失败，请重试。当前选择已保留。").font(.footnote).foregroundStyle(MessagingTheme.error).listRowBackground(MessagingTheme.surface) }
                 }.listStyle(.plain).scrollDismissesKeyboard(.interactively).disabled(submitting)
             }
             .navigationTitle(title).modifier(MessagingPageChrome())
+            .messagingLoadingToast(submitting, title: "正在提交选择")
+            .messagingFeedbackToast(failedSubmission ? (submissionError ?? "提交失败，请重试。当前选择已保留。") : selectionMessage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.frame(minHeight: 44).disabled(submitting) }
                 ToolbarItem(placement: .confirmationAction) { Button("完成(\(chosen.count))") { Task { await confirm() } }.frame(minHeight: 44).disabled(submitting || !(minimum...maximum).contains(chosen.count)) }
@@ -103,7 +111,6 @@ struct GroupMemberPickerView: View {
             MessagingSearchField(placeholder: "搜索好友", text: $query, focus: $searchFocused, identifier: "groupPicker.search")
             Text(preselectedIDs.isEmpty ? "选择至少\(minimum)位好友，最多\(maximum)位。" : "当前好友已选中，请再选择至少\(max(1, minimum - preselectedIDs.count))位好友。")
                 .font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
-            if let selectionMessage { Text(selectionMessage).font(.footnote).foregroundStyle(MessagingTheme.error) }
             if !chosen.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12.zoom()) { ForEach(chosen) { contact in
@@ -118,7 +125,8 @@ struct GroupMemberPickerView: View {
                 }
             }
             Picker("候选来源", selection: $filter) { ForEach(GroupMemberPickerFilter.allCases) { item in Text(item.rawValue).tag(item) } }.pickerStyle(.segmented)
-        }.padding(16.zoom()).background(MessagingTheme.surface)
+        }.padding(.horizontal, 16.zoom()).padding(.top, 16.zoom())
+            .padding(.bottom, filter == .groups ? 8.zoom() : 16.zoom()).background(MessagingTheme.surface)
     }
 
     /// 头像和勾选沿用旧选人列表，所有候选来源共用UID集合。

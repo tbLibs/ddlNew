@@ -11,7 +11,7 @@ import Combine
 /// 活动与旧演示账号的本地状态；真实身份仍由 SDK AUTH 决定。
 @MainActor final class ClubStore: ObservableObject {
     @Published var stage: SessionStage = .splash
-    @Published var selectedTab: MemberTab = .home
+    @Published var selectedTab: MemberTab = .messages
     @Published private(set) var snapshot = ClubSnapshot()
     @Published var toastMessage = ""
     @Published var showToast = false
@@ -46,7 +46,7 @@ import Combine
         try Task.checkCancellation()
         snapshot = updated
         restored = true
-        selectedTab = .home
+        selectedTab = .messages
         stage = .login
     }
     func connect(code: String) async -> Bool {
@@ -91,7 +91,7 @@ import Combine
         snapshot.signedIn = false
         snapshot.activeAccount = nil
         if changeClub { snapshot.connected = false }
-        selectedTab = .home
+        selectedTab = .messages
         await persist()
         stage = changeClub ? .invite : .login
     }
@@ -105,7 +105,7 @@ import Combine
             throw error
         }
         snapshot = deleted
-        selectedTab = .home
+        selectedTab = .messages
         stage = .invite
         notify("账号已注销")
     }

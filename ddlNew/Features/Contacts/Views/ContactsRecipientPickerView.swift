@@ -45,11 +45,11 @@ struct ContactsRecipientPickerView: View {
                 } }
                 if recipients.isEmpty { Text("暂无可分享的好友或群聊").foregroundStyle(MessagingTheme.secondaryText) }
                 else if !query.isEmpty && !hasSearchResults { Text("没有匹配的接收人").foregroundStyle(MessagingTheme.secondaryText) }
-                if let message { Text(message).foregroundStyle(MessagingTheme.secondaryText) }
-                if sending { ProgressView("正在提交分享") }
             }
             .listStyle(.plain)
             .modifier(MessagingPageChrome())
+        .messagingFeedbackToast(message)
+        .messagingLoadingToast(sending, title: "正在分享")
             .navigationTitle("选择接收人")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(sending) }

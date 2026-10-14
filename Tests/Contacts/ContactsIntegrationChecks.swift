@@ -126,6 +126,18 @@ struct ContactsIntegrationChecks {
         client.onChange?(.changed)
         await store.reload()
         check(client.loadCount == beforeBatch + 1, "同一批 SDK 变化事件只读取一次缓存")
+        // 保存回读与已有缓存读取重叠时，最终必须再读取刚落库的备注和描述。
+        client.suspendNextLoad = true
+        let readingBeforeSave = Task { await store.reload() }
+        while client.pendingLoad == nil { await Task.yield() }
+        let savedContact = ContactRecord(id: chinese.id, nickname: chinese.nickname, remarks: "新备注", description: "新描述")
+        client.contacts = [savedContact]
+        var saveReloadStarted = false
+        let readingAfterSave = Task { saveReloadStarted = true; await store.reload() }
+        while !saveReloadStarted { await Task.yield() }
+        client.pendingLoad?.resume(returning: [chinese]); client.pendingLoad = nil
+        await readingBeforeSave.value; await readingAfterSave.value
+        check(store.contacts == [savedContact], "保存后回读不能复用保存前的旧快照，备注和描述应同步到通讯录")
         check(Mapper<ContactProfilePayload>().map(JSON: [:]) == nil, "空好友资料响应不能当作有效更新")
         check(Mapper<ContactProfilePayload>().map(JSON: ["remarks": ["错误类型"]]) == nil,
               "备注类型错误必须拒绝，不能当作更新成功")

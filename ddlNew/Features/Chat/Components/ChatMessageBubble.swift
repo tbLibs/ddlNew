@@ -30,7 +30,7 @@ struct ChatMessageBubble: View {
                 content
                     .padding(12.zoom())
                     .background(own ? MessagingTheme.outgoingBubble : MessagingTheme.surface)
-                    .foregroundStyle(own ? Color.white : MessagingTheme.text)
+                    .foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.text)
                     .clipShape(RoundedRectangle(cornerRadius: 10.zoom()))
                     .overlay(RoundedRectangle(cornerRadius: 10.zoom()).stroke(isHighlighted ? Color.orange : .clear, lineWidth: 2))
                 HStack(spacing: 8.zoom()) {
@@ -44,7 +44,6 @@ struct ChatMessageBubble: View {
                         }
                     }
                 }
-                if let failure = message.failure, message.state == .failed { Text(failure.message).font(.caption).foregroundStyle(MessagingTheme.error) }
             }
             if own { avatar }
             if !own { Spacer(minLength: 36) }
@@ -79,10 +78,10 @@ struct ChatMessageBubble: View {
 
     /// 动图使用原资源保留帧，照片与视频封面仍先解码再按展示尺寸采样。
     @ViewBuilder private var content: some View {
-        if !message.isCompatible { Text(message.displayText).foregroundStyle(own ? Color.white : MessagingTheme.secondaryText) }
+        if !message.isCompatible { Text(message.displayText).foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText) }
         else if message.status == .recalled { Text("消息已撤回").font(.callout).italic() }
         else {
-            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own ? Color.white : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
+            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
             if isAnimatedResource {
                 ChatAnimatedRemoteImage(url: RemoteAvatarURL.resolve(message.resource.isEmpty ? message.thumbnail : message.resource, relativeTo: connection.current?.getFileHost), fileHost: connection.current?.getFileHost, size: CGSize(width: 220.zoom(), height: 200.zoom()))
                     .accessibilityLabel(message.type == 12 ? "贴纸" : "动态图片")
@@ -91,7 +90,7 @@ struct ChatMessageBubble: View {
                     .placeholder { ProgressView() }.resizable().scaledToFit().frame(maxWidth: 220, maxHeight: 200)
                 if message.type == 2 { Label("视频", systemImage: "play.circle.fill") }
             } else { Text(message.displayText).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
-            if [0, 10].contains(message.type) { ForEach(messageLinks, id: \.absoluteString) { url in Link("打开链接：" + (url.host ?? url.absoluteString), destination: url).tint(own ? Color.white : MessagingTheme.accent).frame(minHeight: max(44, 44.zoom())).accessibilityLabel("打开链接 " + url.absoluteString) } }
+            if [0, 10].contains(message.type) { ForEach(messageLinks, id: \.absoluteString) { url in Link("打开链接：" + (url.host ?? url.absoluteString), destination: url).tint(own ? MessagingTheme.onPrimaryAction : MessagingTheme.accent).frame(minHeight: max(44, 44.zoom())).accessibilityLabel("打开链接 " + url.absoluteString) } }
         }
     }
 

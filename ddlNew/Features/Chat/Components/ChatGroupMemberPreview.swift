@@ -10,6 +10,7 @@ import UIAdapter
 
 struct ChatGroupMemberPreview: View {
     let group: ChatGroupDetail
+    let onOpenMembers: () -> Void
     let onInvite: () -> Void
     let onRemove: () -> Void
     @Environment(\.dynamicTypeSize) private var textSize
@@ -18,8 +19,8 @@ struct ChatGroupMemberPreview: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: textSize.isAccessibilitySize ? 100.zoom() : 60.zoom()), alignment: .top)], alignment: .leading, spacing: 16.zoom()) {
             ForEach(ChatGroupPreviewPolicy.members(group)) { member in
-                if canOpen && member.id != UserSessionStore.shared.currentUser?.userUID {
-                    NavigationLink(value: ContactsRoute(contactID: member.id, sourceGroupID: group.id)) { avatar(member) }
+                if canOpen && group.membersSyncReady {
+                    Button(action: onOpenMembers) { avatar(member) }
                         .buttonStyle(MessagingRowStyle())
                 } else { avatar(member) }
             }

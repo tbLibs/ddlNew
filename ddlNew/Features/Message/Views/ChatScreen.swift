@@ -53,7 +53,6 @@ struct ChatScreen: View {
         .navigationBarHidden(false)
         .navigationTitle(conversation.title)
         .navigationBarTitleDisplayMode(.inline)
-        .modifier(ClubDetailChrome())
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if contact != nil {

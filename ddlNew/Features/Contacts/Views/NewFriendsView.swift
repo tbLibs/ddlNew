@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIAdapter
+import AlertToast
 
 /// 好友申请支持接受、重新申请与本机隐藏，禁止编造拒绝接口。
 struct NewFriendsView: View {
@@ -26,9 +27,10 @@ struct NewFriendsView: View {
             }
             ForEach(businessStore.applications) { application in
                 if let userUID = businessStore.identity?.userUID {
-                    VStack(alignment: .leading, spacing: 8.zoom()) {
-                        HStack(spacing: 12.zoom()) {
-                            NavigationLink(value: ContactsRoute(contactID: application.peerID(for: userUID), applicationID: application.id)) {
+                    // 整行承载资料入口，系统箭头位于操作按钮之后的最右侧。
+                    NavigationLink(value: ContactsRoute(contactID: application.peerID(for: userUID), applicationID: application.id)) {
+                        VStack(alignment: .leading, spacing: 8.zoom()) {
+                            HStack(spacing: 12.zoom()) {
                                 HStack(spacing: 12.zoom()) {
                                     ContactRecordAvatar(contact: application.displayContact(for: userUID), fileHost: fileHost, size: 44.zoom())
                                     VStack(alignment: .leading, spacing: 5.zoom()) {
@@ -37,10 +39,10 @@ struct NewFriendsView: View {
                                         Text(application.source == 0 ? "通过二维码添加" : "通过搜索添加").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                                     }.frame(maxWidth: .infinity, alignment: .leading)
                                 }
+                                if !dynamicTypeSize.isAccessibilitySize { action(application, userUID: userUID) }
                             }
-                            if !dynamicTypeSize.isAccessibilitySize { action(application, userUID: userUID) }
+                            if dynamicTypeSize.isAccessibilitySize { action(application, userUID: userUID) }
                         }
-                        if dynamicTypeSize.isAccessibilitySize { action(application, userUID: userUID) }
                     }
                     .padding(.vertical, 8.zoom())
                     .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 4.zoom(), trailing: 16.zoom()))
@@ -51,9 +53,6 @@ struct NewFriendsView: View {
                 }
             }
             if businessStore.hasMoreApplications { Button("加载更多") { Task { await businessStore.loadMoreApplications() } }.disabled(businessStore.isLoading) }
-            if businessStore.isLoading { ProgressView("正在读取申请") }
-            if let error = businessStore.errorMessage { Text(error).foregroundStyle(MessagingTheme.error) }
-            if let notice = businessStore.notice { Text(notice).foregroundStyle(MessagingTheme.secondaryText) }
         }
         .background(GeometryReader { proxy in Color.clear.preference(key: FriendApplicationViewport.self, value: proxy.frame(in: .global)) })
         .onPreferenceChange(FriendApplicationViewport.self) { viewport = $0; markVisibleRows() }
@@ -62,6 +61,11 @@ struct NewFriendsView: View {
         .listStyle(.plain)
         .modifier(MessagingPageChrome())
         .navigationTitle("新朋友")
+        // Toast只观察Store加载状态，不允许点击提示改变真实请求状态。
+        .toast(isPresenting: Binding(get: { businessStore.isLoading || businessStore.isSubmitting }, set: { _ in }), duration: 0, tapToDismiss: false) {
+            AlertToast(type: .loading, title: "正在加载",
+                       style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
+        }
         .task { await businessStore.reload() }
         .refreshable { await businessStore.reload() }
         .confirmationDialog("在本机隐藏这条申请？", isPresented: Binding(get: { hiding != nil }, set: { if !$0 { hiding = nil } }), titleVisibility: .visible) {
@@ -82,9 +86,9 @@ struct NewFriendsView: View {
     @ViewBuilder private func action(_ application: FriendApplicationRecord, userUID: String) -> some View {
         switch application.action(for: userUID) {
         case .accept:
-            Button { Task { await businessStore.perform(.accept(friendID: application.peerID(for: userUID))) } } label: { Text("通过验证").fixedSize(horizontal: false, vertical: true).frame(minHeight: 44) }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
+            Button { Task { await businessStore.perform(.accept(friendID: application.peerID(for: userUID))) } } label: { Text("通过验证").fixedSize(horizontal: false, vertical: true) }.buttonStyle(MessagingActionButtonStyle()).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
         case .reapply:
-            Button { Task { await businessStore.perform(.apply(friendID: application.peerID(for: userUID))) } } label: { Text("重新申请").fixedSize(horizontal: false, vertical: true).frame(minHeight: 44) }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
+            Button { Task { await businessStore.perform(.apply(friendID: application.peerID(for: userUID))) } } label: { Text("重新申请").fixedSize(horizontal: false, vertical: true) }.buttonStyle(MessagingActionButtonStyle()).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
         case .waiting: Text("等待验证").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
         case .accepted: Text("已添加").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
         case .expired: Text("已过期").font(.caption).foregroundStyle(MessagingTheme.secondaryText)

@@ -75,7 +75,6 @@ struct ActivityDetailScreen: View {
             CheckInScreen(activity: activity)
         }
         .navigationBarHidden(false).navigationBarTitleDisplayMode(.inline).navigationTitle("活动详情")
-        .modifier(ClubDetailChrome())
         .sheet(isPresented: $showConfirmation) {
             NavigationView { RegistrationScreen(activity: activity) }.navigationViewStyle(.stack)
         }

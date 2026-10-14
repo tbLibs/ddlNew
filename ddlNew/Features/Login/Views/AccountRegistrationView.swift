@@ -51,17 +51,15 @@ struct AccountRegistrationView: View {
                     .buttonStyle(LoginButtonStyle())
                     .disabled(viewModel.phase.isBusy || viewModel.phase == .succeeded || context == nil)
                     .accessibilityIdentifier("submitAccountRegistration")
-                    if viewModel.phase.isBusy { ProgressView().frame(maxWidth: .infinity) }
-                    if case .failed(let message) = viewModel.phase {
-                        Text(message).font(.footnote).foregroundStyle(.red)
-                            .accessibilityIdentifier("registrationError")
-                    }
+
                     Text(connection.phase.message).font(.footnote).foregroundStyle(LoginPalette.secondary)
                 }
                 .padding(24).frame(maxWidth: 460).frame(maxWidth: .infinity)
                 .disabled(viewModel.phase.isBusy)
             }
             .background(LoginBackground())
+            .messagingLoadingToast(viewModel.phase.isBusy, title: "正在注册")
+            .messagingFeedbackToast(registrationFeedback)
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("账号注册").navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -79,6 +77,8 @@ struct AccountRegistrationView: View {
             }
         }
     }
+
+    private var registrationFeedback: String? { if case .failed(let message) = viewModel.phase { return message }; return nil }
 
     private var buttonTitle: String {
         if viewModel.accountWasRegistered, !viewModel.phase.isBusy, viewModel.phase != .succeeded { return "返回登录" }

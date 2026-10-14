@@ -25,23 +25,21 @@ struct GroupApplicationsView: View {
 
     var body: some View {
         List {
-            if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error).listRowBackground(MessagingTheme.surface) }
-            if let notice = store.notice { Text(notice).font(.subheadline).foregroundStyle(MessagingTheme.accent).listRowBackground(MessagingTheme.surface) }
             if store.records.isEmpty && !store.isLoading && store.errorMessage == nil { VStack(spacing: 12.zoom()) { Image(systemName: "person.badge.plus").font(.largeTitle).accessibilityHidden(true); Text(pendingOnly ? "暂无待审核申请" : "暂无群通知") }.foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, minHeight: 180.zoom()).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden) }
             ForEach(store.records) { record in applicationRow(record).listRowBackground(MessagingTheme.surface) }
-            if store.isLoading { ProgressView("正在加载").frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden) }
-            else if store.hasMore { Button("加载更多") { Task { await store.loadMore() } }.frame(minHeight: 44) }
+            if store.hasMore && !store.isLoading { Button("加载更多") { Task { await store.loadMore() } }.frame(minHeight: 44) }
         }
         .listStyle(.plain)
         .safeAreaInset(edge: .top, spacing: 0) { MessagingTabs(selection: $filter).padding(.horizontal, 16.zoom()).background(MessagingTheme.surface).disabled(store.isReviewing) }
         .modifier(MessagingPageChrome())
+        .messagingFeedbackToast(store.errorMessage ?? store.notice)
+        .messagingLoadingToast(store.isLoading || store.isReviewing, title: "正在处理")
         .navigationTitle(groupID == nil ? "群通知" : "入群审核")
         .navigationBarTitleDisplayMode(.inline).navigationBarHidden(false)
         .refreshable { await store.reload(pendingOnly: pendingOnly) }
         .safeAreaInset(edge: .bottom) {
             if pendingOnly && !store.records.isEmpty {
                 VStack(spacing: 8.zoom()) {
-                    if store.isReviewing { ProgressView("正在审核") }
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 12.zoom()) { selectAllButton; Spacer(minLength: 0); reviewButtons }
                         VStack(spacing: 8.zoom()) { selectAllButton; HStack(spacing: 12.zoom()) { reviewButtons } }
@@ -92,7 +90,7 @@ struct GroupApplicationsView: View {
                     if pendingOnly { Text("待审核").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
                     else {
                         HStack(spacing: 12.zoom()) {
-                            Button("同意") { store.selectedIDs = [record.id]; confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
+                            Button("同意") { store.selectedIDs = [record.id]; confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).foregroundStyle(MessagingTheme.onPrimaryAction)
                             Button("拒绝", role: .destructive) { store.selectedIDs = [record.id]; confirmation = false }.buttonStyle(.bordered).tint(MessagingTheme.error)
                         }.controlSize(.large).frame(minHeight: 44).disabled(store.isReviewing)
                     }
@@ -109,7 +107,7 @@ struct GroupApplicationsView: View {
     private var reviewButtons: some View {
         Group {
             Button("拒绝", role: .destructive) { confirmation = false }.buttonStyle(.bordered).tint(MessagingTheme.error)
-            Button("同意(\(store.selectedIDs.count))") { confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
+            Button("同意(\(store.selectedIDs.count))") { confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).foregroundStyle(MessagingTheme.onPrimaryAction)
         }.controlSize(.large).frame(minHeight: 44).disabled(store.selectedIDs.isEmpty || store.isReviewing)
     }
 

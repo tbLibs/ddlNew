@@ -20,8 +20,6 @@ struct ChatGroupNoticesView: View {
 
     var body: some View {
         List {
-            if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error).listRowBackground(MessagingTheme.surface) }
-            if let feedback { Text(feedback).font(.footnote).foregroundStyle(MessagingTheme.accent).listRowBackground(MessagingTheme.surface) }
             if store.notices.isEmpty && !store.busy {
                 VStack(spacing: 12.zoom()) { Image(systemName: "text.bubble").font(.largeTitle).accessibilityHidden(true); Text("暂无群公告").font(.subheadline) }.foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, minHeight: 180.zoom()).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden)
             }
@@ -37,9 +35,10 @@ struct ChatGroupNoticesView: View {
                 }.listRowBackground(MessagingTheme.surface)
                     .contextMenu { if role > 0 { Button("编辑公告") { edit(notice) }; Button("删除公告", role: .destructive) { confirmDelete = notice } } }
             }
-            if store.busy { ProgressView("正在加载").frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden) }
-            else if store.hasMore { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.surface) }
+            if store.hasMore && !store.busy { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.surface) }
         }.listStyle(.plain).navigationTitle("群公告").modifier(MessagingPageChrome())
+            .messagingLoadingToast(store.busy && editorPresentation == nil)
+            .messagingFeedbackToast(store.errorMessage ?? feedback, isEnabled: editorPresentation == nil)
             .toolbar { if role > 0 { Button("发布") { edit(nil) }.frame(minHeight: 44).disabled(store.busy) } }
             .task {
                 guard let context = ChatRuntime.shared.context(for: route) else { return }
@@ -99,13 +98,14 @@ private struct ChatNoticeDetailView: View {
                         Text(current.content).font(.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
                 if canManage {
-                    Button("编辑公告") { onEdit(current) }.frame(maxWidth: .infinity, minHeight: max(44, 48.zoom())).buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(store.busy)
-                    Button("删除公告", role: .destructive, action: onDelete).frame(maxWidth: .infinity, minHeight: max(44, 48.zoom())).buttonStyle(.bordered).tint(MessagingTheme.error).disabled(store.busy)
+                    Button("编辑公告") { onEdit(current) }.buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(store.busy)
+                    Button("删除公告", role: .destructive, action: onDelete).buttonStyle(MessagingActionButtonStyle(fill: MessagingTheme.surface, foreground: MessagingTheme.error, border: MessagingTheme.error, fullWidth: true)).disabled(store.busy)
                 }
             }.padding(16.zoom())
         }.navigationTitle("群公告").modifier(MessagingPageChrome())
+        .messagingLoadingToast(store.busy, title: "正在更新")
+        .messagingFeedbackToast(store.errorMessage)
             .task { await store.read(notice) }
             .onChange(of: deletedID) { if $0 == notice.id { dismiss() } }
     }
@@ -152,8 +152,6 @@ private struct ChatNoticeEditorView: View {
                     MessagingCard {
                         VStack(spacing: 16.zoom()) { Toggle("置顶公告", isOn: $pinned); Toggle("作为群消息发送", isOn: $sendMessage) }
                     }
-                    if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
-                    if store.busy { ProgressView("正在保存") }
                 }.padding(16.zoom())
             }
             .navigationTitle(notice == nil ? "发布公告" : "编辑公告").modifier(MessagingPageChrome())
@@ -161,10 +159,12 @@ private struct ChatNoticeEditorView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmDiscard = true } else { dismiss() } }.disabled(store.busy) }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") { Task { if await store.save(notice, content: input, pinned: pinned, sendMessage: sendMessage) { onSaved(); dismiss() } } }
-                        .disabled(store.busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .buttonStyle(.plain).frame(minHeight: 44).disabled(store.busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
+        .messagingLoadingToast(store.busy, title: "正在保存")
+        .messagingFeedbackToast(store.errorMessage)
         .interactiveDismissDisabled(store.busy || isDirty)
         .confirmationDialog("放弃公告修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() } }
     }
