@@ -132,7 +132,9 @@ struct ChatRoomView: View {
     private var chatPresentations: some View {
         chatNavigation
         .sheet(isPresented: $showStickers) { NavigationStack { ChatStickersView(chat: store) } }
-        .sheet(isPresented: $showNotices) { NavigationStack { ChatGroupNoticesView(route: route) } }
+        .sheet(isPresented: $showNotices, onDismiss: {
+            pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() }
+        }) { NavigationStack { ChatGroupNoticesView(route: route) } }
         .sheet(isPresented: $showPinnedMessages) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages) { id in Task { await store.locate(id) } } } }
         .sheet(item: $pinningMessage) { message in if let context = store.context { NavigationStack { ChatPinActionView(message: message, context: context, permission: store.permission, onChange: { Task { await reloadPins() } }) } } }
         .sheet(isPresented: $showFullHistorySearch) {
@@ -159,6 +161,10 @@ struct ChatRoomView: View {
             pinRefreshTask?.cancel(); pinRefreshTask = Task { do { try await Task.sleep(nanoseconds: 300_000_000); await reloadPins() } catch {} }
         }
         .onChange(of: store.input) { _ in store.reconcileMentions(); store.persistDraft() }
+        // 设置页修改公告后返回，主动核对真实置顶状态，不等下一条聊天消息触发刷新。
+        .onChange(of: showSettings) { showing in
+            if !showing { pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() } }
+        }
         .onChange(of: scenePhase) { store.isForeground = $0 == .active }
         .confirmationDialog("删除所选消息", isPresented: $showDeleteSelection, titleVisibility: .visible) {
             Button("仅为我删除", role: .destructive) { Task { await store.deleteSelected(both: false) } }

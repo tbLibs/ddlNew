@@ -16,6 +16,10 @@ struct ChatSettingsView: View {
     @State private var showHistorySearch = false
     @State private var showAvatar = false
     @State private var showMembers = false
+    @State private var selectedMemberProfile: ContactsRoute?
+    @State private var showRemoveMembers = false
+    @State private var pendingRemovalFeedback: String?
+    @State private var feedback: String?
     @State private var showManagement = false
     @State private var showNotices = false
     @State private var showClear = false
@@ -42,7 +46,11 @@ struct ChatSettingsView: View {
                                     Spacer(); chevron
                                 }.frame(minHeight: 56.zoom())
                             }.buttonStyle(MessagingRowStyle())
-                            if group.membersSyncReady { ChatGroupMemberPreview(group: group, onOpenMembers: { showMembers = true }, onInvite: { showInvite = true }, onRemove: { showMembers = true }) }
+                            if group.membersSyncReady {
+                                ChatGroupMemberPreview(group: group,
+                                    onOpenProfile: { member in selectedMemberProfile = ContactsRoute(contactID: member.id, sourceGroupID: group.id) },
+                                    onInvite: { showInvite = true }, onRemove: { feedback = nil; showRemoveMembers = true })
+                            }
                             Button { showMembers = true } label: { row("查看群成员", value: canShowCount(group) ? "\(group.memberCount)人" : "") }.buttonStyle(MessagingRowStyle()).disabled(!group.membersSyncReady || !canOpenMembers(group))
                         }
                     }
@@ -85,12 +93,27 @@ struct ChatSettingsView: View {
         .navigationTitle(route.kind == .group ? "群聊设置" : "聊天设置")
         .modifier(MessagingPageChrome())
         .messagingLoadingToast(store.busy && !presentingChild, title: "正在更新")
-        .messagingFeedbackToast(store.errorMessage, isEnabled: !presentingChild)
+        .messagingFeedbackToast(store.errorMessage ?? feedback, isEnabled: !presentingChild)
         .task { if let context = ChatRuntime.shared.context(for: route) { await store.open(context) } }
-        .onDisappear { store.leaveSettingsView(presentingChild: showAvatar || showMembers || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor) }
+        .onDisappear { store.leaveSettingsView(presentingChild: presentingChild) }
         .sheet(isPresented: $showHistorySearch) { if let context = ChatRuntime.shared.context(for: route) { NavigationStack { ChatHistorySearchView(context: context) { id in createdRoute = ChatRoute(id: route.id, kind: route.kind, title: route.title, avatarURL: route.avatarURL, targetMessageID: id) } } } }
         .navigationDestination(isPresented: $showAvatar) { ChatGroupAvatarView(route: route, store: store) }
         .navigationDestination(isPresented: $showMembers) { if let group = store.snapshot?.group { ChatGroupMembersView(group: group, store: store) } }
+        .navigationDestination(isPresented: $showRemoveMembers) {
+            ChatGroupRemovalView(store: store) { pendingRemovalFeedback = store.errorMessage ?? "成员移除成功" }
+        }
+        .onChange(of: showRemoveMembers) { showing in
+            if !showing, let message = pendingRemovalFeedback { feedback = message; pendingRemovalFeedback = nil }
+        }
+        // 头像直接打开对应资料，保留来源群权限校验；返回时只回到当前群设置。
+        .navigationDestination(isPresented: Binding(get: { selectedMemberProfile != nil }, set: { if !$0 { selectedMemberProfile = nil } })) {
+            if let profile = selectedMemberProfile {
+                ContactRecordDetailView(store: LoginSessionService.shared.contacts,
+                    businessStore: LoginSessionService.shared.contactBusiness,
+                    contactID: profile.contactID, fileHost: OSSConnectionBootstrap.shared.current?.getFileHost,
+                    sourceGroupID: profile.sourceGroupID)
+            }
+        }
         .navigationDestination(isPresented: $showManagement) { if let group = store.snapshot?.group { ChatGroupManagementView(group: group, store: store) } }
         .navigationDestination(isPresented: $showNotices) { ChatGroupNoticesView(route: route) }
         .onChange(of: store.hasLeft) { if $0 { dismiss() } }
@@ -123,7 +146,7 @@ struct ChatSettingsView: View {
         [1, 2].contains(group.role) || !group.isPrivateChat || UserRoleAuthorityStore.shared.current?.allows("groupSecurity") == true
     }
 
-    private var presentingChild: Bool { showAvatar || showMembers || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor }
+    private var presentingChild: Bool { showAvatar || showMembers || showRemoveMembers || selectedMemberProfile != nil || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor }
 
     private var chevron: some View { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }
     private var separator: some View { Rectangle().fill(MessagingTheme.divider).frame(height: 1).padding(.leading, 16.zoom()) }

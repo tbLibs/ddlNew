@@ -10,7 +10,7 @@ import UIAdapter
 
 struct ChatGroupMemberPreview: View {
     let group: ChatGroupDetail
-    let onOpenMembers: () -> Void
+    let onOpenProfile: (ChatGroupMember) -> Void
     let onInvite: () -> Void
     let onRemove: () -> Void
     @Environment(\.dynamicTypeSize) private var textSize
@@ -19,8 +19,8 @@ struct ChatGroupMemberPreview: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: textSize.isAccessibilitySize ? 100.zoom() : 60.zoom()), alignment: .top)], alignment: .leading, spacing: 16.zoom()) {
             ForEach(ChatGroupPreviewPolicy.members(group)) { member in
-                if canOpen && group.membersSyncReady {
-                    Button(action: onOpenMembers) { avatar(member) }
+                if canOpen && group.membersSyncReady && !member.isDeleted && member.role != 3 {
+                    Button { onOpenProfile(member) } label: { avatar(member) }
                         .buttonStyle(MessagingRowStyle())
                 } else { avatar(member) }
             }
@@ -34,7 +34,7 @@ struct ChatGroupMemberPreview: View {
         VStack(spacing: 6.zoom()) {
             ChatGroupMemberAvatar(member: member, size: 48.zoom())
             Text(member.name).font(.caption).foregroundStyle(MessagingTheme.text).lineLimit(textSize.isAccessibilitySize ? nil : 2)
-            if [1, 2].contains(member.role) { Text(member.role == 2 ? "群主" : "管理员").font(.caption2).foregroundStyle(MessagingTheme.accent) }
+            ChatGroupMemberRoleBadge(member: member)
         }.frame(maxWidth: .infinity, alignment: .top).accessibilityElement(children: .combine)
     }
 

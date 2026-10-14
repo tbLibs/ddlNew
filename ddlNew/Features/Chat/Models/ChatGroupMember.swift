@@ -13,6 +13,12 @@ struct ChatGroupMember: Identifiable, Equatable, Sendable {
     var avatar: String
     var role: Int
     var isDeleted: Bool
+
+    /// 群角色与平台账号角色分开，注销和普通成员不显示管理标识。
+    nonisolated var groupRoleTitle: String? {
+        guard !isDeleted else { return nil }
+        switch role { case 2: return "群主"; case 1: return "管理员"; default: return nil }
+    }
 }
 
 enum ChatGroupPreviewPolicy {

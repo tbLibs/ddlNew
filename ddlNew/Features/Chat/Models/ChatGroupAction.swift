@@ -33,10 +33,21 @@ enum ChatGroupPolicy {
         case .transferOwner(let id):
             return detail.role == 2 && id != userUID && detail.members.contains { $0.id == id && [0, 1].contains($0.role) && !$0.isDeleted }
         case .muteMembers(_, let minutes) where ![0, 10, 60, 720, 1440, 10080, 43200, -1].contains(minutes): return false
-        case .remove(let ids, _), .muteMembers(let ids, _):
+        case .remove(let ids, _):
+            guard !ids.isEmpty, ids.count <= 500, Set(ids).count == ids.count else { return false }
+            return Set(ids).isSubset(of: Set(removableMembers(in: detail, userUID: userUID).map(\.id)))
+        case .muteMembers(let ids, _):
             guard detail.role > 0, !ids.isEmpty, !ids.contains(userUID) else { return false }
             return ids.allSatisfy { id in detail.members.contains { $0.id == id && [0, 1].contains($0.role) && $0.role < detail.role && !$0.isDeleted } }
         default: return detail.role == 1 || detail.role == 2
+        }
+    }
+
+    /// 选择页和提交共用移除资格，一次扫描名单，避免大群逐行重复遍历全表。
+    nonisolated static func removableMembers(in detail: ChatGroupDetail, userUID: String) -> [ChatGroupMember] {
+        guard detail.isActive, detail.membersSyncReady, [1, 2].contains(detail.role), !userUID.isEmpty else { return [] }
+        return detail.members.filter {
+            !$0.id.isEmpty && $0.id != userUID && !$0.isDeleted && [0, 1].contains($0.role) && $0.role < detail.role
         }
     }
 }

@@ -84,8 +84,7 @@ struct ChatGroupMembersView: View {
         VStack(alignment: .leading, spacing: 4.zoom()) {
             Text(member.name).foregroundStyle(MessagingTheme.text)
             if member.isDeleted { Text("已注销").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
-            if member.role == 2 { Text("群主").font(.caption).foregroundStyle(MessagingTheme.accent) }
-            if member.role == 1 { Text("管理员").font(.caption).foregroundStyle(MessagingTheme.accent) }
+            ChatGroupMemberRoleBadge(member: member)
             if current.bannedMembers.contains(where: { $0.id == member.id }) { Text("已禁言").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
         }
     }

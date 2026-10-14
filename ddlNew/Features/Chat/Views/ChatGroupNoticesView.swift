@@ -10,22 +10,27 @@ import UIAdapter
 
 struct ChatGroupNoticesView: View {
     let route: ChatRoute
-    @StateObject private var store = ChatNoticesStore()
+    @StateObject private var store = ChatNoticesStore(client: SDKChatNoticesClient())
     @State private var openedContext: ChatContext?
     @State private var editorPresentation: ChatNoticeEditorPresentation?
     @State private var confirmDelete: ChatGroupNotice?
     @State private var role = 0
     @State private var deletedID: String?
     @State private var feedback: String?
+    @State private var pendingEditorFeedback: String?
 
     var body: some View {
         List {
+            if store.errorMessage != nil {
+                Button("重新加载公告") { Task { await store.reload() } }.frame(minHeight: 44).disabled(store.busy)
+                    .listRowBackground(MessagingTheme.surface)
+            }
             if store.notices.isEmpty && !store.busy {
                 VStack(spacing: 12.zoom()) { Image(systemName: "text.bubble").font(.largeTitle).accessibilityHidden(true); Text("暂无群公告").font(.subheadline) }.foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, minHeight: 180.zoom()).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden)
             }
             ForEach(store.notices) { notice in
                 NavigationLink {
-                    ChatNoticeDetailView(store: store, notice: notice, canManage: role > 0, deletedID: deletedID, onEdit: { edit($0) }, onDelete: { confirmDelete = notice })
+                    ChatNoticeDetailView(store: store, notice: notice, canManage: [1, 2].contains(role), deletedID: deletedID, onEdit: { edit($0) }, onDelete: { deleteNotice($0) })
                 } label: {
                     VStack(alignment: .leading, spacing: 8.zoom()) {
                         if notice.pinned { Label("置顶公告", systemImage: "pin.fill").font(.caption).foregroundStyle(MessagingTheme.accent) }
@@ -33,13 +38,15 @@ struct ChatGroupNoticesView: View {
                         Text([notice.author, notice.timestamp].filter { !$0.isEmpty }.joined(separator: " · ")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                     }.padding(.vertical, 12.zoom())
                 }.listRowBackground(MessagingTheme.surface)
-                    .contextMenu { if role > 0 { Button("编辑公告") { edit(notice) }; Button("删除公告", role: .destructive) { confirmDelete = notice } } }
+                    .contextMenu { if [1, 2].contains(role) { Button("编辑公告") { edit(notice) }; Button("删除公告", role: .destructive) { confirmDelete = notice } } }
             }
             if store.hasMore && !store.busy { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.surface) }
         }.listStyle(.plain).navigationTitle("群公告").modifier(MessagingPageChrome())
             .messagingLoadingToast(store.busy && editorPresentation == nil)
-            .messagingFeedbackToast(store.errorMessage ?? feedback, isEnabled: editorPresentation == nil)
-            .toolbar { if role > 0 { Button("发布") { edit(nil) }.frame(minHeight: 44).disabled(store.busy) } }
+            .messagingFeedbackToast(feedback, isEnabled: editorPresentation == nil)
+            .onChange(of: store.errorMessage) { if editorPresentation == nil { feedback = $0 } }
+            .refreshable { await store.reload() }
+            .toolbar { if [1, 2].contains(role) { Button("发布") { edit(nil) }.frame(minHeight: 44).disabled(store.busy) } }
             .task {
                 guard let context = ChatRuntime.shared.context(for: route) else { return }
                 let client = SDKChatSettingsClient()
@@ -52,15 +59,17 @@ struct ChatGroupNoticesView: View {
                     await store.open(context)
                 }
             }
-            .sheet(item: $editorPresentation) { presentation in
+            .sheet(item: $editorPresentation, onDismiss: {
+                if let message = pendingEditorFeedback { feedback = message; pendingEditorFeedback = nil }
+            }) { presentation in
                 ChatNoticeEditorView(store: store, notice: presentation.notice) {
-                    if store.errorMessage == nil { feedback = "公告已保存" }
+                    pendingEditorFeedback = store.errorMessage ?? "公告已保存"
                 }
             }
             .confirmationDialog("删除群公告", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }), titleVisibility: .visible) {
                 if let notice = confirmDelete {
                     Button("删除公告", role: .destructive) {
-                        Task { feedback = nil; if await store.save(notice, content: notice.content, pinned: notice.pinned, deleting: true) { deletedID = notice.id; if store.errorMessage == nil { feedback = "公告已删除" } } }
+                        deleteNotice(notice)
                         confirmDelete = nil
                     }
                 }
@@ -68,7 +77,18 @@ struct ChatGroupNoticesView: View {
     }
 
     /// 弹窗携带正在显示的公告快照，避免布尔sheet首次捕获旧正文或创建模式。
-    private func edit(_ notice: ChatGroupNotice?) { editorPresentation = ChatNoticeEditorPresentation(notice: notice) }
+    private func edit(_ notice: ChatGroupNotice?) { feedback = nil; editorPresentation = ChatNoticeEditorPresentation(notice: notice) }
+
+    /// 当前页面确认后才提交，列表与详情共用删除回执和返回处理，不触发父页弹框。
+    private func deleteNotice(_ notice: ChatGroupNotice) {
+        Task {
+            feedback = nil
+            if await store.save(notice, content: notice.content, pinned: notice.pinned, deleting: true) {
+                deletedID = notice.id
+                if store.errorMessage == nil { feedback = "公告已删除" }
+            }
+        }
+    }
 
     /// 公告页退出身份时停止SDK等待，不强持有整个视图。
     private func registerCleanup() { let notices = store; ChatRuntime.shared.registerCleanup(owner: notices, conversationID: route.id) { [weak notices] in notices?.close() } }
@@ -81,8 +101,9 @@ private struct ChatNoticeDetailView: View {
     let canManage: Bool
     let deletedID: String?
     let onEdit: (ChatGroupNotice) -> Void
-    let onDelete: () -> Void
+    let onDelete: (ChatGroupNotice) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var confirmDelete: ChatGroupNotice?
     private var current: ChatGroupNotice {
         if let updated = store.notices.first(where: { $0.id == notice.id }), updated != notice { return updated }
         return store.detail?.id == notice.id ? store.detail ?? notice : notice
@@ -95,17 +116,24 @@ private struct ChatNoticeDetailView: View {
                     VStack(alignment: .leading, spacing: 16.zoom()) {
                         if current.pinned { Label("置顶公告", systemImage: "pin.fill").font(.caption).foregroundStyle(MessagingTheme.accent) }
                         Text([current.author, current.timestamp].filter { !$0.isEmpty }.joined(separator: " · ")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
-                        Text(current.content).font(.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(current.content).font(.body).foregroundStyle(MessagingTheme.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 if canManage {
                     Button("编辑公告") { onEdit(current) }.buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(store.busy)
-                    Button("删除公告", role: .destructive, action: onDelete).buttonStyle(MessagingActionButtonStyle(fill: MessagingTheme.surface, foreground: MessagingTheme.error, border: MessagingTheme.error, fullWidth: true)).disabled(store.busy)
+                    Button("删除公告", role: .destructive) { confirmDelete = current }.buttonStyle(MessagingActionButtonStyle(fill: MessagingTheme.surface, foreground: MessagingTheme.error, border: MessagingTheme.error, fullWidth: true)).disabled(store.busy)
                 }
             }.padding(16.zoom())
         }.navigationTitle("群公告").modifier(MessagingPageChrome())
         .messagingLoadingToast(store.busy, title: "正在更新")
         .messagingFeedbackToast(store.errorMessage)
+        // 确认框由正在显示的详情页持有，避免挂在隐藏列表上等返回后才弹出。
+        .confirmationDialog("删除群公告", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }), titleVisibility: .visible) {
+            if let notice = confirmDelete {
+                Button("删除公告", role: .destructive) { onDelete(notice); confirmDelete = nil }.disabled(store.busy)
+            }
+        } message: { Text("删除后所有成员将无法查看此公告。") }
+        .onDisappear { confirmDelete = nil }
             .task { await store.read(notice) }
             .onChange(of: deletedID) { if $0 == notice.id { dismiss() } }
     }
