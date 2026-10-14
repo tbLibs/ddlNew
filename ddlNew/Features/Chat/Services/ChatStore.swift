@@ -24,8 +24,10 @@ import Combine
     @Published private(set) var unreadArrivals = 0
     @Published private(set) var locatedMessageID: String?
     var isAtBottom = true
-    var isForeground = true
-    var isVisible = true
+    /// 前台恢复不保证几何变化，需要重新评估原视口里的未读正文。
+    var isForeground = true { didSet { if isForeground && !oldValue { resumeVisibleReads() } } }
+    /// 设置页或附件返回聊天时，原可见消息仍须重新进入批处理。
+    var isVisible = true { didSet { if isVisible && !oldValue { resumeVisibleReads() } } }
     /// 运行时接收原消息失效，状态层不直接依赖播放器或下载实现。
     var onMessageUnavailable: (@MainActor (ChatMessageRecord?, ChatContext) -> Void)?
     private var visibleIDs: Set<String> = []
@@ -41,7 +43,8 @@ import Combine
     private var offset = 0
     private var lastSend: Date?
     private var readIDs: Set<String> = []
-    private var pendingReadIDs: Set<String> = []
+    /// 在途已读按批次持有资格，旧回执的清理不能撤销新批次。
+    private var pendingReadOwners: [String: UUID] = [:]
 
     /// 测试注入可暂停客户端，生产注入真实SDK。
     init(client: any ChatClient) { self.client = client }
@@ -143,21 +146,22 @@ import Combine
         } catch { errorMessage = error.localizedDescription }
     }
 
-    /// 可见收到正文才已读；语音必须已经开始播放，后台与离页不触发。
+    /// 可见收到正文才已读；语音必须实际播放，清历史后的旧回执不能恢复附件。
     func markVisible(_ id: String, voicePlayed: Bool = false) async {
         guard isForeground, (isVisible || voicePlayed), let context,
               let item = messages.first(where: { $0.id == id }), item.senderID != context.userUID,
               item.isBody, !item.isRead, !item.serverID.isEmpty,
-              (item.type != 4 || voicePlayed), !readIDs.contains(item.serverID), !pendingReadIDs.contains(item.serverID) else { return }
+              (item.type != 4 || voicePlayed), !readIDs.contains(item.serverID), pendingReadOwners[item.serverID] == nil else { return }
         if voicePlayed {
-            let run = generation; pendingReadIDs.insert(item.serverID)
+            let run = generation; let clearRun = clearRevision; let batch = UUID()
+            pendingReadOwners[item.serverID] = batch
+            defer { if generation == run, pendingReadOwners[item.serverID] == batch { pendingReadOwners.removeValue(forKey: item.serverID) } }
             do {
                 try await client.read([item], context: context)
-                guard generation == run else { return }
+                guard generation == run, clearRevision == clearRun else { return }
                 readIDs.insert(item.serverID)
                 if var changed = messages.first(where: { $0.id == id }) { changed.isRead = true; merge([changed]) }
-            } catch { if generation == run { errorMessage = error.localizedDescription } }
-            if generation == run { pendingReadIDs.remove(item.serverID) }
+            } catch { if generation == run, clearRevision == clearRun { errorMessage = error.localizedDescription } }
         } else {
             queuedReads[item.serverID] = item
             if readFlushTask == nil {
@@ -174,21 +178,40 @@ import Combine
     /// 视口变化同步当前可见ID，离开视口的正文在批处理时不会误上报。
     func setVisibleMessageIDs(_ ids: Set<String>) { visibleIDs = ids }
 
-    /// 两秒内的可见正文合为一个SDK已读消息，前后台和取消仍核对所有权。
+    /// 恢复只重报当前视口，异步任务核对认证轮次，语音仍由实际播放触发。
+    private func resumeVisibleReads() {
+        guard isForeground, isVisible, context != nil else { return }
+        let run = generation; let clearRun = clearRevision
+        let ids = visibleIDs
+        Task { [weak self] in
+            guard let self, self.generation == run, self.clearRevision == clearRun else { return }
+            for id in ids {
+                guard self.generation == run, self.clearRevision == clearRun else { return }
+                await self.markVisible(id)
+            }
+        }
+    }
+
+    /// 可见正文合为SDK批次；清历史撤销旧完成结果，避免再次合并已清正文。
     func flushVisibleReads() async {
         guard isForeground, isVisible, let context else { queuedReads.removeAll(); return }
-        let run = generation
-        let values = queuedReads.values.filter { visibleIDs.contains($0.id) && !readIDs.contains($0.serverID) && !pendingReadIDs.contains($0.serverID) }
+        let run = generation; let clearRun = clearRevision
+        let values = queuedReads.values.filter { visibleIDs.contains($0.id) && !readIDs.contains($0.serverID) && pendingReadOwners[$0.serverID] == nil }
         queuedReads.removeAll()
         guard !values.isEmpty else { return }
-        pendingReadIDs.formUnion(values.map(\.serverID))
+        let batch = UUID()
+        for value in values { pendingReadOwners[value.serverID] = batch }
+        defer {
+            if generation == run {
+                for value in values where pendingReadOwners[value.serverID] == batch { pendingReadOwners.removeValue(forKey: value.serverID) }
+            }
+        }
         do {
             try await client.read(Array(values), context: context)
-            guard generation == run else { return }
+            guard generation == run, clearRevision == clearRun else { return }
             readIDs.formUnion(values.map(\.serverID))
             for var value in values { value.isRead = true; merge([value]) }
-        } catch { if generation == run { errorMessage = error.localizedDescription } }
-        if generation == run { pendingReadIDs.subtract(values.map(\.serverID)) }
+        } catch { if generation == run, clearRevision == clearRun { errorMessage = error.localizedDescription } }
     }
 
     /// 引用摘要即时读取原记录，原文编辑、撤回和删除不显示旧副本。
@@ -275,6 +298,9 @@ import Combine
             var failed = messages[index]; failed.state = .failed; failed.failure = reason; merge([failed])
         case .cleared:
             if let context { onMessageUnavailable?(nil, context) }
+            // 清历史同时撤销待发送已读；已在途批次由clearRevision拒绝迟到回写。
+            readFlushTask?.cancel(); readFlushTask = nil
+            queuedReads.removeAll(); visibleIDs.removeAll(); pendingReadOwners.removeAll(); readIDs.removeAll()
             clearRevision = UUID(); hasMore = false; records.removeAll(); messages.removeAll(); selectedIDs.removeAll(); offset = 0
         case .memberHistoryDeleted(let ids): removeSenderMessages(Set(ids))
         case .memberMetadataChanged(let members):
@@ -365,7 +391,7 @@ import Combine
         readFlushTask?.cancel(); readFlushTask = nil; queuedReads.removeAll(); visibleIDs.removeAll()
         generation = UUID(); client.stop(); context = nil
         records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
-        readIDs.removeAll(); pendingReadIDs.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
+        readIDs.removeAll(); pendingReadOwners.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
         isLoading = false; hasMore = true; offset = 0; lastSend = nil; unreadArrivals = 0
         permission = ChatPermission(canSend: false); locatedMessageID = nil; errorMessage = nil
     }

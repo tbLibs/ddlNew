@@ -46,6 +46,7 @@ swiftc -swift-version 5 -I "$task_output" -L "$task_output" -lObjectMapper \
   "$task_root/ddlNew/Features/Contacts/Models/ContactSection.swift" \
   "$task_root/ddlNew/Features/Contacts/Models/FriendApplicationRecord.swift" \
   "$task_root/ddlNew/Features/Contacts/Services/ContactSorter.swift" \
+  "$task_root/ddlNew/Features/Contacts/Services/ContactBusinessError.swift" \
   "$task_root/ddlNew/Network/IM/Contacts/ContactBusinessPayload.swift" \
   "$task_root/Tests/Contacts/ContactBusinessPayloadChecks.swift" \
   -o "$task_output/ContactBusinessPayloadChecks"

@@ -180,8 +180,9 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
 
 /// ECDH 密钥交换失败
 /// @param error 错误信息
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)ecdhKeyExchangeFailed:(NSError *)error {
-    CIMLog(@"❌ [ECDH协商] SocketManagerTool: ECDH密钥交换失败: %@", error.localizedDescription);
+    CIMLog(@"❌ [ECDH协商] SocketManagerTool: ECDH密钥交换失败 domain=%@ code=%ld", error.domain, (long)error.code);
     
     // 这里可以通知上层应用 ECDH 失败
     // 如果有专门的 ECDH 代理，可以在这里调用
@@ -398,9 +399,15 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
 }
 
 #pragma mark - <<<<<<接收消息处理>>>>>>
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)receiveMessageDealWith:(IMMessage *)receiveMessage {
     CIMLog(@"socketManager:接收到消息类型为:%d", receiveMessage.dataType);
-    CIMLog(@"socketManager:接收到消息类消息内容:%@", receiveMessage);
+    CIMLog(@"socketManager:接收到消息类消息内容诊断 data_type=%d msg_id=%@ ack_msg_id=%@ s_msg_id=%@ send_time=%lld",
+           receiveMessage.dataType,
+           receiveMessage.dataType == IMMessage_DataType_ImchatMessageAck ? receiveMessage.chatMessageAck.msgId : (receiveMessage.dataType == IMMessage_DataType_ImchatMessageToAck ? receiveMessage.chatMessageToAck.msgId : receiveMessage.chatMessage.msgId),
+           receiveMessage.dataType == IMMessage_DataType_ImchatMessageToAck ? receiveMessage.chatMessageToAck.ackMsgId : receiveMessage.chatMessageAck.ackMsgId,
+           receiveMessage.dataType == IMMessage_DataType_ImchatMessageAck ? receiveMessage.chatMessageAck.sMsgId : (receiveMessage.dataType == IMMessage_DataType_ImchatMessageToAck ? receiveMessage.chatMessageToAck.sMsgId : receiveMessage.chatMessage.sMsgId),
+           (long long)(receiveMessage.dataType == IMMessage_DataType_ImchatMessageAck ? receiveMessage.chatMessageAck.sendTime : receiveMessage.chatMessage.sendTime));
     
     switch (receiveMessage.dataType) {
         case IMMessage_DataType_ImauthMessageAck://1 接收到 认证回执 消息
@@ -450,6 +457,7 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
 #pragma mark - 处理接收到的用户鉴权回执消息
 /// 处理服务端鉴权回执，并按回执码更新认证、Token 或退出登录状态。
 /// @param receiveMessage 包含 IMAuthMessageACK 的服务端消息。
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)receiveMessageDealForAuthMessageAckWith:(IMMessage *)receiveMessage {
     
     /*
@@ -539,7 +547,7 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
             break;
         default:
         {
-            CIMLog(@"socketManager:用户鉴权错误信息:%lld-%@", authMessageAck.code, authMessageAck.message);
+            CIMLog(@"socketManager:用户鉴权错误信息 code=%lld", authMessageAck.code);
             [self finishAuthWithLogoutCode:(NSInteger)authMessageAck.code message:authMessageAck.message ?: @"身份认证失败，请重新登录"];
         }
             break;

@@ -7,6 +7,8 @@ import Foundation
     var suspend = false
     var sent: [ChatMessageRecord] = []
     var readBatches: [[ChatMessageRecord]] = []
+    var suspendReads = false
+    var readWaiting: CheckedContinuation<Void, Never>?
     var rejectedIDs: Set<String> = []
     var policy = ChatPermission()
     /// 注入可暂停历史请求，让切账号后旧结果仍能返回。
@@ -24,8 +26,11 @@ import Foundation
     func send(_ message: ChatMessageRecord, context: ChatContext) throws { sent.append(message) }
     /// 权限读取可模拟开页后禁言。
     func permissions(context: ChatContext) throws -> ChatPermission { policy }
-    /// 已读测试不伪造群计数。
-    func read(_ messages: [ChatMessageRecord], context: ChatContext) async throws { readBatches.append(messages) }
+    /// 已读可暂停回执，验证清历史后的旧结果不能重新合并消息。
+    func read(_ messages: [ChatMessageRecord], context: ChatContext) async throws {
+        readBatches.append(messages)
+        if suspendReads { await withCheckedContinuation { readWaiting = $0 } }
+    }
     /// 测试动作以注入错误替代外部服务。
     func perform(_ action: ChatMessageAction, message: ChatMessageRecord, context: ChatContext) async throws { if rejectedIDs.contains(message.id) { throw ChatClientError.unavailable("拒绝删除") } }
 }
@@ -89,7 +94,37 @@ import Foundation
         store.close(); await store.open(context); store.isVisible = true; store.isForeground = false
         await store.markVisible("r1"); await store.flushVisibleReads()
         expect(client.readBatches.count == 2, "后台不能发送已读批次")
+        // 前台恢复时几何可以完全不变，仍须重新上报可见未读正文。
+        store.setVisibleMessageIDs(["r1", "voice"])
+        store.isForeground = true
+        await Task.yield(); await store.flushVisibleReads()
+        expect(client.readBatches.count == 3 && client.readBatches[2].map(\.serverID) == ["r1"], "恢复前台重读可见正文，排除未播放语音和屏外消息")
+        store.isVisible = false; store.setVisibleMessageIDs(["r2"])
+        await Task.yield(); await store.flushVisibleReads()
+        expect(client.readBatches.count == 3, "被覆盖页面恢复方法不能提前上报")
+        store.isVisible = true
+        await Task.yield(); await store.flushVisibleReads()
+        expect(client.readBatches.count == 4 && client.readBatches[3].map(\.serverID) == ["r2"], "返回聊天时几何不变仍会重读可见未读正文")
         store.close()
+        await store.open(context); store.setVisibleMessageIDs(["r1"])
+        await store.markVisible("r1")
+        client.callback?(.cleared); await store.flushVisibleReads()
+        expect(client.readBatches.count == 4, "清历史必须取消尚未发送的旧已读队列")
+        expect(store.messages.isEmpty, "清历史后的读批次不能复活旧正文")
+        store.close(); await store.open(context); store.setVisibleMessageIDs(["r1"])
+        await store.markVisible("r1"); client.suspendReads = true
+        let pendingRead = Task { await store.flushVisibleReads() }
+        while client.readWaiting == nil { await Task.yield() }
+        client.callback?(.cleared); client.readWaiting?.resume(); client.readWaiting = nil
+        await pendingRead.value
+        expect(store.messages.isEmpty, "已发送批次迟到成功不能复活已清正文")
+        store.close(); await store.open(context)
+        let pendingVoice = Task { await store.markVisible("voice", voicePlayed: true) }
+        while client.readWaiting == nil { await Task.yield() }
+        client.callback?(.cleared); client.readWaiting?.resume(); client.readWaiting = nil
+        await pendingVoice.value
+        expect(store.messages.isEmpty, "语音已读迟到成功不能复活已清附件")
+        client.suspendReads = false; store.close()
         client.policy.canDelete = true; client.page = ChatPage(messages: [message("d1", server: "d1"), message("d2", server: "d2")], hasMore: false)
         store.isForeground = true; await store.open(context); store.toggleSelection("d1"); store.toggleSelection("d2"); client.rejectedIDs = ["d2"]
         await store.deleteSelected(both: false)
@@ -122,7 +157,31 @@ import Foundation
         client.callback?(.cleared)
         expect(unavailable.last == "all", "清空事件必须通知全部已打开附件")
         store.close()
-        print("Chat checks: 23 passed")
+        // 成员历史事件也会推进清理轮次，旧批次结束后必须释放自己的pending资格。
+        let interruptedClient = SuspendedChatClient()
+        interruptedClient.page = ChatPage(messages: [message("pending", server: "pending")], hasMore: false)
+        let interruptedStore = ChatStore(client: interruptedClient)
+        await interruptedStore.open(context); interruptedStore.setVisibleMessageIDs(["pending"])
+        await interruptedStore.markVisible("pending"); interruptedClient.suspendReads = true
+        let interruptedRead = Task { await interruptedStore.flushVisibleReads() }
+        while interruptedClient.readWaiting == nil { await Task.yield() }
+        interruptedClient.callback?(.memberHistoryDeleted(["anotherAuthor"]))
+        interruptedClient.readWaiting?.resume(); interruptedClient.readWaiting = nil
+        await interruptedRead.value; interruptedClient.suspendReads = false
+        await interruptedStore.markVisible("pending"); await interruptedStore.flushVisibleReads()
+        expect(interruptedClient.readBatches.count == 2 && interruptedStore.messages.first?.isRead == true, "成员历史变化后的旧读批次不能永久阻止可见正文重读")
+        interruptedStore.close()
+        interruptedClient.page = ChatPage(messages: [message("voicePending", server: "voicePending", type: 4)], hasMore: false)
+        await interruptedStore.open(context); interruptedClient.suspendReads = true
+        let interruptedVoice = Task { await interruptedStore.markVisible("voicePending", voicePlayed: true) }
+        while interruptedClient.readWaiting == nil { await Task.yield() }
+        interruptedClient.callback?(.memberHistoryDeleted(["anotherAuthor"]))
+        interruptedClient.readWaiting?.resume(); interruptedClient.readWaiting = nil
+        await interruptedVoice.value; interruptedClient.suspendReads = false
+        await interruptedStore.markVisible("voicePending", voicePlayed: true)
+        expect(interruptedClient.readBatches.count == 4 && interruptedStore.messages.first?.isRead == true, "成员历史变化后的旧语音读回执必须释放重播资格")
+        interruptedStore.close()
+        print("Chat checks: 32 passed")
     }
     /// 构造含双ID的普通消息。
     static func message(_ id: String, server: String, type: Int = 0) -> ChatMessageRecord {

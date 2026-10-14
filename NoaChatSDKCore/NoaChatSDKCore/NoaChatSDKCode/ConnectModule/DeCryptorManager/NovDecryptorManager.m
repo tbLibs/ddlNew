@@ -42,6 +42,7 @@
 }
 
 // 生成新的密钥对
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)generateKeyPairWithComplete:(void (^)(SecKeyRef publicKey, SecKeyRef privateKey))complete {
     // 异步生成密钥对
     __weak typeof(self) weakSelf = self;
@@ -51,7 +52,7 @@
         
         if (error || !publicKey || !privateKey) {
             NSString *errorMsg = [NSString stringWithFormat:@"客户端密钥对生成失败: %@", error.localizedDescription];
-            CIMLog(@"❌ [ECDH客户端] %@", errorMsg);
+            CIMLog(@"❌ [ECDH客户端] 密钥生成失败 domain=%@ code=%ld hasDescription=%d", error.domain, (long)error.code, errorMsg.length > 0);
             if (complete) {
                 complete(nil, nil);
             }
@@ -77,6 +78,7 @@
     }];
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSData *)secKeyRefToData:(SecKeyRef)keyRef {
     if (!keyRef) {
         return nil;
@@ -88,13 +90,14 @@
     // 获取公钥的X.509 DER编码字节数组
     NSData *keyBytes = [ECDHKeyManager getPublicKeyBytes:keyRef error:&error];
     if (error || !keyBytes) {
-        CIMLog(@"❌ [ECDH客户端] 获取公钥字节数组失败: %@", error.localizedDescription);
+        CIMLog(@"❌ [ECDH客户端] 获取公钥字节数组失败 domain=%@ code=%ld", error.domain, (long)error.code);
         return nil;
     }
     
     return keyBytes;
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSData *)buildServerPublicKeyRequestMessage:(NSData *)appPublicKey {
     
     CIMLog(@"🔨 构建获取服务器公钥请求消息");
@@ -151,8 +154,8 @@
     CIMLog(@"📋 消息构建完成:");
     CIMLog(@"总长度：%@", [messageData subdataWithRange:NSMakeRange(0, 2)]);
     CIMLog(@"扰乱数据长度: %@", [messageData subdataWithRange:NSMakeRange(2, 2)]);
-    CIMLog(@"APP公钥: %@", [messageData subdataWithRange:NSMakeRange(4, publicKeyLength)]);
-    CIMLog(@"扰乱数据: %@", [messageData subdataWithRange:NSMakeRange(4 + publicKeyLength, obfuscatedLength)]);
+    CIMLog(@"APP公钥 length=%lu", (unsigned long)publicKeyLength);
+    CIMLog(@"扰乱数据 length=%lu", (unsigned long)obfuscatedLength);
     
     CIMLog(@"   - 消息总长度: %u字节", totalMessageLength);
     
@@ -231,6 +234,7 @@
 
 
 // 使用私钥和对方的公钥计算共享密钥
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (BOOL)generateSharedSecret {
     if (!self.serverPublicKeyData || !self.privateKey) {
         NSString *errorMsg = @"服务端公钥base64字符串不能为空";
@@ -247,7 +251,7 @@
     }
     
     CIMLog(@"✅ [ECDH解密助手] 共享密钥生成成功，长度: %lu字节", (unsigned long)sharedSecret.length);
-    CIMLog(@"🔐 [ECDH解密助手] 共享密钥hex: %@", [ECDHKeyManager hexStringFromData:sharedSecret]);
+    CIMLog(@"🔐 [ECDH解密助手] 共享密钥诊断 length=%lu", (unsigned long)sharedSecret.length);
     self.shareKey = sharedSecret;
     return YES;
 }
@@ -379,6 +383,7 @@
 /// 构建增强帧协议格式的加密消息帧
 /// @param data 需要加密的原始数据
 /// @return 增强帧协议格式的完整消息帧
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSData *)buildEncryptedMessageFrameWithData:(NSData *)data {
     if (!data || data.length == 0) {
         CIMLog(@"[增强帧协议] ❌ 原始数据为空");
@@ -482,7 +487,7 @@
     [enhancedFrameData appendData:obfuscatedData];
     
     CIMLog(@"[增强帧协议] ✅ 构建增强帧协议消息成功:");
-    CIMLog(@"[增强帧协议]    - 帧头标识: %@", [self hexStringFromData:frameIdentifier]);
+    CIMLog(@"[增强帧协议]    - 帧头标识: length=%lu", (unsigned long)frameIdentifier.length);
     CIMLog(@"[增强帧协议]    - 消息体长度: %u字节", messageBodyLength);
     CIMLog(@"[增强帧协议]    - 扰乱数据长度: %lu字节", (unsigned long)obfuscatedData.length);
     CIMLog(@"[增强帧协议]    - 总帧长度: %lu字节", (unsigned long)enhancedFrameData.length);
@@ -495,6 +500,7 @@
 /// 解析增强帧协议格式的消息（基于buildEncryptedMessageFrameWithData的加密逻辑）
 /// @param enhancedFrameData 增强帧协议格式的数据
 /// @return 解密后的原始数据
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSData *)parseEnhancedFrameProtocolMessage:(NSData *)enhancedFrameData {
     if (!enhancedFrameData || enhancedFrameData.length < MESSAGE_FRAME_HEADER_SIZE) {
         CIMLog(@"[帧协议] ❌ 消息帧数据无效或长度不足");
@@ -523,8 +529,8 @@
     
     if (![expectedFrameIdentifier isEqualToData:receivedFrameIdentifier]) {
         CIMLog(@"[增强帧协议] ❌ 帧头标识验证失败");
-        CIMLog(@"[增强帧协议]    - 期望: %@", [self hexStringFromData:expectedFrameIdentifier]);
-        CIMLog(@"[增强帧协议]    - 实际: %@", [self hexStringFromData:receivedFrameIdentifier]);
+        CIMLog(@"[增强帧协议]    - 期望: length=%lu", (unsigned long)expectedFrameIdentifier.length);
+        CIMLog(@"[增强帧协议]    - 实际: length=%lu", (unsigned long)receivedFrameIdentifier.length);
         return nil;
     }
     
@@ -619,8 +625,8 @@
     NSData *calculatedHmac = [self hmacEncryptSHA256ForData:encryptedData withKey:localShareKey];
     if (![calculatedHmac isEqualToData:hmacData]) {
         CIMLog(@"[增强帧协议] ❌ HMAC验证失败");
-        CIMLog(@"[增强帧协议]    - 期望HMAC: %@", [self hexStringFromData:hmacData]);
-        CIMLog(@"[增强帧协议]    - 计算HMAC: %@", [self hexStringFromData:calculatedHmac]);
+        CIMLog(@"[增强帧协议]    - 期望HMAC length=%lu", (unsigned long)hmacData.length);
+        CIMLog(@"[增强帧协议]    - 计算HMAC length=%lu", (unsigned long)calculatedHmac.length);
         return nil;
     }
     

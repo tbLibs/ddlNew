@@ -202,7 +202,7 @@ let loginForcedPasswordRequirementAppStorageKey = "ddlNew.loginForcedPasswordReq
         await settle()
         expect(changed.coordinator.oldPasswordVerified, "原密码真实验证后才可输入新密码")
         changed.coordinator.changePassword("abc123!", confirmation: "abc123!", requiresSymbol: false)
-        await settle()
+        await settleUntil { changed.exits == 1 && changed.coordinator.passwordChanged && !changed.coordinator.isBusy }
         expect(changed.exits == 1 && changed.coordinator.passwordChanged, "修改成功必须退出重新登录")
         expect(changed.driver.calls == ["key", "strength", "key", "old", "key", "reset"], "两次修改阶段均使用新key且遵守旧API顺序")
         expect(changed.driver.parameters.last?["password"] as? String == "cipher", "新密码字段加密")
@@ -307,5 +307,13 @@ let loginForcedPasswordRequirementAppStorageKey = "ddlNew.loginForcedPasswordReq
         expect(unownedExit.load() == nil, "没有运行时身份的明确退出也清启动标记")
         print("LoginSecurity: \(checks) checks passed")
     }
+    /// 嵌套退出任务按可观察完成状态等待，固定yield次数不能保证调度器已运行。
+    @MainActor static func settleUntil(_ condition: @MainActor () -> Bool) async {
+        let deadline = Date().addingTimeInterval(2)
+        while !condition(), Date() < deadline { try? await Task.sleep(nanoseconds: 1_000_000) }
+        precondition(condition(), "登录安全操作未在时限内完成")
+    }
+
+    /// 其余即时匿名场景让出主actor，不代替真实网络或业务完成断言。
     static func settle() async { for _ in 0..<25 { await Task.yield() } }
 }

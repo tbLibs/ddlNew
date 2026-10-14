@@ -33,14 +33,15 @@ extern NSNotificationName const _Nonnull kLingIMTcpReceiveMessageNotification;
 @implementation NoaIMSocketManagerTool (HandleReceiveTcpReplaceHttpMessage)
 
 /// MARK: 接收消息处理
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)receiveTcpReplaceHttpMessageDealWith:(IMMessage *)receiveMessage {
     CIMLog(@"[TCP请求追踪] 接收到消息类型为:%d", receiveMessage.dataType);
     if (receiveMessage.dataType != IMMessage_DataType_ResponseMessage) {
         // 只处理短连接转长连接消息
         return;
     }
-    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 🔄 接收到ResponseMessage - requestId:%@, status:%d，response:%@",
-                  receiveMessage.responseMessage.requestId, receiveMessage.responseMessage.status, receiveMessage.responseMessage]];
+    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 🔄 接收到ResponseMessage - requestId:%@, status:%d body_length=%lu",
+                  receiveMessage.responseMessage.requestId, receiveMessage.responseMessage.status, (unsigned long)receiveMessage.responseMessage.body.length]];
     
     // 接收到短连接转长连接消息
     [[NSNotificationCenter defaultCenter] postNotificationName:kLingIMTcpReceiveMessageNotification object:receiveMessage];

@@ -14,6 +14,7 @@ struct ChatRoomView: View {
     @StateObject private var store: ChatStore
     @ObservedObject private var runtime = ChatRuntime.shared
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var confirmAction: ChatMessageAction?
     @State private var actionMessageID: String?
     @State private var pinnedNotice: ChatGroupNotice?
@@ -33,6 +34,9 @@ struct ChatRoomView: View {
     @State private var showForward = false
     @State private var mediaMessage: ChatMessageRecord?
     @State private var viewport = CGRect.zero
+    @State private var messageFrames: [String: CGRect] = [:]
+    @State private var latestFrame = CGRect.zero
+    @State private var resizeFollowTask: Task<Void, Never>?
     @State private var didInitialScroll = false
     @State private var showFullHistorySearch = false
     @FocusState private var composerFocused: Bool
@@ -60,16 +64,22 @@ struct ChatRoomView: View {
                         }
                         ForEach(displayedMessages) { message in messageRow(message) }
                         Color.clear.frame(height: 1).id("latest")
-                            .onAppear { store.isAtBottom = true }
-                            .onDisappear { store.isAtBottom = false }
+                            .background(GeometryReader { geometry in Color.clear.preference(key: ChatLatestPreference.self, value: geometry.frame(in: .named("chatViewport"))) })
                     }.padding(.horizontal, 16).padding(.bottom, 14)
                 }
+                .simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { _ in
+                    resizeFollowTask?.cancel(); resizeFollowTask = nil
+                    store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport)
+                })
                 .scrollDismissesKeyboard(.interactively)
                 .coordinateSpace(name: "chatViewport")
-                .background(GeometryReader { geometry in Color.clear.onAppear { viewport = CGRect(origin: .zero, size: geometry.size) }.onChange(of: geometry.size) { viewport = CGRect(origin: .zero, size: $0) } })
+                .background(GeometryReader { geometry in Color.clear.onAppear { updateViewport(geometry.size, proxy: proxy) }.onChange(of: geometry.size) { updateViewport($0, proxy: proxy) } })
                 .onPreferenceChange(ChatVisibilityPreference.self) { frames in
-                    let visible = Set(frames.filter { $0.value.intersects(viewport) }.keys); store.setVisibleMessageIDs(visible)
-                    for (id, frame) in frames where frame.intersects(viewport) { Task { await store.markVisible(id) } }
+                    messageFrames = frames; updateVisibleMessages()
+                }
+                .onPreferenceChange(ChatLatestPreference.self) { frame in
+                    latestFrame = frame
+                    if resizeFollowTask == nil { store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: frame, viewport: viewport) }
                 }
                 if store.unreadArrivals > 0 { Button("\(store.unreadArrivals)条新消息") { store.returnToLatest(); if let id = store.messages.last?.id { proxy.scrollTo(id, anchor: .bottom) } }.padding(8) }
             }
@@ -77,10 +87,12 @@ struct ChatRoomView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) { composer }
             .onChange(of: store.messages.last?.id) { id in
                 if id != nil && route.targetMessageID == nil && (!didInitialScroll || store.isAtBottom) {
+                    let initiallyOpening = !didInitialScroll
                     didInitialScroll = true
-                    DispatchQueue.main.async { if let id = store.messages.last?.id { proxy.scrollTo(id, anchor: .bottom) } }
+                    followAfterResize(proxy, force: initiallyOpening)
                 }
             }
+            .onChange(of: composerFocused) { _ in followAfterResize(proxy) }
             .onChange(of: store.locatedMessageID) { id in if let id { proxy.scrollTo(id, anchor: .center) } }
         }
         .navigationTitle(route.title)
@@ -90,7 +102,7 @@ struct ChatRoomView: View {
         }
         .navigationDestination(isPresented: $showSettings) { ChatSettingsView(route: route) }
         .task(id: runtime.revision) { if let context = runtime.context(for: route) { await store.open(context) } else { store.close() } }
-        .onDisappear { store.isVisible = false; if !showSettings && mediaMessage == nil && editingMessage == nil && !showForward && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices { store.close() } }
+        .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; if !showSettings && mediaMessage == nil && editingMessage == nil && !showForward && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices { store.close() } }
         .onAppear { store.isForeground = scenePhase == .active; store.isVisible = true }
         .sheet(isPresented: $showNotices) { NavigationStack { ChatGroupNoticesView(route: route) } }
         .sheet(isPresented: $showPinnedMessages) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages) { id in Task { await store.locate(id) } } } }
@@ -133,24 +145,55 @@ struct ChatRoomView: View {
             // 收起入口与正文同属输入区，避免系统键盘工具栏覆盖发送按钮。
             if composerFocused {
                 HStack {
+                    Button { composerFocused = false } label: { Image(systemName: "plus.circle").frame(width: 44, height: 44) }.accessibilityLabel("展开附件与成员工具")
                     Spacer()
-                    Button { composerFocused = false } label: { Text("收起键盘").frame(minWidth: 44, minHeight: 44) }
+                    Button { composerFocused = false } label: { Image(systemName: "keyboard.chevron.compact.down").frame(width: 44, height: 44) }.accessibilityLabel("收起键盘")
                         .accessibilityIdentifier("chatDismissKeyboard")
                 }
             }
             if let reference = store.reference { HStack { Text("回复：" + reference.displayText).font(.caption).lineLimit(2); Spacer(); Button("取消引用") { store.reference = nil } } }
             if !store.selectedIDs.isEmpty { HStack { Text("已选择\(store.selectedIDs.count)/100"); Spacer(); Button("删除", role: .destructive) { showDeleteSelection = true }; Button("转发") { forwardingMessages = store.messages.filter { store.selectedIDs.contains($0.id) }; showForward = true }; Button("取消多选") { store.cancelSelection() } } }
-            if route.kind == .group && !(store.permission.role == 0 && store.permission.isPrivateChat) {
+            if !composerFocused && route.kind == .group && !(store.permission.role == 0 && store.permission.isPrivateChat) {
                 Button("@成员") { Task { await loadMentionMembers() } }.frame(minHeight: 44).disabled(!store.permission.canSend)
             }
-            ChatMediaComposer(chat: store)
+            ChatMediaComposer(chat: store, compact: composerFocused)
             HStack(alignment: .bottom, spacing: 10) {
                 Button { showFullHistorySearch = true } label: { Image(systemName: "magnifyingglass").frame(width: 44, height: 44) }.accessibilityLabel("搜索聊天记录")
-                TextField("发送消息", text: $store.input, axis: .vertical).lineLimit(1...5).padding(10).background(Color(uiColor: .secondarySystemGroupedBackground)).clipShape(RoundedRectangle(cornerRadius: 12))
+                TextField("发送消息", text: $store.input, axis: .vertical).lineLimit(1...(composerFocused && dynamicTypeSize.isAccessibilitySize ? 2 : 5)).padding(10).background(Color(uiColor: .secondarySystemGroupedBackground)).clipShape(RoundedRectangle(cornerRadius: 12))
                     .focused($composerFocused).accessibilityLabel("消息正文").disabled(!store.permission.canSend)
                 Button { store.sendText() } label: { Text("发送").font(.body.weight(.semibold)).frame(minWidth: 44, minHeight: 44) }.disabled(!store.permission.canSend || store.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }.padding(.horizontal, 16).padding(.vertical, 10).background(.regularMaterial)
+    }
+
+    /// 视口收缩前保留末尾跟随意图，历史浏览与搜索定位不强制滚动。
+    private func updateViewport(_ size: CGSize, proxy: ScrollViewProxy) {
+        let followsLatest = store.isAtBottom
+        viewport = CGRect(origin: .zero, size: size)
+        updateVisibleMessages()
+        if followsLatest { followAfterResize(proxy) }
+        else if resizeFollowTask == nil { store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) }
+    }
+
+    /// 首屏等到布局完成再落到最新，其余变化只跟随原末尾；用户拖动仍取消，不改草稿或消息状态。
+    private func followAfterResize(_ proxy: ScrollViewProxy, force: Bool = false) {
+        guard force || store.isAtBottom, route.targetMessageID == nil else { return }
+        if force { store.isAtBottom = true }
+        resizeFollowTask?.cancel()
+        resizeFollowTask = Task { @MainActor in
+            do { try await Task.sleep(nanoseconds: 350_000_000) } catch { return }
+            guard !Task.isCancelled, store.isVisible else { return }
+            proxy.scrollTo("latest", anchor: .bottom)
+            resizeFollowTask = nil
+            store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport)
+        }
+    }
+
+    /// 消息或视口变化均重算可见正文，屏外记录不会因键盘变化误报已读。
+    private func updateVisibleMessages() {
+        let visible = Set(messageFrames.filter { $0.value.intersects(viewport) }.keys)
+        store.setVisibleMessageIDs(visible)
+        for id in visible { Task { await store.markVisible(id) } }
     }
 
     /// 双向批量入口必须每条均符合当前作者、会话和群角色矩阵。
@@ -243,6 +286,6 @@ struct ChatRoomView: View {
 
 private struct ChatVisibilityPreference: PreferenceKey {
     static var defaultValue: [String: CGRect] = [:]
-    /// 合并当前LazyVStack已布局的消息区域，用实际视口交集判断正文可见。
+    /// 合并当前已布局的消息区域，用实际视口交集判断正文可见。
     static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) { value.merge(nextValue(), uniquingKeysWith: { _, new in new }) }
 }

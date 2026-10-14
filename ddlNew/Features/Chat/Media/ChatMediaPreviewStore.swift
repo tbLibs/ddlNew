@@ -122,9 +122,11 @@ import AVFoundation
         if FileManager.default.fileExists(atPath: directory.path) { try FileManager.default.removeItem(at: directory) }
     }
 
-    /// 离页停止播放和网络；保留原条归属，以便后台期间删除仍能阻止回前台下载。
+    /// 离页停止播放和网络；保留原条归属和失效提示，避免回前台禁下载却显示空白。
     func close() {
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }; interruptionObserver = nil
         if playing { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
-        generation = UUID(); session?.invalidateAndCancel(); session = nil; player?.stop(); player = nil; file = nil; playing = false; loading = false; errorMessage = nil }
+        generation = UUID(); session?.invalidateAndCancel(); session = nil; player?.stop(); player = nil; file = nil; playing = false; loading = false
+        if !isInvalidated { errorMessage = nil }
+    }
 }

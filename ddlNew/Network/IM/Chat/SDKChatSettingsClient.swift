@@ -20,7 +20,7 @@ import NoaChatCore
         if self.context != context { client.observe(context: context, onEvent: { [weak self] event in switch event { case .permissionsChanged, .memberMetadataChanged: self?.changed?(); default: break } }); self.context = context }
     }
 
-    /// 群详情和成员来自真实接口，角色只使用当前服务端返回值。
+    /// 群详情和成员来自真实接口；成员页按items解析，损坏响应不能标记同步完成。
     func load(context: ChatContext) async throws -> ChatSettingsSnapshot {
         bind(context); try client.validate(context)
         var group: ChatGroupDetail?
@@ -43,7 +43,7 @@ import NoaChatCore
                 let data = try await client.request(context: context) { success, failure in
                     self.sdk.getGroupMemberList(with: NSMutableDictionary(dictionary: ["groupId": context.route.id, "userUid": context.userUID, "pageSize": 100, "pageNumber": page, "pageStart": (page - 1) * 100]), onSuccess: success, onFailure: failure)
                 }
-                let rows = data["rows"] as? [[String: Any]] ?? []
+                let rows = try ChatGroupMemberPage.rows(from: data)
                 let before = members.count
                 for row in rows {
                     guard let id = row["userUid"] as? String, !id.isEmpty else { continue }

@@ -185,6 +185,7 @@
 
 /// 消息调度
 /// - Parameter requestModel: http转tcp请求模型
+/// 诊断只保留请求阶段、消息身份、长度和错误码，不输出资源URL、原始错误或认证数据。
 - (void)enqueueTcpRequest:(LingIMTcpRequestModel *)requestModel {
     if (!NoaIMBindRequestToSession(self, requestModel)) return;
     __weak typeof(self) weakSelf = self;
@@ -207,14 +208,14 @@
             
                 if ([requestModel.url isEqualToString:Auth_Refresh_Token_Url]) {
                     // token要第一条发送
-                    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket未连接，当前是token请求请求进入 waitSendRequestModelArr：%@", requestModel.url]];
+                    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket未连接，当前是token请求请求进入 waitSendRequestModelArr request_id=%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length]];
                     [self.waitSendRequestModelArr insertObject:requestModel atIndex:0];
                 }else {
                     if (![self socketConnectStatus]) {
                         //  tcp没有连接，任何请求都需要缓存起来等待发送
-                        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 未连接，请求进入 waitSendRequestModelArr：%@", requestModel.url]];
+                        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 未连接，请求进入 waitSendRequestModelArr request_id=%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length]];
                     }else if (![self isExchangeEcdhKeySuccess]) {
-                        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] ecdh交换还未成功，请求进入 waitSendRequestModelArr：%@", requestModel.url]];
+                        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] ecdh交换还未成功，请求进入 waitSendRequestModelArr request_id=%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length]];
                     }
                     [self.waitSendRequestModelArr addObject:requestModel];
                 }
@@ -224,22 +225,22 @@
         
         if (self.isTokenExpired || self.isTokenRefreshing) {
             NSString *tokenAction = [requestModel.url isEqualToString:Auth_Refresh_Token_Url] ? @"direct_send_refresh" : @"cache_request";
-            [NoaLocalLogger info:[NSString stringWithFormat:@"[AUTH链路] stage=TOKEN_REFRESH_TRIGGER_CHECK url=%@ isTokenExpired=%@ isTokenRefreshing=%@ action=%@",
-                                  requestModel.url,
+            [NoaLocalLogger info:[NSString stringWithFormat:@"[AUTH链路] stage=TOKEN_REFRESH_TRIGGER_CHECK request_id=%@ url_length=%lu isTokenExpired=%@ isTokenRefreshing=%@ action=%@",
+                                  requestModel.msgId, (unsigned long)requestModel.url.length,
                                   self.isTokenExpired ? @"YES" : @"NO",
                                   self.isTokenRefreshing ? @"YES" : @"NO",
                                   tokenAction]];
             
             if ([requestModel.url isEqualToString:Auth_Refresh_Token_Url]) {
                // token要立即发送，不然请求token的协议不会发送
-                [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，刷新Token中/Token失效，当前请求是获取token，直接发送：%@", requestModel.url]];
+                [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，刷新Token中/Token失效，当前请求是获取token，直接发送 request_id=%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length]];
                 [self executeTcpRequest:requestModel];
             }else {
                 // 如果token过期时，请求的是刷新token，就不要将其添加在缓存中
                 dispatch_async(self.waitSendQueue, ^{
                     __strong typeof(weakSelf) self = weakSelf;
                     if (!self || !NoaIMRequestIsCurrent(self, requestModel)) return;
-                    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，刷新Token中/Token失效，请求进入 pending：%@", requestModel.url]];
+                    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，刷新Token中/Token失效，请求进入 pending request_id=%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length]];
                     [self.waitSendRequestModelArr addObject:requestModel];
                 });
             }
@@ -251,11 +252,12 @@
             }
             return;
         }
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，Token有效，请求直接发送：%@", requestModel.url]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 当前socket已连接，Token有效，请求直接发送 request_id=%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length]];
         [self executeTcpRequest:requestModel];
     });
 }
 
+/// 诊断只保留请求阶段、消息身份、长度和错误码，不输出资源URL、原始错误或认证数据。
 - (void)executeTcpRequest:(LingIMTcpRequestModel *)requestModel {
     if (!NoaIMRequestIsCurrent(self, requestModel)) return;
     IMMessage *message = requestModel.sendMessage;
@@ -263,7 +265,7 @@
     [SOCKETMANAGER sendSocketMessage:message timeOut:kMessageTimeOut tag:LingIMMessageTag];
     
     // 发送后延时20ms，避免请求发送过快
-    CIMLog(@"[TCP请求追踪] 发送完成，延时20ms - requestId:%@, url:%@", requestModel.msgId, requestModel.url);
+    CIMLog(@"[TCP请求追踪] 发送完成，延时20ms - requestId:%@ url_length=%lu", requestModel.msgId, (unsigned long)requestModel.url.length);
 //    [NSThread sleepForTimeInterval:0.4]; // 20ms延时
 }
 
@@ -370,6 +372,7 @@
 /// 请求新 Token，成功后同步更新 Kit 与 SDK，并使用新 Token 再次发送 Socket AUTH。
 /// @param successCallBack Token 刷新成功回调，返回新 Token 与 traceId。
 /// @param failureCallBack Token 刷新失败回调，返回错误码、错误信息与 traceId。
+/// 诊断只保留请求阶段、消息身份、长度和错误码，不输出资源URL、原始错误或认证数据。
 - (void)authRefreshTokenExpiredWithSuccessFunc:(LingTcpRequestSuccessCallback)successCallBack
                                    FailureFunc:(LingIMTcpRequestFailureCallback)failureCallBack {
     NSUUID *session = NoaIMRequestSession(self);
@@ -432,7 +435,7 @@
     } FailureFunc:^(NSInteger code, NSString * _Nullable msg, NSString * _Nullable traceId) {
         if (![session isEqual:NoaIMRequestSession(self)] || !SOCKETMANAGER.isCanReconnect || ![IMSDKManager.myUserID isEqualToString:myUserId] ||
             ![IMSDKManager.myUserToken isEqualToString:token]) return;
-        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接]  token更新失败，code = %ld, msg = %@. traceId = %@", code, msg, traceId]];
+        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] token更新失败 code=%ld hasMessage=%d traceId=%@", (long)code, msg.length > 0, traceId]];
         if ([self.userDelegate respondsToSelector:@selector(noaSdkRefreshUsetToken: errorMsg:)]) {
             [self.userDelegate noaSdkRefreshUsetToken:@"" errorMsg:msg];
         }

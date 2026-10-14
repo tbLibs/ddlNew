@@ -3,16 +3,20 @@ import Foundation
 // 测试只替代系统音频/网络对象，生产失效、关闭和身份判断方法原样执行。
 @MainActor final class URLSession {
     var cancelled = false
+    /// 记录生产关闭逻辑是否取消网络，不建立真实连接。
     func invalidateAndCancel() { cancelled = true }
 }
 @MainActor final class AVAudioPlayer {
     var stopped = false
+    /// 记录生产关闭逻辑是否停止播放，不打开实际媒体。
     func stop() { stopped = true }
 }
 @MainActor final class AVAudioSession {
     struct Options: OptionSet { let rawValue: Int; static let notifyOthersOnDeactivation = Options(rawValue: 1) }
     static let shared = AVAudioSession()
+    /// 返回离线音频会话替身，避免修改系统音频路由。
     static func sharedInstance() -> AVAudioSession { shared }
+    /// 离线目标保留生产调用形状，不激活系统音频会话。
     func setActive(_ active: Bool, options: Options) throws {}
 }
 
@@ -50,6 +54,15 @@ import Foundation
         precondition(!single.isInvalidated, "删除其他单条消息不应停止当前附件")
         message.localID = "m"; single.invalidateMessage(message, context: context)
         precondition(single.isInvalidated, "删除当前原条必须让附件失效")
-        print("Preview invalidation checks: 9 passed")
+        // 失效预览在系统再次转入后台时仍须解释不可用原因，不能变成空白页。
+        single.close()
+        precondition(single.isInvalidated && single.errorMessage?.isEmpty == false, "失效附件后台关闭后必须保留原因提示")
+        single.close()
+        precondition(single.isInvalidated && single.errorMessage?.isEmpty == false, "重复关闭不能清除失效原因")
+        let active = ProductionPreview()
+        active.errorMessage = "临时下载错误"
+        active.close()
+        precondition(active.errorMessage == nil, "普通关闭仍应清除可重试临时错误")
+        print("Preview invalidation checks: 12 passed")
     }
 }

@@ -114,13 +114,14 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
 
 /// 收到通知，收到消息进行相关处理
 /// - Parameter notification: 通知
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)receiveMessage:(NSNotification *)notification {
     IMMessage *message = notification.object;
     
     if ([message.responseMessage.requestId isEqualToString:self.msgId]) {
         // 收到当前请求消息回应 - 只有匹配时才打印详细日志
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] ✅ 收到匹配响应，消息ID:%@, 请求url:%@, status:%d，响应内容:%@",
-                      self.msgId, self.url, message.responseMessage.status, message.responseMessage]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] ✅ 收到匹配响应，消息ID:%@, status:%d body_length=%lu",
+                      self.msgId, message.responseMessage.status, (unsigned long)message.responseMessage.body.length]];
         [self cancelTimer];
         [self receiveMessageDealWith:message];
     }
@@ -176,6 +177,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
 ///   - method: 对应的Http请求方式，如POST、GET
 ///   - successFunc: 成功的回调
 ///   - failureFunc: 失败的回调
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)sendTcpRequestWithParam:(id)param
                             Url:(NSString *)url
                          Method:(LingRequestMethod)method
@@ -201,7 +203,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
     self.methodString = methodString;
     self.originUrl = url;
     self.url = [self getUrlPathWithParam:param url:url];
-    CIMLog(@"[短连接转长连接测试] url = %@", self.url);
+    CIMLog(@"[短连接转长连接测试] hasURL=%d", self.url.length > 0);
     // 配置参数，并调用tcp发送参数
     [self sendMessageWithParam:param method:methodString url:self.url originUrl:self.originUrl];
 }
@@ -213,6 +215,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
 ///   - method: 对应的Http请求方式，如POST、GET
 ///   - successFunc: 带有服务器时间的成功回调
 ///   - failureFunc: 失败的回调
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)sendTimeRequestWithParam:(id)param
                              Url:(NSString *)url
                           Method:(LingRequestMethod)method
@@ -239,7 +242,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
     self.methodString = methodString;
     self.originUrl = url;
     self.url = [self getUrlPathWithParam:param url:url];
-    CIMLog(@"[短连接转长连接测试] url = %@", self.url);
+    CIMLog(@"[短连接转长连接测试] hasURL=%d", self.url.length > 0);
     // 配置参数，并调用tcp发送参数
     [self sendMessageWithParam:param method:methodString url:self.url originUrl:self.originUrl];
 }
@@ -273,6 +276,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
 
 /// MARK: 计时器相关
 /// 开始计时器处理超时相关问题
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)beginTimer {
     if (_gcdTimer) {
         return;
@@ -313,7 +317,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
             if (strongSelf.failureCallBack != nil) {
                 strongSelf.failureCallBack(0, @"", strongSelf.msgId);
             }
-            [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] 消息超时了,重发次数达到上限，取消计时器，超时url = %@, 超时消息id = %@", self.url, self.msgId]];
+            [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] 消息超时了,重发次数达到上限，取消计时器，超时hasURL=%d, 超时消息id = %@", self.url.length > 0, self.msgId]];
             // 取消计时器
             [strongSelf cancelTimer];
             // 从缓存队列中移除
@@ -344,6 +348,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
 ///   - param: 参数
 ///   - method: 请求方法，例如：POST, GET等
 ///   - url: 请求地址
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)sendMessageWithParam:(id)param
                       method:(NSString *)method
                          url:(NSString *)url
@@ -385,7 +390,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
     imMessage.dataType = IMMessage_DataType_RequestMessage;
     imMessage.requestMessage = requestMessage;
     
-    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 📤 发送请求 - url:%@, requestId:%@, path:%@, method:%@, param:%@, body:%@, headers:%@", url, self.msgId, path, method, param, body, headerDic]];
+    [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 📤 发送请求 - requestId:%@ method:%@ body_length=%lu header_count=%lu", self.msgId, method, (unsigned long)body.length, (unsigned long)headerDic.count]];
     
     // 发送协议
     [self sendSocketMessage:imMessage];
@@ -464,6 +469,7 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
 /// MARK: 接口参数处理
 /// 配置RequestMessage对象中的headers参数
 /// - Parameter url: 对应Http请求的url
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSMutableDictionary<NSString *, NSString *> *)configHttpHeaderWithFullUrl:(NSString *)fullUrl
                                                                    OriginUrl:(NSString *)originUrl
                                                                        msgId:(NSString *)msgId {
@@ -480,17 +486,17 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
     [headerDic setObject:[IMSDKManager orgName] forKey:@"orgName"];
     //token信息
     if ([IMSDKManager myUserToken].length > 0) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] myUserToken获取到了，消息id = %@, url = %@", self.msgId, self.url]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] myUserToken获取到了，消息id = %@, hasURL=%d", self.msgId, self.url.length > 0]];
         [headerDic setObject:[IMSDKManager myUserToken] forKey:@"token"];
     }else {
-        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] myUserToken没有获取到，消息id = %@, url = %@", self.msgId, self.url]];
+        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] myUserToken没有获取到，消息id = %@, hasURL=%d", self.msgId, self.url.length > 0]];
     }
     //loginuseruid
     if ([IMSDKManager myUserID].length > 0) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] myUserID获取到了，消息id = %@, url = %@", self.msgId, self.url]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] myUserID获取到了，消息id = %@, hasURL=%d", self.msgId, self.url.length > 0]];
         [headerDic setObject:[IMSDKManager myUserID] forKey:@"loginuseruid"];
     }else {
-        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] myUserID没有获取到，消息id = %@, url = %@", self.msgId, self.url]];
+        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] myUserID没有获取到，消息id = %@, hasURL=%d", self.msgId, self.url.length > 0]];
     }
     //设备凭证为空时不发送，兼容首次登录和旧缓存用户
     NSString *deviceSecret = [IMSDKManager myDeviceSecret];
@@ -499,10 +505,10 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
     }
     //liceseId
     if ([IMSDKManager currentLiceseId].length > 0) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] currentLiceseId获取到了，消息id = %@, url = %@", self.msgId, self.url]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] currentLiceseId获取到了，消息id = %@, hasURL=%d", self.msgId, self.url.length > 0]];
         [headerDic setObject:[IMSDKManager currentLiceseId] forKey:@"conid"];
     }else {
-        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] currentLiceseId没有获取到，消息id = %@, url = %@", self.msgId, self.url]];
+        [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] currentLiceseId没有获取到，消息id = %@, hasURL=%d", self.msgId, self.url.length > 0]];
     }
     /** 接口验签 */
     //timestamp

@@ -26,6 +26,18 @@ import ObjectMapper
         }
         let cleared = Mapper<ContactBusinessPayload>().map(JSON: ["nickname": NSNull()])?.contact(fallbackID: "friend", cached: cached)
         assert(cleared?.nickname == "" && cleared?.disableStatus == cached.disableStatus)
-        print("通讯录SDK响应字段/非法类型/部分资料合并16项通过")
+        let legacySearch = Mapper<ContactBusinessPayload>().map(JSON: ["userUID": "qa-peer", "userName": "qa-account", "nickname": "匿名好友"])?.contact()
+        assert(legacySearch?.id == "qa-peer" && legacySearch?.account == "qa-account", "旧精确搜索userUID字段不能被丢成空结果")
+        assert(Mapper<ContactBusinessPayload>().map(JSON: ["userUID": "other", "userUid": "qa-peer"])?.contact() == nil, "不同别名冲突拒绝错误身份")
+        assert(Mapper<ContactBusinessPayload>().map(JSON: ["userUID": NSNumber(value: Int64(2108428960873541633))])?.contact()?.id == "2108428960873541633", "旧数字UID保留完整精度")
+        let search = try ContactBusinessPayload.searchContacts(from: [["userUID": "qa-peer", "userName": "qa-account"]])
+        assert(search.map(\.id) == ["qa-peer"], "旧搜索结果须生成真实UID")
+        let emptySearch = try ContactBusinessPayload.searchContacts(from: [] as [[String: Any]])
+        assert(emptySearch.isEmpty, "明确空结果可以展示未找到")
+        for bad: Any in [["items": []], [["nickname": "没有UID"]], [["userUID": true]], [["userUID": "qa-peer"], ["nickname": "损坏第二条"]]] {
+            do { _ = try ContactBusinessPayload.searchContacts(from: bad); assertionFailure("损坏搜索不能当未找到") }
+            catch ContactBusinessError.malformedResponse { }
+        }
+        print("通讯录SDK响应字段/非法类型/部分资料合并25项通过")
     }
 }

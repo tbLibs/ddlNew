@@ -26,9 +26,9 @@ nonisolated struct ContactBusinessPayload: Mappable {
     func integer(_ key: String, default fallback: Int = 0) -> Int { Int(text(key)) ?? fallback }
     /// 服务端布尔字段兼容0/1及true/false。
     func flag(_ key: String) -> Bool { ["1", "true"].contains(text(key).lowercased()) }
-    /// 映射用户资料且保留调用方确认的稳定目标UID。
+    /// 映射用户资料并兼容旧搜索userUID字段，别名冲突拒绝，保留已确认的稳定目标UID。
     func contact(fallbackID: String = "", cached: ContactRecord? = nil) -> ContactRecord? {
-        let identifiers = ["userUid", "uid", "friendUserUID"]
+        let identifiers = ["userUID", "userUid", "uid", "friendUserUID"]
         let strings = ["userName", "nickname", "remarks", "descRemark", "avatar", "nicknamePinyin", "remarksPinyin"]
         let integers = ["disableStatus", "userType", "roleId"]
         guard (identifiers + strings + integers + ["onlineStatus"]).contains(where: { fields[$0] != nil }) else { return nil }
@@ -61,6 +61,15 @@ nonisolated struct ContactBusinessPayload: Mappable {
             remarksPinyin: fields["remarksPinyin"] == nil && fields["remarks"] == nil ? cached?.remarksPinyin ?? "" : text("remarksPinyin"),
             roleID: fields["roleId"] == nil ? cached?.roleID ?? 0 : integer("roleId"))
     }
+    /// 精确搜索逐条校验，非空损坏响应不能静默转成“没有找到用户”。
+    static func searchContacts(from data: Any) throws -> [ContactRecord] {
+        guard let rows = data as? [[String: Any]] else { throw ContactBusinessError.malformedResponse }
+        return try rows.map { row in
+            guard let contact = Mapper<ContactBusinessPayload>().map(JSON: row)?.contact() else { throw ContactBusinessError.malformedResponse }
+            return contact
+        }
+    }
+
     /// 状态只接受整数或整数字符串，布尔、空值和小数不能降级成正常状态。
     private func strictInteger(_ value: Any) -> Int? {
         if let number = value as? NSNumber {

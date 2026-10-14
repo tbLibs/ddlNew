@@ -32,6 +32,7 @@
 @implementation LingIMTcpRequestModel (HandleReceiveMessage)
 
 /// MARK: 接收消息处理
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)receiveMessageDealWith:(IMMessage *)message {
     if (message.responseMessage.status != 200) {
         [NoaLocalLogger error:[NSString stringWithFormat:@"[短连接转长连接] 当前消息状态为%d，走失败回调", message.responseMessage.status]];
@@ -53,7 +54,7 @@
     
     id data = [LingIMTcpCommonTool jsonDecode:message.responseMessage.body];
     if ([self.url isEqualToString:@"/auth/account/v2/autoToken"]) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 获取到token返回消息：%@", data]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 获取到token返回消息 hasData=%d", data != nil]];
     }
     if (data && [data isKindOfClass:[NSDictionary class]]) {
         NoaIMHttpResponse *resp = [NoaIMHttpResponse mj_objectWithKeyValues:data];
@@ -68,6 +69,7 @@
 
 /// 处理成功消息
 /// - Parameter data: 成功消息返回的数据
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)handleSuccessData:(id)data
          serviceDateValue:(long long)serviceDateValue {
     if (!data) {
@@ -83,7 +85,7 @@
     
     id respData = [LingIMTcpCommonTool responseDataDescryptWithDataString:data url:self.url];
     if (respData != nil) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 消息解析成功，消息id = %@, respData = %@", self.msgId, respData]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 消息解析成功，消息id = %@ hasData=%d", self.msgId, respData != nil]];
         if (self.successCallBack) {
             self.successCallBack(respData, self.msgId);
         }

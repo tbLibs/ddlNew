@@ -175,7 +175,7 @@ import ObjectiveC
         }
     }
 
-    /// 配置和SDK群库每次重新读取，旧菜单不能绕过刚发生的禁言降权。
+    /// 配置和SDK缓存每次重读；好友库未持久化status，正常行默认0，删除由SDK物理移除，来源群禁私聊仍独立校验。
     func permissions(context: ChatContext) throws -> ChatPermission {
         try validate(context)
         let authority = UserRoleAuthorityStore.shared.current
@@ -197,7 +197,7 @@ import ObjectiveC
                 if !value.canSend { value.reason = "文件助手权限已关闭" }
             } else {
                 let friend: LingIMFriendModel? = sdk.toolCheckMyFriend(with: context.route.id)
-                value.canSend = friend?.status == 1 && friend?.disableStatus != 4
+                value.canSend = [0, 1].contains(friend?.status ?? -1) && friend?.disableStatus != 4
                 if !value.canSend { value.reason = "当前好友关系不可用，请返回资料页确认" }
             }
         }

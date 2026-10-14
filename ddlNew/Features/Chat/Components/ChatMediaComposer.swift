@@ -12,6 +12,7 @@ import AVFoundation
 
 struct ChatMediaComposer: View {
     @ObservedObject var chat: ChatStore
+    var compact = false
     @StateObject private var media = ChatRuntime.shared.makeMediaStore()
     @StateObject private var recorder = ChatRuntime.shared.makeRecorder()
     @Environment(\.scenePhase) private var scenePhase
@@ -24,10 +25,12 @@ struct ChatMediaComposer: View {
     @State private var preparation: Task<Void, Never>?
     @State private var hasRecorded = false
 
+    /// 收拢工具只改变控件布局，组件与上传、录音所有者保持同一身份。
     var body: some View {
         VStack(spacing: 6) {
             if let error = media.errorMessage ?? recorder.errorMessage { Text(error).font(.caption).foregroundStyle(.red) }
             if media.isUploading { HStack { ProgressView(value: media.progress); Button("取消上传") { media.cancel() } } }
+            if !compact {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 8) {
                 PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
                 Button { prepareCamera() } label: { Label("拍摄", systemImage: "camera").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
@@ -35,6 +38,7 @@ struct ChatMediaComposer: View {
                 Button { toggleRecording() } label: { Label(recorder.isRecording ? "停止" : "语音", systemImage: recorder.isRecording ? "stop.circle" : "mic").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
             }.font(.caption)
             HStack { Button("已有贴纸") { showStickers = true }.frame(minHeight: 44); Spacer(); Toggle("原图", isOn: $originalImage).fixedSize() }.font(.caption)
+            }
             if hasRecorded || recorder.isRecording {
                 HStack { Text("录音 \(Int(recorder.duration)) / 60秒"); Spacer(); Button("取消录音") { recorder.cancel(); hasRecorded = false }; Button("发送录音") { sendRecording() }.disabled(recorder.isRecording) }
             }

@@ -85,10 +85,11 @@ import ObjectiveC
         var response = ContactBusinessResponse()
         switch operation {
         case .search(let text):
+            // 旧精确账号检索仅传userName，当前身份由SDK认证和回执轮次校验，不追加目标UID过滤。
+            params.removeObject(forKey: "userUid")
             params["userName"] = text
             let data = try await call(identity) { sdk.userSearch(with: params, onSuccess: $0, onFailure: $1) }
-            guard let rows = data as? [[String: Any]] else { throw ContactBusinessError.malformedResponse }
-            response.contacts = rows.compactMap { Mapper<ContactBusinessPayload>().map(JSON: $0)?.contact() }
+            response.contacts = try ContactBusinessPayload.searchContacts(from: data)
         case .profile(let id), .profileAfterAcceptance(let id):
             let profileVersion = ContactProfileRequestGate.shared.begin(userUID: identity.userUID, license: identity.license, friendUID: id)
             defer { ContactProfileRequestGate.shared.finish(profileVersion, userUID: identity.userUID, license: identity.license, friendUID: id) }

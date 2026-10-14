@@ -125,10 +125,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 20.0;
 /**
  * ECDH 密钥交换失败
  */
+/// 诊断只保留请求阶段、消息身份、长度和错误码，不输出资源URL、原始错误或认证数据。
 - (void)ecdhProtocolHandler:(ECDHClientProtocolHandler *)handler
            keyExchangeFailed:(NSError *)error {
     
-    CIMLog(@"❌ [ECDH协商] ECDH密钥交换失败: %@", error.localizedDescription);
+    CIMLog(@"❌ [ECDH协商] ECDH密钥交换失败 domain=%@ code=%ld", error.domain, (long)error.code);
     
     // 通知上层 ECDH 失败
     [SOCKETMANAGERTOOL ecdhKeyExchangeFailed:error];
@@ -141,10 +142,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 20.0;
 /**
  * ECDH 协议状态更新
  */
+/// 诊断只保留请求阶段、消息身份、长度和错误码，不输出资源URL、原始错误或认证数据。
 - (void)ecdhProtocolHandler:(ECDHClientProtocolHandler *)handler
               statusUpdated:(NSString *)status {
     
-    CIMLog(@"ℹ️ [ECDH协商] %@", status);
+    CIMLog(@"ℹ️ [ECDH协商] stage=ECDH_STATUS length=%lu", (unsigned long)status.length);
     
     // 如果状态是密钥对生成完成，发送请求
     if ([status containsString:@"准备发送交换请求"]) {

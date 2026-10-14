@@ -101,6 +101,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
 /**
  * 方法1: 使用Secure Enclave（如果支持）
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable ZIMECDHKeyPair *)tryGenerateKeyPairMethod1 {
     NSDictionary *keyParams = @{
         (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
@@ -112,7 +113,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     SecKeyRef privateKey = SecKeyCreateRandomKey((__bridge CFDictionaryRef)keyParams, &error);
     
     if (!privateKey || error) {
-        NSLog(@"⚠️ 方法1失败（Secure Enclave）: %@", error ? CFBridgingRelease(error) : @"未知错误");
+        NSLog(@"⚠️ 方法1失败（Secure Enclave） domain=%@ code=%ld", error ? (__bridge NSString *)CFErrorGetDomain(error) : @"unknown", (long)(error ? ((NSError *)CFBridgingRelease(error)).code : 0));
         return nil;
     }
     
@@ -122,6 +123,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
 /**
  * 方法2: 标准EC密钥生成
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable ZIMECDHKeyPair *)tryGenerateKeyPairMethod2 {
     NSDictionary *keyParams = @{
         (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
@@ -132,7 +134,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     SecKeyRef privateKey = SecKeyCreateRandomKey((__bridge CFDictionaryRef)keyParams, &error);
     
     if (!privateKey || error) {
-        NSLog(@"⚠️ 方法2失败（标准EC）: %@", error ? CFBridgingRelease(error) : @"未知错误");
+        NSLog(@"⚠️ 方法2失败（标准EC） domain=%@ code=%ld", error ? (__bridge NSString *)CFErrorGetDomain(error) : @"unknown", (long)(error ? ((NSError *)CFBridgingRelease(error)).code : 0));
         return nil;
     }
     
@@ -142,6 +144,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
 /**
  * 方法3: 通用EC类型
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable ZIMECDHKeyPair *)tryGenerateKeyPairMethod3 {
     NSDictionary *keyParams = @{
         (id)kSecAttrKeyType: (id)kSecAttrKeyTypeEC,
@@ -152,7 +155,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     SecKeyRef privateKey = SecKeyCreateRandomKey((__bridge CFDictionaryRef)keyParams, &error);
     
     if (!privateKey || error) {
-        NSLog(@"⚠️ 方法3失败（通用EC）: %@", error ? CFBridgingRelease(error) : @"未知错误");
+        NSLog(@"⚠️ 方法3失败（通用EC） domain=%@ code=%ld", error ? (__bridge NSString *)CFErrorGetDomain(error) : @"unknown", (long)(error ? ((NSError *)CFBridgingRelease(error)).code : 0));
         return nil;
     }
     
@@ -162,6 +165,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
 /**
  * 从私钥创建完整的密钥对
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable ZIMECDHKeyPair *)createKeyPairFromPrivateKey:(SecKeyRef)privateKey method:(NSString *)methodName {
     // 获取公钥
     SecKeyRef publicKey = SecKeyCopyPublicKey(privateKey);
@@ -176,7 +180,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     CFDataRef publicKeyDataRef = SecKeyCopyExternalRepresentation(publicKey, &exportError);
     
     if (!publicKeyDataRef || exportError) {
-        NSLog(@"❌ 公钥数据导出失败（%@）: %@", methodName, exportError ? CFBridgingRelease(exportError) : @"未知错误");
+        NSLog(@"❌ 公钥数据导出失败 method=%@ domain=%@ code=%ld", methodName, exportError ? (__bridge NSString *)CFErrorGetDomain(exportError) : @"unknown", (long)(exportError ? ((NSError *)CFBridgingRelease(exportError)).code : 0));
         CFRelease(privateKey);
         CFRelease(publicKey);
         return nil;
@@ -193,7 +197,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     }
     
     NSLog(@"✅ 密钥对生成成功（%@）: 公钥长度=%lu字节", methodName, (unsigned long)publicKeyData.length);
-    NSLog(@"🔍 公钥数据预览: %@", [self dataToHexString:[publicKeyData subdataWithRange:NSMakeRange(0, MIN(16, publicKeyData.length))]]);
+    NSLog(@"🔍 公钥数据预览 length=%lu", (unsigned long)publicKeyData.length);
     
     ZIMECDHKeyPair *keyPair = [ZIMECDHKeyPair keyPairWithPrivateKey:privateKey
                                                           publicKey:publicKey
@@ -242,6 +246,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     return YES; // 允许未知格式，让后续处理决定
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable SecKeyRef)reconstructPublicKeyFromData:(NSData *)publicKeyData {
     if (!publicKeyData || publicKeyData.length == 0) {
         NSLog(@"❌ 公钥数据无效");
@@ -249,7 +254,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     }
     
     NSLog(@"🔍 重构公钥，原始数据长度: %lu字节", (unsigned long)publicKeyData.length);
-    NSLog(@"🔍 原始数据预览: %@", [self dataToHexString:[publicKeyData subdataWithRange:NSMakeRange(0, MIN(16, publicKeyData.length))]]);
+    NSLog(@"🔍 原始数据预览 length=%lu", (unsigned long)publicKeyData.length);
     
     // 处理不同格式的公钥数据
     NSData *processedKeyData = [self processPublicKeyData:publicKeyData];
@@ -322,6 +327,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
 /**
  * 尝试创建公钥的多种方法
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable SecKeyRef)tryCreatePublicKeyWithData:(NSData *)keyData {
     // 方法1: 标准EC公钥导入
     NSDictionary *keyParams1 = @{
@@ -340,7 +346,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
         return publicKey;
     }
     
-    NSLog(@"⚠️ 方法1失败: %@", error1 ? CFBridgingRelease(error1) : @"未知错误");
+    NSLog(@"⚠️ 方法1失败 domain=%@ code=%ld", error1 ? (__bridge NSString *)CFErrorGetDomain(error1) : @"unknown", (long)(error1 ? ((NSError *)CFBridgingRelease(error1)).code : 0));
     
     // 方法2: 不指定密钥大小
     NSDictionary *keyParams2 = @{
@@ -358,7 +364,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
         return publicKey;
     }
     
-    NSLog(@"⚠️ 方法2失败: %@", error2 ? CFBridgingRelease(error2) : @"未知错误");
+    NSLog(@"⚠️ 方法2失败 domain=%@ code=%ld", error2 ? (__bridge NSString *)CFErrorGetDomain(error2) : @"unknown", (long)(error2 ? ((NSError *)CFBridgingRelease(error2)).code : 0));
     
     // 方法3: 使用EC通用类型
     NSDictionary *keyParams3 = @{
@@ -377,7 +383,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
         return publicKey;
     }
     
-    NSLog(@"⚠️ 方法3失败: %@", error3 ? CFBridgingRelease(error3) : @"未知错误");
+    NSLog(@"⚠️ 方法3失败 domain=%@ code=%ld", error3 ? (__bridge NSString *)CFErrorGetDomain(error3) : @"unknown", (long)(error3 ? ((NSError *)CFBridgingRelease(error3)).code : 0));
     
     return nil;
 }
@@ -414,6 +420,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
 
 #pragma mark - Shared Secret Computation
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable NSData *)computeSharedSecret:(SecKeyRef)privateKey
                       remotePublicKeyData:(NSData *)remotePublicKeyData {
     if (!privateKey || !remotePublicKeyData) {
@@ -442,20 +449,21 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     CFRelease(remotePublicKey); // 释放临时公钥
     
     if (!sharedSecretRef || error) {
-        NSLog(@"❌ ECDH共享密钥计算失败: %@", error ? CFBridgingRelease(error) : @"未知错误");
+        NSLog(@"❌ ECDH共享密钥计算失败 domain=%@ code=%ld", error ? (__bridge NSString *)CFErrorGetDomain(error) : @"unknown", (long)(error ? ((NSError *)CFBridgingRelease(error)).code : 0));
         return nil;
     }
     
     NSData *sharedSecret = CFBridgingRelease(sharedSecretRef);
     
     NSLog(@"✅ ECDH共享密钥计算成功: 长度=%lu字节", (unsigned long)sharedSecret.length);
-    NSLog(@"🔍 共享密钥前16字节: %@", [self dataToHexString:[sharedSecret subdataWithRange:NSMakeRange(0, MIN(16, sharedSecret.length))]]);
+    NSLog(@"🔍 共享密钥诊断 length=%lu", (unsigned long)sharedSecret.length);
     
     return sharedSecret;
 }
 
 #pragma mark - AES Key Derivation
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (nullable NSData *)deriveAESKeyFromSharedSecret:(NSData *)sharedSecret {
     if (!sharedSecret || sharedSecret.length == 0) {
         NSLog(@"❌ 共享密钥无效，无法派生AES密钥");
@@ -463,7 +471,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     }
     
     NSLog(@"🔐 开始AES密钥派生，共享密钥长度: %lu字节", (unsigned long)sharedSecret.length);
-    NSLog(@"🔍 共享密钥前16字节: %@", [self dataToHexString:[sharedSecret subdataWithRange:NSMakeRange(0, MIN(16, sharedSecret.length))]]);
+    NSLog(@"🔍 共享密钥诊断 length=%lu", (unsigned long)sharedSecret.length);
     NSLog(@"📋 派生算法: 直接SHA-256（与服务端保持一致）");
     
     // 使用SHA-256对共享密钥进行哈希（与服务端完全一致的算法）
@@ -474,7 +482,7 @@ static const NSUInteger kAESKeyLength = 32;  // AES-256密钥长度
     NSData *aesKey = [NSData dataWithBytes:hash length:kAESKeyLength];
     
     NSLog(@"✅ AES密钥派生完成: 长度=%lu字节", (unsigned long)aesKey.length);
-    NSLog(@"🔍 派生AES密钥前16字节: %@", [self dataToHexString:[aesKey subdataWithRange:NSMakeRange(0, MIN(16, aesKey.length))]]);
+    NSLog(@"🔍 派生AES密钥诊断 length=%lu", (unsigned long)aesKey.length);
     
     // 清理哈希缓冲区
     memset(hash, 0, sizeof(hash));

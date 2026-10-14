@@ -10,6 +10,7 @@ struct OSSConnectionPlan { let apiHost: URL; let lastLiceseId: String }
 @MainActor final class SystemConfigStore {
     static let shared = SystemConfigStore()
     var saved: [SystemConfigRecord] = []
+    /// 仅收集配置写入结果，验证旧轮次和取消结果不会落盘。
     func save(_ config: SystemConfigRecord, lastLiceseId: String, apiHost: URL) throws { saved.append(config) }
 }
 @MainActor final class SDKSessionMaintenanceClient {
@@ -18,6 +19,7 @@ struct OSSConnectionPlan { let apiHost: URL; let lastLiceseId: String }
     static var suspendNext = false
     static var pending: CheckedContinuation<String, Error>?
     static var loggedIn: Bool?
+    /// 传输替身可挂起旧响应，生产服务的解析和归属守卫保持原样。
     func configuration(host: URL, loggedIn: Bool) async throws -> String {
         Self.calls += 1; Self.loggedIn = loggedIn
         if Self.suspendNext { Self.suspendNext = false; return try await withCheckedThrowingContinuation { Self.pending = $0 } }
@@ -26,18 +28,30 @@ struct OSSConnectionPlan { let apiHost: URL; let lastLiceseId: String }
 }
 enum ApiType { case systemConfig(baseURL: URL, headers: [String: String]) }
 struct MockHTTPResponse {
+    /// 保留旧HTTP响应映射形状，测试仍使用真实ObjectMapper。
     func mapObject<T: Mappable>(_ type: T.Type) throws -> T { Mapper<T>().map(JSON: ["code": 10000])! }
+    /// 返回匿名响应形状，不访问真实服务端配置。
     func mapJSON() throws -> Any { ["data": ["tenantCode": "mock-tenant"]] }
 }
 struct MockHTTPChain {
+    /// 接收旧HTTP调用参数，避免测试替身改变生产方法签名。
     func request(_ type: ApiType) -> Self { self }
+    /// 保留状态码过滤链，错误由异步传输边界抛出。
     func filterSuccessfulStatusCodes() -> Self { self }
     var value: MockHTTPResponse { get async throws { throw URLError(.timedOut) } }
 }
-enum BusinessApiRequest { static func provider(for host: URL) -> (rx: MockHTTPChain, marker: Int) { (MockHTTPChain(), 0) } }
-enum BusinessRequestHeaders { static func make(timestamp: Int64, signature: String) -> [String: String] { [:] } }
+enum BusinessApiRequest {
+    /// 提供始终HTTP超时的链，检验SDK通道不依赖独立HTTP可达。
+    static func provider(for host: URL) -> (rx: MockHTTPChain, marker: Int) { (MockHTTPChain(), 0) }
+}
+enum BusinessRequestHeaders {
+    /// 头部替身不生成或保存任何真实认证数据。
+    static func make(timestamp: Int64, signature: String) -> [String: String] { [:] }
+}
 enum SystemConfigCrypto {
+    /// 匿名签名只供离线接口形状使用，不调用加密库。
     static func signature(timestamp: Int64) throws -> String { "anonymous-signature" }
+    /// 保留配置字典解包边界，不解密任何真实响应。
     static func configurationDictionary(from payload: Any) throws -> [String: Any] { payload as? [String: Any] ?? [:] }
 }
 

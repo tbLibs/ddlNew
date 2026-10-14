@@ -298,6 +298,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 }
 
 #pragma mark - Connect
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)startSocketConnect {
     __weak typeof(self) weakSelf = self;
     dispatch_async(self.internalQueue, ^{
@@ -372,11 +373,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                                               error:&error];
             [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=TCP_CONNECT_SUBMITTED accepted=%d error=%ld", ok, (long)error.code]];
             if (!ok || error) {
-                [NoaLocalLogger error: [NSString stringWithFormat:@"[socket连接] 参数连接失败，失败信息:%@", error]];
+                [NoaLocalLogger error:[NSString stringWithFormat:@"[socket连接] 参数连接失败 domain=%@ code=%ld", error.domain, (long)error.code]];
                 
                 [self sentryUploadWithEventObj:@{
                     @"event" : @"socket连接",
-                    @"error" : [NSString stringWithFormat:@"使用参数连接失败，失败信息:%@", error],
+                    @"error" : [NSString stringWithFormat:@"使用参数连接失败 domain=%@ code=%ld", error.domain, (long)error.code],
                     @"host" : self.socketHost ? self.socketHost : @"",
                     @"port" : @(self.socketPort)
                 } errorCode:@""];
@@ -780,11 +781,12 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 #pragma mark - <<<<<<业务>>>>>>
 #pragma mark - 配置socket用户信息(此方法在用户名、密码输入后调用)
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)configureSocketUser:(NoaIMSocketUserOptions *)userOptions {
     if (!userOptions) {
         return;
     }
-    [NoaLocalLogger info:[NSString stringWithFormat:@"[socket连接] 设置了用户 userId = %@, token = %@", userOptions.userID, userOptions.userToken]];
+    [NoaLocalLogger info:[NSString stringWithFormat:@"[socket连接] 设置了用户 hasUser=%d hasToken=%d", userOptions.userID.length > 0, userOptions.userToken.length > 0]];
     
     BOOL isUserChange = NO;
     NSString *newUserId = userOptions.userID ? userOptions.userID : @"";
@@ -792,7 +794,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     BOOL accountChanged = _socketUserID.length > 0 && ![_socketUserID isEqualToString:newUserId];
     
     if (![_socketUserID isEqualToString:newUserId] || ![_socketUserToken isEqualToString:newUserToken]) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[socket连接] configureSocketUser:(LingIMSocketUserOptions *)userOptions 用户id、用户token出现差异，当前连接的userID = %@，token = %@", newUserId, newUserToken]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[socket连接] configureSocketUser:(LingIMSocketUserOptions *)userOptions 用户id、用户token出现差异 hasUser=%d hasToken=%d", newUserId.length > 0, newUserToken.length > 0]];
         
         isUserChange = YES;
         _socketUserID = newUserId;
@@ -1000,6 +1002,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 /// @param message 待发送的 IMMessage 消息对象。
 /// @param timeOut Socket 写入超时时间，单位为秒。
 /// @param messageTag GCDAsyncSocket 写入标签。
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)sendSocketMessage:(id)message
                   timeOut:(NSInteger)timeOut
                       tag:(NSInteger)messageTag {
@@ -1029,7 +1032,13 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         
         //消息转换二进制流
         IMMessage *sendMessage = (IMMessage *)message;
-        [NoaLocalLogger verbose:[NSString stringWithFormat:@"[socket] 发送消息中。。。 message = %@", sendMessage]];
+        [NoaLocalLogger verbose:[NSString stringWithFormat:@"[socket] 发送消息中 data_type=%d msg_id=%@ ack_msg_id=%@ s_msg_id=%@ send_time=%lld request_id=%@",
+                                 sendMessage.dataType,
+                                 sendMessage.dataType == IMMessage_DataType_ImchatMessageAck ? sendMessage.chatMessageAck.msgId : (sendMessage.dataType == IMMessage_DataType_ImchatMessageToAck ? sendMessage.chatMessageToAck.msgId : sendMessage.chatMessage.msgId),
+                                 sendMessage.dataType == IMMessage_DataType_ImchatMessageToAck ? sendMessage.chatMessageToAck.ackMsgId : sendMessage.chatMessageAck.ackMsgId,
+                                 sendMessage.dataType == IMMessage_DataType_ImchatMessageAck ? sendMessage.chatMessageAck.sMsgId : (sendMessage.dataType == IMMessage_DataType_ImchatMessageToAck ? sendMessage.chatMessageToAck.sMsgId : sendMessage.chatMessage.sMsgId),
+                                 (long long)(sendMessage.dataType == IMMessage_DataType_ImchatMessageAck ? sendMessage.chatMessageAck.sendTime : sendMessage.chatMessage.sendTime),
+                                 sendMessage.requestMessage.requestId]];
         
         // 使用增强帧协议格式进行加密
         NSData *frameData = [self.novDecryptorManager buildEncryptedMessageFrameWithData:[sendMessage delimitedData]];
@@ -1079,6 +1088,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 
 #pragma mark - 开始心跳机制(用户鉴权成功后开始)❤️❤️❤️❤️❤️❤️
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)startSocketHeartbeat {
     CIMWeakSelf
     
@@ -1126,7 +1136,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                 [self updateNextHeartbeatTime];
                 
             } @catch (NSException *exception) {
-                CIMLog(@"❌ 心跳处理异常: %@", exception);
+                CIMLog(@"❌ 心跳处理异常 exception_name=%@", exception.name);
                 [self stopSocketHeartbeat];
             }
         });
@@ -1141,7 +1151,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         CIMLog(@"✅ 心跳定时器启动成功，立即执行第一次心跳");
         
     } @catch (NSException *exception) {
-        CIMLog(@"❌ 心跳定时器创建异常: %@", exception);
+        CIMLog(@"❌ 心跳定时器创建异常 exception_name=%@", exception.name);
         if (_heartTimer) {
             dispatch_source_cancel(_heartTimer);
             _heartTimer = nil;
@@ -1154,6 +1164,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 }
 
 // 修改后的方法：每次执行后更新下次时间
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)updateNextHeartbeatTime {
     [_heartTimerLock lock];
     
@@ -1186,7 +1197,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 #endif
         
     } @catch (NSException *exception) {
-        CIMLog(@"❌ 更新心跳时间异常: %@", exception);
+        CIMLog(@"❌ 更新心跳时间异常 exception_name=%@", exception.name);
         // 异常情况下使用默认间隔，仍使用本地副本
         dispatch_time_t defaultTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(60 * NSEC_PER_SEC));
         dispatch_source_set_timer(localTimer, defaultTime, DISPATCH_TIME_FOREVER, 0);
@@ -1375,6 +1386,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 }
 
 #pragma mark - 处理接收到的数据信息
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)dealReceiveData:(int32_t)headLength contentLength:(int32_t)contentLength {
     // 检查范围是否越界
     if (headLength + contentLength > _receiveData.length) {
@@ -1406,7 +1418,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         if (range.location + range.length <= _receiveData.length) {
             [_receiveData replaceBytesInRange:range withBytes:NULL length:0];
         }
-        CIMLog(@"[TCP请求追踪] ❌ 消息解析失败: %@", error);
+        CIMLog(@"[TCP请求追踪] ❌ 消息解析失败 domain=%@ code=%ld", error.domain, (long)error.code);
         return;
     }
 
@@ -1530,17 +1542,18 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 }
 
 //socket连接失败的回调
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err {
     // 被替换的旧 Socket 已派发的回调不能影响新连接。
     if (sock != _gcdSocket) return;
     BOOL disconnectedDuringAuth = self.isAuthPhaseActive;
     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SOCKET_DISCONNECTED host=%@ port=%ld error=%ld duringAuth=%d allow=%d", self.socketHost, (long)self.socketPort, (long)err.code, disconnectedDuringAuth, self.isCanReconnect]];
     if (err) {
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[socket] 断开了连接，错误码:%ld，原因:%@", (long)err.code, err]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[socket] 断开了连接 domain=%@ code=%ld", err.domain, (long)err.code]];
         
         [self sentryUploadWithEventObj:@{
             @"event" : @"socket连接",
-            @"error" : [NSString stringWithFormat:@"socketDidDisconnect回调断开了连接，原因:%@", err],
+            @"error" : [NSString stringWithFormat:@"socketDidDisconnect回调断开了连接 domain=%@ code=%ld", err.domain, (long)err.code],
             @"host" : self.socketHost ? self.socketHost : @"",
             @"port" : @(self.socketPort)
         } errorCode:@""];
@@ -1797,6 +1810,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 /// 查找消息帧头位置
 /// @return 消息帧头的位置，如果未找到返回NSNotFound
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSUInteger)findMessageFrameHeader {
     if (self.frameBuffer.length < MESSAGE_FRAME_HEADER_SIZE) {
         return NSNotFound;
@@ -1846,7 +1860,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         }
     }
     
-    CIMLog(@"❌ 未找到有效消息头， %@", self.frameBuffer);
+    CIMLog(@"❌ 未找到有效消息头 buffer_length=%lu", (unsigned long)self.frameBuffer.length);
     return NSNotFound;
 }
 

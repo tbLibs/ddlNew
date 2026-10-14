@@ -66,6 +66,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
 /**
  * 启动 ECDH 密钥交换流程
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)initiateKeyExchange {
     CIMLog(@"🚀 [ECDH客户端] 启动密钥交换流程...");
     
@@ -79,7 +80,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
         
         if (error || !publicKey || !privateKey) {
             NSString *errorMsg = [NSString stringWithFormat:@"客户端密钥对生成失败: %@", error.localizedDescription];
-            CIMLog(@"❌ [ECDH客户端] %@", errorMsg);
+            CIMLog(@"❌ [ECDH客户端] 密钥生成失败 domain=%@ code=%ld", error.domain, (long)error.code);
             [self notifyKeyExchangeFailed:[self createError:ECDHClientProtocolErrorDomain 
                                                        code:-1 
                                                 description:errorMsg]];
@@ -103,6 +104,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
 /**
  * 创建 ECDH 密钥交换请求数据
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSData *)createKeyExchangeRequest {
     if (!self.clientPublicKey) {
         CIMLog(@"❌ [ECDH客户端] 客户端公钥未生成，无法创建交换请求");
@@ -115,13 +117,11 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     // 获取公钥的X.509 DER编码字节数组
     NSData *publicKeyBytes = [ECDHKeyManager getPublicKeyBytes:self.clientPublicKey error:&error];
     if (error || !publicKeyBytes) {
-        CIMLog(@"❌ [ECDH客户端] 获取公钥字节数组失败: %@", error.localizedDescription);
+        CIMLog(@"❌ [ECDH客户端] 获取公钥字节数组失败 domain=%@ code=%ld", error.domain, (long)error.code);
         return nil;
     }
     
-    CIMLog(@"📤 [ECDH客户端] 客户端公钥字节数组 (%lu字节): %@", 
-           (unsigned long)publicKeyBytes.length, 
-           [ECDHKeyManager hexStringFromData:publicKeyBytes]);
+    CIMLog(@"📤 [ECDH客户端] 客户端公钥字节数组 length=%lu", (unsigned long)publicKeyBytes.length);
     
     // 创建协议消息
     NSData *requestData = [self createProtocolMessage:ECDH_KEY_EXCHANGE_REQUEST payload:publicKeyBytes];
@@ -134,6 +134,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
 /**
  * 处理服务端的 ECDH 响应数据
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (BOOL)handleServerResponse:(NSData *)responseData {
     if (!responseData || responseData.length < HEADER_LENGTH) {
         CIMLog(@"❌ [ECDH客户端] 服务端响应数据无效或过短");
@@ -156,7 +157,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     // 验证协议版本
     if (version != PROTOCOL_VERSION) {
         NSString *errorMsg = [NSString stringWithFormat:@"不支持的协议版本: %d", version];
-        CIMLog(@"❌ [ECDH客户端] %@", errorMsg);
+        CIMLog(@"❌ [ECDH客户端] 不支持的协议版本 version=%u code=-3", version);
         [self notifyKeyExchangeFailed:[self createError:ECDHClientProtocolErrorDomain 
                                                    code:-3 
                                             description:errorMsg]];
@@ -217,6 +218,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
 /**
  * 派生指定上下文的会话密钥
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSData *)deriveSessionKeyWithContext:(NSString *)context length:(NSUInteger)length {
     if (!self.sharedSecret) {
         CIMLog(@"❌ [ECDH客户端] 共享密钥未生成，无法派生会话密钥");
@@ -230,7 +232,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
                                                   length:length];
     
     if (derivedKey) {
-        CIMLog(@"✅ [ECDH客户端] 会话密钥派生成功: %@", [ECDHKeyManager hexStringFromData:derivedKey]);
+        CIMLog(@"✅ [ECDH客户端] 会话密钥派生成功 length=%lu", (unsigned long)derivedKey.length);
     } else {
         CIMLog(@"❌ [ECDH客户端] 会话密钥派生失败");
     }
@@ -243,11 +245,10 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
 /**
  * 处理密钥交换响应
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (BOOL)handleKeyExchangeResponse:(NSData *)serverPublicKeyBytes {
     CIMLog(@"🔄 [ECDH客户端] 处理服务端密钥交换响应...");
-    CIMLog(@"📥 [ECDH客户端] 服务端公钥字节数组 (%lu字节): %@", 
-           (unsigned long)serverPublicKeyBytes.length, 
-           [ECDHKeyManager hexStringFromData:serverPublicKeyBytes]);
+    CIMLog(@"📥 [ECDH客户端] 服务端公钥字节数组 length=%lu", (unsigned long)serverPublicKeyBytes.length);
     
     if (!self.clientPrivateKey) {
         CIMLog(@"❌ [ECDH客户端] 客户端私钥未生成");
@@ -267,7 +268,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     
     if (error || !sharedSecret) {
         NSString *errorMsg = [NSString stringWithFormat:@"共享密钥计算失败: %@", error.localizedDescription];
-        CIMLog(@"❌ [ECDH客户端] %@", errorMsg);
+        CIMLog(@"❌ [ECDH客户端] 共享密钥计算失败 domain=%@ code=%ld", error.domain, (long)error.code);
         [self notifyKeyExchangeFailed:[self createError:ECDHClientProtocolErrorDomain 
                                                    code:-7 
                                             description:errorMsg]];
@@ -276,9 +277,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     
     self.sharedSecret = sharedSecret;
     
-    CIMLog(@"✅ [ECDH客户端] 共享密钥计算成功 (%lu字节): %@", 
-           (unsigned long)sharedSecret.length, 
-           [ECDHKeyManager hexStringFromData:sharedSecret]);
+    CIMLog(@"✅ [ECDH客户端] 共享密钥计算成功 length=%lu", (unsigned long)sharedSecret.length);
     
     [self notifyStatusUpdate:@"正在派生会话密钥..."];
     
@@ -299,9 +298,7 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
     self.isKeyExchangeCompleted = YES;
     
     CIMLog(@"🎉 [ECDH客户端] ECDH密钥交换成功完成！");
-    CIMLog(@"🔐 [ECDH客户端] 会话密钥 (%lu字节): %@", 
-           (unsigned long)sessionKey.length, 
-           [ECDHKeyManager hexStringFromData:sessionKey]);
+    CIMLog(@"🔐 [ECDH客户端] 会话密钥诊断 length=%lu", (unsigned long)sessionKey.length);
     
     [self notifyStatusUpdate:@"ECDH密钥交换完成"];
     [self notifyKeyExchangeSucceeded:sharedSecret sessionKey:sessionKey];
@@ -315,13 +312,14 @@ static NSString * const ECDHClientProtocolErrorDomain = @"ECDHClientProtocolErro
 /**
  * 处理密钥交换错误响应
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (BOOL)handleKeyExchangeError:(NSData *)errorData {
     NSString *errorMessage = [[NSString alloc] initWithData:errorData encoding:NSUTF8StringEncoding];
     if (!errorMessage) {
         errorMessage = @"未知的服务端错误";
     }
     
-    CIMLog(@"❌ [ECDH客户端] 服务端返回错误: %@", errorMessage);
+    CIMLog(@"❌ [ECDH客户端] 服务端返回错误 length=%lu code=-9", (unsigned long)errorMessage.length);
     
     [self notifyKeyExchangeFailed:[self createError:ECDHClientProtocolErrorDomain 
                                                code:-9 

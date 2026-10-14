@@ -1,9 +1,30 @@
 # 通讯录与消息迁移交接文档
 
-日期：2026-10-13。**状态：用户要求暂停，开发与联调已停止。**
+日期：2026-10-13。**状态：新窗口已恢复严格验收；用户下班后授权自主收尾。** 文中“一～七”保留暂停时快照；本轮最新记录见下方“继续验收现场”，以当前源码/Git和最新测试报告为准。
 
-仓库：`/Users/taobotaobo/Desktop/ddlNew`；分支：`feature-message-4`；HEAD：`4c8f593`（`feat：开发通讯录和消息的功能`）；本轮开发起点：`78876ca`。
-整理期间检测到仓库新增提交 `4c8f593`，已包含本轮开发与测试文件；该提交不是本次整理动作创建的。当前剩余修改为交接文档及相关记录；远端是否收到该提交未联网核验。接手时重新检查Git状态，不要整体回退、清理未跟踪文件或覆盖用户工程配置。
+仓库：`/Users/taobotaobo/Desktop/ddlNew`；分支：`feature-message-4`；当前HEAD：`a3233e6`（`feat:更新文档`）；实现基线`4c8f593`，最初开发起点：`78876ca`。
+整理期间检测到仓库新增提交 `4c8f593`，已包含本轮开发与测试文件；该提交不是本次整理动作创建的。此为暂停时历史快照；当前修正和测试见下节，均保持未提交；远端是否收到该提交未联网核验。接手时重新检查Git状态，不要整体回退、清理未跟踪文件或覆盖用户工程配置。
+
+## 继续验收现场（本窗口）
+
+- 实际接手分支`feature-message-4`、HEAD`a3233e6`，后续提交只更新文档；接手工作区及暂存区干净。当前新增修正保持未提交，未推送。WDA/runwda、forward与userspace tunnel本任务进程已停止，真机仍保留B登录；后续恢复须重建8101通道，勿改用模拟器8100。
+- 三项最新修正经新的独立只读审查；媒体失效后再次close清提示的空白缺陷已修，预览12项通过。系统配置TCP及键盘默认布局未检出新确定源码问题，真实其它矩阵仍需执行。
+- 真机同bundle覆盖安装并冷启动自动恢复B；Mac账户A、iPhone账户B真实账号字段已核对。不输入/保存密码，不卸载或清历史。
+- 最新Mac→iPhone群文本`QA_20261013_1655_A2B`和反向`QA_20261013_1700_B2A`实收各1条；A实际ACK的ack_msg_id与SDK成功回调本地ID对应，服务端ID非空且与信封ID不同。后续最终修正版两端debug.dylib摘要一致（5c19bcd6…），`QA_20261013_1826_FULL_A2B`在B精确1条，B后台返回列表显示2条新未读。自动化曾因焦点和AX setter仅改显示值发出局部标记`3_1823_FINAL_A2B`，未把它冒报为完整输入，随后改用稳定焦点真实键入完整标记；这不是服务器截断缺陷。
+- 实际群成员接口返回currentPage/items/pageSize/pages/totalCount，items为5条；旧新适配只读rows导致空页。临时断点仅查看键名/数量/字段名，已删除并恢复执行；改为生产成员页解析器items优先、兼容rows、损坏响应抛错、数字UID完整归一化。9项离线通过，最终Mac真实成员页已显示，A明确群主、B未显示管理角色标记。
+- 前台/页面恢复时即便几何不变也重新评估可见正文；清历史取消旧读队列，并按clearRevision拒绝迟到合并；正文/语音在途资格用批次UUID，提前返回只清自己资格，防止成员历史事件后的pending残留。失败回归后Chat32项通过并独立复核关闭。没有执行真实清历史，只在匿名离线替身验证这一受用户限制的分支。
+- 最终UI/日志源码的签名workspace clean build成功（`/tmp/ddlNew-final-autonomous-clean-build.log`），完整41/41离线入口exit0，149.19秒（`/tmp/ddlNew-migration-final-autonomous-confirmed/summary.json`）。首轮40/41的LoginSecurity固定25次yield偶发未等到嵌套退出，单独重跑69绿；仅测试改可观察完成等待后全量通过，生产登录未改。保留首轮失败证据。
+- Mac现已锁屏，CUA明确要求人工解锁才能继续该端UI；没有尝试绕过。真机WDA仍固定8101，模拟器固定8100，根独占设备。终版iPhone已覆盖安装冷启动并实核B，debug.dylib摘要398eb2c5…；Mac尚未运行这轮后续UI/日志版本，不能声称终版双端通过；未执行项保持Blocked/Deferred。
+- 第三身份未获授权，原群还有其他成员，因此不选择陌生好友、扩大群权限、移除其他成员或解散原群。同账号多设备、建群、清历史、动态权限完整矩阵缺前提，不因用户“自己拿主意”自动扩大范围。
+- 公共C-G1～G10/M-G1～G11已补21项逐条台账；商城、位置发送、主动全读、通话等暂缓子用例按Deferred拆分。SDK正文/Token/密钥日志已在13个文件窄修，84个生产日志调用+2个HTTP方法+1个Socket诊断的180检查通过，旧HEAD172项红；独立13/13非日志业务源码一致。Socket阶段仅内存，不虚称远端Sentry外泄，整个SDK所有历史边界和真实采集仍不算全覆盖。
+
+- 键盘时AXXXL附件曾挤掉正文，改稳定媒体组件内部compact和真实锚点几何跟随；Viewport7与独立复核通过。隔离宿主默认/AXXXL键盘正文可见、收起草稿保留、历史不强跳、默认横屏闭键盘通过；引用/多选/媒体进度叠加和VoiceOver仍待证据。
+
+- 最后单聊发现WCDB好友模型未持久化status，DB正常行重读默认0，迁移严格要求1使输入禁用。仅对toolCheckMyFriend数据库缓存允许0/1，缺行/注销/未知状态仍拒绝，身份及来源群守卫保持；未改WCDB结构或服务端删除语义。真实初次Unicode输入因禁用未匹配即停止，未发送也未改旧草稿；缓存判断先红→6绿且独立复核关闭，最终43/43完整入口exit0，106.08秒（`/tmp/ddlNew-migration-final-single-confirmed/summary.json`）及签名增量build成功（`/tmp/ddlNew-final-single-permission-build.log`），手机终版b59cc4a6…覆盖安装/冷启动保B；真实输入复验见RES-19末段补证。
+
+- 最后真实单聊长历史首次定位过早：已发送Unicode在列表有预览，正文返页却无标记。只把首屏移至稳定布局末尾，其余跟随/拖动取消/搜索target守卫保留；新版本返A单聊实见原标记精确1份，未重发；最终独立首屏差异复核关闭，无新确定回归。最终43/43入口exit0，110秒（`/tmp/ddlNew-migration-final-initial-scroll/summary.json`），签名build成功（`/tmp/ddlNew-final-initial-scroll-build.log`），手机终版摘要b4562836…覆盖安装/冷启动成功。Mac终版运行/单聊A实收仍因锁屏受阻，不将历史群快照升为终版双端完整验收。
+
+具体逐项记录与证据见`Docs/CONTACTS_MESSAGE_TEST_REPORT.md`的RES条目及公共验收表；本轮末段检索补修与终版结果：搜索仅传旧userName、userUID别名兼容且坏页不静默吞行；参数2项/解析25项及独立复核通过。最新42/42入口exit0，127.88秒（`/tmp/ddlNew-migration-final-search-confirmed/summary.json`），签名增量build成功（`/tmp/ddlNew-final-search-payload-build.log`）。检索终版iPhone安装摘要685476c9…，冷启动保B，B查ceshi001实见cs123，检索缺陷闭环；Mac锁屏仍未运行这快照。iPad默认键盘宿主局部Passed，测试agent已卸载且恢复原关机，iPhone模拟器字号/外观恢复原值，不覆盖历史证据。
 
 ## 新窗口接手顺序
 

@@ -162,6 +162,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - ******1.数据请求******
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)netRequestWithType:(LingIMHttpRequestType)type path:(NSString *)path parameters:(NSDictionary *)parameters onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     
     
@@ -278,7 +279,7 @@ static NoaIMHttpManager *manager = nil;
                 }
             }
         } else {
-            NSLog(@"接口：%@ 报错，code：%ld，des：%@，TOKEN：%@", fullPath, (long)resp.code, resp.message, [IMSDKManager myUserToken]);
+            NSLog(@"接口失败 code=%ld TOKEN诊断 hasToken=%d", (long)resp.code, [IMSDKManager myUserToken].length > 0);
             if (resp.code == LingIMHttpResponseCodeTokenOutTime ||
                 resp.code == LingIMHttpResponseCodeTokenError ||
                 resp.code == LingIMHttpResponseCodeOtherTokenError ||
@@ -337,7 +338,7 @@ static NoaIMHttpManager *manager = nil;
         
         if (total > 2.0){ //接口响应时间大于2s
             [strongSelf loganConfigWith:fullPath ztid:ztid traceId:resp.traceId time:total];
-            NSLog(@"CFTimeInterval total : %f  %@", total, fullPath);
+            NSLog(@"CFTimeInterval total : %f hasAPI=%d", total, fullPath.length > 0);
         }
         // 移除记录
         [strongSelf->_interfaceTimeConsumingCatche removeObjectForKey:ztid];
@@ -345,7 +346,7 @@ static NoaIMHttpManager *manager = nil;
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
-        NSLog(@"接口：%@ 报错，code：%ld，des：%@", fullPath, (long)error.code, error.description);
+        NSLog(@"接口失败 domain=%@ code=%ld", error.domain, (long)error.code);
         NSString * ztid = [hearder objectForKey:@"ZTID"];
         if([path containsString:@"/dns/report"] || [path containsString:@"/biz/translate/translate"]) {
             if (onFailure) {
@@ -434,6 +435,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - ******2.消息转发接口******
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)netRequestForwardWithPath:(NSString *)path paramData:(NSData *)paramData onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     
     //判断是否设置了请求域名
@@ -650,7 +652,7 @@ static NoaIMHttpManager *manager = nil;
         
         if (total > 2.0){ //接口响应时间大于2s
             [strongSelf loganConfigWith:fullPath ztid:ztid traceId:ztid time:total];
-            NSLog(@"CFTimeInterval total : %f  %@", total, fullPath);
+            NSLog(@"CFTimeInterval total : %f hasAPI=%d", total, fullPath.length > 0);
         }
         // 移除记录
         [strongSelf->_interfaceTimeConsumingCatche removeObjectForKey:ztid];
@@ -660,6 +662,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - ******3.通用带有服务器时间返回的数据请求接口******
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)netRequestWithServiceTimeWithType:(LingIMHttpRequestType)type path:(NSString *)path parameters:(NSDictionary * _Nullable)parameters onSuccess:(LingIMSuccessWithTimeCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     //判断是否设置了请求域名
     if (!(IMSDKManager.apiHost.length > 0)) {
@@ -744,7 +747,7 @@ static NoaIMHttpManager *manager = nil;
             NSString *serviceTimeStr = [serviceResponse valueForHTTPHeaderField:@"Date"];
             NSDate *serviceDate = [NSDate dateFromRFC822String:serviceTimeStr];
             long long serviceDateValue = [serviceDate timeIntervalSince1970] * 1000;
-            NSLog(@"开始加密: ztid：%@  data:%@ url:%@",ztid,responseObject,path);
+            NSLog(@"开始加密: ztid：%@ hasData=%d", ztid, responseObject != nil);
             if (resp.data == nil) {
                 if (onSuccess) {
                     onSuccess(resp.data, serviceDateValue);
@@ -823,7 +826,7 @@ static NoaIMHttpManager *manager = nil;
         
         if (total > 2.0){ //接口响应时间大于2s
             [strongSelf loganConfigWith:fullPath ztid:ztid traceId:resp.traceId time:total];
-            NSLog(@"CFTimeInterval total : %f  %@", total, fullPath);
+            NSLog(@"CFTimeInterval total : %f hasAPI=%d", total, fullPath.length > 0);
         }
         // 移除记录
         [strongSelf->_interfaceTimeConsumingCatche removeObjectForKey:ztid];
@@ -913,6 +916,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - ******4.通用的 请求地址是否为完整地址的请求******
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)netRequestWorkCommonBaseUrl:(NSString *)baseUrl Path:(NSString *)path medth:(LingIMHttpRequestType)medth parameters:(NSDictionary *)parameters onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     
     if (!parameters) {
@@ -1010,7 +1014,7 @@ static NoaIMHttpManager *manager = nil;
                     }
                 }
             } else {
-                NSLog(@"接口：%@ 报错，code：%ld，des：%@", fullPath, (long)resp.code, resp.message);
+                NSLog(@"接口失败 code=%ld", (long)resp.code);
                 NSString * ztid = [weakSelf.requestSerializer.HTTPRequestHeaders objectForKey:@"ZTID"];
                 if (resp.code == LingIMHttpResponseCodeTokenOutTime ||
                     resp.code == LingIMHttpResponseCodeTokenError ||
@@ -1070,7 +1074,7 @@ static NoaIMHttpManager *manager = nil;
         }
         if (total > 2.0){ //接口响应时间大于2s
             [strongSelf loganConfigWith:fullPath ztid:ztid traceId:resp.traceId time:total];
-            NSLog(@"CFTimeInterval total : %f  %@", total, fullPath);
+            NSLog(@"CFTimeInterval total : %f hasAPI=%d", total, fullPath.length > 0);
         }
         // 移除记录
         [strongSelf->_interfaceTimeConsumingCatche removeObjectForKey:ztid];
@@ -1078,7 +1082,7 @@ static NoaIMHttpManager *manager = nil;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         __strong typeof(weakSelf)strongSelf = weakSelf;
         NSString * ztid = [hearder objectForKey:@"ZTID"];
-        NSLog(@"接口：%@ 报错，code：%ld，des：%@", fullPath, (long)error.code, error.description);
+        NSLog(@"接口失败 domain=%@ code=%ld", error.domain, (long)error.code);
         if (onFailure) {
             if ([path containsString:@"/biz/system/v2/getSystemConfig"] || [path containsString:@"/biz/sso/connect"] || [path containsString:@"/health"]) {
                 onFailure(error.code, error.description, ztid);
@@ -1169,6 +1173,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - ******** 5 长链接失败后, 发送消息接口 ******
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)netRequestMessagePushWithPath:(NSString *)path paramData:(NSData *)paramData onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     
     //判断是否设置了请求域名
@@ -1392,7 +1397,7 @@ static NoaIMHttpManager *manager = nil;
         
         if (total > 2.0){ //接口响应时间大于2s
             [strongSelf loganConfigWith:fullPath ztid:ztid traceId:ztid time:total];
-            NSLog(@"CFTimeInterval total : %f  %@", total, fullPath);
+            NSLog(@"CFTimeInterval total : %f hasAPI=%d", total, fullPath.length > 0);
         }
         // 移除记录
         [strongSelf->_interfaceTimeConsumingCatche removeObjectForKey:ztid];
@@ -1403,6 +1408,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - ****** 刷新token ******
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)authRefreshTokenOnSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     NSLog(@"++++++++++++ NoaChatSDKCore刷新用户token ++++++++++++++");
     NSString *token = IMSDKManager.myUserToken;
@@ -1419,7 +1425,7 @@ static NoaIMHttpManager *manager = nil;
                                    IMSDKManager.myUserToken,@"token",
                                    IMSDKManager.myUserID,@"userUid",nil];
     
-    NSLog(@"%@",params);
+    NSLog(@"刷新参数诊断 parameter_count=%lu hasToken=%d", (unsigned long)params.count, [params[@"token"] length] > 0);
     
     __weak typeof(self) weakSelf = self;
     
@@ -1428,7 +1434,7 @@ static NoaIMHttpManager *manager = nil;
         NSString * ztid = [weakSelf.requestSerializer.HTTPRequestHeaders objectForKey:@"ZTID"];
         
         NSString *newToken = (NSString *)data;
-        NSLog(@"token自动更新完成，SDK层-1  token：%@",newToken);
+        NSLog(@"token自动更新完成，SDK层-1 hasToken=%d", newToken.length > 0);
         if([newToken isEqualToString:IMSDKManager.myUserToken] || newToken.length == 0 || newToken == nil){
             [weakSelf.netWorkingQueue cancelAllOperations];
             if ([weakSelf.userDelegate respondsToSelector:@selector(noaSdkRefreshUsetToken: errorMsg:)]) {
@@ -1480,12 +1486,13 @@ static NoaIMHttpManager *manager = nil;
 }
 
 //将字典转换成json字符串
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (NSString *)convertToJsonData:(NSDictionary *)dict {
     NSError *error;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:&error];
     NSString*jsonString;
     if(!jsonData) {
-        NSLog(@"%@",error);
+        NSLog(@"请求处理失败 domain=%@ code=%ld", error.domain, (long)error.code);
     }else{
         jsonString = [[NSString alloc]initWithData:jsonData encoding:NSUTF8StringEncoding];
     }
@@ -1551,6 +1558,7 @@ static NoaIMHttpManager *manager = nil;
     return (jsonObject != nil && error == nil);
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 -(id)jsonObjectFromString:(NSString *)jsonString{
     NSData *data = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
     if (!data) {
@@ -1560,7 +1568,7 @@ static NoaIMHttpManager *manager = nil;
     NSError *error = nil;
     id jsonObject = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
     if (error) {
-        NSLog(@"Error: %@", error.localizedDescription);
+        NSLog(@"Error: domain=%@ code=%ld", error.domain, (long)error.code);
         return nil;
     }
     
@@ -1568,11 +1576,12 @@ static NoaIMHttpManager *manager = nil;
 }
 
 #pragma mark - 配置接口请求失败后的日志
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)loganConfigWith:(NSString *)url param:(NSDictionary *)param failure:(NSString *)failureReason ztid:(NSString *)ztid {
     NSMutableDictionary *loganDict = [NSMutableDictionary dictionary];
-    [loganDict setValue:url forKey:@"oprApi"];//请求地址
-    [loganDict setValue:[param mj_JSONString] forKey:@"oprParams"];//请求参数
-    [loganDict setValue:failureReason forKey:@"failReason"];//失败原因
+    [loganDict setValue:@(url.length > 0) forKey:@"hasAPI"];//只记录是否有请求地址，避免泄露资源路径
+    [loganDict setValue:@(param.count) forKey:@"parameterCount"];//只记录参数数量，正文与凭据不进入日志
+    [loganDict setValue:@(failureReason.length > 0) forKey:@"hasFailure"];//业务与系统错误原文可能包含资源或敏感字段
     [loganDict setValue:ztid forKey:@"ztid"];//ztid
 
     //写入日志
@@ -1594,9 +1603,10 @@ static NoaIMHttpManager *manager = nil;
 
 
 #pragma mark - 配置接口请求大于2s的日志
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)loganConfigWith:(NSString *)url ztid:(NSString *)ztid traceId:(NSString *)traceId time:(CFTimeInterval)time {
     NSMutableDictionary *loganDict = [NSMutableDictionary dictionary];
-    [loganDict setValue:url forKey:@"fullPath"];//请求地址
+    [loganDict setValue:@(url.length > 0) forKey:@"hasAPI"];//不记录完整资源URL
     [loganDict setValue:@(time) forKey:@"time"]; //时间
     [loganDict setValue:ztid forKey:@"ztid"];//ztid
     [loganDict setValue:traceId forKey:@"traceId"];//traceId
@@ -1673,6 +1683,7 @@ static NoaIMHttpManager *manager = nil;
 }
 
 //读取p12文件中的密码
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (BOOL)extractIdentity:(SecIdentityRef*)outIdentity andTrust:(SecTrustRef *)outTrust fromPKCS12Data:(NSData *)inPKCS12Data {
     OSStatus securityError = errSecSuccess;
     //client certificate password
@@ -1698,7 +1709,7 @@ static NoaIMHttpManager *manager = nil;
         return YES;
     }
     @catch (NSException *exception) {
-        NSLog(@"%@",exception);
+        NSLog(@"异常诊断 exception_name=%@", exception.name);
         return NO;
     }
     return YES;

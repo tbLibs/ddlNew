@@ -121,6 +121,7 @@ static const NSUInteger kLengthFieldSize = 4;        // 长度字段大小
                                     isEncrypted:NO];
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (nullable ZIMDecodedMessage *)decodeEncryptedMessage:(NSData *)messageData 
                                         protocolHeader:(MessageProtocolHeader *)protocolHeader {
     NSLog(@"🔐 解码AES加密消息，消息体长度: %ld字节", [protocolHeader messageBodyLength]);
@@ -142,8 +143,7 @@ static const NSUInteger kLengthFieldSize = 4;        // 长度字段大小
     NSRange messageBodyRange = NSMakeRange(headerLength, messageBodyLength);
     NSData *encryptedBody = [messageData subdataWithRange:messageBodyRange];
     
-    NSLog(@"🔍 AES消息体前20字节: %@", 
-          [[encryptedBody subdataWithRange:NSMakeRange(0, MIN(20, encryptedBody.length))] description]);
+    NSLog(@"🔍 AES消息体诊断 length=%lu", (unsigned long)encryptedBody.length);
     
     // 解密消息体
     NSData *protobufData = [self decryptMessageBody:encryptedBody];
@@ -254,16 +254,15 @@ static const NSUInteger kLengthFieldSize = 4;        // 长度字段大小
     return decryptedData;
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (BOOL)verifyHMAC:(NSData *)encryptedData receivedHMAC:(NSData *)receivedHMAC {
     if (!encryptedData || !receivedHMAC || ![self hasAESKey]) {
         NSLog(@"❌ HMAC验证参数无效");
         return NO;
     }
     
-    NSLog(@"🔍 计算期望HMAC，密钥长度: %lu, 数据长度: %lu", 
-          (unsigned long)self.aesKey.length, (unsigned long)encryptedData.length);
-    NSLog(@"🔍 AES密钥前16字节: %@", 
-          [[self.aesKey subdataWithRange:NSMakeRange(0, MIN(16, self.aesKey.length))] description]);
+    NSLog(@"🔍 计算期望HMAC key_length=%lu data_length=%lu", (unsigned long)self.aesKey.length, (unsigned long)encryptedData.length);
+    NSLog(@"🔍 AES密钥诊断 length=%lu", (unsigned long)self.aesKey.length);
     
     // 使用AES密钥计算HMAC（与服务端保持一致）
     NSData *expectedHMAC = [ZIMAESEncryption hmacSHA256:encryptedData withKey:self.aesKey];
@@ -281,8 +280,8 @@ static const NSUInteger kLengthFieldSize = 4;        // 长度字段大小
         NSLog(@"✅ HMAC验证通过");
     } else {
         NSLog(@"❌ HMAC验证失败");
-        NSLog(@"   期望HMAC: %@", [expectedHMAC description]);
-        NSLog(@"   接收HMAC: %@", [receivedHMAC description]);
+        NSLog(@"   期望HMAC length=%lu", (unsigned long)expectedHMAC.length);
+        NSLog(@"   接收HMAC length=%lu", (unsigned long)receivedHMAC.length);
     }
     
     return isValid;

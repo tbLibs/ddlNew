@@ -28,6 +28,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 生成ECDH密钥对 - 异步版本
  * 对应服务端的 generateKeyPair() 方法
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (void)generateKeyPairWithCompletion:(void(^)(SecKeyRef _Nullable publicKey, 
                                               SecKeyRef _Nullable privateKey, 
                                               NSError * _Nullable error))completion {
@@ -40,7 +41,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error || !keyPair) {
-                CIMLog(@"❌ ECDH密钥对生成失败: %@", error.localizedDescription);
+                CIMLog(@"❌ ECDH密钥对生成失败 domain=%@ code=%ld", error.domain, (long)error.code);
                 completion(NULL, NULL, error);
             } else {
                 SecKeyRef publicKey = (__bridge SecKeyRef)keyPair[@"publicKey"];
@@ -55,6 +56,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
 /**
  * 同步生成ECDH密钥对
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSDictionary * _Nullable)generateKeyPairSyncWithError:(NSError **)error {
     
     // secp256r1 (P-256) 椭圆曲线参数配置
@@ -91,7 +93,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         if (error) {
             *error = (__bridge_transfer NSError *)cfError;
         }
-        CIMLog(@"❌ ECDH私钥生成失败: %@", ((__bridge NSError *)cfError).localizedDescription);
+        CIMLog(@"❌ ECDH私钥生成失败 domain=%@ code=%ld", cfError ? (__bridge NSString *)CFErrorGetDomain(cfError) : @"unknown", (long)(cfError ? CFErrorGetCode(cfError) : 0));
         return nil;
     }
     
@@ -126,6 +128,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 对应服务端的 reconstructPublicKey(byte[] publicKeyBytes) 方法
  * 支持 X.509 DER 格式和原始格式
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (SecKeyRef _Nullable)reconstructPublicKeyFromBytes:(NSData *)publicKeyBytes error:(NSError **)error {
     CIMLog(@"🔄 从字节数组重构公钥，长度: %lu字节", (unsigned long)publicKeyBytes.length);
     
@@ -195,10 +198,10 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         if (error) {
             *error = (__bridge_transfer NSError *)cfError;
         }
-        CIMLog(@"❌ 公钥重构失败: %@", ((__bridge NSError *)cfError).localizedDescription);
+        CIMLog(@"❌ 公钥重构失败 domain=%@ code=%ld", cfError ? (__bridge NSString *)CFErrorGetDomain(cfError) : @"unknown", (long)(cfError ? CFErrorGetCode(cfError) : 0));
         CIMLog(@"   - 输入数据长度: %lu字节", (unsigned long)publicKeyBytes.length);
         CIMLog(@"   - 使用数据长度: %lu字节", (unsigned long)keyDataToUse.length);
-        CIMLog(@"   - 数据hex: %@", [self hexStringFromData:keyDataToUse]);
+        CIMLog(@"   - 数据hex length=%lu", (unsigned long)keyDataToUse.length);
         CIMLog(@"   - 错误码: %ld", (long)CFErrorGetCode(cfError));
         return NULL;
     }
@@ -223,6 +226,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 获取公钥的X.509 DER编码字节数组
  * 用于与服务端交换公钥（对应Java的公钥编码格式）
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)getPublicKeyBytes:(SecKeyRef)publicKey error:(NSError **)error {
     // 使用 SecKeyCopyExternalRepresentation 获取原始公钥数据
     CFErrorRef cfError = NULL;
@@ -232,7 +236,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         if (error) {
             *error = (__bridge_transfer NSError *)cfError;
         }
-        CIMLog(@"❌ 获取公钥原始数据失败: %@", ((__bridge NSError *)cfError).localizedDescription);
+        CIMLog(@"❌ 获取公钥原始数据失败 domain=%@ code=%ld", cfError ? (__bridge NSString *)CFErrorGetDomain(cfError) : @"unknown", (long)(cfError ? CFErrorGetCode(cfError) : 0));
         return nil;
     }
     
@@ -260,6 +264,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 获取私钥的X.509 DER编码字节数组
  * 用于与服务端公钥共享（对应Java的私钥编码格式）
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)getPrivateKeyBytes:(SecKeyRef)privateKey error:(NSError **)error {
     // 使用 SecKeyCopyExternalRepresentation 获取原始私钥数据
     CFErrorRef cfError = NULL;
@@ -269,7 +274,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         if (error) {
             *error = (__bridge_transfer NSError *)cfError;
         }
-        CIMLog(@"❌ 获取私钥原始数据失败: %@", ((__bridge NSError *)cfError).localizedDescription);
+        CIMLog(@"❌ 获取私钥原始数据失败 domain=%@ code=%ld", cfError ? (__bridge NSString *)CFErrorGetDomain(cfError) : @"unknown", (long)(cfError ? CFErrorGetCode(cfError) : 0));
         return nil;
     }
     
@@ -293,6 +298,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
     return x509Data;
 }
 
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)convertRawPrivateKeyToX509DER:(NSData *)rawPrivateKey {
     if (!rawPrivateKey || rawPrivateKey.length != 32) {
         CIMLog(@"❌ 原始私钥数据无效，期望32字节，实际%lu字节", (unsigned long)rawPrivateKey.length);
@@ -347,7 +353,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
     CIMLog(@"🔧 X.509 DER编码完成:");
     CIMLog(@"   - 原始私钥: %lu字节", (unsigned long)rawPrivateKey.length);
     CIMLog(@"   - X.509 DER: %lu字节", (unsigned long)x509Data.length);
-    CIMLog(@"   - X.509 hex: %@", [self hexStringFromData:x509Data]);
+    CIMLog(@"   - X.509 hex length=%lu", (unsigned long)x509Data.length);
     
     return [x509Data copy];
 }
@@ -356,6 +362,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 从 X.509 DER 格式中提取原始公钥数据
  * 解析 X.509 DER 格式的 ECDSA 公钥
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)extractRawPublicKeyFromX509DER:(NSData *)x509Data {
     if (!x509Data || x509Data.length < 26) {
         CIMLog(@"❌ X.509 DER数据无效，长度不足");
@@ -372,7 +379,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
     }
     
     CIMLog(@"📋 开始解析X.509 DER数据，总长度: %lu字节", (unsigned long)x509Data.length);
-    CIMLog(@"📋 数据hex: %@", [self hexStringFromData:x509Data]);
+    CIMLog(@"📋 数据hex length=%lu", (unsigned long)x509Data.length);
     
     // 简单方法：直接从末尾提取65字节作为公钥数据
     // 因为P-256公钥总是65字节，我们可以从末尾往前取
@@ -385,7 +392,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
             CIMLog(@"✅ 从X.509 DER提取原始公钥成功（简单方法）:");
             CIMLog(@"   - X.509 DER长度: %lu字节", (unsigned long)x509Data.length);
             CIMLog(@"   - 原始公钥长度: %lu字节", (unsigned long)rawPublicKey.length);
-            CIMLog(@"   - 原始公钥hex: %@", [self hexStringFromData:rawPublicKey]);
+            CIMLog(@"   - 原始公钥hex length=%lu", (unsigned long)rawPublicKey.length);
             
             return rawPublicKey;
         } else {
@@ -467,7 +474,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
     CIMLog(@"✅ 从X.509 DER提取原始公钥成功（详细解析）:");
     CIMLog(@"   - X.509 DER长度: %lu字节", (unsigned long)x509Data.length);
     CIMLog(@"   - 原始公钥长度: %lu字节", (unsigned long)rawPublicKey.length);
-    CIMLog(@"   - 原始公钥hex: %@", [self hexStringFromData:rawPublicKey]);
+    CIMLog(@"   - 原始公钥hex length=%lu", (unsigned long)rawPublicKey.length);
     
     return rawPublicKey;
 }
@@ -476,6 +483,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 将原始公钥数据转换为X.509 DER格式
  * P-256 公钥的 X.509 DER 编码格式
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)convertRawPublicKeyToX509DER:(NSData *)rawPublicKey {
     if (!rawPublicKey || rawPublicKey.length != 65) {
         CIMLog(@"❌ 原始公钥数据无效，期望65字节，实际%lu字节", (unsigned long)rawPublicKey.length);
@@ -530,7 +538,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
     CIMLog(@"🔧 X.509 DER编码完成:");
     CIMLog(@"   - 原始公钥: %lu字节", (unsigned long)rawPublicKey.length);
     CIMLog(@"   - X.509 DER: %lu字节", (unsigned long)x509Data.length);
-    CIMLog(@"   - X.509 hex: %@", [self hexStringFromData:x509Data]);
+    CIMLog(@"   - X.509 hex length=%lu", (unsigned long)x509Data.length);
     
     return [x509Data copy];
 }
@@ -539,6 +547,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 验证公钥是否有效
  * 对应服务端的 isValidPublicKey(byte[] publicKeyBytes) 方法
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (BOOL)isValidPublicKey:(NSData *)publicKeyBytes {
     NSError *error = nil;
     SecKeyRef publicKey = [self reconstructPublicKeyFromBytes:publicKeyBytes error:&error];
@@ -547,7 +556,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         CFRelease(publicKey);
         return YES;
     } else {
-        CIMLog(@"⚠️ 公钥验证失败: %@", error.localizedDescription);
+        CIMLog(@"⚠️ 公钥验证失败 domain=%@ code=%ld", error.domain, (long)error.code);
         return NO;
     }
 }
@@ -586,6 +595,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
  * 计算ECDH共享密钥 - 核心实现
  * 对应服务端的 computeSharedSecret(PrivateKey privateKey, PublicKey publicKey) 方法
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)computeSharedSecretWithPrivateKey:(SecKeyRef)privateKey 
                                               publicKey:(SecKeyRef)publicKey 
                                                   error:(NSError **)error {
@@ -618,13 +628,13 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
         if (error) {
             *error = (__bridge_transfer NSError *)cfError;
         }
-        CIMLog(@"❌ ECDH共享密钥计算失败: %@", ((__bridge NSError *)cfError).localizedDescription);
+        CIMLog(@"❌ ECDH共享密钥计算失败 domain=%@ code=%ld", cfError ? (__bridge NSString *)CFErrorGetDomain(cfError) : @"unknown", (long)(cfError ? CFErrorGetCode(cfError) : 0));
         return nil;
     }
     
     NSData *sharedSecretData = (__bridge_transfer NSData *)sharedSecret;
     CIMLog(@"✅ ECDH共享密钥计算成功，长度: %lu字节", (unsigned long)sharedSecretData.length);
-    CIMLog(@"🔐 共享密钥: %@", [self hexStringFromData:sharedSecretData]);
+    CIMLog(@"🔐 共享密钥诊断 length=%lu", (unsigned long)sharedSecretData.length);
     
     return sharedSecretData;
 }
@@ -705,6 +715,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
 /**
  * 从十六进制字符串转换为NSData
  */
+/// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 + (NSData * _Nullable)dataFromHexString:(NSString *)hexString {
     if (!hexString || hexString.length == 0) return nil;
     
@@ -713,7 +724,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
                           [NSCharacterSet whitespaceAndNewlineCharacterSet]] componentsJoinedByString:@""];
     
     if (cleanHex.length % 2 != 0) {
-        CIMLog(@"❌ 十六进制字符串长度必须是偶数: %@", cleanHex);
+        CIMLog(@"❌ 十六进制字符串长度必须是偶数 length=%lu", (unsigned long)cleanHex.length);
         return nil;
     }
     
@@ -726,7 +737,7 @@ static NSInteger const kKeySize = 256;              // P-256 = 256位
             uint8_t byte = (uint8_t)byteValue;
             [data appendBytes:&byte length:1];
         } else {
-            CIMLog(@"❌ 无效的十六进制字符: %@", byteString);
+            CIMLog(@"❌ 无效的十六进制字符 length=%lu", (unsigned long)byteString.length);
             return nil;
         }
     }
