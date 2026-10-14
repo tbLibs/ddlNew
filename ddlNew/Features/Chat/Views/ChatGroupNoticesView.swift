@@ -6,65 +6,166 @@
 //
 
 import SwiftUI
+import UIAdapter
 
 struct ChatGroupNoticesView: View {
     let route: ChatRoute
     @StateObject private var store = ChatNoticesStore()
-    @State private var showEditor = false
-    @State private var selected: ChatGroupNotice?
-    @State private var input = ""
-    @State private var pinned = false
-    @State private var sendMessage = false
+    @State private var openedContext: ChatContext?
+    @State private var editorPresentation: ChatNoticeEditorPresentation?
     @State private var confirmDelete: ChatGroupNotice?
     @State private var role = 0
-    @State private var confirmDiscard = false
-    private var editorDirty: Bool { input != (selected?.content ?? "") || pinned != (selected?.pinned ?? false) || sendMessage }
+    @State private var deletedID: String?
+    @State private var feedback: String?
 
     var body: some View {
         List {
-            if let error = store.errorMessage { Text(error).foregroundStyle(.red) }
-            if store.notices.isEmpty && !store.busy { Text("暂无群公告").foregroundStyle(.secondary) }
+            if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error).listRowBackground(MessagingTheme.surface) }
+            if let feedback { Text(feedback).font(.footnote).foregroundStyle(MessagingTheme.accent).listRowBackground(MessagingTheme.surface) }
+            if store.notices.isEmpty && !store.busy {
+                VStack(spacing: 12.zoom()) { Image(systemName: "text.bubble").font(.largeTitle).accessibilityHidden(true); Text("暂无群公告").font(.subheadline) }.foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, minHeight: 180.zoom()).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden)
+            }
             ForEach(store.notices) { notice in
                 NavigationLink {
-                    ScrollView { VStack { Text(store.detail?.id == notice.id ? store.detail?.content ?? notice.content : notice.content).frame(maxWidth: .infinity, alignment: .leading); if let error = store.errorMessage { Text(error).foregroundStyle(.red) } }.padding() }
-                        .navigationTitle("群公告").task { await store.read(notice) }
+                    ChatNoticeDetailView(store: store, notice: notice, canManage: role > 0, deletedID: deletedID, onEdit: { edit($0) }, onDelete: { confirmDelete = notice })
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if notice.pinned { Label("置顶公告", systemImage: "pin.fill").font(.caption).foregroundStyle(.secondary) }
-                        Text(notice.content).lineLimit(3)
-                        Text(notice.timestamp).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                .contextMenu {
-                    if role > 0 {
-                        Button("编辑") { selected = notice; input = notice.content; pinned = notice.pinned; sendMessage = false; showEditor = true }
-                        Button("删除公告", role: .destructive) { confirmDelete = notice }
-                    }
+                    VStack(alignment: .leading, spacing: 8.zoom()) {
+                        if notice.pinned { Label("置顶公告", systemImage: "pin.fill").font(.caption).foregroundStyle(MessagingTheme.accent) }
+                        Text(notice.content).font(.body).foregroundStyle(MessagingTheme.text).lineLimit(3)
+                        Text([notice.author, notice.timestamp].filter { !$0.isEmpty }.joined(separator: " · ")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                    }.padding(.vertical, 12.zoom())
+                }.listRowBackground(MessagingTheme.surface)
+                    .contextMenu { if role > 0 { Button("编辑公告") { edit(notice) }; Button("删除公告", role: .destructive) { confirmDelete = notice } } }
+            }
+            if store.busy { ProgressView("正在加载").frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden) }
+            else if store.hasMore { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.surface) }
+        }.listStyle(.plain).navigationTitle("群公告").modifier(MessagingPageChrome())
+            .toolbar { if role > 0 { Button("发布") { edit(nil) }.frame(minHeight: 44).disabled(store.busy) } }
+            .task {
+                guard let context = ChatRuntime.shared.context(for: route) else { return }
+                let client = SDKChatSettingsClient()
+                role = (try? await client.load(context: context).group?.role) ?? 0; client.close()
+                guard ChatRuntime.shared.isCurrent(context) else { return }
+                registerCleanup()
+                // 子页或编辑弹窗返回时保留列表与详情，避免清空列表导致导航退回根页。
+                if openedContext != context || (store.notices.isEmpty && store.hasMore && !store.busy) {
+                    openedContext = context
+                    await store.open(context)
                 }
             }
-            if store.hasMore { Button("加载更多") { Task { await store.loadMore() } }.disabled(store.busy) }
-        }
-        .navigationTitle("群公告")
-        .toolbar { if role > 0 { Button("发布") { selected = nil; input = ""; pinned = false; sendMessage = false; showEditor = true } } }
-        .task {
-            guard let context = ChatRuntime.shared.context(for: route) else { return }
-            let client = SDKChatSettingsClient()
-            role = (try? await client.load(context: context).group?.role) ?? 0; client.close()
-            registerCleanup()
-            await store.open(context)
-        }
-        .sheet(isPresented: $showEditor) {
-            NavigationStack {
-                Form { TextEditor(text: $input).frame(minHeight: 220).accessibilityLabel("公告正文"); Toggle("置顶公告", isOn: $pinned); Toggle("作为群消息发送", isOn: $sendMessage); if let error = store.errorMessage { Text(error).foregroundStyle(.red) } }
-                    .navigationTitle(selected == nil ? "发布公告" : "编辑公告")
-                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { if editorDirty { confirmDiscard = true } else { showEditor = false } }.disabled(store.busy) }; ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { if await store.save(selected, content: input, pinned: pinned, sendMessage: sendMessage) { showEditor = false } } }.disabled(store.busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) } }
-            }.interactiveDismissDisabled(store.busy || editorDirty)
-             .confirmationDialog("放弃公告修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { showEditor = false } }
-        }
-        .confirmationDialog("删除群公告", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }), titleVisibility: .visible) {
-            if let notice = confirmDelete { Button("删除所有成员可见的公告", role: .destructive) { Task { _ = await store.save(notice, content: notice.content, pinned: notice.pinned, deleting: true) }; confirmDelete = nil } }
-        }
+            .sheet(item: $editorPresentation) { presentation in
+                ChatNoticeEditorView(store: store, notice: presentation.notice) {
+                    if store.errorMessage == nil { feedback = "公告已保存" }
+                }
+            }
+            .confirmationDialog("删除群公告", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }), titleVisibility: .visible) {
+                if let notice = confirmDelete {
+                    Button("删除公告", role: .destructive) {
+                        Task { feedback = nil; if await store.save(notice, content: notice.content, pinned: notice.pinned, deleting: true) { deletedID = notice.id; if store.errorMessage == nil { feedback = "公告已删除" } } }
+                        confirmDelete = nil
+                    }
+                }
+            } message: { Text("删除后所有成员将无法查看此公告。") }
     }
+
+    /// 弹窗携带正在显示的公告快照，避免布尔sheet首次捕获旧正文或创建模式。
+    private func edit(_ notice: ChatGroupNotice?) { editorPresentation = ChatNoticeEditorPresentation(notice: notice) }
+
     /// 公告页退出身份时停止SDK等待，不强持有整个视图。
     private func registerCleanup() { let notices = store; ChatRuntime.shared.registerCleanup(owner: notices, conversationID: route.id) { [weak notices] in notices?.close() } }
+}
+
+/// 旧版详情在正文下方提供编辑和删除，普通成员只读。
+private struct ChatNoticeDetailView: View {
+    @ObservedObject var store: ChatNoticesStore
+    let notice: ChatGroupNotice
+    let canManage: Bool
+    let deletedID: String?
+    let onEdit: (ChatGroupNotice) -> Void
+    let onDelete: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    private var current: ChatGroupNotice {
+        if let updated = store.notices.first(where: { $0.id == notice.id }), updated != notice { return updated }
+        return store.detail?.id == notice.id ? store.detail ?? notice : notice
+    }
+
+    var body: some View {
+        MessagingScroll {
+            VStack(alignment: .leading, spacing: 16.zoom()) {
+                MessagingCard {
+                    VStack(alignment: .leading, spacing: 16.zoom()) {
+                        if current.pinned { Label("置顶公告", systemImage: "pin.fill").font(.caption).foregroundStyle(MessagingTheme.accent) }
+                        Text([current.author, current.timestamp].filter { !$0.isEmpty }.joined(separator: " · ")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                        Text(current.content).font(.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
+                if canManage {
+                    Button("编辑公告") { onEdit(current) }.frame(maxWidth: .infinity, minHeight: max(44, 48.zoom())).buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(store.busy)
+                    Button("删除公告", role: .destructive, action: onDelete).frame(maxWidth: .infinity, minHeight: max(44, 48.zoom())).buttonStyle(.bordered).tint(MessagingTheme.error).disabled(store.busy)
+                }
+            }.padding(16.zoom())
+        }.navigationTitle("群公告").modifier(MessagingPageChrome())
+            .task { await store.read(notice) }
+            .onChange(of: deletedID) { if $0 == notice.id { dismiss() } }
+    }
+}
+
+/// 每次编辑使用独立呈现身份，发布和编辑不会共用旧sheet捕获值。
+private struct ChatNoticeEditorPresentation: Identifiable {
+    let id = UUID()
+    let notice: ChatGroupNotice?
+}
+
+/// 公告表单拥有自己的草稿，稳定公告ID、正文和置顶状态同时进入弹窗。
+private struct ChatNoticeEditorView: View {
+    @ObservedObject var store: ChatNoticesStore
+    let notice: ChatGroupNotice?
+    let onSaved: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var input: String
+    @State private var pinned: Bool
+    @State private var sendMessage = false
+    @State private var confirmDiscard = false
+    @FocusState private var editorFocused: Bool
+
+    /// 初始快照只在新呈现时使用，后续刷新不覆盖正在编辑的草稿。
+    init(store: ChatNoticesStore, notice: ChatGroupNotice?, onSaved: @escaping () -> Void) {
+        self.store = store; self.notice = notice; self.onSaved = onSaved
+        _input = State(initialValue: notice?.content ?? "")
+        _pinned = State(initialValue: notice?.pinned ?? false)
+    }
+
+    private var isDirty: Bool { input != (notice?.content ?? "") || pinned != (notice?.pinned ?? false) || sendMessage }
+
+    var body: some View {
+        NavigationStack {
+            MessagingScroll {
+                VStack(alignment: .leading, spacing: 12.zoom()) {
+                    Text("公告正文").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
+                    MessagingCard {
+                        ZStack(alignment: .topLeading) {
+                            if input.isEmpty { Text("请输入群公告内容").foregroundStyle(MessagingTheme.secondaryText).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false) }
+                            TextEditor(text: $input).focused($editorFocused).scrollContentBackground(.hidden).frame(minHeight: 220.zoom()).accessibilityLabel("公告正文")
+                        }
+                    }
+                    MessagingCard {
+                        VStack(spacing: 16.zoom()) { Toggle("置顶公告", isOn: $pinned); Toggle("作为群消息发送", isOn: $sendMessage) }
+                    }
+                    if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
+                    if store.busy { ProgressView("正在保存") }
+                }.padding(16.zoom())
+            }
+            .navigationTitle(notice == nil ? "发布公告" : "编辑公告").modifier(MessagingPageChrome())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmDiscard = true } else { dismiss() } }.disabled(store.busy) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") { Task { if await store.save(notice, content: input, pinned: pinned, sendMessage: sendMessage) { onSaved(); dismiss() } } }
+                        .disabled(store.busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .interactiveDismissDisabled(store.busy || isDirty)
+        .confirmationDialog("放弃公告修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() } }
+    }
 }

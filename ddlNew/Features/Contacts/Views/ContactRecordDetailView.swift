@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIAdapter
 import Combine
 
 /// 稳定UID资料页重新确认关系，编辑使用sheet，真实发消息继续push。
@@ -24,6 +25,7 @@ struct ContactRecordDetailView: View {
     @State private var moving = false
     @State private var sharing = false
     @State private var confirmingDelete = false
+    @State private var copyNotice: String?
     @ObservedObject private var permissions = UserRoleAuthorityStore.shared
 
     private var cachedContact: ContactRecord? { store.contacts.first { $0.id == contactID } }
@@ -37,23 +39,43 @@ struct ContactRecordDetailView: View {
     }
 
     var body: some View {
-        ClubScroll {
-            VStack(spacing: 20) {
+        MessagingScroll {
+            VStack(spacing: 20.zoom()) {
                 if !groupAccessAllowed { EmptyClubState(title: "当前不可查看资料", message: "该群已限制私聊或成员资料访问。") }
                 else if let contact {
-                    if wasFriend && cachedContact == nil { Text("该好友已不在通讯录中").foregroundStyle(ClubTheme.secondary) }
-                    ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 88).padding(.top, 24)
-                    Text(contact.displayName).font(.title2.bold())
-                    if let role = businessStore.roleName(roleID: contact.roleID, isDeleted: contact.isDeleted) { Text(role).font(.caption.bold()).foregroundStyle(ClubTheme.darkTeal) }
-                    ClubCard {
-                        VStack(alignment: .leading, spacing: 16) {
-                            if contact.isDeleted { Text("该用户账号已注销").foregroundStyle(ClubTheme.secondary) }
+                    if wasFriend && cachedContact == nil { Text("该好友已不在通讯录中").foregroundStyle(MessagingTheme.secondaryText) }
+                    HStack(alignment: .center, spacing: 16.zoom()) {
+                        ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 72.zoom())
+                        VStack(alignment: .leading, spacing: 8.zoom()) {
+                            Text(contact.displayName).font(.title3.weight(.semibold)).foregroundStyle(MessagingTheme.text)
+                            if !contact.isDeleted {
+                                Button { copyAccount(contact) } label: {
+                                    HStack(spacing: 6.zoom()) {
+                                        Text("账号：" + (contact.account.isEmpty ? contact.id : contact.account)).font(.subheadline)
+                                        Image(systemName: "doc.on.doc").font(.caption).accessibilityHidden(true)
+                                    }.frame(minHeight: 44)
+                                }.buttonStyle(.plain).foregroundStyle(MessagingTheme.secondaryText).accessibilityHint("复制公开账号")
+                            }
+                            if let role = businessStore.roleName(roleID: contact.roleID, isDeleted: contact.isDeleted) {
+                                Text(role).font(.caption).foregroundStyle(MessagingTheme.accent)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }.padding(16.zoom()).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                    MessagingCard(padding: 0) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if contact.isDeleted { Text("该用户账号已注销").foregroundStyle(MessagingTheme.secondaryText).padding(16.zoom()) }
                             else {
                                 detail("账号", value: contact.account)
                                 detail("昵称", value: contact.nickname)
                                 if let sourceGroupID, let nickname = businessStore.groupNickname(in: sourceGroupID, for: contactID), !nickname.isEmpty { detail("群昵称", value: nickname) }
                                 if isFriend {
-                                    detail("备注", value: contact.remarks)
+                                    // 旧版资料的备注整行可点击，打开同一份备注与描述草稿。
+                                    Button { editing = true } label: {
+                                        HStack(spacing: 8.zoom()) {
+                                            detail("备注", value: contact.remarks)
+                                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(MessagingTheme.secondaryText).padding(.trailing, 16.zoom()).accessibilityHidden(true)
+                                        }
+                                    }.buttonStyle(MessagingRowStyle()).disabled(businessStore.isSubmitting)
                                     detail("描述", value: contact.description)
                                     detail("在线状态", value: contact.isOnline ? "在线" : "离线")
                                 }
@@ -63,23 +85,37 @@ struct ContactRecordDetailView: View {
                     if !contact.isDeleted, contact.id != businessStore.identity?.userUID {
                         if isFriend {
                             NavigationLink(value: ChatRoute(id: contact.id, kind: .single, title: contact.displayName, avatarURL: contact.avatar, sourceGroupID: sourceGroupID)) {
-                                Label("发消息", systemImage: "message.fill").frame(maxWidth: .infinity).padding(14)
-                            }.buttonStyle(.borderedProminent).tint(HomeTheme.forest)
-                            Button("备注与描述") { editing = true }.buttonStyle(.bordered)
-                            Button("移动到分组") { moving = true }.buttonStyle(.bordered)
-                            Button("推荐名片") { sharing = true }.buttonStyle(.bordered)
-                            Button("删除好友", role: .destructive) { confirmingDelete = true }.disabled(businessStore.isSubmitting)
+                                Label("发消息", systemImage: "message.fill").frame(maxWidth: .infinity).padding(14.zoom())
+                            }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
                         } else if permissions.current?.allows("allowAddFriend") == true {
                             applicationAction(contact)
                         }
                     }
                 } else if businessStore.isLoading { ProgressView("正在读取资料") }
                 else { EmptyClubState(title: "资料暂时不可用", message: "好友关系可能已变化，请刷新资料后重试。") }
-                if let error = businessStore.errorMessage { Text(error).foregroundStyle(ClubTheme.error) }
-                if let notice = businessStore.notice { Text(notice).foregroundStyle(ClubTheme.secondary) }
-            }.padding(24)
+                if let error = businessStore.errorMessage { Text(error).foregroundStyle(MessagingTheme.error) }
+                if let notice = businessStore.notice { Text(notice).foregroundStyle(MessagingTheme.secondaryText) }
+                if let copyNotice { Text(copyNotice).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                if businessStore.isSubmitting { ProgressView("正在提交") }
+            }.padding(16.zoom())
         }
-        .navigationTitle("用户资料").navigationBarTitleDisplayMode(.inline).navigationBarHidden(false)
+        .navigationTitle("用户资料")
+        .modifier(MessagingPageChrome())
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                if groupAccessAllowed, let contact, isFriend, !contact.isDeleted, contact.id != businessStore.identity?.userUID {
+                    Menu {
+                        Button("备注与描述") { editing = true }
+                        Button("移动到分组") { moving = true }
+                        Button("推荐名片") { sharing = true }
+                        Button("删除好友", role: .destructive) { confirmingDelete = true }
+                    } label: {
+                        Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44)
+                    }.accessibilityLabel("好友管理").disabled(businessStore.isSubmitting)
+                }
+            }
+        }
+        .refreshable { await refreshProfile() }
         .task { await refreshProfile() }
         .onReceive(store.$contacts) { contacts in
             businessStore.reconcileContacts(contacts)
@@ -102,19 +138,20 @@ struct ContactRecordDetailView: View {
            let application = businessStore.applications.first(where: { applicationID == nil ? $0.peerID(for: userUID) == contactID : $0.id == applicationID }) {
             switch application.action(for: userUID) {
             case .accept:
-                Button("接受申请") { Task { await businessStore.perform(.accept(friendID: contact.id), sourceGroupID: sourceGroupID); await store.reload() } }.buttonStyle(.borderedProminent).tint(HomeTheme.forest).disabled(businessStore.isSubmitting)
-            case .waiting: Text("好友申请等待对方验证").foregroundStyle(ClubTheme.secondary)
+                Button { Task { await businessStore.perform(.accept(friendID: contact.id), sourceGroupID: sourceGroupID); await store.reload() } } label: { Text("通过验证").frame(maxWidth: .infinity).frame(minHeight: max(44, 50.zoom())) }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(businessStore.isSubmitting)
+            case .waiting: Text("好友申请等待对方验证").foregroundStyle(MessagingTheme.secondaryText)
             case .reapply: requestButton("重新申请", contactID: contact.id)
             case .accepted, .expired: requestButton("添加好友", contactID: contact.id)
-            case .unavailable: Text("该申请当前不可操作").foregroundStyle(ClubTheme.secondary)
+            case .unavailable: Text("该申请当前不可操作").foregroundStyle(MessagingTheme.secondaryText)
             }
         } else { requestButton("添加好友", contactID: contact.id) }
     }
 
     /// 提交仍需动态权限和服务器当前关系，申请发送不当作立即好友成功。
     private func requestButton(_ title: String, contactID: String) -> some View {
-        Button(title) { Task { await businessStore.perform(.apply(friendID: contactID), sourceGroupID: sourceGroupID) } }
-            .buttonStyle(.borderedProminent).tint(HomeTheme.forest).disabled(businessStore.isSubmitting)
+        Button { Task { await businessStore.perform(.apply(friendID: contactID), sourceGroupID: sourceGroupID) } } label: {
+            Text(title).frame(maxWidth: .infinity).frame(minHeight: max(44, 50.zoom()))
+        }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(businessStore.isSubmitting)
     }
 
     /// 先确认来源群访问，再读取用户资料；缓存更新立即反映删除与注销。
@@ -132,9 +169,18 @@ struct ContactRecordDetailView: View {
 
     /// 未设置字段明确占位，不展示服务端原始空值。
     private func detail(_ title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption).foregroundStyle(ClubTheme.secondary)
-            Text(value.isEmpty ? "未设置" : value).font(.body).foregroundStyle(ClubTheme.ink)
-        }
+        HStack(alignment: .top, spacing: 16.zoom()) {
+            Text(title).font(.body).foregroundStyle(MessagingTheme.text).frame(minWidth: 64.zoom(), alignment: .leading)
+            Spacer(minLength: 0)
+            Text(value.isEmpty ? "未设置" : value).font(.body).foregroundStyle(MessagingTheme.secondaryText)
+                .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
+        }.padding(16.zoom()).frame(minHeight: max(44, 54.zoom()))
+            .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 0.5).padding(.horizontal, 16.zoom()) }
+    }
+
+    /// 账号为公开资料，只复制展示值并保留可见结果。
+    private func copyAccount(_ contact: ContactRecord) {
+        UIPasteboard.general.string = contact.account.isEmpty ? contact.id : contact.account
+        copyNotice = "账号已复制"
     }
 }

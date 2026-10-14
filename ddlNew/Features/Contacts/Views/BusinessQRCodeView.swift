@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIAdapter
 import CoreImage.CIFilterBuiltins
 import Photos
 
@@ -17,32 +18,83 @@ struct BusinessQRCodeView: View {
     @State private var image: UIImage?
     @State private var saveMessage: String?
     @State private var showingShare = false
+    @State private var isSaving = false
+    @ObservedObject private var groups = GroupsStore.shared
     @State private var sharingToChat = false
     @ObservedObject private var session = UserSessionStore.shared
 
     var body: some View {
-        ClubScroll {
-            VStack(spacing: 20) {
-                Text(title).font(.title2.bold())
-                if groupID == nil, let user = session.currentUser {
-                    ContactRecordAvatar(contact: ContactRecord(id: user.userUID, account: user.userName, nickname: user.nickname, avatar: user.avatar), fileHost: OSSConnectionBootstrap.shared.current?.getFileHost, size: 64)
-                    Text(user.nickname).font(.headline)
-                    Text(user.userName).font(.subheadline).foregroundStyle(ClubTheme.secondary)
+        MessagingScroll {
+            VStack(spacing: 20.zoom()) {
+                MessagingCard(padding: 24.zoom()) {
+                    VStack(spacing: 12.zoom()) {
+                        if groupID == nil, let user = session.currentUser {
+                            ContactRecordAvatar(contact: ContactRecord(id: user.userUID, account: user.userName, nickname: user.nickname, avatar: user.avatar), fileHost: OSSConnectionBootstrap.shared.current?.getFileHost, size: 80.zoom())
+                            Text(user.nickname).font(.headline).foregroundStyle(MessagingTheme.text)
+                            Text("账号：\(user.userName)").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                        } else if let group = groups.groups.first(where: { $0.id == groupID }) {
+                            GroupRecordAvatar(group: group, fileHost: OSSConnectionBootstrap.shared.current?.getFileHost)
+                            Text(group.name).font(.headline).foregroundStyle(MessagingTheme.text)
+                        }
+                        if let image {
+                            Image(uiImage: image).interpolation(.none).resizable().scaledToFit()
+                                .frame(maxWidth: 256.zoom()).padding(20.zoom()).background(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 12.zoom())).padding(.vertical, 12.zoom())
+                                .accessibilityLabel(groupID == nil ? "我的业务二维码" : "群业务二维码")
+                            Divider().overlay(MessagingTheme.divider)
+                            Text(groupID == nil ? "扫一扫我的二维码，添加我为好友。" : "扫一扫二维码，加入群聊。")
+                                .font(.subheadline).foregroundStyle(MessagingTheme.text).multilineTextAlignment(.center)
+                            if !businessStore.qrExpiry.isEmpty { Text("有效期：\(expiryLabel)").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                        } else if businessStore.isSubmitting {
+                            ProgressView("正在生成二维码").frame(minHeight: 240.zoom())
+                        } else {
+                            Image(systemName: "qrcode").font(.largeTitle).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
+                            Text("二维码暂时不可用，请重新生成。").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                            Button("重新生成") { Task { await generate() } }.frame(minHeight: 44)
+                        }
+                    }.frame(maxWidth: .infinity)
                 }
-                if let image {
-                    Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 280).padding(20).background(.white).clipShape(RoundedRectangle(cornerRadius: 20)).accessibilityLabel("业务二维码")
-                    if !businessStore.qrExpiry.isEmpty { Text("有效期：\(expiryLabel)").font(.caption).foregroundStyle(ClubTheme.secondary) }
-                    HStack { Button("保存到相册") { save(image) }; Button("分享给聊天") { sharingToChat = true }; Button("系统分享") { showingShare = true } }.buttonStyle(.bordered)
-                } else if businessStore.isSubmitting { ProgressView("正在生成二维码") }
-                if let error = businessStore.errorMessage { Text(error).foregroundStyle(ClubTheme.error) }
-                if let saveMessage { Text(saveMessage).foregroundStyle(ClubTheme.secondary) }
-                Button("重新生成") { Task { await generate() } }.disabled(businessStore.isSubmitting)
-            }.padding(24)
+                if let error = businessStore.errorMessage { Text(error).foregroundStyle(MessagingTheme.error) }
+                if let saveMessage { Text(saveMessage).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
+                if isSaving { ProgressView("正在保存到相册") }
+            }.padding(24.zoom())
         }
-        .navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarHidden(false)
+        .navigationTitle(title)
+        .modifier(MessagingPageChrome())
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button("重新生成") { Task { await generate() } }
+                    Button("系统分享") { showingShare = true }.disabled(image == nil)
+                } label: { Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44) }
+                    .accessibilityLabel("二维码操作").disabled(businessStore.isSubmitting || isSaving)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let image {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16.zoom()) { saveButton(image); chatShareButton }
+                    VStack(spacing: 12.zoom()) { saveButton(image); chatShareButton }
+                }.frame(maxWidth: 640).padding(16.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
+            }
+        }
         .task { await generate() }
-        .sheet(isPresented: $sharingToChat) { if let data = image?.jpegData(compressionQuality: 1) { ContactsRecipientPickerView(content: .image(data)) } }
+        .sheet(isPresented: $sharingToChat) { if let data = image?.pngData() { ContactsRecipientPickerView(content: .image(data)) } }
         .sheet(isPresented: $showingShare) { if let image { BusinessQRShareSheet(image: image) } }
+    }
+
+    /// 保存与聊天分享沿用旧版底部双操作，大字号时自然改为纵向。
+    private func saveButton(_ image: UIImage) -> some View {
+        Button { save(image) } label: {
+            Label("保存相册", systemImage: "square.and.arrow.down").fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity).frame(minHeight: max(44, 50.zoom()))
+        }.buttonStyle(.bordered).disabled(isSaving || businessStore.isSubmitting)
+    }
+
+    /// 分享只选择真实聊天接收人，系统分享放在右上更多菜单。
+    private var chatShareButton: some View {
+        Button { sharingToChat = true } label: {
+            Label("分享", systemImage: "square.and.arrow.up").fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity).frame(minHeight: max(44, 50.zoom()))
+        }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).disabled(isSaving || businessStore.isSubmitting)
     }
 
     /// 旧接口过期值单位为毫秒，只显示实际服务端给定日期。
@@ -53,7 +105,7 @@ struct BusinessQRCodeView: View {
 
     /// 仅接受SDK返回content，失败或为空时不制造本地UID二维码。
     private func generate() async {
-        image = nil
+        image = nil; saveMessage = nil
         guard await businessStore.perform(.qrCode(groupID: groupID)), !businessStore.qrContent.isEmpty else { return }
         let filter = CIFilter.qrCodeGenerator(); filter.message = Data(businessStore.qrContent.utf8)
         filter.correctionLevel = "M"
@@ -63,10 +115,12 @@ struct BusinessQRCodeView: View {
 
     /// 只申请相册添加权限，以系统写入回执显示保存结果。
     private func save(_ image: UIImage) {
+        guard !isSaving else { return }
+        isSaving = true; saveMessage = nil
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-            guard status == .authorized || status == .limited else { Task { @MainActor in saveMessage = "请在系统设置中允许添加照片" }; return }
+            guard status == .authorized || status == .limited else { Task { @MainActor in saveMessage = "请在系统设置中允许添加照片"; isSaving = false }; return }
             PHPhotoLibrary.shared().performChanges { PHAssetChangeRequest.creationRequestForAsset(from: image) } completionHandler: { success, _ in
-                Task { @MainActor in saveMessage = success ? "已保存到相册" : "保存失败，请重试" }
+                Task { @MainActor in saveMessage = success ? "已保存到相册" : "保存失败，请重试"; isSaving = false }
             }
         }
     }

@@ -5,31 +5,42 @@
 //  Created by taobo on 2026/10/13.
 //
 import SwiftUI
+import UIAdapter
 import Kingfisher
 
 struct ChatStickersView: View {
     @ObservedObject var chat: ChatStore
     @StateObject private var store = ChatStickersStore(client: SDKChatStickersClient())
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
+    @State private var sentFeedback: String?
+    @State private var sendError: String?
+    @Environment(\.dismiss) private var dismiss
 
     /// 已用贴纸以完整资源显示动画，发送动作继续沿当前真实SDK合同。
     var body: some View {
-        List {
-            if let error = store.errorMessage { Text(error).foregroundStyle(.red); Button("重试") { Task { await store.loadMore() } } }
-            if store.stickers.isEmpty && !store.busy { Text("暂无已用贴纸或收藏表情").foregroundStyle(.secondary) }
-            ForEach(store.stickers) { sticker in
-                Button { send(sticker) } label: {
-                    HStack {
-                        ChatAnimatedRemoteImage(url: RemoteAvatarURL.resolve(sticker.resource.isEmpty ? sticker.thumbnail : sticker.resource, relativeTo: connection.current?.getFileHost), fileHost: connection.current?.getFileHost, size: CGSize(width: 64, height: 64)).accessibilityHidden(true)
-                        Text(sticker.title)
-                        Spacer()
-                        Text("发送").font(.caption)
+        MessagingScroll {
+            VStack(alignment: .leading, spacing: 16.zoom()) {
+                Text("选择表情发送到当前聊天").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                if !chat.permission.canSend { Text("当前聊天暂不能发送消息").foregroundStyle(MessagingTheme.error).font(.subheadline) }
+                if let sendError { Text(sendError).foregroundStyle(MessagingTheme.error).font(.subheadline) }
+                if let feedback = sentFeedback { Label(feedback, systemImage: "checkmark.circle").font(.subheadline).foregroundStyle(MessagingTheme.accent) }
+                if let error = store.errorMessage { Text(error).foregroundStyle(MessagingTheme.error); Button("重试") { Task { await store.loadMore() } }.frame(minHeight: 44).disabled(store.busy) }
+                if store.stickers.isEmpty && !store.busy && store.errorMessage == nil { Label("暂无已用贴纸或收藏表情", systemImage: "face.smiling").foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 32.zoom()) }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 92.zoom()), spacing: 12.zoom())], spacing: 16.zoom()) {
+                    ForEach(store.stickers) { sticker in
+                        Button { send(sticker) } label: {
+                            VStack(spacing: 8.zoom()) {
+                                ChatAnimatedRemoteImage(url: RemoteAvatarURL.resolve(sticker.resource.isEmpty ? sticker.thumbnail : sticker.resource, relativeTo: connection.current?.getFileHost), fileHost: connection.current?.getFileHost, size: CGSize(width: 72.zoom(), height: 72.zoom())).accessibilityHidden(true)
+                                Text(sticker.title.isEmpty ? "贴纸" : sticker.title).font(.caption).lineLimit(2).foregroundStyle(MessagingTheme.text)
+                            }.frame(maxWidth: .infinity, minHeight: max(44, 112.zoom())).padding(8.zoom()).contentShape(Rectangle())
+                        }.buttonStyle(MessagingRowStyle()).clipShape(RoundedRectangle(cornerRadius: 8.zoom())).disabled(!chat.permission.canSend).accessibilityLabel("发送" + (sticker.title.isEmpty ? "贴纸" : sticker.title))
                     }
-                }.disabled(!chat.permission.canSend).accessibilityLabel("发送" + sticker.title)
-            }
-            if store.hasMore { Button("加载更多") { Task { await store.loadMore() } }.disabled(store.busy) }
-            if store.busy { ProgressView() }
-        }.navigationTitle("已有贴纸")
+                }
+                if store.hasMore && !store.busy { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: max(44, 44.zoom())) }
+                if store.busy { ProgressView("正在加载表情").frame(maxWidth: .infinity).padding(16.zoom()) }
+            }.padding(16.zoom())
+        }.navigationTitle("贴纸与表情").modifier(MessagingPageChrome())
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44) } }
         .task { if let context = chat.context { await store.open(context) } }
         .onDisappear { store.close() }
     }
@@ -38,6 +49,6 @@ struct ChatStickersView: View {
         guard let context = chat.context else { return }
         var message = ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id, senderID: context.userUID, senderName: "我", type: 12, timestamp: Int64(Date().timeIntervalSince1970 * 1000))
         message.resource = sticker.resource; message.thumbnail = sticker.thumbnail; message.stickerID = sticker.id; message.isStickerSet = sticker.fromPackage; message.size = sticker.bytes; message.mediaWidth = sticker.width; message.mediaHeight = sticker.height
-        do { try chat.sendAttachment(message) } catch { store.errorMessage = error.localizedDescription }
+        do { try chat.sendAttachment(message); sendError = nil; sentFeedback = "已加入发送队列，等待消息回执" } catch { sentFeedback = nil; sendError = error.localizedDescription }
     }
 }

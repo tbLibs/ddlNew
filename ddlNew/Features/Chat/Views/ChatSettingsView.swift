@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIAdapter
 
 struct ChatSettingsView: View {
     let route: ChatRoute
@@ -20,54 +21,74 @@ struct ChatSettingsView: View {
     @State private var showClear = false
     @State private var showLeave = false
     @State private var showDissolve = false
-    @State private var name = ""
-    @State private var nickname = ""
+    @State private var editingName = false
+    @State private var showNameEditor = false
     @State private var showInvite = false
     @State private var inviteReason = ""
     @State private var showCreateGroup = false
     @State private var createdRoute: ChatRoute?
 
     var body: some View {
-        Form {
-            if let error = store.errorMessage { Section { Text(error).foregroundStyle(.red); Button("刷新") { Task { await store.reload() } } } }
-            Section {
-                Button("查找聊天记录") { showHistorySearch = true }
-                if route.kind == .single && route.id != "100002" { NavigationLink("查看好友资料", value: ContactsRoute(contactID: route.id, sourceGroupID: route.sourceGroupID)); Button("添加好友创建群聊") { showCreateGroup = true } }
-                Toggle("置顶会话", isOn: Binding(get: { store.snapshot?.isPinned ?? false }, set: { value in Task { await store.setConversation(pinned: value) } }))
-                if route.id != "100002" { Toggle("消息免打扰", isOn: Binding(get: { store.snapshot?.isMuted ?? false }, set: { value in Task { await store.setConversation(muted: value) } })) }
-            }
-            if let group = store.snapshot?.group {
-                Section("群资料") {
-                    LabeledContent("群名称", value: group.name)
-                    Button("群头像") { showAvatar = true }
-                    if canShowCount(group) { LabeledContent("群成员", value: "\(group.memberCount)人") }
-                    if group.qrVisible || [1, 2].contains(group.role) { NavigationLink("群二维码") { BusinessQRCodeView(businessStore: LoginSessionService.shared.contactBusiness, groupID: group.id, title: group.name) } }
-                    if group.membersSyncReady { ChatGroupMemberPreview(group: group, onInvite: { showInvite = true }, onRemove: { showMembers = true }) }
-                    Button("群成员") { showMembers = true }.disabled(!group.membersSyncReady)
-                    if group.isPersonallyMuted { Text("你当前已被禁言").foregroundStyle(.secondary) }
-                    if group.requiresApproval { TextField("邀请审核说明", text: $inviteReason).accessibilityLabel("邀请审核说明") }
-                    Button("邀请好友") { showInvite = true }
-                    TextField("我的群昵称（最多30字）", text: $nickname).accessibilityLabel("我的群昵称")
-                    Button("保存群昵称") { Task { await store.groupAction(.nickname(nickname)) } }.disabled(nickname.trimmingCharacters(in: .whitespacesAndNewlines) == group.nickname)
-                    if [1, 2].contains(group.role) {
-                        TextField("群名称", text: $name).accessibilityLabel("群名称")
-                        Button("保存群名称") { Task { await store.groupAction(.rename(name)) } }
+        MessagingScroll {
+            VStack(spacing: 12.zoom()) {
+                if let error = store.errorMessage {
+                    MessagingCard { VStack(alignment: .leading, spacing: 8.zoom()) { Text(error).foregroundStyle(MessagingTheme.error); Button("重新加载") { Task { await store.reload() } }.frame(minHeight: 44) } }
+                }
+                if let group = store.snapshot?.group {
+                    MessagingCard {
+                        VStack(spacing: 16.zoom()) {
+                            Button { showAvatar = true } label: {
+                                HStack(spacing: 12.zoom()) {
+                                    ChatGroupMemberAvatar(member: ChatGroupMember(id: group.id, name: group.name, avatar: group.avatar, role: group.role, isDeleted: false), size: 56.zoom())
+                                    VStack(alignment: .leading, spacing: 6.zoom()) { Text(group.name).font(.headline).foregroundStyle(MessagingTheme.text); Text("群资料").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                                    Spacer(); chevron
+                                }.frame(minHeight: 56.zoom())
+                            }.buttonStyle(MessagingRowStyle())
+                            if group.membersSyncReady { ChatGroupMemberPreview(group: group, onInvite: { showInvite = true }, onRemove: { showMembers = true }) }
+                            Button { showMembers = true } label: { row("查看群成员", value: canShowCount(group) ? "\(group.memberCount)人" : "") }.buttonStyle(MessagingRowStyle()).disabled(!group.membersSyncReady)
+                        }
                     }
-                    Button("群公告") { showNotices = true }
-                    if [1, 2].contains(group.role) { Button("群管理") { showManagement = true } }
+                    MessagingCard(padding: 0) {
+                        VStack(spacing: 0) {
+                            if [1, 2].contains(group.role) { Button { editingName = true; showNameEditor = true } label: { row("群名称", value: group.name) }; separator }
+                            if group.qrVisible || [1, 2].contains(group.role) { NavigationLink { BusinessQRCodeView(businessStore: LoginSessionService.shared.contactBusiness, groupID: group.id, title: group.name) } label: { row("群二维码", icon: "qrcode") }; separator }
+                            Button { showNotices = true } label: { row("群公告") }
+                            if [1, 2].contains(group.role) { separator; Button { showManagement = true } label: { row("群管理") } }
+                        }.buttonStyle(MessagingRowStyle())
+                    }
+                } else if route.kind == .single && route.id != "100002" {
+                    MessagingCard(padding: 0) {
+                        VStack(spacing: 0) {
+                            NavigationLink(value: ContactsRoute(contactID: route.id, sourceGroupID: route.sourceGroupID)) { row("查看好友资料") }
+                            separator
+                            Button { showCreateGroup = true } label: { row("添加好友创建群聊", icon: "person.badge.plus") }
+                        }.buttonStyle(MessagingRowStyle())
+                    }
                 }
-                Section {
-                    if group.role == 2 { Text("群主退出前，请在群管理中先转让群主。") .foregroundStyle(.secondary); Button("解散群聊", role: .destructive) { showDissolve = true } }
-                    else { Button("退出群聊", role: .destructive) { showLeave = true } }
+                MessagingCard(padding: 0) {
+                    VStack(spacing: 0) {
+                        Button { showHistorySearch = true } label: { row("查找聊天记录", icon: "magnifyingglass") }.buttonStyle(MessagingRowStyle())
+                        separator
+                        Toggle("置顶会话", isOn: Binding(get: { store.snapshot?.isPinned ?? false }, set: { value in Task { await store.setConversation(pinned: value) } })).padding(16.zoom()).frame(minHeight: 52.zoom())
+                        if route.id != "100002" { separator; Toggle("消息免打扰", isOn: Binding(get: { store.snapshot?.isMuted ?? false }, set: { value in Task { await store.setConversation(muted: value) } })).padding(16.zoom()).frame(minHeight: 52.zoom()) }
+                        if let group = store.snapshot?.group { separator; Button { editingName = false; showNameEditor = true } label: { row("我的群昵称", value: group.nickname) }.buttonStyle(MessagingRowStyle()) }
+                    }
                 }
-            }
-            if store.snapshot?.canClear == true { Section { Button("清空聊天记录", role: .destructive) { showClear = true } } }
+                .disabled(store.snapshot == nil)
+                if store.snapshot?.group?.isPersonallyMuted == true { Text("你当前已被禁言").font(.footnote).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, alignment: .leading) }
+                if store.snapshot?.canClear == true { MessagingCard(padding: 0) { Button("清空聊天记录", role: .destructive) { showClear = true }.frame(maxWidth: .infinity, minHeight: max(44, 52.zoom())).foregroundStyle(MessagingTheme.error).buttonStyle(MessagingRowStyle()) } }
+                if let group = store.snapshot?.group {
+                    if group.role == 2 { Text("群主退出前，请在群管理中先转让群主。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, alignment: .leading) }
+                    MessagingCard(padding: 0) { Button(group.role == 2 ? "解散群聊" : "退出群聊", role: .destructive) { if group.role == 2 { showDissolve = true } else { showLeave = true } }.frame(maxWidth: .infinity, minHeight: max(44, 52.zoom())).foregroundStyle(MessagingTheme.error).buttonStyle(MessagingRowStyle()) }
+                }
+            }.padding(16.zoom())
         }
         .disabled(store.busy)
-        .overlay { if store.busy { ProgressView() } }
-        .navigationTitle("聊天设置").navigationBarTitleDisplayMode(.inline)
-        .task { if let context = ChatRuntime.shared.context(for: route) { await store.open(context); name = store.snapshot?.group?.name ?? ""; nickname = store.snapshot?.group?.nickname ?? "" } }
-        .onDisappear { store.leaveSettingsView(presentingChild: showAvatar || showMembers || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch) }
+        .overlay { if store.busy { ProgressView("正在更新").padding(16.zoom()).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 10.zoom())) } }
+        .navigationTitle(route.kind == .group ? "群聊设置" : "聊天设置")
+        .modifier(MessagingPageChrome())
+        .task { if let context = ChatRuntime.shared.context(for: route) { await store.open(context) } }
+        .onDisappear { store.leaveSettingsView(presentingChild: showAvatar || showMembers || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor) }
         .sheet(isPresented: $showHistorySearch) { if let context = ChatRuntime.shared.context(for: route) { NavigationStack { ChatHistorySearchView(context: context) { id in createdRoute = ChatRoute(id: route.id, kind: route.kind, title: route.title, avatarURL: route.avatarURL, targetMessageID: id) } } } }
         .navigationDestination(isPresented: $showAvatar) { ChatGroupAvatarView(route: route, store: store) }
         .navigationDestination(isPresented: $showMembers) { if let group = store.snapshot?.group { ChatGroupMembersView(group: group, store: store) } }
@@ -77,14 +98,17 @@ struct ChatSettingsView: View {
         .confirmationDialog("清空聊天记录", isPresented: $showClear, titleVisibility: .visible) { Button("清空当前会话记录", role: .destructive) { Task { await store.clear() } } } message: { Text("将申请清空当前聊天记录，不会删除好友关系或退出群聊。") }
         .confirmationDialog("退出群聊", isPresented: $showLeave, titleVisibility: .visible) { Button("退出并清理本机群记录", role: .destructive) { Task { await store.groupAction(.leave) } } } message: { Text("退出后将不能继续在此群发送消息。") }
         .confirmationDialog("解散群聊", isPresented: $showDissolve, titleVisibility: .visible) { Button("解散所有成员的群聊", role: .destructive) { Task { await store.groupAction(.dissolve) } } } message: { Text("群聊解散后，所有成员都不能继续使用此群。") }
+        .sheet(isPresented: $showNameEditor) { ChatGroupNameEditor(store: store, editingName: editingName) }
         .sheet(isPresented: $showInvite) {
             GroupMemberPickerView(contacts: LoginSessionService.shared.contacts.contacts,
-                excludedIDs: Set(store.snapshot?.group?.members.map(\.id) ?? []), minimum: 1,
+                excludedIDs: Set(store.snapshot?.group?.members.map(\.id) ?? []), minimum: 1, title: "邀请好友", invitationReason: store.snapshot?.group?.requiresApproval == true && store.snapshot?.group?.role == 0 ? $inviteReason : nil,
+                recentIDs: LoginSessionService.shared.conversations.conversations.filter { $0.kind == .single }.map(\.id), friendGroups: LoginSessionService.shared.contactBusiness.groups,
                 submissionError: store.errorMessage,
-                onSubmit: { contacts in await store.groupAction(.invite(contacts.map { ChatGroupMember(id: $0.id, name: $0.displayName, avatar: $0.avatar, role: 0, isDeleted: $0.isDeleted) }, reason: inviteReason)) }, onConfirm: { _ in })
+                onSubmit: { contacts in await store.groupAction(.invite(contacts.map { ChatGroupMember(id: $0.id, name: $0.displayName, avatar: $0.avatar, role: 0, isDeleted: $0.isDeleted) }, reason: store.snapshot?.group?.role == 0 ? inviteReason : "")) }, onConfirm: { _ in })
         }
         .sheet(isPresented: $showCreateGroup) {
             GroupMemberPickerView(contacts: LoginSessionService.shared.contacts.contacts, preselectedIDs: [route.id], minimum: 2,
+                recentIDs: LoginSessionService.shared.conversations.conversations.filter { $0.kind == .single }.map(\.id), friendGroups: LoginSessionService.shared.contactBusiness.groups,
                 submissionError: groups.errorMessage,
                 onSubmit: { contacts in
                     guard let group = await groups.create(members: contacts, nickname: UserSessionStore.shared.currentUser?.nickname ?? "") else { return false }
@@ -95,10 +119,50 @@ struct ChatSettingsView: View {
         .navigationDestination(isPresented: Binding(get: { createdRoute != nil }, set: { if !$0 { createdRoute = nil } })) { if let createdRoute { ChatRoomView(route: createdRoute) } }
     }
 
+    private var chevron: some View { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }
+    private var separator: some View { Rectangle().fill(MessagingTheme.divider).frame(height: 1).padding(.leading, 16.zoom()) }
+
+    /// 分区行保留系统导航语义，数值按用户字号自适应换行。
+    private func row(_ title: String, value: String = "", icon: String? = nil) -> some View {
+        HStack(spacing: 12.zoom()) { Text(title).foregroundStyle(MessagingTheme.text); Spacer(minLength: 8.zoom()); if !value.isEmpty { Text(value).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).multilineTextAlignment(.trailing) }; if let icon { Image(systemName: icon).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }; chevron }.padding(16.zoom()).frame(minHeight: max(44, 52.zoom())).contentShape(Rectangle())
+    }
+
     /// 人数角色开关独立于群成员资料访问权限。
     private func canShowCount(_ group: ChatGroupDetail) -> Bool {
         let authority = UserRoleAuthorityStore.shared.current
         let config = OSSConnectionBootstrap.shared.current.flatMap { SystemConfigStore.shared.load(apiHost: $0.apiHost) }
         return authority?.allows("showGroupPersonNum") == true || [1, 2].contains(group.role) || config?.onlyAllowAdminViewGroupPersonCount == "0"
+    }
+}
+
+/// 与旧版群名称/我的群昵称独立编辑页一致，保存失败保留输入。
+private struct ChatGroupNameEditor: View {
+    @ObservedObject var store: ChatSettingsStore
+    let editingName: Bool
+    @Environment(\.dismiss) private var dismiss
+    @State private var input = ""
+    @State private var original = ""
+    @State private var confirmDiscard = false
+    @FocusState private var focused: Bool
+    private var valid: Bool { editingName ? !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty : input.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 30 }
+
+    var body: some View {
+        NavigationStack {
+            MessagingScroll {
+                VStack(alignment: .leading, spacing: 12.zoom()) {
+                    Text(editingName ? "群名称" : "我的群昵称").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
+                    MessagingCard { TextField(editingName ? "输入群名称" : "输入群昵称", text: $input, axis: .vertical).focused($focused).submitLabel(.done).accessibilityLabel(editingName ? "群名称" : "我的群昵称").frame(minHeight: 44) }
+                    if !editingName { Text("最多30字").font(.footnote).foregroundStyle(valid ? MessagingTheme.secondaryText : MessagingTheme.error) }
+                    if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error) }
+                    if store.busy { ProgressView("正在保存") }
+                }.padding(16.zoom())
+            }.navigationTitle(editingName ? "修改群名称" : "我的群昵称").modifier(MessagingPageChrome())
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("取消") { if input != original { confirmDiscard = true } else { dismiss() } }.disabled(store.busy) }
+                    ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { if await store.groupAction(editingName ? .rename(input) : .nickname(input)) { dismiss() } } }.disabled(store.busy || !valid || input == original) }
+                }
+        }.interactiveDismissDisabled(store.busy || input != original)
+            .onAppear { original = editingName ? store.snapshot?.group?.name ?? "" : store.snapshot?.group?.nickname ?? ""; input = original; focused = true }
+            .confirmationDialog("放弃本次修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() } }
     }
 }

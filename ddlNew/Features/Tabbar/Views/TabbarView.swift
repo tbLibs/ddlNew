@@ -31,7 +31,7 @@ struct TabbarView: View {
             }
             tab(.profile) { MineView() }
         }
-        .tint(HomeTheme.forest)
+        .tint(store.selectedTab == .messages || store.selectedTab == .contacts ? MessagingTheme.accent : HomeTheme.forest)
         .environmentObject(community)
         .onChange(of: contacts.contacts) { _ in
             // 好友同步可能晚于会话同步；头像以最新好友库为准，变化后重读会话快照。

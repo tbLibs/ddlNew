@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIAdapter
 import Kingfisher
 
 /// 真实 SDK 会话列表，操作经服务端确认后回读数据库。
@@ -40,20 +41,19 @@ struct MessageView: View {
 
     var body: some View {
         List {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                CommunitySearchField(placeholder: "搜索会话或消息预览", text: $query,
+            VStack(alignment: .leading, spacing: 10.zoom()) {
+                MessagingSearchField(placeholder: "搜索会话或消息预览", text: $query,
                                      focus: $searchFocused, identifier: "messageSearch")
-                CommunityFilters(selection: $filter)
+                MessagingTabs(selection: $filter)
                 if authentication.state != .ready {
                     Label(authentication.state.message, systemImage: "wifi.exclamationmark")
-                        .font(.callout).foregroundStyle(ClubTheme.secondary)
+                        .font(.callout).foregroundStyle(MessagingTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("messageConnectionState")
                 }
                 if let error = store.errorMessage { errorNotice(error) }
             }
-            .listRowInsets(EdgeInsets(top: 18, leading: 20, bottom: 8, trailing: 20))
+            .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 12.zoom(), trailing: 16.zoom()))
             .listRowBackground(Color.clear).listRowSeparator(.hidden)
             if visibleConversations.isEmpty {
                 emptyState.listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -70,13 +70,17 @@ struct MessageView: View {
                         }
                         .disabled(store.busyConversationIDs.contains(conversation.id))
                         .accessibilityIdentifier("conversation.\(conversation.id)")
-                        .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowBackground(MessagingTheme.surface).listRowSeparator(.hidden)
                 }
             }
         }
-        .listStyle(.plain).scrollContentBackground(.hidden).background(ClubTheme.background)
-        .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
+        .listStyle(.plain).scrollContentBackground(.hidden).background(MessagingTheme.background)
+        .frame(maxWidth: 720).frame(maxWidth: .infinity)
+        .background(MessagingTheme.background)
+        .safeAreaInset(edge: .top, spacing: 0.zoom()) { header }
+        .tint(MessagingTheme.accent)
+        .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .task { await store.reload() }
         .refreshable { await store.reload() }
         .sheet(isPresented: $selectingMembers) {
@@ -105,42 +109,39 @@ struct MessageView: View {
         } message: { Text(store.operationError ?? "请稍后重试") }
     }
 
+    /// 固定紧凑页头，保留全局搜索、建群及权限控制的添加菜单。
     private var header: some View {
-        HStack(alignment: .bottom, spacing: 12) {
-            ScreenHeading(eyebrow: "与伙伴保持联系", title: "消息")
-                .accessibilityAddTraits(.isHeader)
+        HStack(spacing: 8.zoom()) {
+            Text("消息").font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
+            if store.isSyncing {
+                ProgressView().accessibilityLabel("正在同步会话")
+            } else {
+                Text("\(store.conversations.count)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                    .accessibilityLabel("\(store.conversations.count)个会话").accessibilityIdentifier("conversationCount")
+            }
             Spacer(minLength: 0)
             NavigationLink(value: ContactsPageRoute.globalSearch) {
-                Image(systemName: "magnifyingglass").frame(width: 44, height: 44)
-            }.accessibilityLabel("搜索好友、群聊和聊天内容")
-                .accessibilityIdentifier("openGlobalSearch")
+                Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel("搜索好友、群聊和聊天内容").accessibilityIdentifier("openGlobalSearch")
             Menu {
                 if permissions.current?.allows("allowAddFriend") == true {
                     NavigationLink("添加好友", value: ContactsPageRoute.addFriend)
                 }
                 if permissions.current?.allows("createGroup") == true { Button("创建群聊") { selectingMembers = true } }
                 NavigationLink("扫一扫", value: ContactsPageRoute.scanner)
-            } label: { Image(systemName: "plus").frame(width: 44, height: 44) }
-                .accessibilityLabel("消息页面更多操作")
-            if store.isSyncing {
-                ProgressView()
-                    .tint(ClubTheme.darkTeal)
-                    .padding(.bottom, 5)
-                    .accessibilityLabel("正在同步会话")
-            } else {
-                Text("\(store.conversations.count) 个会话")
-                    .font(.subheadline)
-                    .foregroundColor(ClubTheme.secondary)
-                    .padding(.bottom, 4)
-                    .accessibilityIdentifier("conversationCount")
-            }
+            } label: {
+                Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel("消息页面更多操作")
         }
+        .foregroundStyle(MessagingTheme.text).padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+        .frame(maxWidth: 720).frame(maxWidth: .infinity)
+        .background(MessagingTheme.background)
     }
 
     /// 同步与本地读取失败保持现有列表，提供明确的重试入口。
     private func errorNotice(_ message: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8.zoom()) {
+            HStack(alignment: .top, spacing: 10.zoom()) {
                 Image(systemName: "exclamationmark.circle")
                     .font(.subheadline)
                     .accessibilityHidden(true)
@@ -150,14 +151,14 @@ struct MessageView: View {
             if message.hasPrefix("会话缓存读取失败") {
                 Button("重新读取") { Task { await store.reload() } }
                     .font(.subheadline.weight(.semibold))
-                    .frame(minHeight: 44)
+                    .frame(minHeight: max(44, 44.zoom()))
                     .accessibilityIdentifier("retryConversationsCache")
             }
         }
-        .foregroundColor(ClubTheme.error)
+        .foregroundColor(MessagingTheme.error)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(ClubTheme.error.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+        .padding(14.zoom())
+        .background(MessagingTheme.error.opacity(0.08), in: RoundedRectangle(cornerRadius: 14.zoom()))
         .accessibilityIdentifier("conversationsSyncError")
     }
 
@@ -183,20 +184,20 @@ struct MessageView: View {
             title = "暂无会话"
             detail = "收到新消息后，会话会显示在这里。"
         }
-        return VStack(spacing: 14) {
+        return VStack(spacing: 14.zoom()) {
             Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 30))
-                .foregroundColor(ClubTheme.darkTeal)
-                .frame(width: 72, height: 72)
-                .background(ClubTheme.wash, in: RoundedRectangle(cornerRadius: 23))
+                .font(.system(size: 30.zoom()))
+                .foregroundColor(MessagingTheme.accent)
+                .frame(width: 72.zoom(), height: 72.zoom())
+                .background(MessagingTheme.avatarBackground, in: RoundedRectangle(cornerRadius: 23.zoom()))
                 .accessibilityHidden(true)
-            Text(title).font(.headline).foregroundColor(ClubTheme.ink)
-            Text(detail).font(.subheadline).foregroundColor(ClubTheme.secondary)
+            Text(title).font(.headline).foregroundColor(MessagingTheme.text)
+            Text(detail).font(.subheadline).foregroundColor(MessagingTheme.secondaryText)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 48)
+        .padding(.horizontal, 24.zoom())
+        .padding(.vertical, 48.zoom())
         .accessibilityIdentifier("conversationsEmptyState")
     }
 
@@ -204,11 +205,13 @@ struct MessageView: View {
     @ViewBuilder private func conversationLink(_ conversation: ConversationRecord) -> some View {
         switch conversation.kind {
         case .single, .group:
-            NavigationLink(value: ChatRoute(id: conversation.id, kind: conversation.kind,
-                title: conversation.title, avatarURL: conversation.avatarURL)) { conversationRow(conversation) }
-                .buttonStyle(.plain)
+            Button {
+                createdRoute = ChatRoute(id: conversation.id, kind: conversation.kind,
+                    title: conversation.title, avatarURL: conversation.avatarURL)
+            } label: { conversationRow(conversation) }
+                .buttonStyle(MessagingRowStyle())
         case .systemMessage:
-            NavigationLink(value: ContactsPageRoute.groupAssistant) { conversationRow(conversation) }.buttonStyle(.plain)
+            NavigationLink(value: ContactsPageRoute.groupAssistant) { conversationRow(conversation) }.buttonStyle(MessagingRowStyle())
         default: conversationRow(conversation)
         }
     }
@@ -236,68 +239,52 @@ struct MessageView: View {
         }
     }
 
-    /// 卡片承载列表摘要与状态，操作入口由父级导航和菜单提供。
+    /// 平铺行对齐老项目头像、摘要和右侧状态列，辅助字号允许增高。
     private func conversationRow(_ conversation: ConversationRecord) -> some View {
-        HStack(alignment: .top, spacing: 13) {
+        HStack(spacing: 12.zoom()) {
             avatar(for: conversation)
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(conversation.title.isEmpty ? "未命名会话" : conversation.title)
-                        .font(.body.weight(conversation.unreadCount > 0 || conversation.isMarkedUnread ? .semibold : .medium))
-                        .foregroundColor(ClubTheme.ink)
-                        .lineLimit(1)
-                    if conversation.isMuted {
-                        Image(systemName: "bell.slash.fill")
-                            .font(.caption2)
-                            .foregroundColor(ClubTheme.secondary)
-                            .accessibilityHidden(true)
-                    }
-                    Spacer(minLength: 0)
-                    if let latestTime = conversation.latestTime {
-                        Text(Self.displayTime(latestTime))
-                            .font(.caption)
-                            .foregroundColor(ClubTheme.secondary)
-                            .fixedSize()
+                .overlay(alignment: .topLeading) {
+                    if conversation.isPinned {
+                        Image(systemName: "pin.fill").font(.caption2).foregroundStyle(MessagingTheme.accent)
+                            .padding(3.zoom()).background(MessagingTheme.surface, in: Circle())
+                            .offset(x: (-10).zoom(), y: (-2).zoom()).accessibilityHidden(true)
                     }
                 }
-                HStack(alignment: .top, spacing: 8) {
-                    preview(for: conversation)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 6.zoom()) {
+                Text(conversation.title.isEmpty ? "未命名会话" : conversation.title)
+                    .font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text).lineLimit(2)
+                preview(for: conversation)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .trailing, spacing: 10.zoom()) {
+                if let latestTime = conversation.latestTime {
+                    Text(Self.displayTime(latestTime)).font(.caption).foregroundStyle(MessagingTheme.secondaryText).fixedSize()
+                }
+                HStack(spacing: 6.zoom()) {
+                    if conversation.isMuted {
+                        Image(systemName: "bell.slash.fill").font(.caption2).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
+                    }
                     unreadIndicator(for: conversation)
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 2)
+            }.frame(minHeight: 50.zoom(), alignment: .topTrailing)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ClubTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(ClubTheme.border, lineWidth: 1)
-        }
-        .overlay(alignment: .leading) {
-            if conversation.isPinned {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(ClubTheme.darkTeal)
-                    .frame(width: 4)
-                    .padding(.vertical, 12)
-            }
-        }
+        .padding(.horizontal, 16.zoom()).padding(.vertical, 14.zoom())
+        .frame(maxWidth: .infinity, minHeight: 80.zoom(), alignment: .leading)
+        .contentShape(Rectangle())
+        .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 0.5).padding(.leading, 78.zoom()) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel(for: conversation))
     }
 
     /// 草稿仅替代最新摘要，不修改消息历史。
     private func preview(for conversation: ConversationRecord) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        HStack(alignment: .firstTextBaseline, spacing: 4.zoom()) {
             if conversation.isDraft {
-                Text("草稿").font(.subheadline.weight(.semibold)).foregroundColor(ClubTheme.error)
+                Text("草稿").font(.subheadline.weight(.semibold)).foregroundColor(MessagingTheme.error)
             }
             Text(conversation.preview.isEmpty ? "暂无消息预览" : conversation.preview)
                 .font(.subheadline)
-                .foregroundColor(ClubTheme.secondary)
-                .lineLimit(2)
+                .foregroundColor(MessagingTheme.secondaryText)
+                .lineLimit(1)
         }
     }
 
@@ -308,15 +295,15 @@ struct MessageView: View {
             Text(conversation.unreadCount > 99 ? "99+" : String(conversation.unreadCount))
                 .font(.caption2.weight(.bold))
                 .foregroundColor(.white)
-                .padding(.horizontal, 6)
-                .frame(minWidth: 20, minHeight: 20)
-                .background(conversation.isMuted ? ClubTheme.secondary : ClubTheme.error, in: Capsule())
+                .padding(.horizontal, 6.zoom())
+                .frame(minWidth: 20.zoom(), minHeight: 20.zoom())
+                .background(conversation.isMuted ? MessagingTheme.mutedBadge : MessagingTheme.badge, in: Capsule())
                 .accessibilityHidden(true)
         } else if conversation.isMarkedUnread {
             Circle()
-                .fill(conversation.isMuted ? ClubTheme.secondary : ClubTheme.error)
-                .frame(width: 9, height: 9)
-                .padding(.top, 5)
+                .fill(conversation.isMuted ? MessagingTheme.mutedBadge : MessagingTheme.badge)
+                .frame(width: 9.zoom(), height: 9.zoom())
+                .padding(.top, 5.zoom())
                 .accessibilityHidden(true)
         }
     }
@@ -327,14 +314,15 @@ struct MessageView: View {
         let url = RemoteAvatarURL.resolve(conversation.avatarURL, relativeTo: fileHost)
         return KFImage(url)
             .downloader(NetworkImageDownloader.downloader(for: fileHost))
-            .setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: 50, height: 50)))
+            .setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: 50.zoom(), height: 50.zoom())))
             .cacheOriginalImage()
             .cancelOnDisappear(true)
             .placeholder { avatarPlaceholder(for: conversation.kind) }
             .resizable()
             .scaledToFill()
-            .frame(width: 50, height: 50)
-            .clipShape(RoundedRectangle(cornerRadius: 15))
+            .frame(width: 50.zoom(), height: 50.zoom())
+            .clipShape(Circle())
+            .overlay(Circle().stroke(MessagingTheme.border, lineWidth: 1))
             .accessibilityHidden(true)
     }
 
@@ -350,10 +338,10 @@ struct MessageView: View {
         case .paymentAssistant: symbol = "creditcard.fill"
         }
         return Image(systemName: symbol)
-            .font(.system(size: 22, weight: .medium))
-            .foregroundColor(ClubTheme.darkTeal)
-            .frame(width: 50, height: 50)
-            .background(ClubTheme.pale)
+            .font(.system(size: 22.zoom(), weight: .medium))
+            .foregroundColor(MessagingTheme.accent)
+            .frame(width: 50.zoom(), height: 50.zoom())
+            .background(MessagingTheme.avatarBackground)
     }
 
     /// 合并状态文案供 VoiceOver 读取整条会话。

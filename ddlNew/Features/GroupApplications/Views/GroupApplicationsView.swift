@@ -1,6 +1,12 @@
-// Created by taobo on 2026/10/13.
+//
+//  GroupApplicationsView.swift
+//  ddlNew
+//
+//  Created by taobo on 2026/10/13.
+//
 import SwiftUI
 import Combine
+import UIAdapter
 
 /// 群助手和单群共用页面，好友申请不复用群审核协议。
 struct GroupApplicationsView: View {
@@ -8,7 +14,9 @@ struct GroupApplicationsView: View {
     @StateObject private var store = GroupApplicationsStore(client: SDKGroupApplicationsClient())
     @ObservedObject private var session = UserSessionStore.shared
     @ObservedObject private var conversations = LoginSessionService.shared.conversations
-    @State private var pendingOnly = false
+    @State private var filter = GroupApplicationFilter.all
+    private var pendingOnly: Bool { filter == .pending }
+    private var allSelected: Bool { let ids = Set(store.records.filter { $0.status == 1 }.map(\.id)); return !ids.isEmpty && ids.isSubset(of: store.selectedIDs) }
     @State private var confirmation: Bool?
     @Environment(\.scenePhase) private var scenePhase
 
@@ -17,29 +25,28 @@ struct GroupApplicationsView: View {
 
     var body: some View {
         List {
-            Picker("审核状态", selection: $pendingOnly) {
-                Text("全部").tag(false); Text("待审核").tag(true)
-            }.pickerStyle(.segmented)
-            if let error = store.errorMessage { Text(error).foregroundStyle(ClubTheme.error) }
-            if let notice = store.notice { Text(notice).font(.subheadline) }
-            if store.records.isEmpty && !store.isLoading && store.errorMessage == nil { Text("暂无群申请") }
-            ForEach(store.records) { record in applicationRow(record) }
-            if store.isLoading { ProgressView("正在加载") }
+            if let error = store.errorMessage { Text(error).font(.footnote).foregroundStyle(MessagingTheme.error).listRowBackground(MessagingTheme.surface) }
+            if let notice = store.notice { Text(notice).font(.subheadline).foregroundStyle(MessagingTheme.accent).listRowBackground(MessagingTheme.surface) }
+            if store.records.isEmpty && !store.isLoading && store.errorMessage == nil { VStack(spacing: 12.zoom()) { Image(systemName: "person.badge.plus").font(.largeTitle).accessibilityHidden(true); Text(pendingOnly ? "暂无待审核申请" : "暂无群通知") }.foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, minHeight: 180.zoom()).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden) }
+            ForEach(store.records) { record in applicationRow(record).listRowBackground(MessagingTheme.surface) }
+            if store.isLoading { ProgressView("正在加载").frame(maxWidth: .infinity, minHeight: 44).listRowBackground(MessagingTheme.background).listRowSeparator(.hidden) }
             else if store.hasMore { Button("加载更多") { Task { await store.loadMore() } }.frame(minHeight: 44) }
         }
+        .listStyle(.plain)
+        .safeAreaInset(edge: .top, spacing: 0) { MessagingTabs(selection: $filter).padding(.horizontal, 16.zoom()).background(MessagingTheme.surface).disabled(store.isReviewing) }
+        .modifier(MessagingPageChrome())
         .navigationTitle(groupID == nil ? "群通知" : "入群审核")
         .navigationBarTitleDisplayMode(.inline).navigationBarHidden(false)
         .refreshable { await store.reload(pendingOnly: pendingOnly) }
         .safeAreaInset(edge: .bottom) {
             if pendingOnly && !store.records.isEmpty {
-                HStack {
-                    Button("全选") { store.selectAll() }
-                    Spacer()
-                    Button("同意（\(store.selectedIDs.count)）") { confirmation = true }
-                        .disabled(store.selectedIDs.isEmpty || store.isReviewing)
-                    Button("拒绝", role: .destructive) { confirmation = false }
-                        .disabled(store.selectedIDs.isEmpty || store.isReviewing)
-                }.padding().background(HomeTheme.surface)
+                VStack(spacing: 8.zoom()) {
+                    if store.isReviewing { ProgressView("正在审核") }
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12.zoom()) { selectAllButton; Spacer(minLength: 0); reviewButtons }
+                        VStack(spacing: 8.zoom()) { selectAllButton; HStack(spacing: 12.zoom()) { reviewButtons } }
+                    }
+                }.padding(16.zoom()).background(MessagingTheme.surface).overlay(alignment: .top) { Rectangle().fill(MessagingTheme.divider).frame(height: 1) }
                     .disabled(store.isReviewing)
             }
         }
@@ -73,19 +80,41 @@ struct GroupApplicationsView: View {
 
     /// 待审核行支持勾选与确认，已处理行显示服务器状态。
     private func applicationRow(_ record: GroupApplicationRecord) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(record.nickname.isEmpty ? "群申请" : record.nickname).font(.headline)
-            Text("群：\(record.groupID)").font(.caption).foregroundStyle(.secondary)
-            if !record.reason.isEmpty { Text(record.reason).font(.subheadline) }
-            if record.status == 1 {
-                Toggle("选择此申请", isOn: Binding(get: { store.selectedIDs.contains(record.id) }, set: {
-                    if $0 { store.selectedIDs.insert(record.id) } else { store.selectedIDs.remove(record.id) }
-                })).disabled(store.isReviewing)
-                HStack {
-                    Button("同意") { store.selectedIDs = [record.id]; confirmation = true }
-                    Button("拒绝", role: .destructive) { store.selectedIDs = [record.id]; confirmation = false }
-                }.buttonStyle(.bordered).disabled(store.isReviewing)
-            } else { Text(record.statusText).foregroundStyle(.secondary) }
-        }.padding(.vertical, 6).accessibilityIdentifier("groupApplication.\(record.id)")
+        HStack(alignment: .top, spacing: 12.zoom()) {
+            if pendingOnly && record.status == 1 {
+                Button { toggle(record.id) } label: { Image(systemName: store.selectedIDs.contains(record.id) ? "checkmark.circle.fill" : "circle").font(.title3).frame(minWidth: 44, minHeight: 44) }.disabled(store.isReviewing).accessibilityLabel(record.nickname + (store.selectedIDs.contains(record.id) ? "，已选" : "，未选")).accessibilityAddTraits(store.selectedIDs.contains(record.id) ? .isSelected : [])
+            }
+            VStack(alignment: .leading, spacing: 8.zoom()) {
+                Text(record.nickname.isEmpty ? "群申请" : record.nickname).font(.headline).foregroundStyle(MessagingTheme.text)
+                Text("群：\(record.groupID)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                if !record.reason.isEmpty { Text(record.reason).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
+                if record.status == 1 {
+                    if pendingOnly { Text("待审核").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                    else {
+                        HStack(spacing: 12.zoom()) {
+                            Button("同意") { store.selectedIDs = [record.id]; confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
+                            Button("拒绝", role: .destructive) { store.selectedIDs = [record.id]; confirmation = false }.buttonStyle(.bordered).tint(MessagingTheme.error)
+                        }.controlSize(.large).frame(minHeight: 44).disabled(store.isReviewing)
+                    }
+                } else { Text(record.statusText).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.vertical, 12.zoom()).accessibilityIdentifier("groupApplication.\(record.id)")
     }
+
+    /// 全选按钮可反选，批量审核仅提交当前页真实待审核ID。
+    private var selectAllButton: some View {
+        Button { if allSelected { store.selectedIDs = [] } else { store.selectAll() } } label: { Label(allSelected ? "取消全选" : "全选", systemImage: allSelected ? "checkmark.circle.fill" : "circle").fixedSize(horizontal: true, vertical: false).frame(minHeight: 44) }
+    }
+
+    private var reviewButtons: some View {
+        Group {
+            Button("拒绝", role: .destructive) { confirmation = false }.buttonStyle(.bordered).tint(MessagingTheme.error)
+            Button("同意(\(store.selectedIDs.count))") { confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
+        }.controlSize(.large).frame(minHeight: 44).disabled(store.selectedIDs.isEmpty || store.isReviewing)
+    }
+
+    /// 单行选择与底部批量操作使用同一个服务端ID集合。
+    private func toggle(_ id: String) { if store.selectedIDs.contains(id) { store.selectedIDs.remove(id) } else { store.selectedIDs.insert(id) } }
 }
+
+private enum GroupApplicationFilter: String, CaseIterable { case all = "全部", pending = "待审核" }

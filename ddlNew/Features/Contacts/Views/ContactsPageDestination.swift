@@ -13,6 +13,7 @@ struct ContactsPageDestination: View {
     @ObservedObject var businessStore: ContactsBusinessStore
     let fileHost: URL?
     var body: some View {
+        Group {
         switch route {
         case .addFriend: AddFriendView(businessStore: businessStore, fileHost: fileHost)
         case .newFriends: NewFriendsView(businessStore: businessStore, fileHost: fileHost)
@@ -21,5 +22,6 @@ struct ContactsPageDestination: View {
         case .globalSearch: GlobalSearchView()
         case .groupAssistant: GroupApplicationsView()
         }
+        }.modifier(MessagingPageChrome())
     }
 }

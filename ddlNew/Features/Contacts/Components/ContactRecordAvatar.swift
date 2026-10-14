@@ -24,20 +24,21 @@ struct ContactRecordAvatar: View {
             .cancelOnDisappear(true)
             .placeholder {
                 ZStack {
-                    ClubTheme.pale
+                    MessagingTheme.avatarBackground
                     if contact.isDeleted {
                         Image(systemName: "person.crop.circle.badge.minus")
-                            .font(.system(size: size * 0.4)).foregroundColor(ClubTheme.secondary)
+                            .font(.system(size: size * 0.4)).foregroundColor(MessagingTheme.secondaryText)
                     } else {
                         Text(String(contact.displayName.prefix(1)))
                             .font(.system(size: size * 0.36, weight: .medium, design: .rounded))
-                            .foregroundColor(ClubTheme.ink)
+                            .foregroundColor(MessagingTheme.text)
                     }
                 }
             }
         .resizable().scaledToFill()
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.35))
+        .clipShape(Circle())
+        .overlay(Circle().stroke(MessagingTheme.border, lineWidth: 1))
         .accessibilityHidden(true)
     }
 }

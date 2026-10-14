@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ClubKeyboardDismissal: ViewModifier {
     let isFocused: Bool
+    var tint: Color = ClubTheme.darkTeal
+    var background: Color = ClubTheme.card
     let dismiss: () -> Void
 
     func body(content: Content) -> some View {
@@ -20,12 +22,12 @@ struct ClubKeyboardDismissal: ViewModifier {
                         Spacer()
                         Button("完成", action: dismiss)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(ClubTheme.darkTeal)
+                            .foregroundColor(tint)
                             .accessibilityIdentifier("keyboardDone")
                             .frame(minWidth: 60, minHeight: 44)
                     }
                     .padding(.horizontal, 16)
-                    .background(ClubTheme.card)
+                    .background(background)
                 }
             }
             .onSubmit(dismiss)

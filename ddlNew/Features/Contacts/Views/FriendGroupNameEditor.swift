@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIAdapter
 
 /// 分组名称编辑留在sheet内等待回执，失败保留输入与目标分组。
 struct FriendGroupNameEditor: View {
@@ -26,22 +27,31 @@ struct FriendGroupNameEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("分组名称") { TextField("分组名称", text: $name).accessibilityLabel("分组名称").disabled(businessStore.isSubmitting) }
+                Section("分组名称") { TextField("请输入分组名称", text: $name).frame(minHeight: 44).accessibilityLabel("分组名称").disabled(businessStore.isSubmitting) }
                 if businessStore.isSubmitting { ProgressView("正在保存分组") }
-                if let error = businessStore.errorMessage { Text(error).foregroundStyle(ClubTheme.error) }
+                if let error = businessStore.errorMessage { Text(error).foregroundStyle(MessagingTheme.error) }
             }
-            .navigationTitle(groupID == nil ? "新建分组" : "重命名分组").navigationBarTitleDisplayMode(.inline)
+            .listRowBackground(MessagingTheme.surface)
+            .navigationTitle(groupID == nil ? "添加分组" : "重命名分组")
+            .modifier(MessagingPageChrome())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(businessStore.isSubmitting) }
-                ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { await save() } }.disabled(businessStore.isSubmitting || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (groupID != nil && !isDirty)) }
             }
-            .tint(HomeTheme.forest)
+            .safeAreaInset(edge: .bottom) {
+                Button { Task { await save() } } label: {
+                    Text(businessStore.isSubmitting ? "正在保存" : "保存").frame(maxWidth: .infinity).frame(minHeight: max(44, 50.zoom()))
+                }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction)
+                    .disabled(businessStore.isSubmitting || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (groupID != nil && !isDirty))
+                    .padding(16.zoom()).background(MessagingTheme.surface)
+            }
             .interactiveDismissDisabled(businessStore.isSubmitting || isDirty)
             .confirmationDialog("放弃未保存的分组名称？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
                 Button("继续编辑", role: .cancel) {}
                 Button("放弃修改", role: .destructive) { dismiss() }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     /// 服务端成功后才关闭编辑器，失败时保留原草稿供重试。

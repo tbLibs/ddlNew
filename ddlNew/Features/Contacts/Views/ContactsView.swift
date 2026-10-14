@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIAdapter
 
 /// 真实通讯录保留好友缓存所有者，新增分组、群列表与业务入口。
 struct ContactsView: View {
@@ -20,6 +21,8 @@ struct ContactsView: View {
     @State private var selectingMembers = false
     @State private var createdRoute: ChatRoute?
     @State private var openGroups = Set<String>()
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.layoutDirection) private var layoutDirection
     @FocusState private var searchFocused: Bool
 
@@ -27,52 +30,49 @@ struct ContactsView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-        ClubScroll {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .top) {
-                    ScreenHeading(eyebrow: "一起发现，一起参与", title: "通讯录")
-                    Spacer(minLength: 8)
-                    NavigationLink(value: ContactsPageRoute.globalSearch) { Image(systemName: "magnifyingglass").frame(width: 44, height: 44) }.accessibilityLabel("全局搜索")
-                    if permissions.current?.allows("allowAddFriend") == true {
-                        NavigationLink(value: ContactsPageRoute.addFriend) {
-                            Image(systemName: "person.badge.plus").frame(width: 44, height: 44)
-                        }.accessibilityLabel("添加好友")
-                    }
-                }
-                ClubCard(padding: 18, highlighted: true) {
-                    HStack(spacing: 14) {
-                        ClubIcon(name: "contacts", size: 26).foregroundStyle(ClubTheme.darkTeal).frame(width: 52, height: 52)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("我的好友").font(.headline)
-                            Text("\(store.contacts.count) 位好友").font(.subheadline).foregroundStyle(ClubTheme.secondary).accessibilityIdentifier("contactsCount")
+            VStack(spacing: 0.zoom()) {
+                header
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0.zoom(), pinnedViews: [.sectionHeaders]) {
+                        shortcuts.padding(.horizontal, 12.zoom()).padding(.vertical, 12.zoom())
+                        Section {
+                            content
+                        } header: {
+                            VStack(spacing: 8.zoom()) {
+                                VStack(alignment: .leading, spacing: 4.zoom()) {
+                                HStack(spacing: 8.zoom()) {
+                                    MessagingTabs(selection: $filter)
+                                    if store.isSyncing { ProgressView().accessibilityLabel("正在同步好友") }
+                                    if !dynamicTypeSize.isAccessibilitySize { contactsCount }
+                                }
+                                if dynamicTypeSize.isAccessibilitySize {
+                                    HStack {
+                                        contactsCount
+                                        Spacer(minLength: 8)
+                                        if filter == .friends && !sections.isEmpty { letterIndex(proxy: proxy) }
+                                    }
+                                }
+                                }
+                                MessagingSearchField(placeholder: filter == .groups ? "搜索群名称" : "搜索备注、昵称、账号",
+                                                     text: $query, focus: $searchFocused, identifier: "contactSearch")
+                            }.padding(.horizontal, 16.zoom()).padding(.bottom, 12.zoom()).background(MessagingTheme.background)
                         }
-                        Spacer(); if store.isSyncing { ProgressView().accessibilityLabel("正在同步好友") }
+                        errors.padding(16.zoom())
                     }
                 }
-                HStack {
-                    NavigationLink(value: ContactsPageRoute.newFriends) {
-                        Label("新朋友", systemImage: "person.crop.circle.badge.plus")
-                        if businessStore.unreadCount > 0 { Text(businessStore.unreadCount > 99 ? "99+" : "\(businessStore.unreadCount)").font(.caption.bold()).foregroundStyle(ClubTheme.error) }
+                .scrollDismissesKeyboard(.interactively)
+                .refreshable { await store.reload(); await businessStore.reload(); await groupsStore.reload() }
+                .overlay(alignment: .trailing) {
+                    if filter == .friends, layoutDirection == .leftToRight, !sections.isEmpty, !dynamicTypeSize.isAccessibilitySize {
+                        letterIndex(proxy: proxy)
                     }
-                    Spacer()
-                    if permissions.current?.allows("isShowFileAssistant") == true {
-                        NavigationLink(value: ChatRoute(id: "100002", kind: .single, title: "文件助手", avatarURL: "")) { Label("文件助手", systemImage: "folder") }
-                    }
-                }.font(.subheadline)
-                NavigationLink(value: ContactsPageRoute.groupAssistant) { Label("群助手", systemImage: "person.2.badge.gearshape") }.font(.subheadline)
-                CommunitySearchField(placeholder: filter == .groups ? "搜索群名称" : "搜索备注、昵称、账号", text: $query, focus: $searchFocused, identifier: "contactSearch")
-                CommunityFilters(selection: $filter)
-                if filter == .friends, layoutDirection == .leftToRight, !sections.isEmpty {
-                    Menu("按字母定位") { ForEach(sections) { section in Button(section.id) { proxy.scrollTo("contact.section.\(section.id)", anchor: .top) } } }
                 }
-                content
-                if let error = store.errorMessage { Text(error).font(.subheadline).foregroundStyle(ClubTheme.error) }
-                if let error = businessStore.errorMessage { Text(error).font(.subheadline).foregroundStyle(ClubTheme.error) }
-                if let error = groupsStore.errorMessage { Text(error).font(.subheadline).foregroundStyle(ClubTheme.error) }
-            }.padding(.horizontal, 20).padding(.top, 18)
+            }
+            .frame(maxWidth: 720).frame(maxWidth: .infinity)
+            .background(MessagingTheme.background.ignoresSafeArea())
         }
-        }
-        .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
+        .tint(MessagingTheme.accent)
+        .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .task { await store.reload(); await businessStore.reload(); await groupsStore.reload() }
         .sheet(isPresented: $managingGroups) { FriendGroupManagerView(businessStore: businessStore) }
         .sheet(isPresented: $selectingMembers) {
@@ -90,73 +90,185 @@ struct ContactsView: View {
         }
     }
 
+    /// 紧凑页头固定在安全区域内，搜索和添加均保留44pt点击范围。
+    private var header: some View {
+        HStack(spacing: 8.zoom()) {
+            Text("通讯录").font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 8)
+            NavigationLink(value: ContactsPageRoute.globalSearch) {
+                Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel("全局搜索")
+            if permissions.current?.allows("allowAddFriend") == true {
+                NavigationLink(value: ContactsPageRoute.addFriend) {
+                    Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+                }.accessibilityLabel("添加好友")
+            }
+        }.foregroundStyle(MessagingTheme.text).padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+    }
+
+    /// 数量在大字号下独立一行，不挤压三个分类按钮。
+    private var contactsCount: some View {
+        Text("\(store.contacts.count) 位好友").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+            .accessibilityIdentifier("contactsCount")
+    }
+
+    /// 文件助手按实时权限显示，其余入口在同一行均分空间。
+    private var shortcuts: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8.zoom())) : AnyLayout(HStackLayout(spacing: 12.zoom()))
+        return layout {
+            NavigationLink(value: ContactsPageRoute.newFriends) {
+                ContactShortcut(title: "新朋友", symbol: "person.crop.circle.badge.plus", unreadCount: businessStore.unreadCount)
+            }
+            if permissions.current?.allows("isShowFileAssistant") == true {
+                NavigationLink(value: ChatRoute(id: "100002", kind: .single, title: "文件助手", avatarURL: "")) {
+                    ContactShortcut(title: "文件助手", symbol: "folder")
+                }
+            }
+            NavigationLink(value: ContactsPageRoute.groupAssistant) {
+                ContactShortcut(title: "群助手", symbol: "bubble.left.and.bubble.right")
+            }
+        }.buttonStyle(.plain)
+    }
+
+    /// 字母索引可直接点击，也提供完整菜单供大字号与VoiceOver定位。
+    private func letterIndex(proxy: ScrollViewProxy) -> some View {
+        VStack(spacing: 4.zoom()) {
+            if !dynamicTypeSize.isAccessibilitySize && verticalSizeClass != .compact {
+                VStack(spacing: 4.zoom()) {
+                    ForEach(sections) { section in
+                        Text(section.id).font(.system(size: 11.zoom(), weight: .semibold)).frame(height: 13.zoom()).accessibilityHidden(true)
+                    }
+                }
+                .frame(width: max(44, 44.zoom())).padding(.vertical, 8.zoom())
+                .background(MessagingTheme.surface.opacity(0.95), in: Capsule())
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                    let index = min(max(Int((value.location.y - 8.zoom()) / (13.zoom() + 4.zoom())), 0), sections.count - 1)
+                    proxy.scrollTo("contact.section.\(sections[index].id)", anchor: .center)
+                })
+                .accessibilityHidden(true)
+            }
+            Menu {
+                ForEach(sections) { section in
+                    Button(section.id) { proxy.scrollTo("contact.section.\(section.id)", anchor: .center) }
+                }
+            } label: {
+                Image(systemName: "list.bullet").font(.system(size: 18.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+                    .background(MessagingTheme.surface, in: Circle())
+            }.accessibilityLabel("按字母定位好友")
+        }.foregroundStyle(MessagingTheme.accent).padding(.trailing, 2.zoom())
+    }
+
     /// 三种列表分别读取好友、业务分组和群库，不用演示数据填充空态。
     @ViewBuilder private var content: some View {
         switch filter {
         case .friends:
             if sections.isEmpty {
-                if store.isSyncing { ProgressView("正在同步好友") }
+                if store.isSyncing { ProgressView("正在同步好友").padding(16.zoom()) }
                 else if store.errorMessage == nil {
-                    EmptyClubState(title: query.isEmpty ? "暂无好友" : "没有找到相关好友", message: "添加好友后，可在这里查看真实好友资料。")
+                    emptyState(query.isEmpty ? "暂无好友" : "没有找到相关好友", detail: "添加好友后，可在这里查看好友资料。")
                         .accessibilityIdentifier("contactsEmptyState")
                 }
             }
             ForEach(sections) { section in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(section.id).font(.caption.weight(.semibold)).foregroundStyle(ClubTheme.secondary).accessibilityAddTraits(.isHeader)
-                    ClubCard(padding: 0) { LazyVStack(spacing: 0) { ForEach(section.contacts) { contact in contactLink(contact) } } }
-                }.id("contact.section.\(section.id)")
+                Text(section.id).font(.caption.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16.zoom()).padding(.vertical, 6.zoom())
+                    .background(MessagingTheme.background).accessibilityAddTraits(.isHeader)
+                    .id("contact.section.\(section.id)")
+                ForEach(section.contacts) { contact in contactLink(contact) }
             }
         case .friendGroups:
-            Button("管理好友分组") { managingGroups = true }.buttonStyle(.bordered)
+            Button { managingGroups = true } label: {
+                Label("管理好友分组", systemImage: "slider.horizontal.3").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
+            }.buttonStyle(MessagingRowStyle())
             if businessStore.groups.isEmpty {
-                if businessStore.isLoading { ProgressView("正在加载好友分组") }
-                else if businessStore.errorMessage == nil { EmptyClubState(title: "暂无好友分组", message: "可创建分组来整理好友。") }
+                if businessStore.isLoading { ProgressView("正在加载好友分组").padding(16.zoom()) }
+                else if businessStore.errorMessage == nil { emptyState("暂无好友分组", detail: "可创建分组来整理好友。") }
             }
             ForEach(businessStore.groups) { group in
-                ClubCard(padding: 0) {
-                    VStack(spacing: 0) {
-                        Button { toggleGroup(group.id) } label: {
-                            HStack { Text(group.name).font(.headline); Text("\(group.members.count)").foregroundStyle(ClubTheme.secondary); Spacer(); Image(systemName: openGroups.contains(group.id) ? "chevron.down" : "chevron.right").accessibilityHidden(true) }.padding(16)
-                        }.buttonStyle(.plain).accessibilityLabel("\(group.name)，\(group.members.count)位好友")
-                        if openGroups.contains(group.id) { ForEach(group.members.filter { query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query) }) { contact in contactLink(contact) } }
-                    }
+                Button { toggleGroup(group.id) } label: {
+                    HStack(spacing: 12.zoom()) {
+                        Image(systemName: openGroups.contains(group.id) ? "chevron.down" : "chevron.right").font(.caption).accessibilityHidden(true)
+                        Text(group.name).foregroundStyle(MessagingTheme.text)
+                        Spacer()
+                        Text("\(group.members.count)").foregroundStyle(MessagingTheme.secondaryText)
+                    }.padding(.horizontal, 16.zoom()).frame(minHeight: 54.zoom())
+                }.buttonStyle(MessagingRowStyle()).accessibilityLabel("\(group.name)，\(group.members.count)位好友")
+                    .accessibilityValue(openGroups.contains(group.id) ? "已展开" : "已收起")
+                if openGroups.contains(group.id) {
+                    ForEach(group.members.filter { query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query) }) { contact in contactLink(contact) }
                 }
             }
         case .groups:
             if permissions.current?.allows("createGroup") == true {
-                Button("创建群聊") { selectingMembers = true }.buttonStyle(.bordered).disabled(groupsStore.isCreating)
+                Button { selectingMembers = true } label: {
+                    Label("创建群聊", systemImage: "person.2.badge.plus").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
+                }.buttonStyle(MessagingRowStyle()).disabled(groupsStore.isCreating)
             }
-            if groupsStore.isCreating { ProgressView("正在创建群聊") }
+            if groupsStore.isCreating { ProgressView("正在创建群聊").padding(16.zoom()) }
             let visible = groupsStore.groups.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
             if visible.isEmpty {
-                if groupsStore.isLoading { ProgressView("正在加载群聊") }
-                else if groupsStore.errorMessage == nil { EmptyClubState(title: query.isEmpty ? "暂无群聊" : "没有找到群聊", message: "加入或创建群聊后，将在这里显示。") }
+                if groupsStore.isLoading { ProgressView("正在加载群聊").padding(16.zoom()) }
+                else if groupsStore.errorMessage == nil { emptyState(query.isEmpty ? "暂无群聊" : "没有找到群聊", detail: "加入或创建群聊后，将在这里显示。") }
             }
             ForEach(visible) { group in
                 NavigationLink(value: ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar)) {
-                    ClubCard { HStack { GroupRecordAvatar(group: group, fileHost: fileHost); Text(group.name).foregroundStyle(ClubTheme.ink); Spacer(); Image(systemName: "chevron.right").accessibilityHidden(true) } }
-                }.buttonStyle(.plain)
+                    HStack(spacing: 12.zoom()) {
+                        GroupRecordAvatar(group: group, fileHost: fileHost)
+                        Text(group.name).foregroundStyle(MessagingTheme.text).lineLimit(2)
+                        Spacer(minLength: 8)
+                        Text("\(group.memberCount)人").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                    }.padding(.horizontal, 16.zoom()).padding(.vertical, 10.zoom()).frame(maxWidth: .infinity, minHeight: 68.zoom(), alignment: .leading)
+                }.buttonStyle(MessagingRowStyle())
             }
         }
+    }
+
+    /// 所有加载错误仍在所属列表显示，避免视觉改版吞掉业务反馈。
+    private var errors: some View {
+        VStack(alignment: .leading, spacing: 8.zoom()) {
+            if let error = store.errorMessage { Text(error) }
+            if let error = businessStore.errorMessage { Text(error) }
+            if let error = groupsStore.errorMessage { Text(error) }
+        }.font(.subheadline).foregroundStyle(MessagingTheme.error)
+    }
+
+    /// 空态使用中性排版，真实数据为空时仍说明下一步操作。
+    private func emptyState(_ title: String, detail: String) -> some View {
+        VStack(spacing: 12.zoom()) {
+            Text(title).font(.headline).foregroundStyle(MessagingTheme.text)
+            Text(detail).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).multilineTextAlignment(.center)
+        }.frame(maxWidth: .infinity).padding(.horizontal, 24.zoom()).padding(.vertical, 48.zoom())
     }
 
     /// 展开状态只按分组ID保存，刷新或改名后不会影响其他分组。
     private func toggleGroup(_ id: String) { if openGroups.contains(id) { openGroups.remove(id) } else { openGroups.insert(id) } }
 
-    /// 每个好友行携带稳定UID路由，避免打开后使用旧快照操作。
+    /// 平铺好友行使用稳定UID路由，名称优先，在线状态同时有语义描述。
     private func contactLink(_ contact: ContactRecord) -> some View {
         NavigationLink(value: ContactsRoute(contactID: contact.id)) {
-            HStack(spacing: 14) {
-                ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 48)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(contact.displayName).font(.body.weight(.semibold)).foregroundStyle(ClubTheme.ink).lineLimit(1)
-                    if let role = businessStore.roleName(roleID: contact.roleID, isDeleted: contact.isDeleted) { Text(role).font(.caption.bold()).foregroundStyle(ClubTheme.darkTeal) }
-                    if !contact.isDeleted { Text(contact.account.isEmpty ? contact.id : contact.account).font(.subheadline).foregroundStyle(ClubTheme.secondary).lineLimit(1) }
+            HStack(spacing: 12.zoom()) {
+                ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 50.zoom())
+                    .overlay(alignment: .topTrailing) {
+                        if contact.isOnline && !contact.isDeleted {
+                            Circle().fill(MessagingTheme.online).frame(width: 8.zoom(), height: 8.zoom())
+                                .overlay(Circle().stroke(MessagingTheme.surface, lineWidth: 1)).accessibilityHidden(true)
+                        }
+                    }
+                VStack(alignment: .leading, spacing: 4.zoom()) {
+                    Text(contact.displayName).font(.body).foregroundStyle(MessagingTheme.text).lineLimit(2)
+                    if let role = businessStore.roleName(roleID: contact.roleID, isDeleted: contact.isDeleted) {
+                        Text(role).font(.caption).foregroundStyle(MessagingTheme.accent)
+                    }
                 }
-                Spacer(); if contact.isOnline && !contact.isDeleted { Circle().fill(ClubTheme.darkTeal).frame(width: 7, height: 7).accessibilityLabel("在线") }
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(ClubTheme.secondary).accessibilityHidden(true)
-            }.padding(16).contentShape(Rectangle())
-        }.buttonStyle(CommunityRowStyle()).accessibilityIdentifier("contact.\(contact.id)")
+                Spacer(minLength: 0)
+            }
+            .padding(.leading, 16.zoom()).padding(.trailing, filter == .friends ? 48.zoom() : 16.zoom().zoom()).padding(.vertical, 9.zoom()).frame(maxWidth: .infinity, minHeight: 68.zoom(), alignment: .leading)
+            .contentShape(Rectangle())
+            .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 0.5).padding(.leading, 78.zoom()) }
+        }
+        .buttonStyle(MessagingRowStyle()).accessibilityIdentifier("contact.\(contact.id)")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(contact.displayName + (contact.isDeleted ? "，账号已注销" : contact.isOnline ? "，在线" : "，离线"))
     }
 }
