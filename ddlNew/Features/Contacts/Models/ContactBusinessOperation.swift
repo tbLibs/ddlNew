@@ -10,6 +10,9 @@ import Foundation
 /// 请求枚举明确操作范围，好友申请不提供没有真实协议的拒绝动作。
 nonisolated enum ContactBusinessOperation: Equatable, Sendable {
     case search(String)
+    case blackState(String)
+    case blacklist
+    case setBlack(friendID: String, blocked: Bool)
     case profile(String)
     case profileAfterAcceptance(String)
     case groupAccess(String)

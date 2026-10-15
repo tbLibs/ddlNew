@@ -14,6 +14,10 @@ import Combine
     @Published private(set) var groups: [FriendBusinessGroup] = []
     @Published private(set) var searchResults: [ContactRecord] = []
     @Published private(set) var profiles: [String: ContactRecord] = [:]
+    @Published private(set) var blackStates: [String: Bool] = [:]
+    @Published private(set) var blacklist: [ContactRecord] = []
+    @Published private(set) var isLoadingBlacklist = false
+    @Published private(set) var loadingBlackIDs: Set<String> = []
     @Published private(set) var groupNicknames: [String: [String: String]] = [:]
     @Published private(set) var friendIDs: Set<String> = []
     @Published private(set) var pendingApplicationIDs: Set<String> = []
@@ -48,6 +52,8 @@ import Combine
     private var readRevision = UUID()
     private var operationRevision = UUID()
     private var profileRevisions: [String: UUID] = [:]
+    private var blackStateRevisions: [String: UUID] = [:]
+    private var blacklistRevision = UUID()
     private var accessRevisions: [String: UUID] = [:]
     private var nicknameRevisions: [String: [String: UUID]] = [:]
     private let persistenceKey = contactsApplicationStateKey
@@ -247,6 +253,45 @@ import Combine
         return await perform(.reorderGroup(id: id, order: groups[toIndex].order))
     }
 
+    /// 黑名单状态独立读取；未知或失败不当成未拉黑，旧读取不能覆盖写操作。
+    func loadBlackState(_ id: String) async {
+        guard let identity, id != identity.userUID, !id.isEmpty, id != "100002" else { return }
+        let revision = UUID(); blackStateRevisions[id] = revision
+        loadingBlackIDs.insert(id)
+        defer { if self.identity == identity, blackStateRevisions[id] == revision { loadingBlackIDs.remove(id) } }
+        blackStates.removeValue(forKey: id)
+        do {
+            let response = try await client.request(.blackState(id), identity: identity)
+            guard self.identity == identity, blackStateRevisions[id] == revision, !Task.isCancelled else { return }
+            guard let blocked = response.isBlack else { throw ContactBusinessError.malformedResponse }
+            blackStates[id] = blocked
+        } catch {
+            if self.identity == identity, blackStateRevisions[id] == revision, !(error is CancellationError) { errorMessage = error.localizedDescription }
+        }
+    }
+
+    /// 名单只展示服务端快照，空成功清旧名单，失败仍保留旧内容供重试。
+    func loadBlacklist() async {
+        guard let identity, !isLoadingBlacklist else { return }
+        let revision = UUID(); blacklistRevision = revision
+        isLoadingBlacklist = true; errorMessage = nil; notice = nil
+        defer { if self.identity == identity, blacklistRevision == revision { isLoadingBlacklist = false } }
+        do {
+            let response = try await client.request(.blacklist, identity: identity)
+            guard self.identity == identity, blacklistRevision == revision, !Task.isCancelled else { return }
+            var seen = Set<String>()
+            blacklist = response.contacts.filter { $0.id != identity.userUID && $0.userType == 0 && seen.insert($0.id).inserted }
+                .sorted { $0.initial == $1.initial ? $0.sortName < $1.sortName : ($0.initial == "#" ? false : $1.initial == "#" ? true : $0.initial < $1.initial) }
+            let blockedIDs = Set(blacklist.map(\.id))
+            // 全量空名单同样是权威结果，其他端已解除时不能留下本机旧的禁止发送状态。
+            for id in Set(blackStates.keys).union(blockedIDs).union(loadingBlackIDs) {
+                blackStateRevisions[id] = UUID(); loadingBlackIDs.remove(id); blackStates[id] = blockedIDs.contains(id)
+            }
+        } catch {
+            if self.identity == identity, blacklistRevision == revision, !(error is CancellationError) { errorMessage = error.localizedDescription }
+        }
+    }
+
     /// 提交前校验输入与权限，服务器回执后重读真实关系而非伪造成功。
     @discardableResult func perform(_ operation: ContactBusinessOperation, sourceGroupID: String? = nil) async -> Bool {
         guard let identity, !isSubmitting else { return false }
@@ -261,6 +306,12 @@ import Combine
             guard response.success else { throw ContactBusinessError.invalidInput("服务器未完成此操作，请刷新状态后重试") }
             qrContent = response.qrCode; qrExpiry = response.expiry; qrTarget = response.qrTarget
             switch operation {
+            case .setBlack(let id, let blocked):
+                blackStateRevisions[id] = UUID(); blacklistRevision = UUID(); isLoadingBlacklist = false
+                loadingBlackIDs.remove(id)
+                blackStates[id] = blocked
+                if !blocked { blacklist.removeAll { $0.id == id } }
+                notice = blocked ? "已加入黑名单" : "已移出黑名单"
             case .apply(let friendID):
                 pendingApplicationIDs.insert(friendID)
                 pendingApplicationSnapshots[friendID] = applications.filter { $0.fromUID == identity.userUID && $0.targetUID == friendID }
@@ -302,6 +353,8 @@ import Combine
     /// 在提交时再次核对权限与当前好友，避免页面打开后权限变化绕过。
     private func validate(_ operation: ContactBusinessOperation) throws {
         switch operation {
+        case .setBlack(let id, _):
+            guard !id.isEmpty, id != identity?.userUID, id != "100002" else { throw ContactBusinessError.invalidInput("不能对该用户操作黑名单") }
         case .apply(let id):
             guard !pendingApplicationIDs.contains(id) else { throw ContactBusinessError.invalidInput("好友申请已发送，等待对方验证") }
             guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput("当前账号不能添加该用户") }
@@ -380,6 +433,7 @@ import Combine
 
     /// 退出或同UID重新AUTH时使请求与SDK观察同时失效。
     func reset() {
+        blackStates = [:]; blacklist = []; isLoadingBlacklist = false; loadingBlackIDs = []; blackStateRevisions = [:]; blacklistRevision = UUID()
         identity = nil; reloadTask?.cancel(); reloadTask = nil; pendingReload = false; client.reset(); readRevision = UUID(); searchRevision = UUID(); operationRevision = UUID(); profileRevisions = [:]; accessRevisions = [:]; nicknameRevisions = [:]
         applications = []; groups = []; searchResults = []; roleLabels = [:]; profiles = [:]; groupNicknames = [:]; friendIDs = []; pendingApplicationIDs = []; pendingApplicationSnapshots = [:]
         hidden = []; read = []; firstVisibleVersions = [:]; unreadVersions = [:]; hiddenUnreadHashes = []; hasUnreadSnapshot = false; page = 0; isActivated = false; unreadCount = 0; hasMoreApplications = false

@@ -18,6 +18,7 @@ import AVFoundation
     @Published private(set) var usesReceiver = false
     @Published var errorMessage: String?
     private var session: URLSession?
+    private var decodingTask: Task<URL, Error>?
     private var player: AVAudioPlayer?
     private var generation = UUID()
     private var loadedContext: ChatContext?
@@ -29,6 +30,7 @@ import AVFoundation
 
     /// 缓存路径包含俱乐部和用户，不从上个用户文件缓存打开附件。
     func load(_ message: ChatMessageRecord, context: ChatContext) async {
+        guard !Task.isCancelled else { return }
         if invalidatedMessageID == message.id || ChatRuntime.shared.isMessageDeleted(message, context: context) { invalidate(message.id); return }
         invalidatedMessageID = nil; isInvalidated = false
         close(); let run = generation
@@ -48,13 +50,22 @@ import AVFoundation
             let session = URLSession(configuration: .ephemeral, delegate: ChatTransferSessionDelegate(origin: host), delegateQueue: nil)
             self.session = session; defer { session.finishTasksAndInvalidate() }
             let (temporary, response) = try await session.download(for: URLRequest(url: resource))
+            defer { try? FileManager.default.removeItem(at: temporary) }
             guard !Task.isCancelled, generation == run, ChatRuntime.shared.isCurrent(context) else { return }
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw ChatClientError.unavailable("附件已失效或下载失败，请重试") }
-            let decoded = try await Task.detached { try LegacyChatMediaCodec.decodeFile(temporary) }.value
+            // 解包脱离主线程，但页面取消、后台关闭和原条删除仍须停止流式读写。
+            let decoding = Task.detached { try LegacyChatMediaCodec.decodeFile(temporary) }
+            decodingTask = decoding
+            defer { if generation == run { decodingTask = nil } }
+            let decoded = try await withTaskCancellationHandler {
+                try await decoding.value
+            } onCancel: {
+                decoding.cancel()
+            }
             defer { if decoded != temporary { try? FileManager.default.removeItem(at: decoded) } }
-            guard generation == run, ChatRuntime.shared.isCurrent(context) else { return }
+            guard !Task.isCancelled, generation == run, ChatRuntime.shared.isCurrent(context) else { return }
             try FileManager.default.moveItem(at: decoded, to: cached); file = cached
-        } catch { if generation == run, !(error is CancellationError) { errorMessage = "下载失败：" + error.localizedDescription } }
+        } catch { if generation == run, !Task.isCancelled, !(error is CancellationError) { errorMessage = "下载失败：" + error.localizedDescription } }
     }
 
     /// 成员历史删除只停止同身份同会话被删作者的已打开预览，不影响录音草稿。
@@ -126,7 +137,8 @@ import AVFoundation
     func close() {
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }; interruptionObserver = nil
         if playing { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
-        generation = UUID(); session?.invalidateAndCancel(); session = nil; player?.stop(); player = nil; file = nil; playing = false; loading = false
+        generation = UUID(); session?.invalidateAndCancel(); session = nil; decodingTask?.cancel(); decodingTask = nil
+        player?.stop(); player = nil; file = nil; playing = false; loading = false
         if !isInvalidated { errorMessage = nil }
     }
 }

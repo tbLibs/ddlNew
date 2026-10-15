@@ -6,6 +6,8 @@ import Foundation
     var page = ChatPage(messages: [], hasMore: false)
     var suspend = false
     var sent: [ChatMessageRecord] = []
+    var playedGames: [ChatMessageRecord] = []
+    func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws { playedGames.append(message) }
     var readBatches: [[ChatMessageRecord]] = []
     var suspendReads = false
     var readWaiting: CheckedContinuation<Void, Never>?
@@ -185,7 +187,44 @@ import Foundation
         await interruptedStore.markVisible("voicePending", voicePlayed: true)
         expect(interruptedClient.readBatches.count == 4 && interruptedStore.messages.first?.isRead == true, "成员历史变化后的旧语音读回执必须释放重播资格")
         interruptedStore.close()
-        print("Chat checks: 33 passed")
+        // 在群草稿中间选择成员，显示、UID与发送正文必须保持一致。
+        let mentionClient = SuspendedChatClient()
+        let mentionStore = ChatStore(client: mentionClient)
+        let groupContext = ChatContext(userUID: "me", tenantID: "club", sessionID: UUID(), route: ChatRoute(id: "group", kind: .group, title: "测试群", avatarURL: ""))
+        await mentionStore.open(groupContext)
+        let member = ChatGroupMember(id: "peer-uid", name: "测试成员", avatar: "", role: 0, isDeleted: false)
+        mentionStore.input = "[微笑]前@后🙂"; mentionStore.reconcileMentions()
+        let caret = mentionStore.insertMention(member, replacingAt: NSRange(location: 5, length: 1))
+        expect(mentionStore.input == "[微笑]前@测试成员 后🙂" && caret?.location == 11, "光标处选择成员保留表情、后文和Unicode")
+        expect(mentionStore.mentions.first?.userUID == member.id && mentionStore.mentions.first?.location == 5, "中间插入成员绑定真实UID")
+        mentionStore.sendText()
+        expect(mentionClient.sent.last?.type == 10 && mentionClient.sent.last?.mentions.first?.userUID == member.id, "提及正文沿现有type10发送并保留UID")
+        mentionStore.input = "@后文"; mentionStore.reconcileMentions()
+        mentionClient.policy.isPrivateChat = true
+        mentionClient.callback?(.permissionsChanged)
+        expect(mentionStore.insertMention(member, replacingAt: NSRange(location: 0, length: 1)) == nil && mentionStore.input == "@后文", "普通成员受限时保留普通@不添加UID")
+        mentionStore.close()
+        expect(mentionStore.insertMention(member, replacingAt: NSRange(location: 0, length: 1)) == nil, "关闭会话后拒绝迟到成员选择")
+        let gameClient = SuspendedChatClient(); let gameStore = ChatStore(client: gameClient)
+        await gameStore.open(groupContext)
+        gameStore.input = "保留草稿🙂"; gameStore.reference = message("reference-game", server: "reference-game")
+        for kind in ChatGameSticker.allCases {
+            gameStore.sendGame(kind)
+            guard let sent = gameClient.sent.last else { fatalError("游戏未进入发送队列") }
+            expect(sent.type == 21 && sent.gameType == kind.rawValue && kind.isValid(sent.text) && sent.referenceID.isEmpty, "默认游戏使用旧type21和一次生成的有效结果")
+            expect(gameStore.input == "保留草稿🙂" && gameStore.reference != nil, "游戏发送不清除文字草稿和引用")
+            gameStore.completeGameAnimation(sent)
+            expect(gameClient.playedGames.last?.id == sent.id && gameStore.messages.first(where: { $0.id == sent.id })?.gameAnimationPlayed == true, "动画完成回写当前原条")
+            gameClient.callback?(.failed(localID: sent.localID, reason: .timeout))
+            gameStore.retry(sent.localID)
+            expect(gameClient.sent.last?.id == sent.id && kind.isValid(gameClient.sent.last?.text ?? "") && gameClient.sent.last?.gameType == kind.rawValue, "失败游戏沿旧端重试并保留消息身份及有效结果")
+        }
+        let sentGames = gameClient.sent.count
+        gameClient.policy.canSend = false; gameClient.callback?(.permissionsChanged)
+        gameStore.sendGame(.dice)
+        expect(gameClient.sent.count == sentGames && gameStore.input == "保留草稿🙂", "禁言不得发送游戏或清草稿")
+        gameStore.close()
+        print("Chat checks: existing regression, cursor mentions and game sending passed")
     }
     /// 构造含双ID的普通消息。
     static func message(_ id: String, server: String, type: Int = 0) -> ChatMessageRecord {

@@ -37,6 +37,7 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     var stickerID: String = ""
     var isStickerSet: Bool = false
     var gameType: Int = 0
+    var gameAnimationPlayed = false
     var cardUID: String = ""
     var latitude: String = ""
     var longitude: String = ""

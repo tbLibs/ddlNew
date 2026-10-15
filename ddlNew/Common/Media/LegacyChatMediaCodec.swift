@@ -8,7 +8,7 @@ nonisolated enum LegacyChatMediaCodec {
 
     /// 沿用旧端默认 XOR，包装照片视频、群头像及对应文件，不改变语音和一般附件。
     static func prepareUpload(file: URL, type: Int) throws -> URL {
-        guard type == 1 || type == 2 || type == 101 || (type == 5 && imageVideoExtensions.contains(file.pathExtension.lowercased())) else { return file }
+        guard type == 1 || type == 2 || type == 101 || type == 102 || (type == 5 && imageVideoExtensions.contains(file.pathExtension.lowercased())) else { return file }
         let reader = try FileHandle(forReadingFrom: file)
         defer { try? reader.close() }
         let size = try reader.seekToEnd()

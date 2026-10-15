@@ -46,7 +46,7 @@ enum SDKChatMessageMapper {
                 }
             }
         case 1000: record.text = model.serverMessage.map { systemSummary($0, userUID: userUID) } ?? ""
-        case 21: record.text = model.gameStickersResut ?? ""; record.gameType = Int(model.gameSticekersType)
+        case 21: record.text = model.gameStickersResut ?? ""; record.gameType = Int(model.gameSticekersType); record.gameAnimationPlayed = model.isGameAnimationed
         default: break
         }
         let sdk = NoaIMSDKManager.sharedTool()
@@ -57,11 +57,18 @@ enum SDKChatMessageMapper {
                     record.senderRole = member.role
                     let remark = member.remarks ?? ""; let groupName = member.nicknameInGroup ?? ""
                     record.senderName = !remark.isEmpty ? remark : !groupName.isEmpty ? groupName : member.userNickname ?? record.senderName
-                    record.avatarURL = member.disableStatus == 4 ? "" : member.userAvatar ?? record.avatarURL
+                    // 部分成员缓存尚无头像，不能用空串覆盖消息自带头像；注销状态仍明确清空。
+                    if member.disableStatus == 4 { record.avatarURL = "" }
+                    else if let avatar = member.userAvatar, !avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { record.avatarURL = avatar }
                 }
             } else {
                 let friend: LingIMFriendModel? = sdk.toolCheckMyFriend(with: record.senderID)
-                if let friend { record.senderName = friend.showName ?? friend.remarks ?? friend.nickname ?? record.senderName; record.avatarURL = friend.disableStatus == 4 ? "" : friend.avatar ?? record.avatarURL }
+                if let friend {
+                    record.senderName = friend.showName ?? friend.remarks ?? friend.nickname ?? record.senderName
+                    // 空好友缓存不代表头像已删除，保留消息提供的有效资源。
+                    if friend.disableStatus == 4 { record.avatarURL = "" }
+                    else if let avatar = friend.avatar, !avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { record.avatarURL = avatar }
+                }
             }
         }
         return record

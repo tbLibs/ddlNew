@@ -15,7 +15,7 @@ extension AppDelegate {
         SentrySDK.start { options in
             options.dsn = "https://773a0932ed430ce3fed1ab8a900ce27e@sentry.xingxinghai.uk/15"
             #if DEBUG
-            options.debug = true
+            options.debug = false
             options.environment = "develpment";
             #else
             options.debug = false

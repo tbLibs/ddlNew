@@ -2,9 +2,11 @@
 
 整理日期：2026-10-15（Asia/Shanghai）。业务与设备验收截至 2026-10-15 01:20；本次整理只读取源码、Git 和既有证据，没有重新构建、安装或操作设备。
 
+2026-10-15后续最新入口：[聊天输入、群发送与默认游戏交接](SESSION_HANDOFF_2026-10-15_CHAT_INPUT_GAMES.md)。下文凌晨验收仍保留为历史证据；Mobile MCP当前已暂停，不能沿用凌晨授权操作设备。
+
 ## 1. 新聊天直接粘贴
 
-> 请先完整阅读 `/Users/taobotaobo/Desktop/ddlNew/Docs/PROJECT_HANDOFF.md` 和 `/Users/taobotaobo/Desktop/ddlNew/Docs/SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md`，再检查当前分支、git status 和相关源码。延续 10 月 14 日晚至 15 日凌晨的通讯录、消息、群聊对齐工作，只读参考 `/Users/taobotaobo/Desktop/xgd`，保持首页和我的森林绿主题、既有 UIAdapter 和中文业务注释。当前整理时 HEAD 为 `4a75da8`，昨晚改动已包含其中，以实时 Git 为准；保留已有改动，不自动提交或推送。昨晚最终 62/62 组离线检查、签名构建及关键 Mac/真机双端场景已通过，优先处理本文未完成项，不重复重做已关闭问题。Mobile MCP 已获授权；仅操作已有 A/B 测试身份及可恢复测试数据，缺第三身份或测试群时记录真实条件，继续不依赖这些条件的验证。构建、匿名夹具、发送方气泡和 Toast 分别只能证明对应阶段，不能代替完整服务器验收。
+> 请先完整阅读`/Users/taobotaobo/Desktop/ddlNew/Docs/PROJECT_HANDOFF.md`和`/Users/taobotaobo/Desktop/ddlNew/Docs/SESSION_HANDOFF_2026-10-15_CHAT_INPUT_GAMES.md`，再检查实时Git和相关源码，必要时参考本文凌晨验收。整理时feature-message-4/ecf1b89，本轮修改保留工作区，不自动提交/推送。Mobile MCP仍暂停，不用其它工具替代操作设备；xgd只读，森林绿/UIAdapter/中文注释保留。最新实现和离线/构建证据按新交接，真实键盘、群发送、游戏双端与第三身份等待验不冒报为通过。
 
 ## 2. 接手顺序与当前 Git
 
@@ -224,3 +226,70 @@ xcodebuild -workspace ddlNew.xcworkspace -scheme ddlNew -configuration Debug \
 同一 DerivedData 在 My Mac 与 generic iOS 之间切换会较多重编 WCDB；build.db 被占用先核对在途任务，不把锁库当代码失败。模拟器不能代替真实 LXChatEncrypt/系统配置/登录/服务器链路。
 
 完成一个分支应同时记录实现和相应层级证据：哪些离线脚本、哪一版构建、哪端真实操作、另一端/服务器如何核对、哪些数据恢复、剩余条件。新问题更新逐项台账和本文对应章节；本轮范围内保留工作区，不自动提交或推送。
+
+## 10. 2026-10-15后续离线延续（Mobile MCP暂停）
+
+接手实时 Git：`feature-message-4 / ecf1b89`，工作区干净；此前 EncryptLib 与7份文档/证据文件及示例工程符号链接已经提交。上述凌晨版本与未提交状态均为历史快照。用户在接手后明确暂停 Mobile MCP；本轮没有调用该工具，也未通过替代工具操作、安装或重启设备。xgd只读参考，其工作区仍干净。
+
+### 本轮窄修：附件解包期间的取消
+
+- 先补离线回归并复现：网络已交付文件，真实流式解包前暂停，取消加载任务，再恢复解包；旧实现触发“加载任务取消后不能发布解包结果或重新显示附件”断言。RED记录 `/tmp/ddlNew-preview-download-red.log`，这是本轮新发现，不重做昨晚已关闭的文件收发问题。
+- 根因：`Task.detached` 的句柄丢弃，父任务取消不会传入解包；`close()` 只取消网络和音频，解包后的发布也缺少 `Task.isCancelled` 守卫。
+- `ChatMediaPreviewStore` 现在持有解包任务句柄，使用取消处理器传递父任务取消；关闭、后台和原条删除共用的 `close()` 同时取消解包。已取消的入口不重新加载；结果发布仍核对当前认证身份、轮次与取消状态，取消不当作下载失败Toast。
+- 网络交付的临时文件在成功、失败、关闭及取消后的退出路径清理；独立解包输出仍由原有defer和流式编解码器负责清理。原XOR/AES格式、上传及ACK协议均未更改。
+
+### 本轮验证及边界
+
+- `sh Tests/Chat/run-preview-download-checks.sh`：通过。覆盖已取消入口不下载、解包期间取消不回显且真实编解码器收到取消、临时文件清理、同页重试与完整字节、删除失效及禁止重试恢复。
+- `sh Tests/Chat/run-preview-invalidation-checks.sh`：既有12项通过。
+- 新加载回归提取生产加载/关闭/失效方法执行，网络和iOS音频/Runtime导航使用离线形状；解包暂停点后调用真实 `LegacyChatMediaCodec.decodeFile`，使用临时匿名文件与隔离缓存。不声称验证了真实URLSession、系统音频、设备后台或服务器收发。
+- 统一离线入口：63/63组exit0，265.92秒，目录 `/tmp/ddlNew-20261015-preview-cancellation-offline`，逐脚本结果见 `summary.json`。最终版本加载专项另行复跑通过；`git diff --check` 通过。
+- 无签名generic iOS workspace构建：exit0，`BUILD SUCCEEDED`，日志 `/tmp/ddlNew-20261015-preview-cancellation-build.log`；不是签名/安装/运行证据。
+
+本轮代码与文档保留工作区，不提交或推送。第8节未完成的真实媒体类型/供应商、大文件、弱网、后台、多端及三角色群操作仍未验收；后续恢复设备操作须遵循用户最新授权。
+
+## 11. 2026-10-15追加系统投诉与黑名单
+
+用户要求研究只读旧xgd并新增举报/拉黑，批准的投诉范围仅系统投诉，不含邀请码/IP域名；Mobile MCP继续暂停。当前`feature-message-4 / ecf1b89`，新增功能及第10节取消修正均保留工作区，不提交/推送。原13项整体暂缓中C-020/C-021转入开发/回归，当前105项批准、11项整体暂缓，其余子范围不变。
+
+- 好友资料更多：真实黑态读取，加入二次确认/直接移出；未知或已拉黑时普通好友“发消息”不可用，失败可重读状态。“我的—黑名单”：全量真实名单、字母分区、资料直达、可见移出按钮，下拉刷新空名单也清除旧黑态。
+- 好友/群/“我的—投诉与支持”：分别用户0、群1、通用3；8类原因、1–9张图片、选填正文UTF16最多200、有效联系邮箱。真实SDK系统反馈成功回调才提示提交，明确false/失败不成功，44016/44017仅提示受理审核。失败保留草稿，重复点击、关闭及认证轮次变化不发布迟到成功。
+- 图片使用ImageIO下采样最大边2048、JPEG0.5，复用旧通用目录加密上传。内部类型102只用于证据图上传，不发聊天消息，不套聊天发送配额；图片全部成功才提交。没有投诉历史、处理时限或处理结果的新承诺。
+- UI使用用户指定ui-ux-pro-max的分组表单、显式控件与键盘避让建议，沿用森林绿/MessagingTheme/UIAdapter/Toast；未做设备视觉或VoiceOver实际验收。
+- 统一离线65/65组exit0，逐脚本耗时合计236.06秒，`/tmp/ddlNew-20261015-safety-offline/summary.json`；最终投诉专项复跑通过。独立复核发现名单快照漏使在途单人读取失效，新回归RED后窄修、黑名单专项exit0且复核确认关闭。无签名generic iOS workspace构建`/tmp/ddlNew-20261015-safety-complete-build.log`成功，复核后最终`/tmp/ddlNew-20261015-safety-reviewed-build.log`同样exit0、BUILD SUCCEEDED，不等同签名/安装/运行。
+
+完整旧端依据、真实接口参数、源码入口、失败与待验条件见[迁移记录](SAFETY_REPORT_BLOCK_MIGRATION_2026-10-15.md)。尚未提交真实投诉或操作服务器黑名单，未操作A/B或群数据；各云供应商证据回读、服务器受理、审核与双端拉黑阻断/解除仍待设备操作恢复后验证。xgd工作区保持干净。
+
+## 12. 2026-10-15聊天布局及好友资料路由
+
+用户批准按xgd整体对齐聊天页；输入框内表情、语音/发送切换、常驻横向工具、内嵌表情/录音、独立引用取消、多选合并/逐条转发/删除、群公告及紧凑消息展示均已调整。新局部模式不复制业务Store，切面板保留文字/引用和媒体所有者，录音未确认不自动上传。用户另报右上设置查看好友资料路由错乱，改为设置页已有资料子导航，保留UID、来源群和设置Store。真实SDK、已读、ACK和媒体协议边界不变。
+
+66/66组离线exit0，逐脚本耗时合计300.47秒，`/tmp/ddlNew-20261015-chat-layout-offline/summary.json`；首轮无签名generic iOS构建通过。独立复核修正视频透明背景文字对比，最终构建/聚焦回归及运行待验见[本轮聊天布局记录](CHAT_LAYOUT_ALIGNMENT_2026-10-15.md)。Mobile MCP继续暂停，未操作设备或真实关系，代码不提交/推送。当前路由结论为源码窄修与编译，不能记成真机已进入目标资料及正确返回。
+
+## 13. 2026-10-15系统导航栏、基础表情及群@修正
+
+用户先要求消息/通讯录，再扩展其它实际页面统一`.toolbar {}`。四个Tab根页与活动相关重复标题已迁移，保留既有业务动作、导航栈、森林绿和UIAdapter。群申请剩余顶部安全区是业务筛选，不是伪导航；底部安全区职责保留。此前无签名全导航构建成功，范围及非活动原型边界见[导航记录](NAVIGATION_TOOLBAR_MIGRATION_2026-10-15.md)。
+
+用户又报基础表情缺失、要求移除群聊底部@按钮，后追加工具栏等分。当前相册/拍摄/文件/更多四项等分；基础面板默认157个旧图片表情，旧文本标记插入、复制与发送，贴纸仍真实SDK独立标签。群聊键入@调当前群真实完整成员，搜索、所有人UID-1、光标插入与取消留普通@；禁止私聊约束不变。通过上下文、草稿、页面可见性、模式及焦点资格防迟到弹层与焦点覆盖；特殊昵称含@的UID片段按明确替换范围平移。完整源码、匿名回归与构建记录见[聊天布局后续追加](CHAT_LAYOUT_ALIGNMENT_2026-10-15.md)。
+
+独立复核发现两项P2，均已补修并复核关闭；输入焦点、中文组合字素、系统导航外观及真实群成员提及仍未做设备/服务器验收。Mobile MCP继续暂停，未改用其它设备工具；xgd只读保持干净，ddlNew保留全部已有改动，不自动提交或推送。
+
+第13节最终验证：68/68组离线exit0、逐脚本耗时合计351.63秒，`/tmp/ddlNew-20261015-toolbar-emoji-at-final-offline/summary.json`；无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`，`/tmp/ddlNew-20261015-toolbar-emoji-at-final-build.log`。独立复核确认两项P2关闭，最终diff空白检查通过。当前HEAD仍`ecf1b89`，没有暂存、提交或推送；此结果仅离线/构建，不替代设备和服务器验收。
+
+
+## 14. 2026-10-15输入焦点与群权限诊断过程（后续已补证并修正）
+
+聊天输入一字即收键盘：将未绑定SwiftUI输入控件的FocusState替换为State→Binding→UITextView手动焦点，相关原生表单FocusState保持。新焦点专项RED/GREEN、权限53项及成员请求15场景通过，独立复核通过，无签名workspace构建`/tmp/ddlNew-20261015-composer-focus-permission-build.log` exit0、BUILD SUCCEEDED，实际系统键盘待用户Run复验。
+
+群发送仍未验收/修复：用户确认输入全灰、“正在确认群发送权限”及“消息响应无效”。当前严格权限快照未获认可，已有日志只有帧处理，不含三个权限字段。DEBUG仅新增`[ChatGroupPermission]`固定字段形状，已请用户提供该行，未放开未知或真实禁言权限。详情缓存OR最新禁言接口的独立风险另记待处理；不要将其冒充当前提示的确定原因。最新入口与证据边界见PROJECT_HANDOFF顶部及聊天布局记录。
+
+当前不提交/推送，所有既有功能保留；Mobile MCP仍暂停，仅只读查询现有Mac日志，未通过其它工具操作设备或测试数据。
+
+
+## 15. 2026-10-15本轮统一交接
+
+用户随后提供真实固定字段诊断：在群true、个人禁言键缺省、全群禁言false。已仅对个人禁言缺省兼容旧端0语义，修正最新全禁值被旧缓存OR覆盖；null/非法与未知在群/全禁仍拒绝。输入焦点修正保留。用户新增批准默认石头剪刀布和骰子，现两个入口、旧15组资源、type21字段、客户端随机结果/失败重掷、三秒前台可见动画及SDK播放标记均已接入，原其它暂缓不扩大。
+
+完整当前状态、验证日志、真实待验、同期头像改动保留及新会话文字统一见[最新交接](SESSION_HANDOFF_2026-10-15_CHAT_INPUT_GAMES.md)。本文第14节“尚无字段/未修正”为当时过程，不能当作当前状态。未提交/推送，Mobile MCP持续暂停。
+
+第15节最终收尾：统一离线72/72组exit0（逐脚本耗时合计347.34秒），`/tmp/ddlNew-20261015-game-permission-offline/summary.json`；最终无签名workspace构建因build.db锁首次失败，未打断其它构建，释放后`/tmp/ddlNew-20261015-game-permission-final-retry-build.log` exit0、BUILD SUCCEEDED。独立复核无阻塞，diff/新交接链接/15组旧资源SHA通过。仍无设备/服务器验收，当前不暂存、提交或推送。

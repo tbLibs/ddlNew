@@ -30,6 +30,8 @@ struct ChatSettingsView: View {
     @State private var showInvite = false
     @State private var inviteReason = ""
     @State private var showCreateGroup = false
+    @State private var showingComplaint = false
+    @State private var complaintSubmitted = false
     @State private var createdRoute: ChatRoute?
 
     var body: some View {
@@ -65,7 +67,8 @@ struct ChatSettingsView: View {
                 } else if route.kind == .single && route.id != "100002" {
                     MessagingCard(padding: 0) {
                         VStack(spacing: 0) {
-                            NavigationLink(value: ContactsRoute(contactID: route.id, sourceGroupID: route.sourceGroupID)) { row("查看好友资料") }
+                            // 设置页沿当前子导航打开资料，避免值路由越过布尔设置目标且误关闭Store。
+                            Button { selectedMemberProfile = ContactsRoute(contactID: route.id, sourceGroupID: route.sourceGroupID) } label: { row("查看好友资料") }
                             separator
                             Button { showCreateGroup = true } label: { row("添加好友创建群聊", icon: "person.badge.plus") }
                         }.buttonStyle(MessagingRowStyle())
@@ -81,6 +84,10 @@ struct ChatSettingsView: View {
                     }
                 }
                 .disabled(store.snapshot == nil)
+                if let group = store.snapshot?.group {
+                    MessagingCard(padding: 0) { Button { feedback = nil; showingComplaint = true } label: { row("投诉与支持") }.buttonStyle(MessagingRowStyle()) }
+                        .accessibilityHint("投诉群聊\(group.name)")
+                }
                 if store.snapshot?.group?.isPersonallyMuted == true { Text("你当前已被禁言").font(.footnote).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, alignment: .leading) }
                 if store.snapshot?.canClear == true { MessagingCard(padding: 0) { Button("清空聊天记录", role: .destructive) { showClear = true }.frame(maxWidth: .infinity, minHeight: max(44, 52.zoom())).foregroundStyle(MessagingTheme.error).buttonStyle(MessagingRowStyle()) } }
                 if let group = store.snapshot?.group {
@@ -121,6 +128,9 @@ struct ChatSettingsView: View {
         .confirmationDialog("退出群聊", isPresented: $showLeave, titleVisibility: .visible) { Button("退出并清理本机群记录", role: .destructive) { Task { await store.groupAction(.leave) } } } message: { Text("退出后将不能继续在此群发送消息。") }
         .confirmationDialog("解散群聊", isPresented: $showDissolve, titleVisibility: .visible) { Button("解散所有成员的群聊", role: .destructive) { Task { await store.groupAction(.dissolve) } } } message: { Text("群聊解散后，所有成员都不能继续使用此群。") }
         .sheet(isPresented: $showNameEditor) { ChatGroupNameEditor(store: store, editingName: editingName) }
+        .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = "投诉已提交"; complaintSubmitted = false } }) {
+            ComplaintView(target: .group(route.id), targetName: store.snapshot?.group?.name ?? route.title) { complaintSubmitted = true }
+        }
         .sheet(isPresented: $showInvite) {
             GroupMemberPickerView(contacts: LoginSessionService.shared.contacts.contacts,
                 excludedIDs: Set(store.snapshot?.group?.members.map(\.id) ?? []), minimum: 1, title: "邀请好友", invitationReason: store.snapshot?.group?.requiresApproval == true && store.snapshot?.group?.role == 0 ? $inviteReason : nil,
@@ -146,7 +156,7 @@ struct ChatSettingsView: View {
         [1, 2].contains(group.role) || !group.isPrivateChat || UserRoleAuthorityStore.shared.current?.allows("groupSecurity") == true
     }
 
-    private var presentingChild: Bool { showAvatar || showMembers || showRemoveMembers || selectedMemberProfile != nil || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor }
+    private var presentingChild: Bool { showAvatar || showMembers || showRemoveMembers || selectedMemberProfile != nil || showManagement || showNotices || showInvite || showCreateGroup || showHistorySearch || showNameEditor || showingComplaint }
 
     private var chevron: some View { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }
     private var separator: some View { Rectangle().fill(MessagingTheme.divider).frame(height: 1).padding(.leading, 16.zoom()) }

@@ -16,6 +16,24 @@ struct ChatMentionSegment: Identifiable, Equatable, Sendable, Codable {
 }
 
 enum ChatMentionEngine {
+    /// 替换本次键入的@并平移已有片段，迟到选择不得覆盖其它正文。
+    nonisolated static func inserting(userUID: String, name: String, replacingAt range: NSRange, in text: String, segments: [ChatMentionSegment]) -> (String, [ChatMentionSegment], NSRange)? {
+        let raw = text as NSString
+        guard !userUID.isEmpty, !name.isEmpty, range.location >= 0, range.location < raw.length, range.length == 1,
+              raw.substring(with: range) == "@" else { return nil }
+        let display = "@" + name + " "
+        let updated = raw.replacingCharacters(in: range, with: display)
+        // 已知实际替换位置，不用重复昵称的公共前后缀猜测编辑范围。
+        guard !segments.contains(where: { $0.location < NSMaxRange(range) && range.location < $0.location + $0.length }) else { return nil }
+        let delta = display.utf16.count - range.length
+        let shifted = segments.map { value in
+            var value = value
+            if value.location >= NSMaxRange(range) { value.location += delta }
+            return value
+        }
+        let segment = ChatMentionSegment(id: UUID(), userUID: userUID, name: name, location: range.location, length: display.utf16.count)
+        return (updated, (shifted + [segment]).sorted { $0.location < $1.location }, NSRange(location: range.location + segment.length, length: 0))
+    }
     /// 按UTF16范围倒序替换为旧协议垂直制表UID，重名也不共用映射。
     nonisolated static func wireText(_ text: String, segments: [ChatMentionSegment]) -> String {
         let result = NSMutableString(string: text)

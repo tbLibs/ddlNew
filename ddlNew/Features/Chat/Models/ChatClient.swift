@@ -24,6 +24,8 @@ import Foundation
     func permissions(context: ChatContext) throws -> ChatPermission
     /// 上报当前可见收到消息，语音在播放后单独调用。
     func read(_ messages: [ChatMessageRecord], context: ChatContext) async throws
+    /// 游戏展示结束后只标记当前结果，旧动画不能修改重试后的记录。
+    func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws
     /// 草稿保存在当前账号SDK会话库，包含引用身份。
     func draft(context: ChatContext) throws -> ChatDraft
     /// 保存当前编辑版本，退出和异账号不得写入旧草稿。
@@ -33,6 +35,8 @@ import Foundation
 }
 
 extension ChatClient {
+    /// 不持久化消息的注入客户端不写入动画标记。
+    func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws {}
     /// 无过滤需求的测试客户端保留原文。
     func prepareMessage(_ message: ChatMessageRecord, context: ChatContext) throws -> ChatMessageRecord { message }
     /// 无草稿能力的注入客户端返回空编辑状态。

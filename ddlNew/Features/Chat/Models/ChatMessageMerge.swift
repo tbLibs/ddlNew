@@ -29,6 +29,10 @@ enum ChatMessageMerge {
                     if !ack { item.timestamp = old.timestamp }
                     if history || stale { item.type = old.type; item.text = old.text; item.referenceID = old.referenceID; item.mentions = old.mentions; item.nestedMessages = old.nestedMessages; item.resource = old.resource; item.thumbnail = old.thumbnail; item.stickerID = old.stickerID; item.isStickerSet = old.isStickerSet; item.gameType = old.gameType }
                 }
+                if item.type == 21 && !(item.state == .sending && olds.contains(where: { $0.state == .failed })) && olds.contains(where: {
+                    $0.gameAnimationPlayed && $0.type == 21 && $0.gameType == item.gameType && $0.text == item.text
+                        && (ack || $0.timestamp == item.timestamp)
+                }) { item.gameAnimationPlayed = true }
                 item.isRead = item.isRead || olds.contains(where: \.isRead)
                 item.readCount = max(item.readCount, olds.map(\.readCount).max() ?? 0)
                 result[first] = item

@@ -137,6 +137,26 @@ import Combine
         merge([message]); lastSend = Date()
     }
 
+    /// 游戏结果沿旧端在客户端生成，作为独立type21发送，保留正在编辑的文字和引用。
+    func sendGame(_ game: ChatGameSticker) {
+        guard let context else { return }
+        var message = ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id,
+            senderID: context.userUID, senderName: "我", type: 21, text: game.randomResult(),
+            timestamp: Int64(Date().timeIntervalSince1970 * 1000))
+        message.gameType = game.rawValue
+        do { try sendAttachment(message) } catch { errorMessage = error.localizedDescription }
+    }
+
+    /// 动画只影响展示；已变更/删除的消息和旧会话不能被完成回调恢复。
+    func completeGameAnimation(_ message: ChatMessageRecord) {
+        guard let context, let current = messages.first(where: { $0.id == message.id }),
+              current.type == 21, current.status == .normal, current.text == message.text,
+              current.gameType == message.gameType, current.timestamp == message.timestamp,
+              !current.gameAnimationPlayed else { return }
+        try? client.markGameAnimationPlayed(current, context: context)
+        var played = current; played.gameAnimationPlayed = true; merge([played])
+    }
+
     /// 人工重发复用原本地ID；成功消息和发送中消息不重复入队。
     func retry(_ id: String) {
         guard let context, let index = messages.firstIndex(where: { $0.id == id }), messages[index].state == .failed else { return }
@@ -144,6 +164,9 @@ import Combine
         do {
             try checkSend(context, messageType: messages[index].type)
             var message = messages[index]
+            if message.type == 21, let game = ChatGameSticker(rawValue: message.gameType) {
+                message.text = game.randomResult(); message.gameAnimationPlayed = false
+            }
             message.state = .sending; message.failure = nil
             message.timestamp = Int64(Date().timeIntervalSince1970 * 1000)
             try client.send(message, context: context)
@@ -359,6 +382,17 @@ import Combine
         let start = (input as NSString).length
         mentions.append(ChatMentionSegment(id: UUID(), userUID: member.id, name: member.name, location: start, length: (display as NSString).length))
         input += display; previousInput = input; persistDraft()
+    }
+
+    /// 输入@后只替换本次光标处标记，保留其后的正文和其它成员UID。
+    func insertMention(_ member: ChatGroupMember, replacingAt range: NSRange) -> NSRange? {
+        guard context?.route.kind == .group, permission.canSend,
+              !(permission.role == 0 && permission.isPrivateChat), !member.isDeleted else { return nil }
+        reconcileMentions()
+        guard let result = ChatMentionEngine.inserting(userUID: member.id, name: member.name,
+            replacingAt: range, in: input, segments: mentions) else { return nil }
+        input = result.0; mentions = result.1; previousInput = input; persistDraft()
+        return result.2
     }
 
     /// 文本编辑更新片段范围，局部删@时自动去掉完整片段。

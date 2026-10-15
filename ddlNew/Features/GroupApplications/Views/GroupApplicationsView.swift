@@ -39,7 +39,7 @@ struct GroupApplicationsView: View {
         .messagingFeedbackToast(store.errorMessage ?? store.notice)
         .messagingLoadingToast(store.isLoading || store.isReviewing, title: "正在处理")
         .navigationTitle(groupID == nil ? "群通知" : "入群审核")
-        .navigationBarTitleDisplayMode(.inline).navigationBarHidden(false)
+        .navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
         .refreshable { await store.reload(pendingOnly: pendingOnly) }
         .safeAreaInset(edge: .bottom) {
             if pendingOnly && !store.records.isEmpty {

@@ -79,7 +79,14 @@ struct MessageView: View {
         .listStyle(.plain).scrollContentBackground(.hidden).background(MessagingTheme.background)
         .frame(maxWidth: 720).frame(maxWidth: .infinity)
         .background(MessagingTheme.background)
-        .safeAreaInset(edge: .top, spacing: 0.zoom()) { header }
+        .navigationTitle("消息")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) { navigationTitle }
+            ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions }
+        }
+        .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .tint(MessagingTheme.accent)
         .messagingFeedbackToast(store.operationError ?? store.errorMessage ?? chatRuntime.conversationCleanupWarning, isEnabled: !selectingMembers)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
@@ -106,8 +113,8 @@ struct MessageView: View {
         } message: { Text("删除后会移除会话，聊天记录仍保留。") }
     }
 
-    /// 固定紧凑页头，保留全局搜索、建群及权限控制的添加菜单。
-    private var header: some View {
+    /// 标题与同步数量放入系统导航栏，不再占用列表顶部安全区。
+    private var navigationTitle: some View {
         HStack(spacing: 8.zoom()) {
             Text("消息").font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
             if store.isSyncing {
@@ -116,23 +123,23 @@ struct MessageView: View {
                 Text("\(store.conversations.count)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                     .accessibilityLabel("\(store.conversations.count)个会话").accessibilityIdentifier("conversationCount")
             }
-            Spacer(minLength: 0)
-            NavigationLink(value: ContactsPageRoute.globalSearch) {
-                Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("搜索好友、群聊和聊天内容").accessibilityIdentifier("openGlobalSearch")
-            Menu {
-                if permissions.current?.allows("allowAddFriend") == true {
-                    NavigationLink("添加好友", value: ContactsPageRoute.addFriend)
-                }
-                if permissions.current?.allows("createGroup") == true { Button("创建群聊") { selectingMembers = true } }
-                NavigationLink("扫一扫", value: ContactsPageRoute.scanner)
-            } label: {
-                Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("消息页面更多操作")
         }
-        .foregroundStyle(MessagingTheme.text).padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
-        .frame(maxWidth: 720).frame(maxWidth: .infinity)
-        .background(MessagingTheme.background)
+    }
+
+    /// 系统工具栏复用原有搜索、建群和按实时权限过滤的添加菜单。
+    @ViewBuilder private var navigationActions: some View {
+        NavigationLink(value: ContactsPageRoute.globalSearch) {
+            Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+        }.accessibilityLabel("搜索好友、群聊和聊天内容").accessibilityIdentifier("openGlobalSearch")
+        Menu {
+            if permissions.current?.allows("allowAddFriend") == true {
+                NavigationLink("添加好友", value: ContactsPageRoute.addFriend)
+            }
+            if permissions.current?.allows("createGroup") == true { Button("创建群聊") { selectingMembers = true } }
+            NavigationLink("扫一扫", value: ContactsPageRoute.scanner)
+        } label: {
+            Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+        }.accessibilityLabel("消息页面更多操作")
     }
 
     private var emptyState: some View {

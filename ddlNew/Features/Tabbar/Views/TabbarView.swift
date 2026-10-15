@@ -39,11 +39,11 @@ struct TabbarView: View {
         }
     }
 
-    /// 四个 Tab 在各自原导航栈注册稳定ID路由，聊天与资料不再嵌套导航栈。
+    /// 四栏首页统一使用系统导航工具栏，各自原导航栈和稳定ID路由保持不变。
     private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
         ActivityNavigationScope {
             content()
-                .navigationBarHidden(true)
+                .toolbar(.visible, for: .navigationBar)
                 .navigationDestination(for: ChatRoute.self) { route in ChatRoomView(route: route) }
                 .navigationDestination(for: ContactsRoute.self) { route in
                     ContactRecordDetailView(store: contacts, businessStore: contactBusiness,
@@ -54,6 +54,7 @@ struct TabbarView: View {
                     ContactsPageDestination(route: route, businessStore: contactBusiness,
                         fileHost: connection.current?.getFileHost)
                 }
+                .navigationDestination(for: SafetyRoute.self) { _ in BlacklistView(businessStore: contactBusiness) }
         }
         .tabItem {
             Label(tab.rawValue, systemImage: tab.icon)

@@ -19,6 +19,10 @@ import Foundation
         precondition(fileBytes == bytes)
         let voice = try LegacyChatMediaCodec.prepareUpload(file: temp, type: 4)
         precondition(voice == temp, "语音沿旧端保持原格式")
+        let evidence = try LegacyChatMediaCodec.prepareUpload(file: temp, type: 102)
+        defer { if evidence != temp { try? FileManager.default.removeItem(at: evidence) } }
+        let evidenceData = try Data(contentsOf: evidence)
+        precondition(evidenceData.prefix(3) == Data("XOR".utf8), "投诉通用证据图沿旧端isEncrypt:YES包装")
         let avatar = try LegacyChatMediaCodec.prepareUpload(file: temp, type: 101)
         defer { if avatar != temp { try? FileManager.default.removeItem(at: avatar) } }
         let avatarBytes = try Data(contentsOf: avatar)

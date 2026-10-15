@@ -14,6 +14,8 @@ final class NoaIMChatMessageModel {
     var videoName = ""; var videoCover = ""; var videoLength: Float = 0; var videoCoverW: Float = 0; var videoCoverH: Float = 0; var videoSize: Float = 0
     var voiceName = ""; var voiceLength: Float = 0; var voiceExt = ""
     var stickersImg = ""; var stickersThumbnailImg = ""; var stickersId = ""; var isStickersSet = false; var stickersSize: Int64 = 0; var stickersWidth: Float = 0; var stickersHeight: Float = 0
+    // SDK共用编码器新增的游戏字段仅用于编译同一生产方法。
+    var gameSticekersType: Int32 = 0; var gameStickersResut: String?; var gameStickersExt: String?; var isGameAnimationed = false
     var fileType = ""; var filePath: String?; var fileName: String?; var showFileName: String?; var fileSize: Float = 0
 }
 @main struct FileNameContractChecks {

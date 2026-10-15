@@ -18,7 +18,7 @@ struct CheckInScreen: View {
     var body: some View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 16) {
-                ScreenHeading(eyebrow: activity.title, title: "活动签到").padding(.bottom, 6)
+                Text(activity.title).font(.headline).foregroundStyle(ClubTheme.ink).padding(.bottom, 6)
                 ClubCard(padding: 28, highlighted: true) {
                     VStack(spacing: 20) {
                         ClubBadge(text: checkedIn ? "签到已完成" : "签到开放中")
@@ -61,7 +61,7 @@ struct CheckInScreen: View {
             }.padding(20)
         }
         .modifier(ClubKeyboardDismissal(isFocused: codeFocused) { codeFocused = false })
-        .navigationBarHidden(false).navigationTitle("个人签到").navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar).navigationTitle("个人签到").navigationBarTitleDisplayMode(.inline)
         .onChange(of: code) { code = String($0.filter(\.isNumber).prefix(4)); invalid = false }
     }
 }

@@ -38,6 +38,12 @@ import ObjectMapper
             do { _ = try ContactBusinessPayload.searchContacts(from: bad); assertionFailure("损坏搜索不能当未找到") }
             catch ContactBusinessError.malformedResponse { }
         }
-        print("通讯录SDK响应字段/非法类型/部分资料合并25项通过")
+        for raw: Any in [true, 1, 1.0] { let flag = try ContactBusinessPayload.blackFlag(raw); assert(flag) }
+        for raw: Any in [false, 0] { let flag = try ContactBusinessPayload.blackFlag(raw); assert(!flag) }
+        for raw: Any in [NSNull(), "false", 2, -1, [:] as [String: Any]] {
+            do { _ = try ContactBusinessPayload.blackFlag(raw); assertionFailure("未知拉黑回执不能当成成功或未拉黑") }
+            catch ContactBusinessError.malformedResponse {}
+        }
+        print("通讯录SDK响应字段/非法类型/部分资料合并及黑名单回执检查通过")
     }
 }

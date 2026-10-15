@@ -126,6 +126,11 @@ import UniformTypeIdentifiers
     /// 文件与图片视频分别读取角色配额，单位MB，语音按录制上限校验。
     private func checkPermission(_ attachment: ChatAttachment) throws {
         guard FileManager.default.fileExists(atPath: attachment.file.path) else { throw ChatClientError.unavailable("附件已不存在，请重新选择") }
+        // 证据图不是聊天发送；只允许已认证的投诉客户端经通用目录上传。
+        if attachment.type == ChatAttachment.complaintEvidenceType {
+            guard attachment.bytes > 0 else { throw ChatClientError.unavailable("证据图片为空") }
+            return
+        }
         guard let role = UserRoleAuthorityStore.shared.current else { throw ChatClientError.permission("账号上传权限尚未就绪") }
         guard ![4, 101].contains(attachment.type) else { return }
         let key = attachment.type == 5 ? "upFile" : "upImageVideoFile"
@@ -178,6 +183,7 @@ import UniformTypeIdentifiers
 
     /// 存储桶路径沿旧服务日期和类型约定，避免云端收到错类型附件。
     private func bucketName(type: Int) -> String {
+        if type == ChatAttachment.complaintEvidenceType { return "/zim/universal/" }
         if type == 101 { return "/zim/avatar_group/" }
         let formatter = DateFormatter(); formatter.dateFormat = "yyyyMMdd"
         let date = formatter.string(from: Date())

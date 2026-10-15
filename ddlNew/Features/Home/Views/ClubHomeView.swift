@@ -24,7 +24,7 @@ struct ClubHomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                header
+                welcome
                 hubEntries
                 if let activity = featuredActivity {
                     HomeFeaturedActivity(activity: activity, status: store.status(activity)) {
@@ -43,26 +43,29 @@ struct ClubHomeView: View {
             .frame(maxWidth: .infinity)
         }
         .background(HomeTheme.background.ignoresSafeArea())
+        .navigationTitle("首页")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Label("远山户外俱乐部", systemImage: "leaf")
+                    .font(.headline).foregroundStyle(HomeTheme.forest)
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { information = .announcements } label: {
+                    Image(systemName: "bell").font(.system(size: 20)).foregroundStyle(HomeTheme.text)
+                        .frame(width: 44, height: 44)
+                }.accessibilityLabel("查看俱乐部公告").accessibilityIdentifier("home.announcements")
+            }
+        }
+        .toolbarBackground(HomeTheme.surface, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(item: $information) { InformationSheet(page: $0) }
         .accessibilityIdentifier("clubHome")
     }
 
-    private var header: some View {
+    /// 欢迎语属于首页内容；俱乐部标识和公告动作交给系统导航工具栏。
+    private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Label("远山户外俱乐部", systemImage: "leaf")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(HomeTheme.forest)
-                Spacer(minLength: 0)
-                Button { information = .announcements } label: {
-                    Image(systemName: "bell")
-                        .font(.system(size: 20)).foregroundStyle(HomeTheme.text)
-                        .frame(width: 44, height: 44)
-                        .background(HomeTheme.surface, in: Circle())
-                }
-                .buttonStyle(HomePressStyle())
-                .accessibilityLabel("查看俱乐部公告")
-                .accessibilityIdentifier("home.announcements")
-            }
             Text(userName.isEmpty ? "一起出发，走进自然。" : "\(userName)，一起出发。")
                 .font(.title.weight(.bold)).foregroundStyle(HomeTheme.text)
                 .fixedSize(horizontal: false, vertical: true)

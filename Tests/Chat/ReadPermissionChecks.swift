@@ -64,6 +64,17 @@ import Foundation
         check(ChatGroupPermissionPayload.verified(detail: ["userInGroup": "1"], mute: ["isGroupForbid": "0", "isGroupChat": 0]), "字符串权限真实就绪")
         check(!ChatGroupPermissionPayload.verified(detail: ["userInGroup": true], mute: [:]), "空禁言回执不能确认可发送")
         check(!ChatGroupPermissionPayload.verified(detail: ["userInGroup": "unknown"], mute: ["isGroupForbid": 0, "isGroupChat": 0]), "非法在群字段不就绪")
+        let currentDetail: [String: Any] = ["userInGroup": true]
+        let currentMute: [String: Any] = ["isGroupChat": false]
+        check(ChatGroupPermissionPayload.verified(detail: currentDetail, mute: currentMute), "真实响应缺省个人禁言字段仍可确认完整权限")
+        check(!ChatGroupPermissionPayload.verified(detail: currentDetail, mute: ["isGroupChat": false, "isGroupForbid": "unknown"]), "非法个人禁言字段不能冒充缺省")
+        check(!ChatGroupPermissionPayload.verified(detail: currentDetail, mute: ["isGroupForbid": false]), "全员禁言字段仍必须明确")
+        check(ChatGroupPermissionPayload.personalMuted(currentMute) == false, "旧端缺省个人禁言按未禁言解释")
+        check(ChatGroupPermissionPayload.personalMuted(["isGroupForbid": true]) == true, "明确个人禁言仍阻止发送")
+        check(ChatGroupPermissionPayload.personalMuted(["isGroupForbid": NSNull()]) == nil, "明确null不是无个人禁言")
+        let diagnostic = ChatGroupPermissionPayload.diagnostic(detail: ["userInGroup": true, "token": "must-not-log"], mute: ["isGroupForbid": NSNull(), "isGroupChat": "bad-private-value"])
+        check(diagnostic == "detail.userInGroup=true mute.isGroupForbid=null mute.isGroupChat=invalid", "权限诊断只输出固定字段状态，不输出原始数据")
+        check(ChatGroupPermissionPayload.diagnostic(detail: [:], mute: [:]).contains("detail.userInGroup=missing"), "缺失字段有明确诊断")
         let utc = TimeZone(secondsFromGMT: 0)!
         let mute: [String: Any] = ["isGroupForbid": "1", "startTime": "2026-10-14 12:00:00", "endTime": "2026-10-14 12:05:00"]
         let expiry = ChatGroupMuteExpiry.decode(mute, timeZone: utc)!

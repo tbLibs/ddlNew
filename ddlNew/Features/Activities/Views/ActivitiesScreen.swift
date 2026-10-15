@@ -29,7 +29,6 @@ struct ActivitiesScreen: View {
     var body: some View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 14) {
-                ScreenHeading(eyebrow: "远山户外俱乐部", title: "活动").padding(.bottom, 6)
                 HStack(spacing: 10) {
                     ClubIcon(name: "search")
                     TextField("搜索活动或地点", text: $query).focused($searchFocused).submitLabel(.search).font(.system(size: 14)).accessibilityIdentifier("activitySearch")
@@ -56,6 +55,7 @@ struct ActivitiesScreen: View {
                 }
             }.padding(.horizontal, 20).padding(.top, 18)
         }
+        .navigationTitle("活动").navigationBarTitleDisplayMode(.inline)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused) { searchFocused = false })
     }
 }

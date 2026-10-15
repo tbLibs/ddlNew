@@ -13,13 +13,12 @@ struct MineView: View {
     @State private var showSettings = false
     @State private var showSwitch = false
     @State private var info: InformationPage?
+    @State private var showingComplaint = false
+    @State private var complaintSubmitted = false
+    @State private var feedback: String?
     var body: some View {
         ClubScroll {
             VStack(spacing: 16) {
-                HStack {
-                    ScreenHeading(eyebrow: "个人中心", title: "我的")
-                    IconButton(icon: "settings", label: "打开设置") { showSettings = true }
-                }.padding(.bottom, 6)
                 ClubCard(padding: 24, highlighted: true) {
                     HStack(spacing: 14) {
                         MemberAvatar()
@@ -47,12 +46,31 @@ struct MineView: View {
                         Button { showSwitch = true } label: { ClubMenuRow(title: "更换俱乐部", icon: "settings") }
                         Divider()
                         Button { info = .privacy } label: { ClubMenuRow(title: "隐私与安全", icon: "lock") }
+                        Divider()
+                        NavigationLink(value: SafetyRoute.blacklist) { ClubMenuRow(title: "黑名单", icon: "shield") }
+                        Divider()
+                        Button { feedback = nil; showingComplaint = true } label: { ClubMenuRow(title: "投诉与支持", icon: "messages") }
                     }.buttonStyle(.plain)
                 }
             }.padding(.horizontal, 20).padding(.top, 18)
         }
+        .navigationTitle("我的")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showSettings = true } label: {
+                    ClubIcon(name: "settings", size: 21).foregroundStyle(HomeTheme.forest).frame(width: 44, height: 44)
+                }.accessibilityLabel("打开设置")
+            }
+        }
+        .toolbarBackground(HomeTheme.surface, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showSettings) { SettingsScreen() }
         .sheet(item: $info) { InformationSheet(page: $0) }
+        .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = "投诉已提交"; complaintSubmitted = false } }) {
+            ComplaintView(target: .general, targetName: "系统投诉") { complaintSubmitted = true }
+        }
+        .messagingFeedbackToast(feedback, isEnabled: !showingComplaint)
         .alert("更换俱乐部？", isPresented: $showSwitch) {
             Button("取消", role: .cancel) { }
             Button("更换", role: .destructive) { Task { await store.signOut(changeClub: true) } }

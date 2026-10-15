@@ -156,6 +156,10 @@ import ObjectiveC
         }
         try validate(context)
         guard groupRefreshRevision == revision else { throw CancellationError() }
+        #if DEBUG
+        // 只诊断三个权限状态，不打印群资料、UID、请求或响应正文。
+        print("[ChatGroupPermission] " + ChatGroupPermissionPayload.diagnostic(detail: json, mute: mute))
+        #endif
         guard ChatGroupPermissionPayload.verified(detail: json, mute: mute) else { throw ChatClientError.invalidResponse }
         groupDetail = json; groupMute = mute; updateGroupCache(json, context: context)
         scheduleMuteExpiry(context: context)
@@ -236,8 +240,9 @@ import ObjectiveC
             value.sendInterval = Double((config?.groupMessageInterval ?? 0) > 0 ? config!.groupMessageInterval : 2000) / 1000
             let verified = groupDetail != nil && groupMute != nil
             let inGroup = ChatGroupPermissionPayload.boolean(groupDetail?["userInGroup"]) ?? false
-            let personalMuted = ChatGroupPermissionPayload.boolean(groupMute?["isGroupForbid"]) ?? true
-            let allMuted = (ChatGroupPermissionPayload.boolean(groupMute?["isGroupChat"]) ?? true) || group.isGroupChat
+            let personalMuted = groupMute.flatMap { ChatGroupPermissionPayload.personalMuted($0) } ?? true
+            // 禁言接口在详情之后返回，使用这份最新状态，避免旧群缓存阻止已解除禁言的成员。
+            let allMuted = ChatGroupPermissionPayload.boolean(groupMute?["isGroupChat"]) ?? true
             value.canSend = value.isActive && verified && inGroup && !personalMuted && (value.role > 0 || !allMuted)
             value.reason = !value.isActive ? "已离开群聊或群聊已停用" : (!verified ? "正在确认群发送权限" : "当前已被禁言")
             if !value.canSend { value.canUpload = false; value.canUploadFile = false }
@@ -276,6 +281,22 @@ import ObjectiveC
         guard saved != nil else { throw ChatClientError.unavailable("消息未能保存，请重试") }
     }
 
+    /// 只更新同一消息当前结果的展示标记，迟到动画不能标记重试后的新结果。
+    func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws {
+        try validate(context)
+        let model: NoaIMChatMessageModel? = !message.localID.isEmpty
+            ? sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
+            : sdk.toolGetOneChatMessage(withServiceMessageID: message.serverID, sessionID: context.route.id)
+        guard let model, model.messageStatus == 1, model.messageType.rawValue == 21,
+              Int(model.gameSticekersType) == message.gameType, model.gameStickersResut == message.text,
+              model.sendTime == message.timestamp else { return }
+        let previous = model.isGameAnimationed; model.isGameAnimationed = true
+        guard sdk.toolInsertOrUpdateChatMessage(with: model) else {
+            model.isGameAnimationed = previous
+            throw ChatClientError.unavailable("游戏展示状态保存失败")
+        }
+    }
+
     /// 消息模型完整填写ACK与身份，正文继续走SDK发送和持久化。
     func makeModel(_ message: ChatMessageRecord, context: ChatContext) -> NoaIMChatMessageModel {
         let model = NoaIMChatMessageModel()
@@ -287,6 +308,11 @@ import ObjectiveC
         model.messageSendType = CIMChatMessageSendType(rawValue: 0)!
         model.messageStatus = 1; model.isAck = true; model.isEncry = false; model.currentVersionMessageOK = true
         model.sendTime = message.timestamp; model.referenceMsgId = message.referenceID
+        if message.type == 21 {
+            model.gameSticekersType = Int32(message.gameType)
+            model.gameStickersResut = message.text; model.gameStickersExt = ""
+            model.isGameAnimationed = message.gameAnimationPlayed
+        }
         model.textContent = message.text
         if message.type == 10 {
             model.atContent = ChatMentionEngine.wireText(message.text, segments: message.mentions)

@@ -1,5 +1,85 @@
 # ddlNew 项目交接文档
 
+## 2026-10-15 Affff进入时输入区下移：视频定位与目标页底栏配置
+
+用户提供`ScreenRecording_10-15-2026 16-09-28_1.MP4`，补充其他好友没有同样抖动。只读用AVFoundation按50毫秒抽帧：Affff两次push在3.25→3.30秒及9.35→9.40秒均先显示系统Tab栏，再隐藏；消息内容和输入区一起下移，输入区内部结构未变化。视频中的测试群进入未出现同样过程。此证据指向导航底部安全区改变，不能直接认定Affff历史消息或图片造成输入框高度改变；为何该会话稳定触发、其它好友不触发，尚无运行时布局日志证明。
+
+当前`ActivityNavigationScope`只在导航栈外根据path动态设置Tab栏显隐；`ChatRoomView`现也静态声明`.toolbar(.hidden, for: .tabBar)`，把隐藏意图附在聊天目标页，供push准备时使用，避免只依赖外层路径变化。保留根路径显隐与返回规则。旧xgd的`NoaNavigationController.pushViewController`同样在super push前设置`hidesBottomBarWhenPushed`。未加入联系人特判、固定底部偏移、延迟显示或修改输入框高度。
+
+首次定位9项与视口7项离线检查exit0；无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-chat-tabbar-layout-build.log`），独立只读复核未发现阻断问题。本轮没有操作设备，真机Affff连续进入、其它好友/群对照、返回消息页底栏以及键盘仍待用户Run复验，不能把配置改动或离线检查等同视觉问题已消失；既有聊天与Sentry改动保留，不提交/推送。
+
+## 2026-10-15 进入聊天首屏直接定位最新消息
+
+用户报告每次进入先显示旧位置再跳到最新，并要求参考旧端。只读核对xgd `scrollInitialHistoryToBottom / alignInitialHistoryToBottomIfNeeded`：行高完成后无动画对齐，首屏分批/视口变化继续跟随，用户拖动后停止。新端原先在收到末条ID时提前将`didInitialScroll`置true，再等350毫秒滚动，导致旧位置先被展示。
+
+现在`ChatLatestPreference`同时传回实际底部区域与末条身份；首次对齐在当前批次布局回调中直接执行，不经过350毫秒键盘合并任务。底部进入实际视口才放行正文展示/点击/辅助功能与可见已读、游戏播放资格；用户拖动、下拉或显式搜索/引用定位后停止首屏跟随。新聊天上下文重置，子页往返保留原上下文与用户浏览状态；首屏空列表不加加载浮层，沿用上一节静默规则。
+
+新增生产回调提取专项先复现4项失败、修正后8项通过（`/tmp/ddlNew-initial-position-red.log`、`/tmp/ddlNew-initial-position-green.log`）。独立复核发现首次尚未就绪时进入子页，返回可能缺少几何事件；补为Reader内部恢复可见后主动调用`resumeChat`重试，已翻历史则不抢位置。新增该场景先RED，终版9项通过（`/tmp/ddlNew-initial-position-resume-red.log`、`/tmp/ddlNew-initial-position-final-green.log`），独立复核确认问题关闭。
+
+Chat Store回归、视口7项、成员请求15场景exit0，无签名generic iOS workspace首轮及补修后构建均exit0、`BUILD SUCCEEDED`，终版日志`/tmp/ddlNew-20261015-chat-initial-position-final-build.log`；`git diff --check`通过。离线边界只替代滚动执行与Store接口，不代表真实SwiftUI绘制、首屏无闪动或设备手势已验收。未操作设备、未重跑统一入口，不提交/推送；同期Sentry及前序聊天改动保留。
+
+## 2026-10-15 更早消息改为下拉、聊天加载静默
+
+用户要求正常进入聊天不显示“加载更早消息”或“正在加载聊天记录”，仅下拉加载更早记录；随后明确只取消加载Toast，失败提示保留。`ChatRoomView`移除顶部分页按钮及记录加载Toast，首屏缓存/最新一页同步静默执行；更早分页通过`ScrollView.refreshable`调用原`loadMore`，无更多或正在加载时不重复请求。补页前取消待执行的底部跟随，只有当前会话实际新增更早消息且原首条仍存在时恢复阅读锚点；失败、无新增或会话已变化不强制滚动。搜索/引用的显式定位继续沿原逻辑。
+
+聊天输入区上传加载Toast同时移除，内嵌贴纸加载不弹Toast；失败反馈仍使用现有业务Toast。独立贴纸页保留自身加载反馈。本轮Chat Store回归、视口7项、输入面板专项exit0，无签名generic iOS workspace两次构建均exit0、`BUILD SUCCEEDED`，终版日志`/tmp/ddlNew-20261015-chat-silent-loading-build.log`，前轮下拉版本日志`/tmp/ddlNew-20261015-chat-pull-history-build.log`；`git diff --check`通过。未操作设备，真实下拉手势/分页后的阅读位置及无首次加载浮层仍待用户Run复验；未重跑72组统一入口，不提交/推送。本节取代下一节关于聊天加载Toast的过程描述。
+
+## 2026-10-15 聊天业务提示改为Toast
+
+用户报告接口提示出现/消失导致聊天内容抖动。`ChatRoomView`移除消息视口上方的发送权限文案行，确认后的权限限制与业务错误合并到现有居中短Toast；加载期间沿用已有loading Toast，避免请求未结束时重复提示权限。发送禁用规则、真实消息/系统消息、群公告、置顶和分页动作保持原实现。权限59项与输入面板专项exit0，无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-chat-toast-build.log`），`git diff --check`通过。本轮仅展示修正，未重新执行72组统一入口、未操作设备；实际请求结束时的滚动稳定性仍待用户Run复验。不提交/推送，前序头像及其它工作区改动保留。
+
+## 最新统一交接：2026-10-15 聊天输入、群发送与默认游戏
+
+用户要求改完整理交接，当前统一入口为[最新聊天交接](SESSION_HANDOFF_2026-10-15_CHAT_INPUT_GAMES.md)，包含实现、真实响应证据、源码/验证入口、设备待验和新会话续接文字。实际基线仍以Git为准，本轮不提交/推送，Mobile MCP继续暂停，旧xgd只读。
+
+已根据用户提供的`userInGroup=true / isGroupForbid缺省 / isGroupChat=false`修正群发送校验：仅缺省个人禁言按旧端未禁言处理，null/非法值及不明确在群/全禁仍拒绝；最新禁言接口覆盖旧群缓存的全禁状态。UIKit输入焦点改为普通State/Binding，默认石头剪刀布/骰子已接旧资源、type21真实字段及3秒动画。用户批准这两个默认游戏发送，覆盖CHAT-014对应暂缓子范围；商城和其它能力不扩大。同期头像改动原样保留。
+
+最终统一离线72/72组exit0（347.34秒），无签名generic iOS workspace构建锁释放后重试exit0、`BUILD SUCCEEDED`，独立复核通过；逐项日志和过程失败边界见最新交接第5节。所有真实键盘、游戏双端、群发送及头像显示仍待用户Run/设备授权恢复后的对应验收，不把字段日志、模型回归或动画当作服务器成功。
+
+## 2026-10-15 聊天头像默认值回退修正
+
+用户报告单聊对方偶发显示默认头像，以及自己发消息后头像变默认。源码与离线复现确认两条路径：`SDKChatMessageMapper` 用好友/成员缓存中的空串覆盖消息 `fromIcon`；本地发送中的 `ChatMessageRecord.avatarURL` 尚未填充，而气泡只读消息快照。现在缓存头像非空才覆盖消息资源，注销状态仍明确清空；本人气泡沿旧端读取当前 `UserSessionStore` 资料，核对发送者UID，并观察资料变化，缺资料或账号不匹配才保留消息头像。未改发送协议、图片缓存、文件Host或好友数据库。
+
+新增 `Tests/Chat/run-avatar-checks.sh` 提取生产映射与气泡实际资源表达式执行，SDK数据库/登录资料使用匿名离线边界；先复现5项失败，修正后16/16通过（`/tmp/ddlNew-avatar-red.log`、`/tmp/ddlNew-avatar-green.log`）。统一离线72/72组exit0，耗时合计370.76秒（`/tmp/ddlNew-avatar-qa-results/summary.json`）；无签名generic iOS workspace构建首次遇到同期build.db占用，释放后重试exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-avatar-build-retry.log`），头像相关文件无新增编译警告；独立只读复核无阻断问题，`git diff --check`通过。未操作设备，真实单聊进入/发送/历史刷新及远端图片下载仍待重新Run验证；保留同期聊天布局、游戏表情等工作区改动，不提交/推送。
+
+## 2026-10-15 输入后键盘修正与权限诊断（过程快照，已由上方统一交接取代）
+
+用户报告任意聊天输入一个字符键盘即收起。基础表情富文本输入改用UITextView后，聊天焦点仍由未绑定`.focused`控件的FocusState拥有，每次正文更新会按该值同步first responder。现窄修为ChatRoom的普通`@State Bool`经两个`Binding<Bool>`传给UIKit；原生表单的FocusState不改，主动切面板/取消成员选择/禁言时的焦点规则保留。焦点专项提取生产绑定类型、updateUIView及begin/end代理执行，旧类型RED、新实现GREEN；权限53项及成员请求15场景通过，独立只读复核通过。无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`，`/tmp/ddlNew-20261015-composer-focus-permission-build.log`。尚待用户重新Run确认真实系统键盘，不能以匿名形状回归替代。
+
+另一用户报告：群聊键盘/相册/拍摄全部置灰，顶部“正在确认群发送权限”，Toast“消息响应无效，请重试”。源码定位至群详情/禁言快照未通过严格校验的路径；旧端对缺失禁言字段默认0，新端不能据无字段日志直接放行。当前没有真实三字段值，不宣称该发送阻断已修复。DEBUG新增`[ChatGroupPermission]`单行，只输出detail.userInGroup、mute.isGroupForbid/isGroupChat的true/false/missing/null/invalid，不输出原始响应/身份/凭据；已请用户Run后回传此行。用户提供的既有日志仅传输/帧长度，无法确认字段合同。独立复核另标记详情/缓存全群禁言与最新禁言接口做OR的旧值覆盖风险（对应“当前已被禁言”，不等同当前故障），尚未混入本轮修正。
+
+Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现有Mac进程系统日志未找到业务字段。当前代码和文档保留工作区，不提交/推送。上一节68/68为前一版本历史快照；本轮仅运行焦点、权限、成员请求专项及workspace构建。
+
+## 2026-10-15 导航栏、基础表情与群聊@继续对齐（阶段快照）
+
+四个实际Tab根页及活动/签到相关重复页头已统一使用原生导航栏和`.toolbar {}`，保留原导航所有者、业务动作、首页/我的森林绿与UIAdapter。顶部`safeAreaInset`仅剩群申请业务筛选，底部输入/提交条保持安全区；未接入App的Original原型不作业务页面改造。范围及构建证据见[系统导航栏迁移记录](NAVIGATION_TOOLBAR_MIGRATION_2026-10-15.md)。
+
+表情按钮默认打开旧xgd的157个基础图片表情，按`[微笑]`等旧文本标记插入、复制和发送，真实SDK贴纸保留独立标签。群聊底部@按钮已移除，实际键入@才加载真实完整群成员，可搜索并在光标处插入对应UID；取消保留普通@，普通成员禁私聊限制沿用。用户最新要求工具栏等分，相册/拍摄/文件/更多改成四等分居中布局，覆盖之前横向滚动与常驻群@的历史描述。
+
+独立复核修正特殊昵称含@时的UID错位，以及成员请求迟到后覆盖子页/表情面板的弹层和焦点问题；复核确认关闭。新增生产方法离线场景覆盖上述迟到成功/失败、取消、草稿/身份变化，详见[聊天布局追加记录](CHAT_LAYOUT_ALIGNMENT_2026-10-15.md)。Mobile MCP继续暂停，未操作设备或真实成员数据，不提交/推送。最终统一离线68/68组exit0（351.63秒），无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`，日志见追加记录；源码/离线检查不代替中文输入法、系统键盘、弹层动画或双端服务器验收。
+
+## 2026-10-15 聊天页交互布局继续对齐
+
+用户批准整体按xgd调整聊天输入、内嵌表情/录音、引用、多选底栏、消息行与群公告入口；保留森林绿、UIAdapter及真实SDK。并窄修“聊天设置—查看好友资料”：由外层值路由改为设置页既有资料子导航，携带UID/来源群并保留设置Store。源码、验证及设备待验边界见[本轮聊天布局记录](CHAT_LAYOUT_ALIGNMENT_2026-10-15.md)。Mobile MCP继续暂停，不自动提交/推送；此前举报/黑名单、图标及媒体解包取消改动保留。
+
+统一离线66/66组exit0（逐脚本耗时合计300.47秒），独立复核补修后输入模式/设置/视口/操作专项复跑通过，最终无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`。未操作设备；真实好友资料进入/返回、键盘/录音/相册、大字号及服务器转发删除仍按本轮记录待验，不能用源码和编译替代。
+
+## 2026-10-15 追加系统投诉与黑名单（当前）
+
+用户批准迁移旧xgd的拉黑和举报，明确“仅系统投诉，不含邀请码/IP域名”；UI按用户指定ui-ux-pro-max设计，保持森林绿、UIAdapter与中文业务注释。好友资料更多可加入/移出黑名单，“我的”有真实黑名单、移出及资料入口；好友资料、群设置与“我的”分别提交用户、群、通用系统投诉。演示举报/拉黑仍删除，当前为独立真实SDK接入。
+
+统一离线65/65组exit0（逐脚本耗时合计236.06秒），最终投诉专项复跑及无签名generic iOS workspace构建通过。未进行服务器/设备功能验收，Mobile MCP继续暂停，没有改用其他工具操作设备。真实拉黑阻断/解除恢复、证据图各供应商与投诉受理/审核仍待验，不能以构建、匿名夹具或Toast代替。
+
+分支仍为`feature-message-4 / ecf1b89`，改动保留工作区，不提交/推送；此前媒体解包取消修正保留。工程文件同期新增的空inputPaths/outputPaths四行原样保留。C-020/C-021由暂缓改为批准，当前范围105/116项，整体暂缓11项；下文103/13均为历史快照。详见[举报与拉黑迁移记录](SAFETY_REPORT_BLOCK_MIGRATION_2026-10-15.md)与[统一交接第11节](SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md#11-2026-10-15追加系统投诉与黑名单)。
+
+## 2026-10-15 后续离线延续（Mobile MCP 暂停）
+
+本轮接手实时基线为 `feature-message-4 / ecf1b89`，工作区干净；EncryptLib 与上轮交接已提交，以下 `4a75da8`、未提交等描述保留为历史快照。用户随后要求暂停 Mobile MCP，本轮未调用或改用其他工具操作设备。
+
+媒体未完成分支新增离线复现：下载完成后的解包期间取消加载，旧 `ChatMediaPreviewStore` 仍发布附件；独立解包任务也未随页面关闭或原条删除取消。现在保留解包任务句柄，将加载取消与 `close()` 传入真实流式解包，发布前再核对取消/轮次，并清理下载临时文件。媒体格式、发送协议、森林绿主题和 UIAdapter 不变。
+
+专项加载回归与既有预览失效12项通过；统一离线63/63组exit0（265.92秒），无签名generic iOS workspace构建 `BUILD SUCCEEDED`，详见[统一交接第10节](SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md#10-2026-10-15后续离线延续mobile-mcp暂停)。本轮不提交或推送；仅新增离线证据，不将真实媒体/后台/弱网及多端验收改为通过。
+
 ## 当前交接入口（2026-10-15 整理）
 
 继续昨晚消息、通讯录与群聊工作时，完整阅读[昨晚统一交接](SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md)，再按其中源码入口和未完成项推进。该文档整合已实现行为、真实/离线验证边界、设备与数据恢复、后续优先级和新聊天接续提示。

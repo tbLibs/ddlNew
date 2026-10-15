@@ -17,7 +17,7 @@ struct MessagingPageChrome: ViewModifier {
             .tint(MessagingTheme.accent)
             .controlSize(.large)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarHidden(false)
+            .toolbar(.visible, for: .navigationBar)
             .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }

@@ -74,7 +74,7 @@ struct ActivityDetailScreen: View {
         .navigationDestination(isPresented: $showCheckIn) {
             CheckInScreen(activity: activity)
         }
-        .navigationBarHidden(false).navigationBarTitleDisplayMode(.inline).navigationTitle("活动详情")
+        .toolbar(.visible, for: .navigationBar).navigationBarTitleDisplayMode(.inline).navigationTitle("活动详情")
         .sheet(isPresented: $showConfirmation) {
             NavigationView { RegistrationScreen(activity: activity) }.navigationViewStyle(.stack)
         }

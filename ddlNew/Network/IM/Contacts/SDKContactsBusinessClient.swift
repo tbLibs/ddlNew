@@ -84,6 +84,19 @@ import ObjectiveC
         let params: NSMutableDictionary = ["userUid": identity.userUID]
         var response = ContactBusinessResponse()
         switch operation {
+        case .blackState(let id):
+            params["friendUserUid"] = id
+            response.isBlack = try ContactBusinessPayload.blackFlag(await call(identity) { sdk.getUserBlackState(with: params, onSuccess: $0, onFailure: $1) })
+        case .blacklist:
+            let data = try await call(identity) { sdk.getBlackListFromServer(with: params, onSuccess: $0, onFailure: $1) }
+            response.contacts = try ContactBusinessPayload.searchContacts(from: data)
+        case .setBlack(let id, let blocked):
+            guard !id.isEmpty, id != identity.userUID, id != "100002" else { throw ContactBusinessError.invalidInput("不能对该用户操作黑名单") }
+            params["friendUserUid"] = id; params["status"] = blocked ? 1 : 0
+            response.success = try ContactBusinessPayload.blackFlag(await call(identity) { success, failure in
+                if blocked { sdk.addUserToBlackList(with: params, onSuccess: success, onFailure: failure) }
+                else { sdk.removeUserFromBlackList(with: params, onSuccess: success, onFailure: failure) }
+            })
         case .search(let text):
             // 旧精确账号检索仅传userName，当前身份由SDK认证和回执轮次校验，不追加目标UID过滤。
             params.removeObject(forKey: "userUid")

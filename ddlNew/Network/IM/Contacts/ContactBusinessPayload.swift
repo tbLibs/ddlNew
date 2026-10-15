@@ -70,6 +70,12 @@ nonisolated struct ContactBusinessPayload: Mappable {
         }
     }
 
+    /// 黑名单读取和写入只接受明确0/1，未知非空值不能伪造成功或未拉黑。
+    static func blackFlag(_ data: Any) throws -> Bool {
+        guard let number = data as? NSNumber, number.doubleValue == 0 || number.doubleValue == 1 else { throw ContactBusinessError.malformedResponse }
+        return number.boolValue
+    }
+
     /// 状态只接受整数或整数字符串，布尔、空值和小数不能降级成正常状态。
     private func strictInteger(_ value: Any) -> Int? {
         if let number = value as? NSNumber {

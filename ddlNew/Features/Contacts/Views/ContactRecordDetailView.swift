@@ -26,6 +26,10 @@ struct ContactRecordDetailView: View {
     @State private var moving = false
     @State private var sharing = false
     @State private var confirmingDelete = false
+    @State private var confirmingBlack = false
+    @State private var showingComplaint = false
+    @State private var complaintSubmitted = false
+    @State private var complaintFeedback: String?
     @State private var showingCopyToast = false
     @ObservedObject private var permissions = UserRoleAuthorityStore.shared
 
@@ -84,9 +88,12 @@ struct ContactRecordDetailView: View {
                     }
                     if !contact.isDeleted, contact.id != businessStore.identity?.userUID {
                         if isFriend {
+                            if contact.userType == 0, businessStore.blackStates[contactID] == true {
+                                Text("你已将对方加入黑名单，请先移出黑名单再发送消息。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
+                            }
                             NavigationLink(value: ChatRoute(id: contact.id, kind: .single, title: contact.displayName, avatarURL: contact.avatar, sourceGroupID: sourceGroupID)) {
                                 Label("发消息", systemImage: "message.fill").frame(maxWidth: .infinity)
-                            }.buttonStyle(MessagingActionButtonStyle())
+                            }.buttonStyle(MessagingActionButtonStyle()).disabled(contact.userType == 0 && contactID != "100002" && businessStore.blackStates[contactID] != false)
                         } else if permissions.current?.allows("allowAddFriend") == true {
                             applicationAction(contact)
                         }
@@ -96,8 +103,8 @@ struct ContactRecordDetailView: View {
         }
         .navigationTitle("用户资料")
         .modifier(MessagingPageChrome())
-        .messagingLoadingToast((businessStore.isLoading || businessStore.isSubmitting) && !editing && !moving && !sharing)
-        .messagingFeedbackToast(businessStore.errorMessage ?? businessStore.notice, isEnabled: !editing && !moving && !sharing)
+        .messagingLoadingToast((businessStore.isLoading || businessStore.isSubmitting || businessStore.loadingBlackIDs.contains(contactID)) && !editing && !moving && !sharing && !showingComplaint)
+        .messagingFeedbackToast(complaintFeedback ?? businessStore.errorMessage ?? businessStore.notice, isEnabled: !editing && !moving && !sharing && !showingComplaint)
         .toast(isPresenting: $showingCopyToast, duration: 2) {
             AlertToast(displayMode: .alert, type: .regular, title: "账号已复制",
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
@@ -109,6 +116,15 @@ struct ContactRecordDetailView: View {
                         Button("备注与描述") { editing = true }
                         Button("移动到分组") { moving = true }
                         Button("推荐名片") { sharing = true }
+                        if contact.userType == 0, contactID != "100002" {
+                            if let blocked = businessStore.blackStates[contactID] {
+                                Button(blocked ? "移出黑名单" : "加入黑名单", role: blocked ? nil : .destructive) {
+                                    if blocked { Task { await businessStore.perform(.setBlack(friendID: contactID, blocked: false), sourceGroupID: sourceGroupID) } }
+                                    else { confirmingBlack = true }
+                                }
+                            } else { Button("重新确认黑名单状态") { Task { await businessStore.loadBlackState(contactID) } } }
+                            Button("投诉与支持") { complaintFeedback = nil; showingComplaint = true }
+                        }
                         Button("删除好友", role: .destructive) { confirmingDelete = true }
                     } label: {
                         Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44)
@@ -122,6 +138,8 @@ struct ContactRecordDetailView: View {
             businessStore.reconcileContacts(contacts)
             if cachedContact != nil { wasFriend = true }
         }
+        .onChange(of: businessStore.isSubmitting) { if $0 { complaintFeedback = nil } }
+        .onChange(of: businessStore.errorMessage) { if $0 != nil { complaintFeedback = nil } }
         .onReceive(groups.$groups.dropFirst()) { _ in if sourceGroupID != nil { Task { await refreshProfile() } } }
         .onReceive(permissions.$current.dropFirst()) { _ in if sourceGroupID != nil { Task { await refreshProfile() } } }
         .sheet(isPresented: $editing) {
@@ -136,6 +154,15 @@ struct ContactRecordDetailView: View {
         }
         .sheet(isPresented: $sharing) { if let contact { ContactsRecipientPickerView(content: .contact(contact, sourceGroupID: sourceGroupID)) } }
         .sheet(isPresented: $moving) { ContactGroupPicker(businessStore: businessStore, contactID: contactID, sourceGroupID: sourceGroupID) }
+        .sheet(isPresented: $showingComplaint, onDismiss: {
+            if complaintSubmitted { complaintFeedback = "投诉已提交"; complaintSubmitted = false }
+        }) {
+            ComplaintView(target: .user(contactID), targetName: contact?.displayName ?? "该用户", sourceGroupID: sourceGroupID) { complaintSubmitted = true }
+        }
+        .alert("加入黑名单？", isPresented: $confirmingBlack) {
+            Button("取消", role: .cancel) {}
+            Button("加入黑名单", role: .destructive) { Task { await businessStore.perform(.setBlack(friendID: contactID, blocked: true), sourceGroupID: sourceGroupID) } }
+        } message: { Text("加入后将不再接收对方消息。你可以在这里或“我的—黑名单”中移出，好友和聊天记录会保留。") }
         .alert("删除好友？", isPresented: $confirmingDelete) {
             Button("取消", role: .cancel) {}
             Button("删除", role: .destructive) { Task { await businessStore.perform(.deleteFriend(contactID), sourceGroupID: sourceGroupID); await store.reload() } }
@@ -177,6 +204,7 @@ struct ContactRecordDetailView: View {
         await store.reload()
         guard refreshRevision == revision else { return }
         if isFriend { wasFriend = true }
+        if isFriend, contact?.userType == 0, contactID != businessStore.identity?.userUID { await businessStore.loadBlackState(contactID) }
     }
 
     /// 未设置字段明确占位，不展示服务端原始空值。

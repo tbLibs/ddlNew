@@ -20,7 +20,7 @@ struct ClubHubScreen: View {
         }
         .navigationTitle(destination.title)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarHidden(false)
+        .toolbar(.visible, for: .navigationBar)
         .accessibilityIdentifier("home.destination.\(destination == .activities ? "activities" : "club")")
     }
 }

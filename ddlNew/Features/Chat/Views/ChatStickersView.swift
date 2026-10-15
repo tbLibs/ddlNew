@@ -10,21 +10,22 @@ import Kingfisher
 
 struct ChatStickersView: View {
     @ObservedObject var chat: ChatStore
+    var embedded = false
     @StateObject private var store = ChatStickersStore(client: SDKChatStickersClient())
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @State private var sentFeedback: String?
     @State private var sendError: String?
     @Environment(\.dismiss) private var dismiss
 
-    /// 已用贴纸以完整资源显示动画，发送动作继续沿当前真实SDK合同。
-    var body: some View {
+    /// 内嵌面板和独立页面共用真实贴纸内容，不重复提供两个发送入口。
+    private var pickerContent: some View {
         MessagingScroll {
             VStack(alignment: .leading, spacing: 16.zoom()) {
-                Text("选择表情发送到当前聊天").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                if !embedded { Text("选择表情发送到当前聊天").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
                 if !chat.permission.canSend { Text("当前聊天暂不能发送消息").foregroundStyle(MessagingTheme.error).font(.subheadline) }
                 if store.errorMessage != nil { Button("重试") { Task { await store.loadMore() } }.frame(minHeight: 44).disabled(store.busy) }
                 if store.stickers.isEmpty && !store.busy && store.errorMessage == nil { Label("暂无已用贴纸或收藏表情", systemImage: "face.smiling").foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 32.zoom()) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 92.zoom()), spacing: 12.zoom())], spacing: 16.zoom()) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: (embedded ? 64.0 : 92.0).zoom()), spacing: 12.zoom())], spacing: 16.zoom()) {
                     ForEach(store.stickers) { sticker in
                         Button { send(sticker) } label: {
                             VStack(spacing: 8.zoom()) {
@@ -36,10 +37,20 @@ struct ChatStickersView: View {
                 }
                 if store.hasMore && !store.busy { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: max(44, 44.zoom())) }
             }.padding(16.zoom())
-        }.navigationTitle("贴纸与表情").modifier(MessagingPageChrome())
+        }
+    }
+
+    /// 已用贴纸以完整资源显示动画，展开面板仍保留原SDK和身份轮次校验。
+    var body: some View {
+        Group {
+            if embedded { pickerContent }
+            else {
+                pickerContent.navigationTitle("贴纸与表情").modifier(MessagingPageChrome())
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44) } }
+            }
+        }
         .messagingFeedbackToast(store.errorMessage ?? sendError ?? sentFeedback)
-        .messagingLoadingToast(store.busy, title: "正在加载表情")
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44) } }
+        .messagingLoadingToast(!embedded && store.busy, title: "正在加载表情")
         .task { if let context = chat.context { await store.open(context) } }
         .onDisappear { store.close() }
     }

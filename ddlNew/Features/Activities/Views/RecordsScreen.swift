@@ -25,6 +25,6 @@ struct RecordsScreen: View {
                     NavigationLink("发现活动", value: ClubHomeDestination.activities).buttonStyle(ClubButtonStyle())
                 } else { ForEach(records) { ActivityCard(activity: $0) } }
             }.padding(20)
-        }.navigationBarHidden(false).navigationTitle(kind.rawValue).navigationBarTitleDisplayMode(.inline)
+        }.toolbar(.visible, for: .navigationBar).navigationTitle(kind.rawValue).navigationBarTitleDisplayMode(.inline)
     }
 }

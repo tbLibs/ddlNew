@@ -13,7 +13,10 @@ import AVFoundation
 
 struct ChatMediaComposer: View {
     @ObservedObject var chat: ChatStore
-    var compact = false
+    @Binding var mode: ChatComposerMode
+    var focused: Binding<Bool>
+    @Binding var inputSelection: NSRange
+    var onAtSign: ((NSRange) -> Void)? = nil
     @StateObject private var media = ChatRuntime.shared.makeMediaStore()
     @StateObject private var recorder = ChatRuntime.shared.makeRecorder()
     @Environment(\.scenePhase) private var scenePhase
@@ -21,34 +24,28 @@ struct ChatMediaComposer: View {
     @State private var photos: [PhotosPickerItem] = []
     @State private var showCamera = false
     @State private var showFiles = false
-    @State private var showStickers = false
     @State private var originalImage = false
     @State private var preparation: Task<Void, Never>?
     @State private var hasRecorded = false
+    @State private var startRecordingTask: Task<Void, Never>?
 
-    /// 收拢工具只改变控件布局，组件与上传、录音所有者保持同一身份。
+    /// 面板只替换输入区内容，上传、录音与原图选择始终由同一组件持有。
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 0) {
             if media.isUploading { HStack { Button("取消上传") { media.cancel() } } }
-            if !compact {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 8.zoom()) {
-                PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
-                Button { prepareCamera() } label: { Label("拍摄", systemImage: "camera").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
-                Button { showFiles = true } label: { Label("文件", systemImage: "doc").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
-                Button { toggleRecording() } label: { Label(recorder.isRecording ? "停止" : "语音", systemImage: recorder.isRecording ? "stop.circle" : "mic").frame(minHeight: 44) }.disabled(!chat.permission.canSend)
-            }.labelStyle(ChatComposerToolLabelStyle()).buttonStyle(.plain)
-            HStack { Button("表情与贴纸") { showStickers = true }.frame(minHeight: 44); Spacer(); Toggle("原图", isOn: $originalImage).fixedSize() }.font(.caption)
-            }
-            if hasRecorded || recorder.isRecording {
-                HStack { Text("录音 \(Int(recorder.duration)) / 60秒"); Spacer(); Button("取消录音") { recorder.cancel(); hasRecorded = false }; Button("发送录音") { sendRecording() }.disabled(recorder.isRecording) }
+            if mode.panel != .selection {
+                inputRow
+                tools
+                if mode.panel == .stickers {
+                    ChatEmojiPanel(chat: chat, selection: $inputSelection)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 220.zoom() : 260.zoom())
+                } else if mode.panel == .voice { voicePanel }
             }
         }
         .tint(MessagingTheme.accent)
         .task { registerCleanup() }
-        .messagingLoadingToast(media.isUploading, title: "正在上传附件")
         .messagingFeedbackToast(media.errorMessage ?? recorder.errorMessage)
         .onChange(of: photos) { values in preparePhotos(values) }
-        .sheet(isPresented: $showStickers) { NavigationStack { ChatStickersView(chat: chat) } }
         .sheet(isPresented: $showCamera) { ChatCameraPicker { key, value in
             if key == .mediaURL, let source = value as? URL { prepareVideo(source) }
             else if let image = value as? UIImage, let data = image.jpegData(compressionQuality: 0.9) { prepareImage(data) }
@@ -57,8 +54,96 @@ struct ChatMediaComposer: View {
             if case .success(let url) = result { prepareFile(url) }
             else if case .failure(let error) = result { media.errorMessage = error.localizedDescription }
         }
-        .onDisappear { preparation?.cancel(); media.cancel(); recorder.cancel() }
-        .onChange(of: scenePhase) { phase in if phase != .active { recorder.cancel(); hasRecorded = false } }
+        .onDisappear { preparation?.cancel(); media.cancel(); cancelRecording() }
+        .onChange(of: mode.panel) { panel in if panel != .voice { cancelRecording() } }
+        .onChange(of: focused.wrappedValue) { value in if value { mode.beginTyping() } }
+        .onChange(of: chat.permission.canSend) { allowed in if !allowed { cancelRecording(); focused.wrappedValue = false } }
+        .onChange(of: scenePhase) { phase in if phase != .active { cancelRecording() } }
+    }
+
+    /// 旧版输入框内置表情，右侧在空闲语音与编辑发送间切换，操作区至少44pt。
+    private var inputRow: some View {
+        HStack(alignment: .bottom, spacing: 8.zoom()) {
+            HStack(alignment: .bottom, spacing: 0) {
+                ZStack(alignment: .topLeading) {
+                    if chat.input.isEmpty {
+                        Text("发送消息").foregroundStyle(MessagingTheme.secondaryText)
+                            .padding(.leading, 12).padding(.top, 10).allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                    ChatComposerTextInput(text: $chat.input, selection: $inputSelection, focused: focused,
+                        maximumLines: dynamicTypeSize.isAccessibilitySize ? 2 : 5, onAtSign: onAtSign)
+                }
+                Button {
+                    if mode.panel == .stickers { mode.beginTyping(); focused.wrappedValue = true }
+                    else { focused.wrappedValue = false; mode.toggle(.stickers) }
+                } label: {
+                    Image(systemName: mode.panel == .stickers ? "keyboard" : "face.smiling")
+                        .font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+                }.accessibilityLabel(mode.panel == .stickers ? "切换文字输入" : "展开表情与贴纸")
+            }.background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 14.zoom()))
+            primaryButton
+        }.disabled(!chat.permission.canSend).padding(.horizontal, 16.zoom()).padding(.top, 6.zoom())
+    }
+
+    /// 无文本时不占用一个永久发送按钮；键盘编辑时保留明确发送出口。
+    @ViewBuilder private var primaryButton: some View {
+        if mode.panel == .voice {
+            Button { mode.beginTyping(); focused.wrappedValue = true } label: {
+                Image(systemName: "keyboard").font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel("切换文字输入")
+        } else if ChatComposerMode.primaryAction(input: chat.input, focused: focused.wrappedValue) == .send {
+            Button { chat.sendText() } label: {
+                Image(systemName: "arrow.up").font(.system(size: 20.zoom(), weight: .semibold))
+                    .frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+                    .foregroundStyle(MessagingTheme.onPrimaryAction).background(MessagingTheme.primaryAction, in: RoundedRectangle(cornerRadius: 12.zoom()))
+            }.accessibilityLabel("发送消息").disabled(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .opacity(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+        } else {
+            Button { focused.wrappedValue = false; mode.toggle(.voice) } label: {
+                Image(systemName: "mic").font(.system(size: 24.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel("展开语音录制")
+        }
+    }
+
+    /// 常用四项等分整个可用宽度，图标、文字与触点始终居中对应。
+    private var tools: some View {
+        HStack(spacing: 0) {
+            PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo") }
+                .frame(maxWidth: .infinity)
+            Button { focused.wrappedValue = false; prepareCamera() } label: { Label("拍摄", systemImage: "camera") }
+                .frame(maxWidth: .infinity)
+            Button { focused.wrappedValue = false; showFiles = true } label: { Label("文件", systemImage: "doc") }
+                .frame(maxWidth: .infinity)
+            Menu {
+                Toggle("发送原图", isOn: $originalImage)
+                if focused.wrappedValue { Button("收起键盘") { focused.wrappedValue = false } }
+            } label: { Label("更多", systemImage: "ellipsis") }.accessibilityLabel("更多输入选项")
+                .frame(maxWidth: .infinity)
+        }.labelStyle(ChatComposerToolLabelStyle(equalWidth: true)).buttonStyle(.plain)
+            .disabled(!chat.permission.canSend).padding(.horizontal, 12.zoom())
+            .frame(minHeight: max(56, 56.zoom()))
+    }
+
+    /// 录音展开后由用户点按开始、停止与确认发送，取消不清空文字草稿。
+    private var voicePanel: some View {
+        VStack(spacing: 12.zoom()) {
+            HStack {
+                Text(recorder.isRecording ? "正在录音 \(Int(recorder.duration)) / 60秒" : hasRecorded ? "录音已停止，确认后发送" : "点击开始录音，最长60秒").font(.subheadline)
+                Spacer()
+                Button("关闭") { cancelRecording(); mode.beginTyping() }.frame(minHeight: 44)
+            }
+            HStack(spacing: 24.zoom()) {
+                if hasRecorded && !recorder.isRecording {
+                    Button("重录") { cancelRecording() }.frame(minWidth: 60, minHeight: 44)
+                    Button { sendRecording() } label: { Label("发送录音", systemImage: "paperplane.fill") }.buttonStyle(MessagingActionButtonStyle())
+                } else {
+                    Button { toggleRecording() } label: {
+                        Image(systemName: recorder.isRecording ? "stop.fill" : "mic.fill").font(.system(size: 30.zoom()))
+                            .frame(width: 76.zoom(), height: 76.zoom()).foregroundStyle(MessagingTheme.onPrimaryAction).background(MessagingTheme.primaryAction, in: Circle())
+                    }.accessibilityLabel(recorder.isRecording ? "停止录音" : "开始录音").disabled(startRecordingTask != nil)
+                }
+            }
+        }.padding(.horizontal, 20.zoom()).padding(.bottom, 20.zoom()).disabled(!chat.permission.canSend)
     }
 
     /// 同步清理捕获独立弱对象，避免SwiftUI页面被根runtime长期持有。
@@ -103,8 +188,16 @@ struct ChatMediaComposer: View {
     /// 录音开始、停止和发送分开，取消保留原文本草稿。
     private func toggleRecording() {
         if recorder.isRecording { recorder.stopRecording(); hasRecorded = true }
-        else if let context = chat.context { Task { await recorder.start(context: context); hasRecorded = true } }
+        else if let context = chat.context, startRecordingTask == nil {
+            startRecordingTask = Task {
+                await recorder.start(context: context)
+                guard !Task.isCancelled else { return }
+                hasRecorded = recorder.isRecording; startRecordingTask = nil
+            }
+        }
     }
+    /// 收起面板、失去权限或后台会取消麦克风授权等待与未发送录音。
+    private func cancelRecording() { startRecordingTask?.cancel(); startRecordingTask = nil; recorder.cancel(); hasRecorded = false }
     /// 用户确认发送停止后的录音，资源太短不能入队。
     private func sendRecording() { do { let attachment = try recorder.finish(); hasRecorded = false; if let context = chat.context { preparation = Task { await send(attachment, context: context) } } } catch { recorder.errorMessage = error.localizedDescription } }
     /// 上传取消或退出后不入队，临时附件完成后清理。

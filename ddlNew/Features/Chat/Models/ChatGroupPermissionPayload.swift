@@ -26,8 +26,27 @@ nonisolated enum ChatGroupPermissionPayload {
         return nil
     }
 
-    /// 读取权限需有真实在群、个人禁言及全群禁言结果，空回执不能确认可发送。
+    /// 旧端个人未禁言时可省略此键；明确null或非法值仍不能当成未禁言。
+    static func personalMuted(_ mute: [String: Any]) -> Bool? {
+        guard let value = mute["isGroupForbid"] else { return false }
+        return boolean(value)
+    }
+
+    /// 调试仅保留固定权限字段的形状；原始响应、身份及认证信息均不输出。
+    static func diagnostic(detail: [String: Any], mute: [String: Any]) -> String {
+        func state(_ value: Any?) -> String {
+            guard let value else { return "missing" }
+            if value is NSNull { return "null" }
+            if let flag = boolean(value) { return flag ? "true" : "false" }
+            return "invalid"
+        }
+        return "detail.userInGroup=" + state(detail["userInGroup"])
+            + " mute.isGroupForbid=" + state(mute["isGroupForbid"])
+            + " mute.isGroupChat=" + state(mute["isGroupChat"])
+    }
+
+    /// 在群和全员禁言必须明确，个人禁言按旧接口缺省规则；空回执仍不可发送。
     static func verified(detail: [String: Any], mute: [String: Any]) -> Bool {
-        boolean(detail["userInGroup"]) != nil && boolean(mute["isGroupForbid"]) != nil && boolean(mute["isGroupChat"]) != nil
+        boolean(detail["userInGroup"]) != nil && personalMuted(mute) != nil && boolean(mute["isGroupChat"]) != nil
     }
 }

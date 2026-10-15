@@ -25,6 +25,12 @@ struct ChatForwardRecipientView: View {
     @State private var confirming = false
     @FocusState private var searchFocused: Bool
 
+    /// 多选底栏携带用户已选模式，原有直接转发入口默认仍为逐条。
+    init(messages: [ChatMessageRecord], context: ChatContext, chat: ChatStore, initialMerged: Bool = false) {
+        self.messages = messages; self.context = context; self.chat = chat
+        _merged = State(initialValue: initialMerged)
+    }
+
     /// 完整身份表与可见过滤分离，搜索隐藏的已选对象仍参与确认和发送。
     private var allRecipients: [ChatRoute] {
         var map: [String: ChatRoute] = [:]

@@ -29,7 +29,7 @@ import UniformTypeIdentifiers
         let filename = UUID().uuidString + "-" + (attachment.name as NSString).lastPathComponent
             .components(separatedBy: .controlCharacters).joined()
         // 群头像沿用旧端独立目录，不能写入聊天附件目录或套用聊天发送配额。
-        let key = attachment.type == 101 ? "avatar_group/\(filename)" : "chat/\(day.string(from: Date()))/\(directory)/\(filename)"
+        let key = attachment.type == ChatAttachment.complaintEvidenceType ? "universal/\(filename)" : attachment.type == 101 ? "avatar_group/\(filename)" : "chat/\(day.string(from: Date()))/\(directory)/\(filename)"
         let bucket = provider == .huawei ? config.ossOBSBucketName : config.ossConfigBucketName
         let endpoint = provider == .huawei ? config.ossOBSEndPoint : config.ossConfigEndPoint
         let uploadURL = try objectURL(endpoint: provider == .huawei && !config.ossOBSUploadDomain.isEmpty ? config.ossOBSUploadDomain : endpoint,
@@ -105,7 +105,7 @@ import UniformTypeIdentifiers
     private func checkPermission(_ attachment: ChatAttachment) throws {
         guard attachment.bytes > 0 else { throw ChatClientError.permission("上传文件为空") }
         // 101仅由群设置使用，调用方在上传前后校验实时群管理员权限。
-        if attachment.type == 101 { return }
+        if attachment.type == 101 || attachment.type == ChatAttachment.complaintEvidenceType { return }
         guard let role = UserRoleAuthorityStore.shared.current else { throw ChatClientError.permission("当前没有附件发送权限") }
         if attachment.type == 4 { guard attachment.duration > 0, attachment.duration <= 60 else { throw ChatClientError.permission("语音最长60秒") }; return }
         let key = attachment.type == 5 ? "upFile" : "upImageVideoFile"

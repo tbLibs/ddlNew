@@ -32,6 +32,6 @@ struct CheckInSelectionScreen: View {
                     }.buttonStyle(.plain)
                 }
             }.padding(20)
-        }.navigationBarHidden(false).navigationTitle("选择签到活动").navigationBarTitleDisplayMode(.inline)
+        }.toolbar(.visible, for: .navigationBar).navigationTitle("选择签到活动").navigationBarTitleDisplayMode(.inline)
     }
 }

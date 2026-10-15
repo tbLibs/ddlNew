@@ -31,7 +31,6 @@ struct ContactsView: View {
     var body: some View {
         ScrollViewReader { proxy in
             VStack(spacing: 0.zoom()) {
-                header
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0.zoom(), pinnedViews: [.sectionHeaders]) {
                         shortcuts.padding(.horizontal, 12.zoom()).padding(.vertical, 12.zoom())
@@ -70,6 +69,13 @@ struct ContactsView: View {
             .frame(maxWidth: 720).frame(maxWidth: .infinity)
             .background(MessagingTheme.background.ignoresSafeArea())
         }
+        .navigationTitle("通讯录")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions }
+        }
+        .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .tint(MessagingTheme.accent)
         .messagingLoadingToast(!selectingMembers && ((filter == .groups && (groupsStore.isLoading || groupsStore.isCreating)) || (filter == .friendGroups && businessStore.isLoading)))
         .messagingFeedbackToast(groupsStore.errorMessage ?? businessStore.errorMessage ?? store.errorMessage, isEnabled: !selectingMembers && !managingGroups)
@@ -89,20 +95,16 @@ struct ContactsView: View {
 
     }
 
-    /// 紧凑页头固定在安全区域内，搜索和添加均保留44pt点击范围。
-    private var header: some View {
-        HStack(spacing: 8.zoom()) {
-            Text("通讯录").font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 8)
-            NavigationLink(value: ContactsPageRoute.globalSearch) {
-                Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("全局搜索")
-            if permissions.current?.allows("allowAddFriend") == true {
-                NavigationLink(value: ContactsPageRoute.addFriend) {
-                    Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                }.accessibilityLabel("添加好友")
-            }
-        }.foregroundStyle(MessagingTheme.text).padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+    /// 搜索和添加进入系统工具栏，保留原有权限、值路由及44pt触点。
+    @ViewBuilder private var navigationActions: some View {
+        NavigationLink(value: ContactsPageRoute.globalSearch) {
+            Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+        }.accessibilityLabel("全局搜索")
+        if permissions.current?.allows("allowAddFriend") == true {
+            NavigationLink(value: ContactsPageRoute.addFriend) {
+                Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel("添加好友")
+        }
     }
 
     /// 数量在大字号下独立一行，不挤压三个分类按钮。

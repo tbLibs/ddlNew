@@ -50,7 +50,7 @@ struct ChatScreen: View {
             composer
         }
         .background(ClubTheme.background)
-        .navigationBarHidden(false)
+        .toolbar(.visible, for: .navigationBar)
         .navigationTitle(conversation.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
