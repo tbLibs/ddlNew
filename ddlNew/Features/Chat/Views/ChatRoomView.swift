@@ -14,6 +14,7 @@ struct ChatRoomView: View {
     let route: ChatRoute
     @StateObject private var store: ChatStore
     @ObservedObject private var runtime = ChatRuntime.shared
+    @ObservedObject private var contacts = LoginSessionService.shared.contacts
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -26,14 +27,15 @@ struct ChatRoomView: View {
     @State private var pinnedMessages: [ChatMessageRecord] = []
     @State private var pinningMessage: ChatMessageRecord?
     @State private var showPinnedMessages = false
+    @State private var pendingSheetLocation: (id: String, context: ChatContext)?
+    @State private var pendingLocatedMessageID: String?
     @State private var pinRefreshTask: Task<Void, Never>?
     @State private var showMentionPicker = false
     @State private var mentionMembers: [ChatGroupMember] = []
     @State private var inputSelection = NSRange(location: NSNotFound, length: 0)
     @State private var mentionRequest: ChatMentionRequest?
     @State private var mentionTask: Task<Void, Never>?
-    @State private var selectedProfile: ContactsRoute?
-    @State private var showSettings = false
+    @State private var detailDestination: ChatDetailDestination?
     @State private var composerMode = ChatComposerMode()
     @State private var forwardingMerged = false
     @State private var showDeleteSelection = false
@@ -64,7 +66,14 @@ struct ChatRoomView: View {
                 if route.kind == .group && composerMode.panel != .selection { groupNavigation }
                 if let notice = pinnedNotice { Button { showNotices = true } label: { Label("群公告：" + notice.content, systemImage: "megaphone").lineLimit(2).padding(10.zoom()) }.accessibilityLabel("查看置顶群公告 " + notice.content) }
                 if let pinned = pinnedMessages.first {
-                    Button { showPinnedMessages = true } label: { HStack { Image(systemName: "pin.fill"); Text(pinned.text).lineLimit(1); Spacer(); Text("\(pinnedMessages.count)条") }.padding(10.zoom()) }.accessibilityLabel("查看置顶消息")
+                    HStack(spacing: 0) {
+                        Button { locateMessage(pinned.serverID.isEmpty ? pinned.localID : pinned.serverID) } label: {
+                            HStack { Image(systemName: "pin.fill"); Text(pinned.displayText).lineLimit(1); Spacer(minLength: 0) }.padding(10.zoom()).frame(maxWidth: .infinity)
+                        }.accessibilityLabel("定位置顶消息 " + pinned.displayText)
+                        Button { composerFocused = false; showPinnedMessages = true } label: {
+                            HStack { Text("\(pinnedMessages.count)条"); Image(systemName: "list.bullet") }.padding(10.zoom()).frame(minHeight: 44)
+                        }.accessibilityLabel("查看全部置顶消息")
+                    }.buttonStyle(.plain)
                 }
 
                 ScrollView {
@@ -103,6 +112,7 @@ struct ChatRoomView: View {
                 .background(GeometryReader { geometry in Color.clear.onAppear { updateViewport(geometry.size, proxy: proxy) }.onChange(of: geometry.size) { updateViewport($0, proxy: proxy) } })
                 .onPreferenceChange(ChatVisibilityPreference.self) { frames in
                     messageFrames = frames; updateVisibleMessages()
+                    positionLocatedMessage(proxy)
                 }
                 .onPreferenceChange(ChatLatestPreference.self) { layout in
                     latestLayout = layout
@@ -123,14 +133,20 @@ struct ChatRoomView: View {
                 else if store.isAtBottom { followAfterResize(proxy) }
             }
             .onChange(of: composerFocused) { _ in followAfterResize(proxy) }
-            .onChange(of: store.locatedMessageID) { id in if let id { followsInitialLatest = false; didInitialScroll = true; proxy.scrollTo(id, anchor: .center) } }
+            .onChange(of: store.locationRevision) { _ in receiveLocatedMessage(proxy) }
         }
+    }
+
+    /// 单聊标题观察真实通讯录，修改或清空备注后不再依赖进入时的路由快照。
+    private var chatTitle: String {
+        if route.kind == .single, let contact = contacts.contacts.first(where: { $0.id == route.id }) { return contact.displayName }
+        return route.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? route.id : route.title
     }
 
     /// 导航配置与正文分开，控制大型聊天视图的泛型推断范围。
     private var chatNavigation: some View {
         chatViewport
-        .navigationTitle(composerMode.panel == .selection ? "选择消息（\(store.selectedIDs.count)）" : route.title)
+        .navigationTitle(composerMode.panel == .selection ? "选择消息（\(store.selectedIDs.count)）" : chatTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         // 目标页在push准备时就声明隐藏底栏，避免先按Tab栏安全区布局、随后输入区下移。
@@ -139,6 +155,10 @@ struct ChatRoomView: View {
         .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(composerMode.panel == .selection ? "选择消息（\(store.selectedIDs.count)）" : chatTitle)
+                    .font(.headline).lineLimit(1).foregroundStyle(MessagingTheme.text)
+            }
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if composerMode.panel == .selection {
                     Button("取消") { store.cancelSelection(); composerMode.endSelection() }.frame(minHeight: 44).accessibilityLabel("取消多选")
@@ -147,20 +167,28 @@ struct ChatRoomView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: Binding(get: { selectedProfile != nil }, set: { if !$0 { selectedProfile = nil } })) {
-            if let profile = selectedProfile {
+        .navigationDestination(isPresented: Binding(get: { detailDestination != nil }, set: { if !$0 { detailDestination = nil } })) {
+            switch detailDestination {
+            case .settings:
+                ChatSettingsView(route: route)
+            case .profile(let profile):
                 ContactRecordDetailView(store: LoginSessionService.shared.contacts, businessStore: LoginSessionService.shared.contactBusiness,
                     contactID: profile.contactID, fileHost: OSSConnectionBootstrap.shared.current?.getFileHost,
                     sourceGroupID: profile.sourceGroupID)
+            case .chat(let target):
+                ChatRoomView(route: target)
+            case nil:
+                EmptyView()
             }
         }
-        .navigationDestination(isPresented: $showSettings) { ChatSettingsView(route: route) }
+        .environment(\.contactChatNavigation, ContactChatNavigationAction(open: openChatFromProfile))
         .task(id: runtime.revision) {
             mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false
             guard !conversationClosed else { return }
             if let context = runtime.context(for: route) {
                 if store.context != context {
                     didInitialScroll = false; followsInitialLatest = true
+                    pendingSheetLocation = nil; pendingLocatedMessageID = nil
                     latestLayout = ChatLatestPreference.Value(); messageFrames.removeAll(); visibleMessageIDs.removeAll()
                 }
                 openedContext = context; await store.open(context)
@@ -170,10 +198,10 @@ struct ChatRoomView: View {
         .onChange(of: runtime.closedConversationContext) { closed in
             guard let closed, closed == openedContext else { return }
             // 离群后先撤销设置页，再退出聊天；阻止返回动画期间重新打开已关闭的Store。
-            conversationClosed = true; showSettings = false; mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false; store.close()
+            conversationClosed = true; detailDestination = nil; mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false; store.close()
             DispatchQueue.main.async { dismiss() }
         }
-        .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if selectedProfile == nil && !showSettings && mediaMessage == nil && editingMessage == nil && !showForward && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
+        .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && editingMessage == nil && !showForward && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
     }
 
     /// 弹层仍使用原状态和上下文，不重新创建聊天Store。
@@ -182,10 +210,10 @@ struct ChatRoomView: View {
         .sheet(isPresented: $showNotices, onDismiss: {
             pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() }
         }) { NavigationStack { ChatGroupNoticesView(route: route) } }
-        .sheet(isPresented: $showPinnedMessages) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages) { id in Task { await store.locate(id) } }.toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showPinnedMessages = false } } } } }
+        .sheet(isPresented: $showPinnedMessages, onDismiss: locateAfterSheetDismissal) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showPinnedMessages = false } } } } }
         .sheet(item: $pinningMessage) { message in if let context = store.context { NavigationStack { ChatPinActionView(message: message, context: context, permission: store.permission, onChange: { Task { await reloadPins() } }) } } }
-        .sheet(isPresented: $showFullHistorySearch) {
-            if let context = store.context { NavigationStack { ChatHistorySearchView(context: context) { id in Task { await store.locate(id) } }.toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showFullHistorySearch = false } } } } }
+        .sheet(isPresented: $showFullHistorySearch, onDismiss: locateAfterSheetDismissal) {
+            if let context = store.context { NavigationStack { ChatHistorySearchView(context: context, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showFullHistorySearch = false } } } } }
         }
         .sheet(isPresented: $showMentionPicker, onDismiss: {
             let context = mentionRequest?.context
@@ -240,6 +268,29 @@ struct ChatRoomView: View {
     }
 
     private var displayedMessages: [ChatMessageRecord] { store.messages.filter(\.isVisible) }
+    /// 工具栏和资料入口只修改各自目标，系统返回时由统一导航绑定清理。
+    private var showSettings: Bool {
+        get { detailDestination == .settings }
+        nonmutating set {
+            if newValue { detailDestination = .settings }
+            else if detailDestination == .settings { detailDestination = nil }
+        }
+    }
+    private var selectedProfile: ContactsRoute? {
+        get { if case .profile(let profile) = detailDestination { return profile }; return nil }
+        nonmutating set {
+            if let newValue { detailDestination = .profile(newValue) }
+            else if case .profile = detailDestination { detailDestination = nil }
+        }
+    }
+
+    /// 同会话按业务身份返回原页；其他好友替换直属子树，保留群来源与原聊天Store。
+    private func openChatFromProfile(_ target: ChatRoute) {
+        guard !conversationClosed else { return }
+        if target.id == route.id && target.kind == route.kind { detailDestination = nil }
+        else { detailDestination = .chat(target) }
+    }
+
     private var messageFrames: [String: CGRect] {
         get { scrollGeometry.messageFrames }
         nonmutating set { scrollGeometry.messageFrames = newValue }
@@ -339,7 +390,54 @@ struct ChatRoomView: View {
     private func resumeChat(_ proxy: ScrollViewProxy) {
         store.isForeground = scenePhase == .active
         store.isVisible = true
+        positionLocatedMessage(proxy)
         if followsInitialLatest { positionInitialMessages(proxy) }
+    }
+
+    /// 沿旧端停止首屏和键盘末尾跟随，再按真实消息身份补齐历史。
+    private func locateMessage(_ id: String) {
+        guard !id.isEmpty, let context = store.context else { return }
+        followsInitialLatest = false; didInitialScroll = true; pendingLocatedMessageID = nil
+        resizeFollowTask?.cancel(); resizeFollowTask = nil
+        store.isAtBottom = false; composerFocused = false
+        Task {
+            guard store.context == context, runtime.isCurrent(context), !conversationClosed else { return }
+            await store.locate(id)
+        }
+    }
+
+    /// 列表先返回聊天再定位；记录会话归属，弹层期间切账号不得操作新会话。
+    private func queueSheetLocation(_ id: String) {
+        guard let context = store.context else { return }
+        pendingSheetLocation = (id, context)
+    }
+
+    /// 使用实际弹层关闭回调替代旧端固定延迟，取消关闭不产生定位。
+    private func locateAfterSheetDismissal() {
+        guard let selection = pendingSheetLocation else { return }
+        pendingSheetLocation = nil
+        guard selection.context == store.context, runtime.isCurrent(selection.context), !conversationClosed else { return }
+        locateMessage(selection.id)
+    }
+
+    /// 定位结果可能先于新历史布局到达，保留请求供几何或页面恢复回调消费。
+    private func receiveLocatedMessage(_ proxy: ScrollViewProxy) {
+        guard let id = store.locatedMessageID else { return }
+        followsInitialLatest = false; didInitialScroll = true
+        resizeFollowTask?.cancel(); resizeFollowTask = nil
+        store.isAtBottom = false; pendingLocatedMessageID = id
+        positionLocatedMessage(proxy)
+    }
+
+    /// 目标行已布局且聊天重新可见才居中滚动，后续普通几何变化不抢用户位置。
+    private func positionLocatedMessage(_ proxy: ScrollViewProxy) {
+        guard let id = pendingLocatedMessageID, store.isVisible,
+              !showPinnedMessages, !showFullHistorySearch,
+              viewport.width > 0, viewport.height > 0, messageFrames[id] != nil else { return }
+        resizeFollowTask?.cancel(); resizeFollowTask = nil
+        store.isAtBottom = false
+        proxy.scrollTo(id, anchor: .center)
+        pendingLocatedMessageID = nil
     }
 
     /// 沿旧端在真实布局回调无动画对齐首屏，用户翻历史或显式定位后停止首次跟随。
@@ -453,7 +551,7 @@ struct ChatRoomView: View {
                     }
                     ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
                     isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
-                    onRetry: { store.retry(message.id) }, onReference: { Task { await store.locate(message.referenceID) } }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, allowsGameAnimation: initialMessagesReady && scenePhase == .active && visibleMessageIDs.contains(message.id), onGameAnimationComplete: { store.completeGameAnimation($0) })
+                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, allowsGameAnimation: initialMessagesReady && scenePhase == .active && visibleMessageIDs.contains(message.id), onGameAnimationComplete: { store.completeGameAnimation($0) })
                     .allowsHitTesting(composerMode.panel != .selection)
                     .accessibilityHidden(composerMode.panel == .selection)
                     .overlay {

@@ -40,6 +40,7 @@ code = '''import SwiftUI
     var visibleUpdates = 0
     var scenePhase = ScenePhase.active
     func updateVisibleMessages() { visibleUpdates += 1 }
+    func positionLocatedMessage(_ proxy: PositionProxy) {}
 FIELDS
 METHODS
     func changed(_ id: String?, proxy: PositionProxy) { CHANGED }

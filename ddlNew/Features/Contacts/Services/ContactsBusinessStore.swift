@@ -253,13 +253,12 @@ import Combine
         return await perform(.reorderGroup(id: id, order: groups[toIndex].order))
     }
 
-    /// 黑名单状态独立读取；未知或失败不当成未拉黑，旧读取不能覆盖写操作。
+    /// 重查保留上次确认结果，成功才替换；首次未知不放行，旧读取不能覆盖写操作。
     func loadBlackState(_ id: String) async {
         guard let identity, id != identity.userUID, !id.isEmpty, id != "100002" else { return }
         let revision = UUID(); blackStateRevisions[id] = revision
         loadingBlackIDs.insert(id)
         defer { if self.identity == identity, blackStateRevisions[id] == revision { loadingBlackIDs.remove(id) } }
-        blackStates.removeValue(forKey: id)
         do {
             let response = try await client.request(.blackState(id), identity: identity)
             guard self.identity == identity, blackStateRevisions[id] == revision, !Task.isCancelled else { return }
@@ -413,10 +412,10 @@ import Combine
         var seen = Set<String>(); return records.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
     }
 
-    /// 本机新朋友角标只统计来自对方且尚未实际显示的申请。
+    /// 角标只采用真实未读版本；历史申请先到时不能猜测未读，避免首屏闪出后又清零。
     private func updateUnread() {
-        if hasUnreadSnapshot { unreadCount = unreadVersions.filter { !hiddenUnreadHashes.contains($0.key) && !read.contains(syncReadKey($0.key, version: $0.value)) }.count }
-        else { unreadCount = applications.filter { $0.fromUID != identity?.userUID && !read.contains($0.id) }.count }
+        guard hasUnreadSnapshot else { return }
+        unreadCount = unreadVersions.filter { !hiddenUnreadHashes.contains($0.key) && !read.contains(syncReadKey($0.key, version: $0.value)) }.count
         if let identity { client.updateUnreadCount(unreadCount, identity: identity) }
     }
 

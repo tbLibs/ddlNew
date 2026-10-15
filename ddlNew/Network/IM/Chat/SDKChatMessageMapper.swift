@@ -53,18 +53,19 @@ enum SDKChatMessageMapper {
         if sdk.myUserID() == userUID, sdk.isUserDatabaseReady() {
             if Int(model.chatType.rawValue) == 1 {
                 let member: LingIMGroupMemberModel? = sdk.imSdkCheckGroupMember(with: record.senderID, groupID: record.conversationID)
+                let friend = sdk.toolCheckMyFriend(with: record.senderID)
                 if let member {
                     record.senderRole = member.role
-                    let remark = member.remarks ?? ""; let groupName = member.nicknameInGroup ?? ""
-                    record.senderName = !remark.isEmpty ? remark : !groupName.isEmpty ? groupName : member.userNickname ?? record.senderName
+                    let remark = friend.map { $0.remarks ?? "" } ?? member.remarks ?? ""
+                    record.senderName = [remark, member.nicknameInGroup ?? "", member.userNickname ?? "", record.senderName, record.senderID].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? record.senderID
                     // 部分成员缓存尚无头像，不能用空串覆盖消息自带头像；注销状态仍明确清空。
-                    if member.disableStatus == 4 { record.avatarURL = "" }
+                    if member.disableStatus == 4 || friend?.disableStatus == 4 { record.senderName = "账号已注销"; record.avatarURL = "" }
                     else if let avatar = member.userAvatar, !avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { record.avatarURL = avatar }
                 }
             } else {
                 let friend: LingIMFriendModel? = sdk.toolCheckMyFriend(with: record.senderID)
                 if let friend {
-                    record.senderName = friend.showName ?? friend.remarks ?? friend.nickname ?? record.senderName
+                    record.senderName = friend.disableStatus == 4 ? "账号已注销" : [friend.remarks ?? "", friend.nickname ?? "", friend.showName ?? "", record.senderName, record.senderID].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? record.senderID
                     // 空好友缓存不代表头像已删除，保留消息提供的有效资源。
                     if friend.disableStatus == 4 { record.avatarURL = "" }
                     else if let avatar = friend.avatar, !avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { record.avatarURL = avatar }

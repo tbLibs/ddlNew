@@ -25,6 +25,9 @@ import Combine
     /// 刷新型置顶事件不插入正文，但仍通知页面重读置顶列表。
     @Published private(set) var pinRevision = 0
     @Published private(set) var locatedMessageID: String?
+    /// 定位是一次动作，同一条消息重复点击也必须通知页面。
+    @Published private(set) var locationRevision = 0
+    private var locationRequest = UUID()
     var isAtBottom = true
     /// 前台恢复不保证几何变化，需要重新评估原视口里的未读正文。
     var isForeground = true { didSet { if isForeground && !oldValue { resumeVisibleReads() } } }
@@ -352,7 +355,10 @@ import Combine
         let mapping = Dictionary(members.map { ($0.id, $0) }, uniquingKeysWith: { _, newest in newest })
         records = records.map { item in
             guard let member = mapping[item.senderID] else { return item }
-            var result = item; result.senderName = member.name; result.avatarURL = member.isDeleted ? "" : member.avatar; result.senderRole = member.role
+            var result = item; result.senderName = member.name
+            if member.isDeleted { result.avatarURL = "" }
+            else if !member.avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { result.avatarURL = member.avatar }
+            result.senderRole = member.role
             return result
         }
         messages = records.filter { $0.status != .deleted }
@@ -413,15 +419,44 @@ import Combine
 
     /// 按双ID定位搜索命中；每次补页仍验证当前登录轮次和游标进展。
     func locate(_ target: String) async {
+        guard let context, !target.isEmpty, !Task.isCancelled else { return }
         let run = generation
-        while generation == run {
-            if let item = messages.first(where: { $0.localID == target || $0.serverID == target }) { locatedMessageID = item.id; return }
-            guard hasMore, !isLoading else { break }
+        let clearRun = clearRevision
+        let request = UUID(); locationRequest = request
+        isAtBottom = false; errorMessage = nil
+        // 旧端先按服务端ID查本机SDK库；较早置顶不应受远程分页结束或断网影响。
+        if !messages.contains(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) {
+            var cachedOffset = 0
+            var history: [ChatMessageRecord] = []
+            while let page = try? client.cached(context: context, offset: cachedOffset), !page.isEmpty {
+                history.append(contentsOf: page)
+                if page.contains(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) {
+                    merge(history, history: true)
+                    break
+                }
+                guard page.count == 100 else { break }
+                cachedOffset += page.count
+            }
+        }
+        while generation == run && clearRevision == clearRun && locationRequest == request && !Task.isCancelled {
+            if let item = messages.first(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) {
+                errorMessage = nil; locatedMessageID = item.id; locationRevision += 1; return
+            }
+            // 用户可能在首屏或下拉补页尚未结束时点击置顶，先等已有请求再重查目标。
+            if isLoading {
+                for await loading in $isLoading.values {
+                    guard generation == run, clearRevision == clearRun,
+                          locationRequest == request, !Task.isCancelled else { return }
+                    if !loading { break }
+                }
+                continue
+            }
+            guard hasMore else { break }
             let previous = messages.first?.id
             await loadMore()
-            guard messages.first?.id != previous else { break }
+            guard messages.first?.id != previous || messages.contains(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) else { break }
         }
-        if generation == run { errorMessage = "当前历史中未找到这条消息，可能已删除或不可访问" }
+        if generation == run, clearRevision == clearRun, locationRequest == request, !Task.isCancelled { errorMessage = "当前历史中未找到这条消息，可能已删除或不可访问" }
     }
 
     /// 用户点新消息提示时只更新浏览状态，由页面滚动到实际最新ID。
@@ -435,6 +470,6 @@ import Combine
         records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
         readIDs.removeAll(); pendingReadOwners.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
         isLoading = false; hasMore = true; offset = 0; lastSend = nil; unreadArrivals = 0; pinRevision = 0
-        permission = ChatPermission(canSend: false); locatedMessageID = nil; errorMessage = nil
+        permission = ChatPermission(canSend: false); locatedMessageID = nil; locationRevision = 0; locationRequest = UUID(); errorMessage = nil
     }
 }

@@ -1,9 +1,11 @@
 import Foundation
+import Combine
 
 @MainActor final class ContactsRaceClient: ContactBusinessClient {
     var change: (@MainActor () -> Void)?
     var heldOperation: ContactBusinessOperation?
     var continuation: CheckedContinuation<ContactBusinessResponse, Error>?
+    var unreadWrites: [Int] = []
     var appReads = 0
     var response = ContactBusinessResponse()
     var handler: ((ContactBusinessOperation) -> ContactBusinessResponse)?
@@ -17,6 +19,7 @@ import Foundation
     func observe(_ onChange: @escaping @MainActor () -> Void) { change = onChange }
     /// 注入客户端无真实SDK资源。
     func reset() {}
+    func updateUnreadCount(_ count: Int, identity: ContactsIdentity) { unreadWrites.append(count) }
 }
 
 @main struct ContactsRaceChecks {
@@ -60,6 +63,42 @@ import Foundation
             client.response.unreadVersions = ["h": "v2"]
             await store.reload()
             assert(store.unreadCount == 1, "后来改变的版本仍须显示未读")
+        case "startupBadge":
+            let historical = FriendApplicationRecord(id: "old-1", hashKey: "old", sendTime: "1", fromUID: "peer", targetUID: "self", fromNickname: "对方", targetNickname: "自己", status: 1)
+            client.response.applications = [historical]
+            client.heldOperation = .unreadApplications
+            var published: [Int] = []
+            let observation = store.$unreadCount.sink { published.append($0) }
+            let loading = Task { await store.reload() }
+            while client.continuation == nil { await Task.yield() }
+            print("未读接口尚未返回时的角标发布：\(published)，SDK写入：\(client.unreadWrites)")
+            precondition(store.unreadCount == 0 && !published.contains(where: { $0 > 0 }), "历史申请不能在真实未读结果之前闪出红色角标")
+            precondition(client.unreadWrites.isEmpty, "未确认的历史申请数量不能提前写入SDK未读数")
+            client.continuation?.resume(returning: ContactBusinessResponse(unreadVersions: [:]))
+            client.continuation = nil
+            await loading.value
+            precondition(store.unreadCount == 0 && !published.contains(where: { $0 > 0 }), "真实未读为零时整段启动过程不闪角标")
+            client.response.unreadVersions = ["real-new": "v1"]
+            await store.reload()
+            precondition(store.unreadCount == 1 && client.unreadWrites.last == 1, "真实未读确认后正常发布角标与SDK计数")
+            client.heldOperation = .unreadApplications
+            let refreshing = Task { await store.reload() }
+            while client.continuation == nil { await Task.yield() }
+            client.continuation?.resume(throwing: URLError(.notConnectedToInternet)); client.continuation = nil
+            await refreshing.value
+            precondition(store.unreadCount == 1, "刷新临时失败保留同AUTH已确认未读，不按申请列表重算")
+            store.prepare(userUID: "other", license: "club")
+            client.unreadWrites = []; published = []
+            client.heldOperation = .unreadApplications
+            let firstFailed = Task { await store.reload() }
+            while client.continuation == nil { await Task.yield() }
+            client.continuation?.resume(throwing: URLError(.notConnectedToInternet)); client.continuation = nil
+            await firstFailed.value
+            precondition(store.unreadCount == 0 && !published.contains(where: { $0 > 0 }) && client.unreadWrites.isEmpty, "新账号首次未读读取失败不复用旧计数或猜测申请未读")
+            client.response.unreadVersions = ["actual": "v1"]
+            await store.reload()
+            precondition(store.unreadCount == 1, "首次读取失败后重试仍能展示真实未读")
+            observation.cancel()
         case "friend":
             client.response.profile = ContactRecord(id: "peer", nickname: "陌生人")
             _ = await store.loadProfile("peer")

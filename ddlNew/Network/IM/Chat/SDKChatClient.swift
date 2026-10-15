@@ -47,7 +47,7 @@ import ObjectiveC
     func observe(context: ChatContext, onEvent: @escaping @MainActor (ChatEvent) -> Void) {
         stop(); self.context = context; eventHandler = onEvent
         let run = generation
-        let delegate = SDKChatDelegate(userUID: context.userUID, conversationID: context.route.id, sourceGroupID: context.route.sourceGroupID) { [weak self] event in
+        let delegate = SDKChatDelegate(userUID: context.userUID, conversationID: context.route.id, sourceGroupID: context.route.sourceGroupID, isGroup: context.route.kind == .group) { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == run, self.validSession(context) else { return }
                 if case .permissionsChanged = event, context.route.kind == .group {

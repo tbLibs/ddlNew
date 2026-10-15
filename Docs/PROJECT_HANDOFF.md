@@ -1,5 +1,41 @@
 # ddlNew 项目交接文档
 
+## 2026-10-15 通讯录启动角标与置顶消息主动定位
+
+用户报告启动进入Tab后通讯录红角标短暂出现后消失，以及点击聊天置顶无法定位，并明确要求参考旧xgd。只读对照旧端`NoaChatViewController.groupTopMessageViewDidClickView/groupTopMessageLocation`、`ZGroupTopMessageListViewController.locationButtonAction`和`AppDelegate+DB.updateFriendApplyCountFromService`：置顶正文直接定位、独立列表按钮打开全部置顶；列表先返回聊天再定位，取消首次末尾对齐，本机历史补齐后居中；删除/撤回目标提示找不到。通讯录采用SDK申请未读计数与真实同步记录，不以历史申请列表条数推算未读。
+
+接手工作区已有通讯录角标窄修及`startupBadge`回归，保留并复验：`ContactsBusinessStore.updateUnread`在首次真实未读快照前不猜测数量或写入SDK；真实零不闪角标，真实非零正常展示，同AUTH临时刷新失败保留确认计数，切账号首次失败不沿用旧计数。专项通过（`/tmp/ddlNew-startup-badge-green.log`）。同期资料导航、黑名单刷新及暂存表情资源目录整理均保留。
+
+聊天顶部正文现直接发起定位，右侧条数/列表按钮独立打开置顶列表；从置顶/历史搜索弹层选择后记录目标与会话，在实际`onDismiss`后定位，取消或旧会话选择不执行。`ChatStore`以独立定位revision支持重复点击同一条，先从SDK固定100条本地历史补齐，远端hasMore=false不影响本机已存目标；需要远端补页时等待已有历史请求。仅正常且可展示消息可命中，补页已带回目标但首条未变也可成功；关闭、清历史、后续定位及任务取消使旧请求失效。页面取消首屏和延迟底部跟随，目标行有实际布局且页面可见才居中消费请求；引用定位共用这一滚动链路。
+
+新增`Tests/Chat/run-location-checks.sh`执行真实Store和提取的生产入口/弹层/布局方法，外部SDK及滚动执行用匿名边界替代。重复定位、入口差异、本地历史、布局前时序、在途历史、撤回目标、补页首条不变分别先RED再GREEN；终版Store12项与布局12项通过（`/tmp/ddlNew-location-final-green.log`）。独立只读复核确认三处追加问题补修后未发现剩余阻断。首次全套75/76组通过，失败项为滚动性能测试提取器缺少proxy绑定，已修测试边界；生产几何状态/批量已读逻辑保持。终版统一离线76/76组exit0，逐项耗时合计254.60秒，结果`/tmp/ddlNew-pin-location-final-qa-results/summary.json`。终版无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-pin-location-final-build.log`），本轮聊天文件无新增编译警告，`git diff --check`通过。
+
+追加定位框对比修正：用户真机报告本人绿色气泡与原绿色定位框同色。`ChatMessageBubble`现对本人非视觉媒体气泡使用`onPrimaryAction`反差色（浅色白、深色深绿），3pt内描边向内缩2pt并保留气泡外沿；对方及透明媒体继续使用主题强调色。现有色板计算的浅/深对比为7.87:1、7.71:1。仅样式变更，不新增行为测试或重复全套回归；无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-location-outline-build.log`），该气泡文件无新增编译警告，`git diff --check`通过。真实定位框视觉仍待重新Run复验。
+
+Mobile MCP继续暂停，本轮未操作设备、未提交/推送。离线与构建不代表真实SwiftUI滚动、弹层返回或键盘收起动画已验收；重新Run后需复验：冷启动通讯录零/非零未读、顶部正文直达旧消息、列表定位后返回、滑离后重复点同一条、较早消息/下拉补页中点击、键盘已展开时定位及已撤回目标的失败Toast。源码与实时Git优先。
+
+## 2026-10-15 聊天资料发消息路由与刷新黑名单状态
+
+用户报告单聊/群聊经右上角设置进入用户资料后，点击发消息再次进入资料，并要求兼顾通讯录。原资料按钮使用`NavigationLink(value: ChatRoute)`，与设置、成员资料的布尔/直接目标导航混用。现在聊天直属设置/资料/新聊天使用统一`ChatDetailDestination`，最近的`ChatRoomView`通过`contactChatNavigation`接管所有后代资料页的发送入口：按kind+UID匹配同会话时清除直属子树返回原聊天；其他好友整体替换子树为对应单聊，保留sourceGroupID，原聊天Store保留以便返回。未修改外层Tab的NavigationPath或增加第二个NavigationStack。
+
+通讯录等无聊天祖先的资料页使用本页`requestedChat`直接目标push单聊，返回清理目标，支持再次进入；通讯录搜索、分组与列表状态不由这次动作重置。原好友关系、注销、黑名单及来源群访问门禁保持。资料按钮、直属目标和环境动作分别位于`ContactRecordDetailView`、`ChatRoomView`、`ChatDetailDestination`和`ContactChatNavigationAction`。
+
+用户随后报告下拉刷新后发消息禁用、菜单要求重新确认黑名单。已用真实`ContactsBusinessStore`离线复现：`loadBlackState`在请求前删除已确认键，失败后一直nil，资料按钮按未知状态禁用。窄修为刷新期间保留本AUTH上次确认的false/true，成功再替换；失败仍提示错误，首次从未确认失败继续未知。身份/读取revision、写操作与权威全量名单的失效守卫不变，不将未知或损坏响应默认成未拉黑。
+
+路由专项先按旧值路由的外层path追加边界复现8项合同失败，修改后提取实际导航/资料发送方法和系统目标关闭setter，终版12项通过（`/tmp/ddlNew-profile-navigation-final-green.log`）。黑名单刷新专项先RED（`/tmp/ddlNew-blacklist-refresh-red.log`），修改后刷新期间、临时失败、首次未知、已拉黑与既有迟到隔离检查通过（`/tmp/ddlNew-blacklist-refresh-green.log`）。路由版统一75/75组exit0、251.23秒及无签名generic iOS workspace构建exit0；追加黑名单修正后的终版统一75/75组exit0、260.80秒（`/tmp/ddlNew-profile-navigation-blacklist-qa-results/summary.json`），终版无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-profile-navigation-blacklist-build.log`）。本轮文件无新增编译警告，`git diff --check`通过。
+
+路由及追加黑名单修正均经独立只读复核，未发现源码可证实的阻断问题。离线动作/NavigationPath检查不覆盖实际SwiftUI多级清栈、环境传播、返回动画或真实黑名单服务；Mobile MCP仍暂停，本轮未操作设备。本轮不提交/推送，保留同期表情资源目录整理及既有交接改动。真机需重Run复验：单聊设置→好友资料→发消息返回原聊天；群预览/完整成员名单→资料→发消息打开对应单聊并返回原群；通讯录资料→聊天→返回资料→再次发消息；资料下拉刷新在正常/失败网络下的按钮和黑名单菜单状态。
+
+## 2026-10-15 普通文字聊天滚动性能窄修
+
+用户反馈真机聊天上下滑动明显掉帧，页面基本为普通文字。源码及生产回调提取复现确认两处高频工作：每次几何变化都写回聊天页`messageFrames/latestLayout`状态，并为全部可见消息逐条创建已读任务；每行日期判断重新过滤全部可见历史并线性查找前一条。100条匿名消息、可见集合不变的240次拖动/几何回调产生960次状态写入与1200次`markVisible`调用；100行日期展示额外读取完整快照199次。这是离线工作量证据，不是真机重绘次数或帧率测量。
+
+`ChatScrollGeometry`现在只保存命令式定位需要的原始坐标，不逐像素发布状态；展示只观察实际可见ID集合，集合变化/消息资格补齐时单批重查已读。手势结束再补查一次，保留上报失败后在同一视口内再次滑动的重试入口；前后台、子页恢复与Store原有批处理规则保留，异步任务核对会话上下文。消息渲染一次取得过滤快照，以稳定消息ID列举，并直接比较相邻记录的日期。首屏实际底部定位、下拉分页、搜索定位、语音实际播放才已读和游戏可见资格保持原边界；本轮没有改消息容器的懒加载策略。
+
+新增`Tests/Chat/run-scroll-performance-checks.sh`提取生产几何/手势/可见回调与日期方法，分别先RED再GREEN；终版11项通过，同集合240次回调的状态写入/重复已读调用均为0，日期额外完整快照读取为0。专项日志`/tmp/ddlNew-scroll-performance-final-green.log`，初始复现`/tmp/ddlNew-scroll-performance-red.log`、日期复现`/tmp/ddlNew-scroll-dates-red.log`、重试入口复现`/tmp/ddlNew-scroll-read-retry-red.log`。统一离线74/74组exit0，逐入口耗时合计502.62秒，结果`/tmp/ddlNew-scroll-performance-qa-results/summary.json`。独立只读复核未发现本轮阻断问题；专项使用匿名Store边界，不代表实际SDK失败恢复、SwiftUI绘制或真机滚动验收。
+
+首轮无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`；后续终版增量两次遇到共享`build.db`占用，改用独立DerivedData后终版构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-chat-scroll-performance-isolated-build.log`），本轮聊天文件无新增编译警告，`git diff --check`通过。收尾时检测到HEAD已前进为`ff3c5ef`，本轮源码及测试已包含在该提交，当前仅本交接文档待提交；本助手未执行commit/push，未回退同期聊天或Sentry等改动。Mobile MCP继续暂停，本轮未操作设备。用户需重新Run，在同一普通文字会话上下滑动、下拉补页、打开/收起键盘及返回聊天复测；若仍卡顿，下一步采集对应真机Time Profiler/动画卡顿轨迹，不能把本轮离线工作量减少当作实际帧率已达标。
+
 ## 2026-10-15 Affff进入时输入区下移：视频定位与目标页底栏配置
 
 用户提供`ScreenRecording_10-15-2026 16-09-28_1.MP4`，补充其他好友没有同样抖动。只读用AVFoundation按50毫秒抽帧：Affff两次push在3.25→3.30秒及9.35→9.40秒均先显示系统Tab栏，再隐藏；消息内容和输入区一起下移，输入区内部结构未变化。视频中的测试群进入未出现同样过程。此证据指向导航底部安全区改变，不能直接认定Affff历史消息或图片造成输入框高度改变；为何该会话稳定触发、其它好友不触发，尚无运行时布局日志证明。

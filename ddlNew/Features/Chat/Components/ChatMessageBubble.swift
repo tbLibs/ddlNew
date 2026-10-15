@@ -36,7 +36,8 @@ struct ChatMessageBubble: View {
                     .background(isVisualMedia ? Color.clear : own ? MessagingTheme.outgoingBubble : MessagingTheme.surface)
                     .foregroundStyle(isVisualMedia ? MessagingTheme.text : own ? MessagingTheme.onPrimaryAction : MessagingTheme.text)
                     .clipShape(RoundedRectangle(cornerRadius: 8.zoom()))
-                    .overlay(RoundedRectangle(cornerRadius: 8.zoom()).stroke(isHighlighted ? MessagingTheme.accent : .clear, lineWidth: 2))
+                    // 本人气泡用反差内框并留出绿色外沿，避免白框与浅色页面连成一片。
+                    .overlay(RoundedRectangle(cornerRadius: 8.zoom()).inset(by: own && !isVisualMedia ? 2 : 0).strokeBorder(isHighlighted ? (own && !isVisualMedia ? MessagingTheme.onPrimaryAction : MessagingTheme.accent) : .clear, lineWidth: 3))
                 HStack(spacing: 8.zoom()) {
                     Text(Date(timeIntervalSince1970: Double(message.timestamp) / 1000), style: .time).font(.caption2).foregroundStyle(MessagingTheme.secondaryText)
                     if own && message.status == .normal {

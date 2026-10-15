@@ -18,6 +18,8 @@ struct ContactRecordDetailView: View {
     let fileHost: URL?
     let sourceGroupID: String?
     let applicationID: String?
+    @Environment(\.contactChatNavigation) private var contactChatNavigation
+    @State private var requestedChat: ChatRoute?
     @State private var groupAccessAllowed = false
     @State private var wasFriend = false
     @State private var refreshRevision = UUID()
@@ -91,7 +93,7 @@ struct ContactRecordDetailView: View {
                             if contact.userType == 0, businessStore.blackStates[contactID] == true {
                                 Text("你已将对方加入黑名单，请先移出黑名单再发送消息。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
                             }
-                            NavigationLink(value: ChatRoute(id: contact.id, kind: .single, title: contact.displayName, avatarURL: contact.avatar, sourceGroupID: sourceGroupID)) {
+                            Button { sendMessage(to: contact) } label: {
                                 Label("发消息", systemImage: "message.fill").frame(maxWidth: .infinity)
                             }.buttonStyle(MessagingActionButtonStyle()).disabled(contact.userType == 0 && contactID != "100002" && businessStore.blackStates[contactID] != false)
                         } else if permissions.current?.allows("allowAddFriend") == true {
@@ -103,6 +105,9 @@ struct ContactRecordDetailView: View {
         }
         .navigationTitle("用户资料")
         .modifier(MessagingPageChrome())
+        .navigationDestination(isPresented: Binding(get: { requestedChat != nil }, set: { if !$0 { requestedChat = nil } })) {
+            if let requestedChat { ChatRoomView(route: requestedChat) }
+        }
         .messagingLoadingToast((businessStore.isLoading || businessStore.isSubmitting || businessStore.loadingBlackIDs.contains(contactID)) && !editing && !moving && !sharing && !showingComplaint)
         .messagingFeedbackToast(complaintFeedback ?? businessStore.errorMessage ?? businessStore.notice, isEnabled: !editing && !moving && !sharing && !showingComplaint)
         .toast(isPresenting: $showingCopyToast, duration: 2) {
@@ -167,6 +172,13 @@ struct ContactRecordDetailView: View {
             Button("取消", role: .cancel) {}
             Button("删除", role: .destructive) { Task { await businessStore.perform(.deleteFriend(contactID), sourceGroupID: sourceGroupID); await store.reload() } }
         } message: { Text("成功删除将同时删除本机聊天记录，无法撤回。若需审核，资料与记录将保留到审核完成。") }
+    }
+
+    /// 聊天内由最近的聊天页返回/替换子页，通讯录等独立资料入口沿当前栈打开单聊。
+    private func sendMessage(to contact: ContactRecord) {
+        let target = ChatRoute(id: contact.id, kind: .single, title: contact.displayName, avatarURL: contact.avatar, sourceGroupID: sourceGroupID)
+        if let contactChatNavigation { contactChatNavigation.open(target) }
+        else { requestedChat = target }
     }
 
     /// 申请详情依据稳定申请身份和最新关系显示接受、等待或重新申请。

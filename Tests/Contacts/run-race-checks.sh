@@ -8,7 +8,7 @@ swiftc -swift-version 5 "$out/Constants.swift" "$root/ddlNew/Network/Core/Remote
 if [[ $# -gt 0 ]]; then
   "$out/checks" "$1"
 else
-  for scenario in reload pagination unread friend search groupNickname; do
+  for scenario in reload pagination unread startupBadge friend search groupNickname; do
     "$out/checks" "$scenario"
   done
 fi

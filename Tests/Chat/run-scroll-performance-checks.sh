@@ -34,10 +34,11 @@ FIELDS
     var initialMessagesReady = true
     var latestFrame: CGRect { latestLayout.frame }
     func positionInitialMessages(_ proxy: Int) {}
+    func positionLocatedMessage(_ proxy: Int) {}
 METHOD
     func dragChanged() { DRAG }
     func dragEnded() { ENDED }
-    func framesChanged(_ frames: [String: CGRect]) { FRAMES }
+    func framesChanged(_ frames: [String: CGRect]) { let proxy = 0; FRAMES }
     func latestChanged(_ layout: ChatLatestPreference.Value) { let proxy = 0; LATEST }
 }
 '''.replace('FIELDS', '\n'.join(fields)).replace('METHOD', method).replace('FRAMES', frames).replace('LATEST', latest).replace('DRAG', drag).replace('ENDED', ended)

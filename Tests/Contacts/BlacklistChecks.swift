@@ -32,6 +32,21 @@ import Foundation
         client.response.isBlack = false
         await subject.loadBlackState("B")
         precondition(subject.blackStates["B"] == false)
+        // 下拉重查不能先清空已确认结果；暂时失败也不能让发消息永久转为未知禁用。
+        client.delay = true
+        let refreshing = Task { await subject.loadBlackState("B") }
+        let refreshDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while client.pending == nil && ContinuousClock.now < refreshDeadline { await Task.yield() }
+        precondition(client.pending != nil, "刷新应发起真实Store客户端读取")
+        precondition(subject.blackStates["B"] == false && subject.loadingBlackIDs.contains("B"), "刷新期间保留已确认的未拉黑状态")
+        client.pending?.resume(throwing: ContactBusinessError.server(code: 503, message: "临时查询失败"))
+        client.pending = nil; client.delay = false
+        await refreshing.value
+        precondition(subject.blackStates["B"] == false && !subject.loadingBlackIDs.contains("B"), "刷新失败保留未拉黑，不要求用户重新确认")
+        client.error = ContactBusinessError.server(code: 503, message: "临时查询失败")
+        await subject.loadBlackState("unknown")
+        precondition(subject.blackStates["unknown"] == nil, "从未确认的好友查询失败仍未知，不伪造未拉黑")
+        client.error = nil
         client.response.success = false
         let refused = await subject.perform(.setBlack(friendID: "B", blocked: true))
         precondition(!refused && subject.blackStates["B"] == false)
@@ -42,6 +57,10 @@ import Foundation
         client.error = nil
         let blocked = await subject.perform(.setBlack(friendID: "B", blocked: true))
         precondition(blocked && subject.blackStates["B"] == true)
+        client.error = ContactBusinessError.server(code: 503, message: "临时查询失败")
+        await subject.loadBlackState("B")
+        precondition(subject.blackStates["B"] == true, "刷新失败不能撤销已确认的拉黑状态")
+        client.error = nil
         client.response.contacts = [ContactRecord(id: "B", nickname: "乙", remarks: "备注乙")]
         await subject.loadBlacklist()
         precondition(subject.blacklist.map(\.id) == ["B"])
@@ -65,7 +84,7 @@ import Foundation
         var stale = ContactBusinessResponse(); stale.isBlack = false
         oldPending?.resume(returning: stale); await oldRead.value
         precondition(subject.blackStates["B"] == true, "写操作确认后的旧查询不能覆盖拉黑状态")
-        // 全量名单须使在途单人读取失效，即使读取已暂时清除了旧黑态键。
+        // 全量名单须使在途单人读取失效，迟到的单人黑态不能覆盖最新名单。
         client.pending = nil; client.delay = true
         let listPrecededRead = Task { await subject.loadBlackState("B") }
         while client.pending == nil { await Task.yield() }

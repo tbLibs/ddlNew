@@ -11,13 +11,14 @@ import NoaChatCore
 nonisolated final class SDKChatDelegate: NSObject, NoaToolMessageDelegate, CIMToolGroupDelegate, NoaToolUserDelegate, @unchecked Sendable {
     private let userUID: String
     private let conversationID: String
+    private let isGroup: Bool
     private let sourceGroupID: String?
     private var notification: NSObjectProtocol?
     private let changed: @Sendable (ChatEvent) -> Void
 
     /// 代理固定本轮身份，回调转成Sendable消息值。
-    init(userUID: String, conversationID: String, sourceGroupID: String? = nil, changed: @escaping @Sendable (ChatEvent) -> Void) {
-        self.userUID = userUID; self.conversationID = conversationID; self.sourceGroupID = sourceGroupID; self.changed = changed
+    init(userUID: String, conversationID: String, sourceGroupID: String? = nil, isGroup: Bool = false, changed: @escaping @Sendable (ChatEvent) -> Void) {
+        self.userUID = userUID; self.conversationID = conversationID; self.sourceGroupID = sourceGroupID; self.isGroup = isGroup; self.changed = changed
         notification = NotificationCenter.default.addObserver(forName: Notification.Name("GroupDeleteMemberHistoryNotification"), object: nil, queue: nil) { notification in
             guard notification.userInfo?["gid"] as? String == conversationID, let ids = notification.userInfo?["deleteMemberUidList"] as? [String], !ids.isEmpty else { return }
             changed(.memberHistoryDeleted(ids))
@@ -51,6 +52,22 @@ nonisolated final class SDKChatDelegate: NSObject, NoaToolMessageDelegate, CIMTo
     func imSdkUserFriendDelete(_ friendDeleteModel: LingIMFriendModel) { if friendDeleteModel.friendUserUID == conversationID { changed(.permissionsChanged) } }
     /// 好友关系恢复或资料变更时使用当前SDK库再计算资格。
     func imSdkUserFriendAdd(_ friendAddModel: LingIMFriendModel) { if friendAddModel.friendUserUID == conversationID { changed(.permissionsChanged) } }
+    /// 好友资料变化立即刷新已加载作者，包含主动清空备注，不采用群缓存旧备注。
+    func cimToolUserFriendChange(_ message: LingIMFriendModel) {
+        let sdk = NoaIMSDKManager.sharedTool()
+        guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady(),
+              let id = message.friendUserUID, !id.isEmpty,
+              let friend = sdk.toolCheckMyFriend(with: id) else { return }
+        if !isGroup && id != conversationID { return }
+        let member: LingIMGroupMemberModel? = isGroup ? sdk.imSdkCheckGroupMember(with: id, groupID: conversationID) : nil
+        if isGroup && member == nil { changed(.refresh); return }
+        let deleted = friend.disableStatus == 4 || member?.disableStatus == 4
+        let name = deleted ? "账号已注销" : [friend.remarks ?? "", isGroup ? member?.nicknameInGroup ?? "" : "", isGroup ? member?.userNickname ?? "" : "", friend.nickname ?? "", friend.userName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
+        changed(.memberMetadataChanged([ChatGroupMember(id: id, name: name,
+            avatar: isGroup ? member?.userAvatar ?? friend.avatar ?? "" : friend.avatar ?? "",
+            role: member?.role ?? 0, isDeleted: deleted)]))
+    }
+
     /// 好友删除协议事件可能先于完整资料同步，立即发权限回读信号。
     func cimToolUserFriendDelete(_ message: FriendDelMessage) { changed(.permissionsChanged) }
 

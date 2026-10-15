@@ -71,7 +71,7 @@ final class SDKConversationsClient: ConversationsClient {
                     avatar = model.sessionAvatar ?? ""
                 }
                 return ConversationRecord(
-                    id: id, title: model.sessionName?.isEmpty == false ? model.sessionName! : id,
+                    id: id, title: Self.displayTitle(model, id: id, kind: kind, sdk: sdk),
                     avatarURL: avatar, kind: kind,
                     preview: preview, latestTime: millis > 0 ? Date(timeIntervalSince1970: TimeInterval(millis) / 1000) : nil,
                     unreadCount: max(0, model.sessionUnreadCount), isMarkedUnread: model.readTag > 0,
@@ -80,6 +80,15 @@ final class SDKConversationsClient: ConversationsClient {
             }
         }.value
     }
+    /// 单聊名称随好友库的已确认备注变化，旧会话快照不能覆盖新备注或清空结果。
+    nonisolated static func displayTitle(_ model: LingIMSessionModel, id: String, kind: ConversationKind, sdk: NoaIMSDKManager) -> String {
+        if kind == .single, let friend = sdk.toolCheckMyFriend(with: id) {
+            if friend.disableStatus == 4 { return "账号已注销" }
+            return [friend.remarks ?? "", friend.nickname ?? "", friend.userName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
+        }
+        return [model.sessionName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
+    }
+
 }
 
 private enum ConversationsClientError: LocalizedError {
@@ -112,9 +121,10 @@ private enum ConversationPreview {
         var senderName = message.fromNickname ?? ""
         if kind == .group, let sender = message.fromID, !sender.isEmpty {
             let cached: LingIMGroupMemberModel? = sdk.imSdkCheckGroupMember(with: sender, groupID: message.toID ?? "")
-            if let member = cached {
-                senderName = member.disableStatus == 4 ? "账号已注销" : [member.remarks ?? "", member.showName ?? "", senderName].first { !$0.isEmpty } ?? senderName
-            }
+            let friend = sdk.toolCheckMyFriend(with: sender)
+            // 好友存在时空备注代表主动清空，不能回退到群成员表的旧备注。
+            let remark = friend.map { $0.remarks ?? "" } ?? cached?.remarks ?? ""
+            senderName = cached?.disableStatus == 4 || friend?.disableStatus == 4 ? "账号已注销" : [remark, cached?.nicknameInGroup ?? "", cached?.userNickname ?? "", senderName, sender].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? sender
         }
         let mentions = message.atUsersInfoList as? [[String: Any]] ?? []
         let mentionsMe = type == 10 && mentions.contains { $0[userUID] != nil || $0["-1"] != nil }
