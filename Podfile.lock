@@ -15,6 +15,7 @@ PODS:
   - AFNetworking/UIKit (4.0.1):
     - AFNetworking/NSURLSession
   - AlicloudPDNS (2.1.9)
+  - EncryptLib (0.1.0)
   - MMKV (1.2.16):
     - MMKVCore (~> 1.2.16)
   - MMKVCore (1.2.16)
@@ -27,6 +28,7 @@ PODS:
 DEPENDENCIES:
   - AFNetworking (= 4.0.1)
   - AlicloudPDNS (= 2.1.9)
+  - EncryptLib (from `./EncryptLib/EncryptLib.podspec`)
   - MMKV (= 1.2.16)
   - NetworkStatus (from `./NetWorkStatus/NetWorkStatus.podspec`)
   - Protobuf (= 3.21.5)
@@ -47,12 +49,15 @@ SPEC REPOS:
     - WoodPeckeriOS
 
 EXTERNAL SOURCES:
+  EncryptLib:
+    :path: "./EncryptLib/EncryptLib.podspec"
   NetworkStatus:
     :path: "./NetWorkStatus/NetWorkStatus.podspec"
 
 SPEC CHECKSUMS:
   AFNetworking: 3bd23d814e976cd148d7d44c3ab78017b744cd58
   AlicloudPDNS: 6eda4d8af312b1e0824a58d97a2f5edf71531186
+  EncryptLib: 4c95879c3b2c5dda0155c0c7c960e79d7a7f2158
   MMKV: 784471ce430a2e2d16afef9053d63fab1b357d9e
   MMKVCore: 9cfef4c48c6c46f66226fc2e4634d78490206a48
   NetworkStatus: f54a8da5de43b6aca03f3c4c4565b3bda1a37c32
@@ -61,6 +66,6 @@ SPEC CHECKSUMS:
   SAMKeychain: 483e1c9f32984d50ca961e26818a534283b4cd5c
   WoodPeckeriOS: d76940519d27513155959a659f0d1142b5ccc081
 
-PODFILE CHECKSUM: 36261bf0e7e59fab76847ef8d191493c6be86929
+PODFILE CHECKSUM: 523d586f3d3b9431128235a2a71315dab4242310
 
 COCOAPODS: 1.17.0

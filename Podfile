@@ -31,6 +31,9 @@ target 'ddlNew' do
 
   # 网络监听
   pod 'NetworkStatus', :path => './NetWorkStatus/NetWorkStatus.podspec'
+  
+  # 加解密
+  pod 'EncryptLib', :path => './EncryptLib/EncryptLib.podspec'
 
   
   # MJExtension、LiveKit、ZegoExpressEngine 已迁移到 SPM。
