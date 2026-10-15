@@ -13,18 +13,25 @@ import Combine
     static let shared = ChatRuntime()
     @Published private(set) var userUID: String?
     @Published private(set) var revision = UUID()
+    @Published private(set) var closedConversationContext: ChatContext?
+    @Published private(set) var conversationCleanupWarning: String?
     private var tenantID: String?
     private var sessionID: UUID?
     private var stores: [WeakChatStore] = []
     private var contentRevisions: [String: UUID] = [:]
     private var settings: [WeakChatSettingsStore] = []
     private let nicknameObserver = SDKChatNicknameObserver()
+    private let unreadObserver = SDKChatUnreadObserver()
+    private var readCounts = ChatReadCountLedger()
     private var cleanupOwners: [WeakChatCleanup] = []
 
     /// 认证轮次由根会话所有者提供，同UID重登也产生新身份。
     func activate(userUID: String, tenantID: String, sessionID: UUID) {
         close(); self.userUID = userUID; self.tenantID = tenantID; self.sessionID = sessionID; revision = UUID()
         nicknameObserver.activate(userUID: userUID, tenantID: tenantID, sessionID: sessionID)
+        readCounts.activate(userUID: userUID, tenantID: tenantID, sessionID: sessionID)
+        let owner = ChatReadCountOwner(userUID: userUID, tenantID: tenantID, sessionID: sessionID)
+        unreadObserver.activate(owner: owner) { [weak self] event in self?.receiveReadCount(event, owner: owner) }
     }
 
     /// 页面使用稳定路由生成上下文，未认证不创建可发送身份。
@@ -36,6 +43,55 @@ import Combine
     /// SDK客户端必须在每次请求与回调时核对本轮所有权。
     func isCurrent(_ context: ChatContext) -> Bool {
         context.userUID == userUID && context.tenantID == tenantID && context.sessionID == sessionID
+    }
+
+    /// 全AUTH计数来源保持到退出；关闭一个页面不销毁正文成功但会话未保存的债务。
+    private func receiveReadCount(_ event: ChatReadCountEvent, owner: ChatReadCountOwner) {
+        let snapshot: ChatReadCountSnapshot
+        switch event { case .counter(let value), .authoritative(let value), .received(_, let value): snapshot = value }
+        let route = ChatRoute(id: snapshot.id, kind: snapshot.kind, title: "", avatarURL: "")
+        guard let context = context(for: route), owner.matches(context) else { return }
+        switch event {
+        case .authoritative: readCounts.authoritative(context: context, count: snapshot.count, latestID: snapshot.latestID)
+        case .counter: readCounts.observe(context: context, count: snapshot.count, latestID: snapshot.latestID)
+        case .received(let message, _):
+            guard !ChatVisibleReadPolicy.candidates([message], userUID: context.userUID, conversationID: context.route.id).isEmpty else { return }
+            readCounts.received(message.serverID, context: context, count: snapshot.count, latestID: snapshot.latestID)
+        }
+    }
+
+    /// 正文真实写入成功后登记；未知历史不进入会话扣减集合。
+    func savedVisibleRead(_ serverID: String, context: ChatContext) {
+        guard isCurrent(context) else { return }
+        readCounts.saved(serverID, context: context)
+    }
+
+    /// 新聊天可能还没有SDK会话行；仅已有待扣计划时要求回读该行。
+    func hasPendingVisibleReadCount(context: ChatContext) -> Bool { isCurrent(context) && readCounts.hasPending(context: context) }
+
+    /// 客户端读SDK最新计数后取得有身份及epoch保护的待扣计划。
+    func visibleReadCountPlan(context: ChatContext, count: Int, latestID: String) -> ChatReadCountPlan? {
+        guard isCurrent(context) else { return nil }
+        return readCounts.plan(context: context, count: count, latestID: latestID)
+    }
+
+    /// 只有SDK会话计数保存成功后才确认计划，失败保留到同AUTH下次开页。
+    func commitVisibleReadCount(_ plan: ChatReadCountPlan, context: ChatContext) {
+        guard isCurrent(context) else { return }
+        readCounts.commit(plan, context: context)
+    }
+
+    /// 列表全清冻结请求起点，迟到回执不能替新AUTH建立已读边界。
+    func beginReadCountClear(context: ChatContext, count: Int, boundaryID: String) -> ChatReadCountClearCheckpoint? {
+        guard isCurrent(context) else { return nil }
+        readCounts.observe(context: context, count: count, latestID: boundaryID)
+        return readCounts.beginClear(context: context, boundaryID: boundaryID)
+    }
+
+    /// 真实全清成功并写库后采用请求起点，不把等待期间的新消息一起清掉。
+    func confirmReadCountClear(_ checkpoint: ChatReadCountClearCheckpoint, context: ChatContext, count: Int?, latestID: String) {
+        guard isCurrent(context) else { return }
+        readCounts.confirmClear(checkpoint, context: context, count: count, latestID: latestID)
     }
 
     /// 每页独立Store与代理，以弱引用统一结束业务等待。
@@ -90,6 +146,20 @@ import Combine
     }
 
     /// 删除好友或退出群后同步关闭指定聊天并清其媒体，其他会话保持可用。
+    func closeConversation(context: ChatContext) {
+        guard isCurrent(context) else { return }
+        closedConversationContext = context
+        conversationCleanupWarning = nil
+        closeConversation(id: context.route.id)
+    }
+
+    /// 离群已经受理，后续清理失败只提示重读会话，不误报退出失败。
+    func reportConversationCleanupFailure(context: ChatContext) {
+        guard isCurrent(context), closedConversationContext == context else { return }
+        conversationCleanupWarning = "群操作已受理，会话清理失败，请刷新消息列表"
+    }
+
+    /// 删除好友保留原ID入口；群退出使用携带认证轮次的事件入口。
     func closeConversation(id: String) {
         for reference in cleanupOwners where reference.conversationID == id && reference.owner != nil { reference.action() }
         cleanupOwners.removeAll { $0.owner == nil || $0.conversationID == id }
@@ -139,7 +209,8 @@ import Combine
 
     /// 根退出、切俱乐部和取消AUTH交接都应同步调用。
     func close() {
-        nicknameObserver.close()
+        nicknameObserver.close(); unreadObserver.close(); readCounts.deactivate()
+        closedConversationContext = nil; conversationCleanupWarning = nil
         userUID = nil; tenantID = nil; sessionID = nil; revision = UUID()
         for reference in cleanupOwners where reference.owner != nil { reference.action() }; cleanupOwners.removeAll()
         for store in stores { store.value?.close() }

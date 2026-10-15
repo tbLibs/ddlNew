@@ -20,6 +20,10 @@ import ObjectiveC
     private var waiting: [UUID: () -> Void] = [:]
     private var groupDetail: [String: Any]?
     private var groupMute: [String: Any]?
+    private var groupRefreshRevision = UUID()
+    private var muteExpiryRevision = UUID()
+    private var muteExpiryTask: Task<Void, Never>?
+    private var muteExpiryState = ChatGroupMuteExpiryState()
     private var eventHandler: (@MainActor (ChatEvent) -> Void)?
 
     /// 当前登录所有者由runtime注入，避免相同UID重新登录误接旧请求。
@@ -34,6 +38,7 @@ import ObjectiveC
     /// 本地历史分页使用SDK固定100条查询，不构造独立消息库。
     func cached(context: ChatContext, offset: Int) throws -> [ChatMessageRecord] {
         try validate(context)
+        if offset == 0 { try flushReadTransitions(context: context); try clearManualReadTag(context: context) }
         return (sdk.toolGetChatMessageHistory(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? [])
             .map { SDKChatMessageMapper.record($0, userUID: context.userUID) }
     }
@@ -47,6 +52,7 @@ import ObjectiveC
                 guard let self, self.generation == run, self.validSession(context) else { return }
                 if case .permissionsChanged = event, context.route.kind == .group {
                     self.groupDetail = nil; self.groupMute = nil
+                    self.muteExpiryTask?.cancel(); self.muteExpiryTask = nil; self.muteExpiryRevision = UUID()
                     Task { try? await self.refreshGroup(context: context); if self.generation == run { onEvent(.permissionsChanged) } }
                 }
                 if case .memberHistoryDeleted(let ids) = event {
@@ -63,7 +69,8 @@ import ObjectiveC
 
     /// 同步撤销等待、代理和群详情，迟到回调只被丢弃。
     func stop() {
-        generation = UUID()
+        generation = UUID(); groupRefreshRevision = UUID(); muteExpiryRevision = UUID()
+        muteExpiryTask?.cancel(); muteExpiryTask = nil; muteExpiryState = ChatGroupMuteExpiryState()
         for cancel in waiting.values { cancel() }; waiting.removeAll()
         if let delegate { sdk.removeMessageDelegate(delegate); sdk.removeGroupDelegate(delegate); sdk.removeUserDelegate(delegate) }
         delegate = nil; context = nil; eventHandler = nil; groupDetail = nil; groupMute = nil
@@ -139,13 +146,19 @@ import ObjectiveC
 
     /// 群详情提供本人禁言时间和userInGroup，缓存群表缺失这些字段时不猜可发送。
     private func refreshGroup(context: ChatContext) async throws {
+        try validate(context)
+        let revision = UUID(); groupRefreshRevision = revision
         let json = try await request(context: context) { success, failure in
             self.sdk.getGroupInfo(with: ["groupId": context.route.id, "userUid": context.userUID], onSuccess: success, onFailure: failure)
         }
         let mute = try await request(context: context) { success, failure in
             self.sdk.groupGetUserNotalkState(with: NSMutableDictionary(dictionary: ["groupId": context.route.id, "userUid": context.userUID]), onSuccess: success, onFailure: failure)
         }
-        try validate(context); groupDetail = json; groupMute = mute; updateGroupCache(json, context: context)
+        try validate(context)
+        guard groupRefreshRevision == revision else { throw CancellationError() }
+        guard ChatGroupPermissionPayload.verified(detail: json, mute: mute) else { throw ChatClientError.invalidResponse }
+        groupDetail = json; groupMute = mute; updateGroupCache(json, context: context)
+        scheduleMuteExpiry(context: context)
     }
 
     /// 管理与转发只刷新权限接口，避免为发送检查重复补页聊天历史。
@@ -165,14 +178,14 @@ import ObjectiveC
         group.groupAvatar = json["groupAvatar"] as? String ?? group.groupAvatar
         group.userGroupRole = (json["userGroupRole"] as? NSNumber)?.intValue ?? Int(json["userGroupRole"] as? String ?? "") ?? 0
         group.groupStatus = (json["groupStatus"] as? NSNumber)?.intValue ?? Int(json["groupStatus"] as? String ?? "") ?? 0
-        group.leaveGroupStatus = (json["userInGroup"] as? NSNumber)?.boolValue == true ? 0 : 1
-        group.isPrivateChat = (json["isPrivateChat"] as? NSNumber)?.boolValue ?? false
-        group.isNetCall = (json["isNetCall"] as? NSNumber)?.boolValue ?? false
-        group.isGroupChat = (json["isGroupChat"] as? NSNumber)?.boolValue ?? false
-        group.isNeedVerify = (json["isNeedVerify"] as? NSNumber)?.boolValue ?? false
-        group.isShowHistory = (json["isShowHistory"] as? NSNumber)?.boolValue ?? false
-        group.isShowQrCode = (json["isShowQrCode"] as? NSNumber)?.boolValue ?? false
-        group.closeSearchUser = (json["closeSearchUser"] as? NSNumber)?.boolValue ?? group.closeSearchUser
+        group.leaveGroupStatus = ChatGroupPermissionPayload.boolean(json["userInGroup"]) == true ? 0 : 1
+        group.isPrivateChat = ChatGroupPermissionPayload.boolean(json["isPrivateChat"]) ?? true
+        group.isNetCall = ChatGroupPermissionPayload.boolean(json["isNetCall"]) ?? false
+        group.isGroupChat = ChatGroupPermissionPayload.boolean(json["isGroupChat"]) ?? true
+        group.isNeedVerify = ChatGroupPermissionPayload.boolean(json["isNeedVerify"]) ?? true
+        group.isShowHistory = ChatGroupPermissionPayload.boolean(json["isShowHistory"]) ?? false
+        group.isShowQrCode = ChatGroupPermissionPayload.boolean(json["isShowQrCode"]) ?? false
+        group.closeSearchUser = ChatGroupPermissionPayload.boolean(json["closeSearchUser"]) ?? group.closeSearchUser
         if sdk.toolInsertOrUpdateGroupModel(with: group), group.memberCount != previousCount {
             // 单纯写群表不会发代理；人数实际变化时通知列表，避免重启后才更新。
             // 相同人数不重复通知，防止聊天权限刷新与群代理形成回查循环。
@@ -221,10 +234,10 @@ import ObjectiveC
             value.role = [0, 1, 2].contains(group.userGroupRole) ? group.userGroupRole : 0; value.isPrivateChat = group.isPrivateChat
             value.isActive = group.groupStatus == 1 && group.leaveGroupStatus == 0
             value.sendInterval = Double((config?.groupMessageInterval ?? 0) > 0 ? config!.groupMessageInterval : 2000) / 1000
-            let verified = groupDetail != nil
-            let inGroup = (groupDetail?["userInGroup"] as? NSNumber)?.boolValue ?? false
-            let personalMuted = (groupMute?["isGroupForbid"] as? NSNumber)?.intValue == 1
-            let allMuted = (groupMute?["isGroupChat"] as? NSNumber)?.intValue == 1 || group.isGroupChat
+            let verified = groupDetail != nil && groupMute != nil
+            let inGroup = ChatGroupPermissionPayload.boolean(groupDetail?["userInGroup"]) ?? false
+            let personalMuted = ChatGroupPermissionPayload.boolean(groupMute?["isGroupForbid"]) ?? true
+            let allMuted = (ChatGroupPermissionPayload.boolean(groupMute?["isGroupChat"]) ?? true) || group.isGroupChat
             value.canSend = value.isActive && verified && inGroup && !personalMuted && (value.role > 0 || !allMuted)
             value.reason = !value.isActive ? "已离开群聊或群聊已停用" : (!verified ? "正在确认群发送权限" : "当前已被禁言")
             if !value.canSend { value.canUpload = false; value.canUploadFile = false }
@@ -286,7 +299,10 @@ import ObjectiveC
         model.videoSize = Float(message.size)
         model.stickersImg = message.resource; model.stickersThumbnailImg = message.thumbnail; model.stickersId = message.stickerID; model.isStickersSet = message.isStickerSet; model.stickersSize = message.size; model.stickersWidth = Float(message.mediaWidth); model.stickersHeight = Float(message.mediaHeight)
         model.fileType = legacyFileType(message.fileName)
-        model.filePath = message.resource; model.fileName = message.fileName; model.showFileName = message.fileName; model.fileSize = Float(message.size)
+        model.filePath = message.resource
+        // SDK接收时只移除首个'-'前的协议前缀；UUID先去连字符，否则会把UUID残段或原名首段当显示名。
+        model.fileName = message.type == 5 ? message.localID.replacingOccurrences(of: "-", with: "") + "-" + message.fileName : message.fileName
+        model.showFileName = message.fileName; model.fileSize = Float(message.size)
         return model
     }
 
@@ -297,18 +313,100 @@ import ObjectiveC
         return mapping[mime] ?? "unknow"
     }
 
-    /// 正文已读仅发送可见收到的服务端ID；不预先伪造群已读人数。
+    /// 正文已读发送可见收到的服务端ID，本地只扣当前计数集合中实际从未读转读的身份。
     func read(_ messages: [ChatMessageRecord], context: ChatContext) async throws {
         try validate(context)
-        let ids = messages.filter { $0.senderID != context.userUID && $0.isBody && !$0.serverID.isEmpty }.map(\.serverID)
-        guard !ids.isEmpty else { return }
+        try flushReadTransitions(context: context)
+        try clearManualReadTag(context: context)
+        let candidates = ChatVisibleReadPolicy.candidates(messages, userUID: context.userUID, conversationID: context.route.id)
+        guard !candidates.isEmpty else { return }
+        objc_sync_enter(sdk)
+        defer { objc_sync_exit(sdk) }
+        try validate(context)
+        var originals: [NoaIMChatMessageModel] = []
+        var missingOriginal = false
+        for item in candidates {
+            let original: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withServiceMessageID: item.serverID, sessionID: context.route.id)
+            guard let original else { missingOriginal = true; continue }
+            let current = SDKChatMessageMapper.record(original, userUID: context.userUID)
+            if current.isRead { continue }
+            guard current.serverID == item.serverID,
+                  !ChatVisibleReadPolicy.candidates([current], userUID: context.userUID, conversationID: context.route.id).isEmpty else { missingOriginal = true; continue }
+            originals.append(original)
+        }
+        guard !originals.isEmpty else {
+            if missingOriginal { throw ChatClientError.unavailable("消息状态已变化，请返回聊天后重试") }
+            return
+        }
         let model = NoaIMChatMessageModel()
         model.msgID = UUID().uuidString; model.fromID = context.userUID; model.toID = context.route.id
         model.messageType = CIMChatMessageType(rawValue: 13)!; model.chatType = CIMChatType(rawValue: context.route.kind == .group ? 1 : 0)!
-        model.sMsgIdArray = NSMutableArray(array: ids); model.isAck = false; model.sendTime = Int64(Date().timeIntervalSince1970 * 1000)
+        // 三段身份取刚校验的SDK原消息，不能使用UI快照或只有服务端ID的旧格式。
+        let readEntries = originals.compactMap { ChatVisibleReadPolicy.wireEntry(SDKChatMessageMapper.record($0, userUID: context.userUID)) }
+        guard readEntries.count == originals.count else { throw ChatClientError.invalidResponse }
+        model.sMsgIdArray = NSMutableArray(array: readEntries)
+        model.isAck = false; model.sendTime = Int64(Date().timeIntervalSince1970 * 1000)
         sdk.toolSendChatMessage(with: model)
-        for item in messages {
-            if let original = (sdk.toolGetOneChatMessage(withMessageID: item.localID, sessionID: context.route.id) as NoaIMChatMessageModel?) { sdk.toolMessageHaveRead(with: original) }
+        var writeFailed = missingOriginal
+        for original in originals {
+            try validate(context)
+            original.chatMessageReaded = true
+            if sdk.toolInsertOrUpdateChatMessage(with: original), let id = original.serviceMsgID { ChatRuntime.shared.savedVisibleRead(id, context: context) }
+            else { original.chatMessageReaded = false; writeFailed = true }
+        }
+        try validate(context)
+        try flushReadTransitions(context: context)
+        // type13沿用SDK无ACK上报；这里不增加haveReadCount，也不将本地写入当作服务端已读回执。
+        if writeFailed { throw ChatClientError.unavailable("本机已读状态未能保存，请返回聊天后重试") }
+    }
+
+    /// 部分消息已写入但会话写失败时保留待扣身份，正文已读重试也会先修复计数。
+    private func flushReadTransitions(context: ChatContext) throws {
+        objc_sync_enter(sdk)
+        defer { objc_sync_exit(sdk) }
+        try validate(context)
+        guard let current = (sdk.toolCheckMySession(with: context.route.id) as LingIMSessionModel?) else {
+            if ChatRuntime.shared.hasPendingVisibleReadCount(context: context) { throw ChatClientError.unavailable("本机会话已读计数暂不可用，请返回聊天后重试") }
+            return
+        }
+        let latest = current.sessionLatestServerMsgID?.isEmpty == false ? current.sessionLatestServerMsgID ?? "" : current.sessionLatestMessage?.serviceMsgID ?? ""
+        guard let plan = ChatRuntime.shared.visibleReadCountPlan(context: context, count: current.sessionUnreadCount, latestID: latest) else { return }
+        current.sessionUnreadCount = plan.remaining
+        guard sdk.toolUpdateSession(with: current) else { throw ChatClientError.unavailable("本机会话已读计数未能保存，请返回聊天后重试") }
+        ChatRuntime.shared.commitVisibleReadCount(plan, context: context)
+    }
+
+    /// 开页只清本机手动标记；SDK远端readTag0事件会清整个会话，不能替代可见正文已读。
+    private func clearManualReadTag(context: ChatContext) throws {
+        objc_sync_enter(sdk)
+        defer { objc_sync_exit(sdk) }
+        try validate(context)
+        guard let current = (sdk.toolCheckMySession(with: context.route.id) as LingIMSessionModel?), current.readTag > 0 else { return }
+        current.readTag = 0
+        // 不调用conversationReadedStatus，不设置服务端最新已读边界，屏外未读数原样保留。
+        guard sdk.toolUpdateSession(with: current) else { throw ChatClientError.unavailable("本机未读标记未能更新，请返回聊天后重试") }
+    }
+
+    /// 禁言到期后回查真实权限；取消、换号或旧窗口失败都不能自行放开发送。
+    private func scheduleMuteExpiry(context: ChatContext) {
+        muteExpiryTask?.cancel(); muteExpiryTask = nil
+        let revision = UUID(); muteExpiryRevision = revision
+        let expiry = groupMute.flatMap { ChatGroupMuteExpiry.decode($0) }
+        guard let expiry = muteExpiryState.plan(expiry, now: Date()) else { return }
+        let run = generation
+        muteExpiryTask = Task { [weak self] in
+            do {
+                while expiry.deadline > Date() {
+                    let seconds = min(3600, expiry.deadline.timeIntervalSinceNow)
+                    if seconds > 0 { try await Task<Never, Never>.sleep(nanoseconds: UInt64(seconds * 1_000_000_000)) }
+                }
+                guard let self, !Task.isCancelled, self.generation == run, self.muteExpiryRevision == revision else { return }
+                try self.validate(context)
+                self.muteExpiryState.checked(expiry); self.muteExpiryTask = nil
+                try await self.refreshGroup(context: context)
+                guard self.generation == run, self.validSession(context) else { return }
+                self.eventHandler?(.permissionsChanged)
+            } catch { /* 到期接口失败仍保留已确认禁言，不以时钟计算结果当作解禁。 */ }
         }
     }
 
@@ -321,7 +419,9 @@ import ObjectiveC
             "receiveId": context.route.id, "msgId": message.localID, "sMsgId": message.serverID]
         if action == .delete || action == .deleteBoth {
             if message.state == .failed && action == .delete {
-                if let model = (sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id) as NoaIMChatMessageModel?) { sdk.toolDeleteChatMessage(with: model) }; return
+                guard let model = (sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id) as NoaIMChatMessageModel?),
+                    sdk.toolDeleteChatMessage(with: model) else { throw ChatClientError.unavailable("无法保存本机删除状态，请重试") }
+                return
             }
             params["operationStatus"] = action == .delete ? 1 : 2
             params["msgIdList"] = [message.serverID]; params["msgId"] = ""; params["sMsgId"] = ""
@@ -331,10 +431,20 @@ import ObjectiveC
             let result = try await request(context: context) { success, failure in self.sdk.recallMessage(NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure) }
             guard (result["_value"] as? NSNumber)?.boolValue == true else { throw ChatClientError.unavailable("撤回未被服务器确认，请重试") }
         } else { throw ChatClientError.unavailable("此操作需要通过对应编辑或转发页面完成") }
+        let sdk = self.sdk
+        objc_sync_enter(sdk)
+        defer { objc_sync_exit(sdk) }
         try validate(context)
-        if let model = (sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id) as NoaIMChatMessageModel?) {
-            model.messageStatus = action == .recall ? 2 : 0; sdk.toolInsertOrUpdateChatMessage(with: model)
+        var model: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
+        if model == nil, !message.serverID.isEmpty {
+            model = sdk.toolGetOneChatMessage(withServiceMessageID: message.serverID, sessionID: context.route.id)
         }
+        guard let model, SDKChatMessageMapper.record(model, userUID: context.userUID).conversationID == context.route.id else {
+            throw ChatClientError.unavailable("消息已受理，但无法找到本机原消息，请刷新后重试")
+        }
+        // 服务端受理后必须真正写入SDK墓碑；本机失败不能只隐藏页面并宣称成功。
+        if model.messageStatus != 0 { model.messageStatus = action == .recall ? 2 : 0 }
+        guard sdk.toolInsertOrUpdateChatMessage(with: model) else { throw ChatClientError.unavailable("消息已受理，但无法保存本机状态，请重试") }
     }
 
     /// 草稿与当前SDK用户库共用隔离，不从其他俱乐部缓存恢复输入。

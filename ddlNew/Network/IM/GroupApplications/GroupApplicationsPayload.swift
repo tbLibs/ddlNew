@@ -4,8 +4,18 @@ import ObjectMapper
 nonisolated struct GroupApplicationsPayload: Mappable {
     var records: [GroupApplicationPayload] = []
     var total = 0
-    /// 响应结构缺少记录数组时视为格式错误。
-    init?(map: Map) { guard map.JSON["records"] is [Any], map.JSON["total"] != nil else { return nil } }
-    /// 保留服务器总数，页面不能凭单页十条推断全部完成。
-    mutating func mapping(map: Map) { records <- map["records"]; total <- map["total"] }
+
+    /// 整页校验后才接纳结果，坏行不能变成成功空页并触发通知清读。
+    init?(map: Map) {
+        guard let rows = map.JSON["records"] as? [[String: Any]],
+              let total = GroupApplicationPayload.integer(map.JSON["total"]), total >= 0,
+              rows.count <= total,
+              rows.allSatisfy({ Mapper<GroupApplicationPayload>().map(JSON: $0) != nil }) else { return nil }
+    }
+
+    /// 保留真实分页总数，数字和字符串使用同一严格标量解析。
+    mutating func mapping(map: Map) {
+        records = (map.JSON["records"] as? [[String: Any]] ?? []).compactMap { Mapper<GroupApplicationPayload>().map(JSON: $0) }
+        total = GroupApplicationPayload.integer(map.JSON["total"]) ?? 0
+    }
 }

@@ -21,6 +21,8 @@ struct BusinessQRScannerView: View {
     @State private var resumeAfterFeedback = false
     @State private var reason = ""
     @State private var target: BusinessQRTarget?
+    @State private var profileID: String?
+    @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @State private var joinedRoute: ChatRoute?
     @State private var scanRevision = UUID()
 
@@ -53,7 +55,13 @@ struct BusinessQRScannerView: View {
         })
         .onDisappear { resumeAfterFeedback = false; scanRevision = UUID() }
         .onChange(of: photo) { item in Task { await recognize(item) } }
-        .navigationDestination(isPresented: Binding(get: { joinedRoute != nil }, set: { if !$0 { joinedRoute = nil } })) { if let joinedRoute { ChatRoomView(route: joinedRoute) } }
+        .navigationDestination(isPresented: Binding(get: { profileID != nil }, set: { if !$0 { profileID = nil; cameraRevision = UUID() } })) {
+            if let profileID {
+                ContactRecordDetailView(store: LoginSessionService.shared.contacts, businessStore: businessStore,
+                    contactID: profileID, fileHost: connection.current?.getFileHost)
+            }
+        }
+        .navigationDestination(isPresented: Binding(get: { joinedRoute != nil }, set: { if !$0 { joinedRoute = nil; target = nil; cameraRevision = UUID() } })) { if let joinedRoute { ChatRoomView(route: joinedRoute) } }
     }
 
     /// 相机直接放入当前导航页面，取消或返回不会露出额外的扫码入口表单。
@@ -92,10 +100,10 @@ struct BusinessQRScannerView: View {
     /// 识别后的用户码只能打开资料；是否添加好友仍是独立动作。
     @ViewBuilder private func destination(_ target: BusinessQRTarget) -> some View {
         switch target {
-        case .user(let id): NavigationLink("查看用户资料", value: ContactsRoute(contactID: id))
+        case .user: EmptyView()
         case .group(let id, let name, let avatar, let inviter, let isMember, let needsApproval):
             Section(name) {
-                if isMember { NavigationLink("进入群聊", value: ChatRoute(id: id, kind: .group, title: name, avatarURL: avatar)) }
+                if isMember { EmptyView() }
                 else {
                     if needsApproval { TextField("填写入群理由", text: $reason) }
                     Button(needsApproval ? "申请加入群聊" : "加入群聊") { Task {
@@ -122,7 +130,13 @@ struct BusinessQRScannerView: View {
             showFeedback(businessStore.errorMessage ?? "此二维码暂时无法识别", resumeCamera: resumeCameraOnFailure)
             return
         }
-        target = decoded
+        // 服务端转换确认后的用户和已入群目标直接push，未入群仍展示真实申请表单。
+        switch decoded {
+        case .user(let id): profileID = id
+        case .group(let id, let name, let avatar, _, let isMember, _):
+            if isMember { joinedRoute = ChatRoute(id: id, kind: .group, title: name, avatarURL: avatar) }
+            else { target = decoded }
+        }
     }
 
     /// 相册选择由系统授权，离线只识别文本，真实业务仍需SDK转换。

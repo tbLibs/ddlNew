@@ -20,7 +20,7 @@ import ObjectiveC
         }
         try validate(userUID: userUID, groupID: groupID)
         guard let payload = Mapper<GroupApplicationsPayload>().map(JSONString: json) else { throw ChatClientError.unavailable("群申请数据无效，请刷新重试") }
-        return GroupApplicationsPage(records: payload.records.map(\.record).filter { !$0.id.isEmpty && !$0.groupID.isEmpty }, total: payload.total, notifications: notifications)
+        return GroupApplicationsPage(records: payload.records.map(\.record), total: payload.total, notifications: notifications)
     }
     /// 返回每条真实处理结果，缺少或失败的申请不能标为成功。
     func review(userUID: String, records: [GroupApplicationRecord], accept: Bool) async throws -> GroupApplicationOutcome {

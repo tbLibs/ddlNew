@@ -5,6 +5,7 @@ import ObjectMapper
 /// 服务端 STS 字段只在本次请求内存中映射，不支持序列化到缓存。
 nonisolated struct CloudMediaCredentialPayload: Mappable {
     private var fields: [String: String] = [:]
+    private var sharedCredentials: [String: String]?
     /// STS必须是字典，具体供应商字段在取用时完整校验。
     init?(map: Map) {}
     /// 保留真实临时凭据字段，明确禁止toJSON输出。
@@ -13,6 +14,15 @@ nonisolated struct CloudMediaCredentialPayload: Mappable {
         for (key, value) in map.JSON {
             if let text = value as? String { fields[key] = text }
             else if let number = value as? NSNumber { fields[key] = number.stringValue }
+        }
+        // 真接口返回credentials通用字段，供应商前缀是旧端转换后的内部模型，并非服务端响应合同。
+        // 包装存在但损坏时保留空字典，不能回退到另一组可能过期的前缀凭据。
+        if map.JSON["credentials"] != nil {
+            sharedCredentials = [:]
+            for (key, value) in map.JSON["credentials"] as? [String: Any] ?? [:] {
+                if let text = value as? String { sharedCredentials?[key] = text }
+                else if let number = value as? NSNumber { sharedCredentials?[key] = number.stringValue }
+            }
         }
     }
     /// 校验当前供应商完整凭据与实际失效时间，不缓存、不宽松猜测过期字段。
@@ -24,7 +34,9 @@ nonisolated struct CloudMediaCredentialPayload: Mappable {
         case .tencent: names = ["tencentsecretId", "tencentsecretKey", "tencentToken", "tencentExpiration"]
         case .huawei: names = ["obsAccessKey", "obsSecretKey", "obsToken", "obsExpiration"]
         }
-        let values = names.map { fields[$0] ?? "" }
+        let values = sharedCredentials.map { shared in
+            ["accessKeyId", "accessKeySecret", "securityToken", "expiration"].map { shared[$0] ?? "" }
+        } ?? names.map { fields[$0] ?? "" }
         guard values.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
               values.prefix(3).allSatisfy({ $0.rangeOfCharacter(from: .controlCharacters) == nil }),
               let expiry = expiration(values[3]), expiry.timeIntervalSince(now) > 30 else { return nil }

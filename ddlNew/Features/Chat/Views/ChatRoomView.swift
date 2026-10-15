@@ -14,8 +14,11 @@ struct ChatRoomView: View {
     let route: ChatRoute
     @StateObject private var store: ChatStore
     @ObservedObject private var runtime = ChatRuntime.shared
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var openedContext: ChatContext?
+    @State private var conversationClosed = false
     @State private var confirmAction: ChatMessageAction?
     @State private var actionMessageID: String?
     @State private var pinnedNotice: ChatGroupNotice?
@@ -123,7 +126,17 @@ struct ChatRoomView: View {
             }
         }
         .navigationDestination(isPresented: $showSettings) { ChatSettingsView(route: route) }
-        .task(id: runtime.revision) { if let context = runtime.context(for: route) { await store.open(context) } else { store.close() } }
+        .task(id: runtime.revision) {
+            guard !conversationClosed else { return }
+            if let context = runtime.context(for: route) { openedContext = context; await store.open(context) }
+            else { store.close() }
+        }
+        .onChange(of: runtime.closedConversationContext) { closed in
+            guard let closed, closed == openedContext else { return }
+            // 离群后先撤销设置页，再退出聊天；阻止返回动画期间重新打开已关闭的Store。
+            conversationClosed = true; showSettings = false; store.close()
+            DispatchQueue.main.async { dismiss() }
+        }
         .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; if selectedProfile == nil && !showSettings && !showStickers && mediaMessage == nil && editingMessage == nil && !showForward && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices { store.close() } }
         .onAppear { store.isForeground = scenePhase == .active; store.isVisible = true }
     }
@@ -135,20 +148,21 @@ struct ChatRoomView: View {
         .sheet(isPresented: $showNotices, onDismiss: {
             pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() }
         }) { NavigationStack { ChatGroupNoticesView(route: route) } }
-        .sheet(isPresented: $showPinnedMessages) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages) { id in Task { await store.locate(id) } } } }
+        .sheet(isPresented: $showPinnedMessages) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages) { id in Task { await store.locate(id) } }.toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showPinnedMessages = false } } } } }
         .sheet(item: $pinningMessage) { message in if let context = store.context { NavigationStack { ChatPinActionView(message: message, context: context, permission: store.permission, onChange: { Task { await reloadPins() } }) } } }
         .sheet(isPresented: $showFullHistorySearch) {
-            if let context = store.context { NavigationStack { ChatHistorySearchView(context: context) { id in Task { await store.locate(id) } } } }
+            if let context = store.context { NavigationStack { ChatHistorySearchView(context: context) { id in Task { await store.locate(id) } }.toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showFullHistorySearch = false } } } } }
         }
         .sheet(isPresented: $showMentionPicker) {
-            NavigationStack { List(mentionMembers) { member in Button(member.name) { store.insertMention(member); showMentionPicker = false } }.navigationTitle("选择@成员") }
+            NavigationStack { List(mentionMembers) { member in Button(member.name) { store.insertMention(member); showMentionPicker = false } }.navigationTitle("选择@成员").toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showMentionPicker = false } } } }
         }
-        .sheet(item: $forwardRecord) { message in if let context = store.context { NavigationStack { ChatForwardRecordView(message: message, context: context) } } }
-        .sheet(item: $locationMessage) { message in NavigationStack { ChatLocationDetailView(message: message) } }
+        // 只读弹层提供明确关闭入口，Mac运行iPhone App时不能依赖手势下拉退出。
+        .sheet(item: $forwardRecord) { message in if let context = store.context { NavigationStack { ChatForwardRecordView(message: message, context: context).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { forwardRecord = nil } } } } } }
+        .sheet(item: $locationMessage) { message in NavigationStack { ChatLocationDetailView(message: message).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { locationMessage = nil } } } } }
         .sheet(item: $editingMessage) { message in if let context = store.context { NavigationStack { ChatMessageEditorView(message: message, context: context, store: store) } } }
         .sheet(isPresented: $showForward) { if let context = store.context { NavigationStack { ChatForwardRecipientView(messages: forwardingMessages, context: context, chat: store) } } }
         .sheet(item: $mediaMessage) { message in
-            if let context = store.context { NavigationStack { ChatMediaDetailView(message: message, context: context, onVoicePlayed: { Task { await store.markVisible(message.id, voicePlayed: true) } }) } }
+            if let context = store.context { NavigationStack { ChatMediaDetailView(message: message, context: context, onVoicePlayed: { Task { await store.markVisible(message.id, voicePlayed: true) } }).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { mediaMessage = nil } } } } }
         }
     }
 
@@ -159,6 +173,9 @@ struct ChatRoomView: View {
         .messagingFeedbackToast(store.errorMessage, isEnabled: !showSettings && !showStickers && !showForward && mediaMessage == nil && editingMessage == nil && pinningMessage == nil)
         .onChange(of: store.messages) { _ in
             pinRefreshTask?.cancel(); pinRefreshTask = Task { do { try await Task.sleep(nanoseconds: 300_000_000); await reloadPins() } catch {} }
+        }
+        .onChange(of: store.pinRevision) { _ in
+            pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() }
         }
         .onChange(of: store.input) { _ in store.reconcileMentions(); store.persistDraft() }
         // 设置页修改公告后返回，主动核对真实置顶状态，不等下一条聊天消息触发刷新。
@@ -178,7 +195,7 @@ struct ChatRoomView: View {
         } message: { Text(confirmAction == .delete ? "仅删除你自己的这条聊天记录。" : confirmAction == .deleteBoth ? "将申请从双方聊天记录删除这条消息。" : "将申请撤回这条消息。") }
     }
 
-    private var displayedMessages: [ChatMessageRecord] { store.messages }
+    private var displayedMessages: [ChatMessageRecord] { store.messages.filter(\.isVisible) }
 
     /// 输入焦点独立于草稿，收起键盘后保留正文、引用和成员UID片段。
     private var composer: some View {
@@ -287,13 +304,18 @@ struct ChatRoomView: View {
     private func messageRow(_ message: ChatMessageRecord) -> some View {
         VStack(spacing: 8.zoom()) {
             if showsDate(for: message) { Text(Date(timeIntervalSince1970: Double(message.timestamp) / 1000), style: .date).font(.caption).foregroundStyle(.secondary) }
-            ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
-                isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
-                onRetry: { store.retry(message.id) }, onReference: { Task { await store.locate(message.referenceID) } }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID))
-                .onTapGesture { activateMessage(message) }
-                .accessibilityAction(named: openActionTitle(message)) { activateMessage(message) }
-                .contextMenu { messageMenu(message) }
-                .accessibilityAction(named: "选择消息") { store.toggleSelection(message.id) }
+            if message.type == 1000 {
+                Text(message.displayText).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                    .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.vertical, 4.zoom())
+            } else {
+                ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
+                    isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
+                    onRetry: { store.retry(message.id) }, onReference: { Task { await store.locate(message.referenceID) } }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID))
+                    .onTapGesture { activateMessage(message) }
+                    .accessibilityAction(named: openActionTitle(message)) { activateMessage(message) }
+                    .contextMenu { messageMenu(message) }
+                    .accessibilityAction(named: "选择消息") { store.toggleSelection(message.id) }
+            }
         }
         .id(message.id)
         .background(GeometryReader { geometry in Color.clear.preference(key: ChatVisibilityPreference.self, value: [message.id: geometry.frame(in: .named("chatViewport"))]) })
@@ -322,7 +344,8 @@ struct ChatRoomView: View {
     private func activateMessage(_ message: ChatMessageRecord) {
         if !store.selectedIDs.isEmpty { store.toggleSelection(message.id) }
         else if message.status == .normal {
-            if message.type == 18 { forwardRecord = message }
+            if let cardID = message.cardProfileID { selectedProfile = ContactsRoute(contactID: cardID) }
+            else if message.type == 18 { forwardRecord = message }
             else if [3, 7].contains(message.type) { locationMessage = message }
             else if [1, 2, 4, 5, 12].contains(message.type) { mediaMessage = message }
         }
@@ -330,7 +353,7 @@ struct ChatRoomView: View {
 
     /// 媒体操作名称与真实点击目标相同，普通正文使用选择动作。
     private func openActionTitle(_ message: ChatMessageRecord) -> String {
-        switch message.type { case 1, 12: return "查看图片"; case 2: return "查看视频"; case 4: return "播放语音"; case 5: return "查看文件"; case 18: return "查看聊天记录"; case 3, 7: return "查看位置"; default: return "选择消息" }
+        switch message.type { case 6: return "查看名片"; case 1, 12: return "查看图片"; case 2: return "查看视频"; case 4: return "播放语音"; case 5: return "查看文件"; case 18: return "查看聊天记录"; case 3, 7: return "查看位置"; default: return "选择消息" }
     }
 
     /// 同日不插五分钟日期，只在第一条和跨日处展示。
@@ -342,7 +365,7 @@ struct ChatRoomView: View {
     /// 菜单由实时权限矩阵产生，破坏动作使用确认并在提交再次校验。
     @ViewBuilder private func messageMenu(_ message: ChatMessageRecord) -> some View {
         let allowed = ChatActionPolicy.allowed(for: message, userUID: store.context?.userUID ?? "", permission: store.permission)
-        if message.type == 6 && !message.cardUID.isEmpty { NavigationLink("查看名片", value: ContactsRoute(contactID: message.cardUID, sourceGroupID: route.kind == .group ? route.id : route.sourceGroupID)) }
+        if let cardID = message.cardProfileID { Button("查看名片") { selectedProfile = ContactsRoute(contactID: cardID) } }
         if allowed.contains(.copy) { Button("复制") { UIPasteboard.general.string = message.text } }
         if allowed.contains(.reply) { Button("引用回复") { store.reference = message } }
         if allowed.contains(.edit) { Button("编辑") { editingMessage = message } }

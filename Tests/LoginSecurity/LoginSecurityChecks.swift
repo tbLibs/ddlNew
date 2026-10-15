@@ -211,16 +211,17 @@ let loginForcedPasswordRequirementAppStorageKey = "ddlNew.loginForcedPasswordReq
         let exitFailure = Fixture()
         exitFailure.failExit = true
         exitFailure.coordinator.start(userUID: "u", lastLiceseId: "club")
-        await settle()
+        await settleUntil { exitFailure.coordinator.request != nil && !exitFailure.coordinator.isBusy }
         exitFailure.coordinator.verifyOldPassword("fixture")
-        await settle()
+        await settleUntil { exitFailure.coordinator.oldPasswordVerified && !exitFailure.coordinator.isBusy }
         exitFailure.coordinator.changePassword("abc123", confirmation: "abc123", requiresSymbol: false)
-        await settle()
+        // 退出失败的异步catch也要完成，不能只靠固定yield次数猜完成。
+        await settleUntil { exitFailure.coordinator.passwordChanged && !exitFailure.coordinator.isBusy && exitFailure.coordinator.message?.contains("重试退出") == true }
         expect(exitFailure.coordinator.passwordChanged && exitFailure.coordinator.request != nil, "清理失败保持修改完成屏障")
         expect(!exitFailure.coordinator.isBusy && exitFailure.coordinator.message?.contains("重试退出") == true, "失败允许重试退出")
         exitFailure.failExit = false
         exitFailure.coordinator.exitToLogin()
-        await settle()
+        await settleUntil { exitFailure.exits == 2 && !exitFailure.coordinator.isBusy }
         expect(exitFailure.exits == 2, "再次退出完成")
         let reconnect = Fixture()
         reconnect.coordinator.start(userUID: "u", lastLiceseId: "club")

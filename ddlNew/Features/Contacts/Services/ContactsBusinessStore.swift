@@ -16,6 +16,7 @@ import Combine
     @Published private(set) var profiles: [String: ContactRecord] = [:]
     @Published private(set) var groupNicknames: [String: [String: String]] = [:]
     @Published private(set) var friendIDs: Set<String> = []
+    @Published private(set) var pendingApplicationIDs: Set<String> = []
     @Published private(set) var isLoading = false
     @Published private(set) var isSearching = false
     @Published private(set) var isSubmitting = false
@@ -41,6 +42,7 @@ import Combine
     private var hiddenUnreadHashes = Set<String>()
     private var hasUnreadSnapshot = false
     private var read: Set<String> = []
+    private var pendingApplicationSnapshots: [String: [FriendApplicationRecord]] = [:]
     private var firstVisibleVersions: [String: String] = [:]
     private var searchRevision = UUID()
     private var readRevision = UUID()
@@ -100,6 +102,17 @@ import Combine
             let result = try await client.request(.applications(page: 1), identity: identity)
             guard self.identity == identity, readRevision == revision else { return }
             applications = uniqueApplications(result.applications).filter { !hidden.contains($0.id) }
+            // 仅稳定申请身份与状态的新终态解除等待，昵称头像变化和旧快照不能开放重复发送。
+            for peerID in pendingApplicationIDs {
+                if let latest = result.applications.first(where: { $0.fromUID == identity.userUID && $0.targetUID == peerID }),
+                   latest.action(for: identity.userUID) != .waiting,
+                   !(pendingApplicationSnapshots[peerID] ?? []).contains(where: {
+                       $0.hashKey == latest.hashKey && $0.sendTime == latest.sendTime && $0.status == latest.status &&
+                       $0.fromUID == latest.fromUID && $0.targetUID == latest.targetUID
+                   }) {
+                    pendingApplicationIDs.remove(peerID); pendingApplicationSnapshots.removeValue(forKey: peerID)
+                }
+            }
             hiddenUnreadHashes = Set(result.applications.filter { hidden.contains($0.id) }.map(\.hashKey))
             page = 1; hasMoreApplications = result.hasMore
             updateUnread()
@@ -185,6 +198,8 @@ import Combine
     func reconcileContacts(_ contacts: [ContactRecord]) {
         let validIDs = Set(contacts.map(\.id))
         friendIDs = validIDs
+        pendingApplicationIDs.subtract(validIDs)
+        for id in validIDs { pendingApplicationSnapshots.removeValue(forKey: id) }
         for contact in contacts where profiles[contact.id] != nil { profiles[contact.id] = contact }
     }
 
@@ -246,7 +261,10 @@ import Combine
             guard response.success else { throw ContactBusinessError.invalidInput("服务器未完成此操作，请刷新状态后重试") }
             qrContent = response.qrCode; qrExpiry = response.expiry; qrTarget = response.qrTarget
             switch operation {
-            case .apply: notice = "好友申请已发送，等待对方验证"
+            case .apply(let friendID):
+                pendingApplicationIDs.insert(friendID)
+                pendingApplicationSnapshots[friendID] = applications.filter { $0.fromUID == identity.userUID && $0.targetUID == friendID }
+                notice = "好友申请已发送，等待对方验证"
             case .setRemark(let friendID, _, _):
                 guard let profile = response.profile, profile.id == friendID else { throw ContactBusinessError.malformedResponse }
                 profileRevisions[friendID] = UUID()
@@ -284,7 +302,10 @@ import Combine
     /// 在提交时再次核对权限与当前好友，避免页面打开后权限变化绕过。
     private func validate(_ operation: ContactBusinessOperation) throws {
         switch operation {
-        case .apply(let id), .accept(let id):
+        case .apply(let id):
+            guard !pendingApplicationIDs.contains(id) else { throw ContactBusinessError.invalidInput("好友申请已发送，等待对方验证") }
+            guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput("当前账号不能添加该用户") }
+        case .accept(let id):
             guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput("当前账号不能添加该用户") }
         case .setRemark(_, let remark, let description):
             guard remark.utf16.count <= 50, description.utf16.count <= 200 else { throw ContactBusinessError.invalidInput("备注最多50字，描述最多200字") }
@@ -360,7 +381,7 @@ import Combine
     /// 退出或同UID重新AUTH时使请求与SDK观察同时失效。
     func reset() {
         identity = nil; reloadTask?.cancel(); reloadTask = nil; pendingReload = false; client.reset(); readRevision = UUID(); searchRevision = UUID(); operationRevision = UUID(); profileRevisions = [:]; accessRevisions = [:]; nicknameRevisions = [:]
-        applications = []; groups = []; searchResults = []; roleLabels = [:]; profiles = [:]; groupNicknames = [:]; friendIDs = []
+        applications = []; groups = []; searchResults = []; roleLabels = [:]; profiles = [:]; groupNicknames = [:]; friendIDs = []; pendingApplicationIDs = []; pendingApplicationSnapshots = [:]
         hidden = []; read = []; firstVisibleVersions = [:]; unreadVersions = [:]; hiddenUnreadHashes = []; hasUnreadSnapshot = false; page = 0; isActivated = false; unreadCount = 0; hasMoreApplications = false
         isLoading = false; isSearching = false; isSubmitting = false; errorMessage = nil; notice = nil; qrContent = ""; qrExpiry = ""; qrTarget = nil
     }

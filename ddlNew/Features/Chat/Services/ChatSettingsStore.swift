@@ -62,9 +62,10 @@ import Combine
               ChatGroupPolicy.permits(action, detail: detail, userUID: context.userUID) else { errorMessage = "当前群权限不允许此操作"; return false }
         if case .nickname(let value) = action, value.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > 30 { errorMessage = "群昵称最多30字"; return false }
         if case .rename(let value) = action, value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { errorMessage = "群名称不能为空"; return false }
+        let run = generation
         return await operate { context in
             try await self.client.groupAction(action, context: context)
-            if self.context == context, action == .leave || action == .dissolve { self.hasLeft = true }
+            if self.generation == run, self.context == context, !Task.isCancelled, action == .leave || action == .dissolve { self.hasLeft = true; self.pendingReload = false }
         }
     }
 
@@ -87,7 +88,7 @@ import Combine
 
     /// 写操作或长成员分页期间的角色事件不能丢失，结束后回读最新快照。
     private func drainPendingReload() {
-        guard pendingReload, context != nil else { return }; pendingReload = false
+        guard pendingReload, context != nil, !hasLeft else { return }; pendingReload = false
         Task { await reload() }
     }
 

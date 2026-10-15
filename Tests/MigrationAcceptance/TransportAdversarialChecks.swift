@@ -81,6 +81,16 @@ import ObjectMapper
         let keys: [(CloudStorageProvider, [String])] = [(.aliyun, ["aliyunAccessKeyId", "aliyunSecretKeyId", "aliyunSecurityToken", "aliyunExpiration"]), (.amazon, ["awss3AccessKey", "awss3SecretKey", "awss3sessionToken", "awss3Expiration"]), (.tencent, ["tencentsecretId", "tencentsecretKey", "tencentToken", "tencentExpiration"]), (.huawei, ["obsAccessKey", "obsSecretKey", "obsToken", "obsExpiration"])]
         for (provider, names) in keys {
             let fields = Dictionary(uniqueKeysWithValues: zip(names, ["qa-fiction-id", "qa-fiction-key", "qa-fiction-token", String(now.timeIntervalSince1970 + 31)]))
+            let shared: [String: Any] = ["accessKeyId": "qa-fiction-id", "accessKeySecret": "qa-fiction-key", "securityToken": "qa-fiction-token", "expiration": String(now.timeIntervalSince1970 + 60)]
+            let nested = Mapper<CloudMediaCredentialPayload>().map(JSON: ["credentials": shared])
+            check(nested?.credentials(for: provider, now: now)?.accessKey == "qa-fiction-id", "\(provider.rawValue)真实STS credentials包装必须可用")
+            check(nested?.toJSON().isEmpty == true, "\(provider.rawValue)真实STS包装不可序列化")
+            var missingShared = shared; missingShared.removeValue(forKey: "securityToken")
+            check(Mapper<CloudMediaCredentialPayload>().map(JSON: ["credentials": missingShared])?.credentials(for: provider, now: now) == nil, "\(provider.rawValue)真实STS缺Token必须拒绝")
+            var expiredShared = shared; expiredShared["expiration"] = String(now.timeIntervalSince1970 + 30)
+            check(Mapper<CloudMediaCredentialPayload>().map(JSON: ["credentials": expiredShared])?.credentials(for: provider, now: now) == nil, "\(provider.rawValue)真实STS临近过期拒绝")
+            var mixed: [String: Any] = fields; mixed["credentials"] = [:] as [String: Any]
+            check(Mapper<CloudMediaCredentialPayload>().map(JSON: mixed)?.credentials(for: provider, now: now) == nil, "\(provider.rawValue)显式损坏真实包装不能回退旧前缀凭据")
             let valid = Mapper<CloudMediaCredentialPayload>().map(JSON: fields)!
             check(valid.credentials(for: provider, now: now) != nil, "\(provider.rawValue)STS完整且剩余31秒可用")
             for expiry in [String(now.timeIntervalSince1970 + 30), "0", "NaN", "Infinity", "1e308", "invalid"] {

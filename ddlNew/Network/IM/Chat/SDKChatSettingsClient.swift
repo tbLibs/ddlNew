@@ -7,6 +7,7 @@
 
 import Foundation
 import NoaChatCore
+import ObjectiveC
 
 /// 群管理与聊天消息共用身份守卫，群详情DTO独立于通讯录群列表。
 @MainActor final class SDKChatSettingsClient: ChatSettingsClient {
@@ -144,8 +145,9 @@ import NoaChatCore
             case .qr(let value): params["isShowQrCode"] = value ? 1 : 0; self.sdk.groupUpdateIsShowQrCode(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
             case .remind(let value): params["status"] = value ? 1 : 0; self.sdk.groupUpdateGroupRemindSwitchStatus(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
             case .prohibitCalls(let value): params["status"] = value ? 1 : 0; self.sdk.groupUpdateAudioAndVideoCallStatus(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
-            case .leave: self.sdk.groupQuit(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
-            case .dissolve: self.sdk.groupDissolutionGroup(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
+            // SDK包装会在回调后自行写当前数据库；使用同一HTTP传输，改由下方身份守卫清理。
+            case .leave: NoaIMHttpManager.shared().groupQuit(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
+            case .dissolve: NoaIMHttpManager.shared().groupDissolutionGroup(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
             }
         }
         try client.validate(context)
@@ -154,7 +156,36 @@ import NoaChatCore
             if deleteMessages { ChatRuntime.shared.removedMemberMessages(ids, context: context); try? ChatMediaPreviewStore.clearCache(context: context) }
         }
         if action == .leave || action == .dissolve {
-            sdk.toolDeleteMyGroup(with: context.route.id); sdk.toolDeleteAllChatMessage(with: context.route.id); ChatRuntime.shared.closeConversation(id: context.route.id)
+            finishDeparture(context: context)
+        }
+    }
+
+    /// 群退出回执已确认后，在同一SDK锁和当前认证身份下删除会话、历史及群入口。
+    private func finishDeparture(context: ChatContext) {
+        let sdk = self.sdk
+        objc_sync_enter(sdk)
+        guard (try? client.validate(context)) != nil else { objc_sync_exit(sdk); return }
+        let group: LingIMGroupModel? = sdk.toolCheckMyGroup(with: context.route.id)
+        let session: LingIMSessionModel? = sdk.toolCheckMySession(with: context.route.id)
+        let deletedHistory = session.map { sdk.toolDeleteSessionModel(with: $0, andDeleteAllChatModel: true) } ?? sdk.toolDeleteAllChatMessage(with: context.route.id)
+        let deletedGroup = group.map { _ in sdk.toolDeleteMyGroup(with: context.route.id) } ?? true
+        if deletedGroup, let group { sdk.groupDelegate.cimToolGroupDelete?(with: group) }
+        objc_sync_exit(sdk)
+        ChatRuntime.shared.closeConversation(context: context)
+        if !deletedHistory || !deletedGroup { ChatRuntime.shared.reportConversationCleanupFailure(context: context) }
+        // 后续删服务端会话不等待页面，回调不再写本地库；失败不能撤销已成功的离群。
+        Task { @MainActor in
+            guard ChatRuntime.shared.isCurrent(context) else { return }
+            let cleanup = SDKChatClient(validSession: { ChatRuntime.shared.isCurrent($0) })
+            cleanup.observe(context: context, onEvent: { _ in })
+            defer { cleanup.stop() }
+            do {
+                _ = try await cleanup.request(context: context) { success, failure in
+                    sdk.deleteServerConversation(NSMutableDictionary(dictionary: ["peerUid": context.route.id, "dialogType": 1, "userUid": context.userUID]), onSuccess: success, onFailure: failure)
+                }
+            } catch {
+                ChatRuntime.shared.reportConversationCleanupFailure(context: context)
+            }
         }
     }
 
@@ -176,7 +207,7 @@ import NoaChatCore
     /// 服务端混合数字字符串按字段合同归一化。
     private func integer(_ value: Any?) -> Int { (value as? NSNumber)?.intValue ?? Int(value as? String ?? "") ?? 0 }
     /// 开关接受服务端布尔与0/1字符串。
-    private func boolean(_ value: Any?) -> Bool { (value as? NSNumber)?.boolValue ?? ["true", "1"].contains((value as? String ?? "").lowercased()) }
+    private func boolean(_ value: Any?) -> Bool { ChatGroupPermissionPayload.boolean(value) == true }
     /// 关闭设置页释放所有旧回调资格。
     func close() { client.stop(); context = nil; changed = nil }
 }

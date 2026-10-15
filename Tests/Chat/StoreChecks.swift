@@ -44,6 +44,8 @@ import Foundation
         client.page = ChatPage(messages: [message("one", server: "11")], hasMore: true)
         await store.open(context)
         expect(store.messages.count == 1, "离线缓存可见")
+        client.callback?(.pinsChanged)
+        expect(store.pinRevision == 1 && store.messages.count == 1, "置顶刷新事件无正文变化仍通知列表回读")
         let old = client.callback
         client.callback?(.upsert(message("secondLocal", server: "11")))
         expect(store.messages.count == 1, "服务器ID与本地ID交叠去重")

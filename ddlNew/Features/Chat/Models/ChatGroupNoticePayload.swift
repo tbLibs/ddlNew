@@ -9,6 +9,14 @@ import Foundation
 
 /// 公告列表与详情使用同一响应映射，写入字段独立于读取字段。
 enum ChatGroupNoticePayload {
+    /// 仅有效群的真实群主/管理员可管理公告，缺失字段按只读处理。
+    nonisolated static func managementRole(from group: [String: Any]) -> Int {
+        let status = Int(scalar(group["groupStatus"]) ?? "") ?? 0
+        let inGroup = ["1", "true"].contains((scalar(group["userInGroup"]) ?? "").lowercased())
+        let role = Int(scalar(group["userGroupRole"]) ?? "") ?? 0
+        return status == 1 && inGroup && [1, 2].contains(role) ? role : 0
+    }
+
     /// xgd读取content和topStatus；status仅是正常/删除状态，不能当置顶开关。
     nonisolated static func notice(from row: [String: Any], fallback: ChatGroupNotice? = nil) throws -> ChatGroupNotice {
         let id = scalar(row["noticeId"]) ?? fallback?.id ?? ""

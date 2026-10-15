@@ -3,6 +3,8 @@ import Foundation
     var fails = false
     var detail = ChatGroupDetail(id: "g", name: "群", avatar: "", role: 2, isActive: true, nickname: "", isAllMuted: false, isPrivateChat: false, requiresApproval: false, historyVisible: true, qrVisible: true, remindEnabled: true, memberCount: 1)
     var receivedAction: ChatGroupAction?
+    var suspendAction = false
+    var pendingAction: CheckedContinuation<Void, Error>?
     /// 固定真实快照合同供提交成败测试。
     func load(context: ChatContext) async throws -> ChatSettingsSnapshot { ChatSettingsSnapshot(isPinned: false, isMuted: false, canClear: true, group: detail) }
     /// 置顶无需外部服务。
@@ -13,6 +15,7 @@ import Foundation
     func groupAction(_ action: ChatGroupAction, context: ChatContext) async throws {
         receivedAction = action
         if fails { throw ChatClientError.unavailable("服务器拒绝") }
+        if suspendAction { try await withCheckedThrowingContinuation { pendingAction = $0 } }
         if case .remove(let ids, _) = action { detail.members.removeAll { ids.contains($0.id) }; detail.memberCount = detail.members.count }
     }
     /// 关闭取消等待。
@@ -54,6 +57,21 @@ import Foundation
         precondition(store.snapshot?.group?.members.map(\.id) == ["owner"] && store.snapshot?.group?.memberCount == 1, "成功后读取最新名单和人数，保留群主")
         store.leaveSettingsView(presentingChild: false)
         precondition(store.snapshot == nil, "真正退出设置时必须清理状态")
-        print("Settings checks: 10 passed")
+        await store.open(context)
+        client.suspendAction = true
+        let oldDissolve = Task { await store.groupAction(.dissolve) }
+        for _ in 0..<1000 { if client.pendingAction != nil { break }; await Task.yield() }
+        precondition(client.pendingAction != nil, "等待旧解散请求挂起")
+        store.close(); await store.open(context)
+        client.pendingAction?.resume(returning: ()); client.pendingAction = nil
+        let oldResult = await oldDissolve.value
+        precondition(!oldResult && !store.hasLeft && store.snapshot != nil, "设置同context重新打开也不能被旧离群回执关闭")
+        client.suspendAction = false; client.fails = true
+        let rejectedDeparture = await store.groupAction(.dissolve)
+        precondition(!rejectedDeparture && !store.hasLeft, "服务端拒绝解散必须保留当前群设置")
+        client.fails = false
+        let dissolved = await store.groupAction(.dissolve)
+        precondition(dissolved && store.hasLeft, "服务端受理解散后明确标记已离开")
+        print("Settings checks: 14 passed")
     }
 }

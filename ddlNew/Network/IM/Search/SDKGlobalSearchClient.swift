@@ -38,16 +38,25 @@ import NoaChatCore
             var seen: Set<String> = []
             for message in foundMessages ?? [] {
                 let type = Int(message.chatType.rawValue)
-                guard type == 0 || type == 1 else { continue }
-                let peer = type == 1 || message.fromID == userUID ? message.toID : message.fromID
-                guard let peer, !peer.isEmpty, peer != "100002" || showAssistant else { continue }
+                guard let peer = GlobalSearchMessageIdentity.peer(status: message.messageStatus, chatType: type,
+                    from: message.fromID ?? "", to: message.toID ?? "", userUID: userUID),
+                    peer != "100002" || showAssistant else { continue }
+                let session: LingIMSessionModel? = sdk.toolCheckMySession(with: peer)
+                if let session, Int(session.sessionType.rawValue) != type + 1 { continue }
                 let messageID = message.serviceMsgID?.isEmpty == false ? message.serviceMsgID : message.msgID
                 guard let messageID, !messageID.isEmpty, seen.insert("\(peer).\(messageID)").inserted else { continue }
                 let friend = type == 0 ? sdk.toolCheckMyFriend(with: peer) : nil
                 let group = type == 1 ? sdk.toolCheckMyGroup(with: peer) : nil
+                if type == 1 {
+                    guard group?.groupStatus == 1, group?.leaveGroupStatus == 0 else { continue }
+                } else {
+                    guard friend != nil || session != nil else { continue }
+                    if let friend, friend.userType != 0 && !(peer == "100002" && showAssistant) { continue }
+                }
                 let title = type == 1 ? (group?.groupName ?? peer) : (friend?.showName ?? peer)
+                let preview = SDKChatMessageMapper.record(message, userUID: userUID).displayText
                 results.append(GlobalSearchResult(id: "message.\(peer).\(messageID)", kind: type == 1 ? .groupMessage : .singleMessage,
-                    peerID: peer, title: title, detail: message.textContent ?? message.atContent ?? message.showFileName ?? "[消息]",
+                    peerID: peer, title: title, detail: preview,
                     avatar: type == 1 ? (group?.groupAvatar ?? "") : (friend?.avatar ?? ""), messageID: messageID,
                     date: Date(timeIntervalSince1970: TimeInterval(message.sendTime) / 1000)))
             }
@@ -56,5 +65,16 @@ import NoaChatCore
         guard LoginSessionService.shared.maintenanceSessionID == sessionID,
               OSSNavigationStore.shared.lastUsableLiceseId() == license else { throw CancellationError() }
         return results
+    }
+}
+
+/// SDK全文检索仍可能返回删除/撤回正文，返回前核对状态及本人单聊方向。
+nonisolated enum GlobalSearchMessageIdentity {
+    static func peer(status: Int, chatType: Int, from: String, to: String, userUID: String) -> String? {
+        guard status == 1, !userUID.isEmpty, !from.isEmpty, !to.isEmpty else { return nil }
+        if chatType == 1 { return to }
+        guard chatType == 0 else { return nil }
+        if from == userUID { return to }
+        return to == userUID ? from : nil
     }
 }

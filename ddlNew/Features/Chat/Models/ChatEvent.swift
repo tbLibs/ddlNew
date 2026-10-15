@@ -14,7 +14,7 @@ enum ChatEvent: Sendable {
     case memberHistoryDeleted([String])
     case memberMetadataRefresh
     case memberMetadataChanged([ChatGroupMember])
-    case refresh, cleared, permissionsChanged
+    case refresh, cleared, permissionsChanged, pinsChanged
 }
 
 struct ChatPage: Sendable {

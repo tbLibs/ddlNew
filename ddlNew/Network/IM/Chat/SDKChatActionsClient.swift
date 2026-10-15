@@ -123,22 +123,33 @@ import NoaChatCore
         }
         if let invalid = preflight["_value"] as? [Any], !invalid.isEmpty { throw ChatClientError.permission("接收对象未通过转发检查，请选择其他会话") }
         let ordered = messages.sorted { $0.timestamp == $1.timestamp ? $0.id < $1.id : $0.timestamp < $1.timestamp }
+        // 合规等待期间原消息和权限可能变化；按最新缓存重验，不能转发删除/撤回的旧快照正文。
+        try await source.refreshPermissions(context: context)
+        let currentPermission = try source.permissions(context: context)
         var models: [NoaIMChatMessageModel] = []
         for message in ordered {
             let original: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
-            guard let original else { throw ChatClientError.unavailable("转发原消息已不存在") }; models.append(original)
+            guard let original else { throw ChatClientError.unavailable("转发原消息已不存在") }
+            let current = SDKChatMessageMapper.record(original, userUID: context.userUID)
+            guard ChatActionPolicy.allowed(for: current, userUID: context.userUID, permission: currentPermission).contains(.forward) else {
+                throw ChatClientError.permission("原消息已删除、撤回或当前不允许转发")
+            }
+            models.append(original)
         }
         if merged {
             let forward = ForwardMessage(); forward.type = recipient.kind == .group ? 1 : 0; forward.title = context.route.title + "的聊天记录"
-            forward.messageListArray = NSMutableArray(array: models.map { LingIMModelTool.shared().getChatMessageModel(fromLingIMChatMessageModel: $0) })
+            let entries = models.map { forwardingMessage($0) }
+            forward.messageListArray = NSMutableArray(array: entries)
             var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: recipient.id, senderID: destination.userUID, senderName: "我", type: 18, timestamp: Int64(Date().timeIntervalSince1970 * 1000))
-            record.nestedMessages = ordered
+            record.text = forward.title
+            record.nestedMessages = entries.map { SDKChatMessageMapper.record(LingIMModelTool.shared().getChatMessageModel(from: $0), userUID: context.userUID) }
             let model = target.makeModel(record, context: destination); model.forwardMessage = forward; model.forwardMessageProtobuf = forward.delimitedData()
             try target.validate(destination); sdk.toolSendChatMessage(with: model)
             onEnqueued([record]); return [record]
         }
         let request = IMChatMessageList(); request.source = "IOS"
-        request.iMchatMessageArray = NSMutableArray(array: models.map { LingIMModelTool.shared().getChatMessageModel(fromLingIMChatMessageModel: $0) })
+        let entries = models.map { forwardingMessage($0) }
+        request.iMchatMessageArray = NSMutableArray(array: entries)
         let receiver = ToMessage(); receiver.chatType = ChatType(rawValue: recipient.kind == .group ? 1 : 0)!; receiver.to = recipient.id
         let ids = ordered.map { _ in UUID().uuidString }; receiver.msgIdArray = NSMutableArray(array: ids); request.toMessageArray = NSMutableArray(object: receiver)
         guard let data = request.data() else { throw ChatClientError.invalidResponse }
@@ -147,14 +158,60 @@ import NoaChatCore
         let failed = response["failId"] as? [String] ?? []
         guard !failed.contains(recipient.id), let perReceiver = response["sMsgId"] as? [[String]], let serverIDs = perReceiver.first, serverIDs.count == ordered.count, serverIDs.allSatisfy({ !$0.isEmpty }) else { throw ChatClientError.unavailable("部分转发未成功，未确认的消息不会显示为成功") }
         var result: [ChatMessageRecord] = []
+        let sentTime = Int64(Date().timeIntervalSince1970 * 1000)
         for index in ordered.indices {
-            var item = ordered[index]; item.localID = ids[index]; item.serverID = serverIDs[index]; item.referenceID = ""; item.state = .sent; item.timestamp = Int64(Date().timeIntervalSince1970 * 1000)
-            let model = target.makeModel(ChatMessageRecord(localID: item.localID, serverID: item.serverID, conversationID: recipient.id, senderID: context.userUID, senderName: "我", type: item.type == 10 ? 0 : item.type, text: item.text, timestamp: item.timestamp, state: .sent, resource: item.resource, thumbnail: item.thumbnail, fileName: item.fileName, size: item.size, duration: item.duration), context: destination)
+            // 回执缓存必须从实际转发正文回转，避免精简UI记录重建时丢失坐标、名片或媒体尺寸。
+            let wire = entries[index]
+            wire.msgId = ids[index]; wire.sMsgId = serverIDs[index]
+            wire.from = destination.userUID; wire.to = recipient.id; wire.cType = receiver.chatType
+            wire.nick = UserSessionStore.shared.currentUser?.nickname ?? ""
+            wire.icon = UserSessionStore.shared.currentUser?.avatar ?? ""
+            wire.sendTime = sentTime + Int64(index)
+            let model = LingIMModelTool.shared().getChatMessageModel(from: wire)
+            model.videoSize = models[index].videoSize
+            model.messageStatus = 1; model.currentVersionMessageOK = true
             // 本人转发已发送的消息不能增加目标会话的未读数。
             model.chatMessageReaded = true
-            model.messageSendType = CIMChatMessageSendType(rawValue: 1)!; sdk.toolInsertOrUpdateSession(with: model, isRemind: true)
+            model.messageSendType = CIMChatMessageSendType(rawValue: 1)!
+            sdk.toolInsertOrUpdateSession(with: model, isRemind: true)
             result.append(SDKChatMessageMapper.record(model, userUID: context.userUID))
         }
         return result
+    }
+
+    /// 转发保留原条目时间和附件，跨会话引用与@身份转为可读普通文字，不影响普通发送转换。
+    private func forwardingMessage(_ original: NoaIMChatMessageModel) -> IMChatMessage {
+        let wire = LingIMModelTool.shared().getChatMessageModel(fromLingIMChatMessageModel: original)
+        wire.sendTime = original.sendTime
+        wire.referenceMsgId = ""
+        wire.isAck = true; wire.isEncry = true
+        if original.messageType.rawValue == 10 {
+            var names: [String: String] = [:]
+            for dictionary in original.atUsersInfoList as? [[String: String]] ?? [] {
+                for (uid, name) in dictionary { names[uid] = name }
+            }
+            let body = TextMessage()
+            body.content = ChatMentionEngine.renderWire(original.atContent ?? original.showContent ?? "", names: names).0
+            body.translate = ""
+            wire.mType = IMChatMessage_MessageType(rawValue: 0)!
+            wire.textMessage = body
+        } else if original.messageType.rawValue == 0 {
+            wire.textMessage.translate = ""
+        } else if original.messageType.rawValue == 1 {
+            wire.imageMessage.ext = original.imgExt ?? ""
+        } else if original.messageType.rawValue == 7 {
+            // 旧位置类型7没有SDK普通转换分支，转发统一使用真实GEO正文类型3。
+            let body = GEOMessage()
+            body.lat = original.geoLat ?? ""; body.lng = original.geoLng ?? ""
+            body.name = original.geoName ?? ""; body.cImg = original.geoImg ?? ""
+            func dimension(_ value: Float) -> Int32 {
+                guard value.isFinite, value > 0 else { return 0 }
+                return Int32(min(Double(Int32.max), Double(value)))
+            }
+            body.cWidth = dimension(original.geoImgWidth); body.cHeight = dimension(original.geoImgHeight)
+            body.ext = original.geoExt ?? ""; body.details = original.geoDetails ?? ""
+            wire.mType = IMChatMessage_MessageType(rawValue: 3)!; wire.geoMessage = body
+        }
+        return wire
     }
 }

@@ -10,6 +10,8 @@ import Foundation
 @MainActor final class AcceptanceContactsClient: ContactBusinessClient {
     var calls: [ContactBusinessOperation] = []
     var suspendProfiles = false
+    var suspendRemarks = false
+    var emptyRemarkConfirmation = false
     var waiting: [CheckedContinuation<ContactBusinessResponse, Error>] = []
     var profileFailure = false
     var emptyProfile = false
@@ -19,6 +21,11 @@ import Foundation
     func request(_ operation: ContactBusinessOperation, identity: ContactsIdentity) async throws -> ContactBusinessResponse {
         calls.append(operation)
         if case .search = operation, suspendSearch { return try await withCheckedThrowingContinuation { searchWaits.append($0) } }
+        if case .setRemark(let id, let remark, let description) = operation {
+            if suspendRemarks { return try await withCheckedThrowingContinuation { waiting.append($0) } }
+            if emptyRemarkConfirmation { return ContactBusinessResponse() }
+            return ContactBusinessResponse(profile: ContactRecord(id: id, nickname: "验收好友", remarks: remark, description: description), isFriend: true)
+        }
         if case .profile = operation {
             if profileFailure { throw ContactBusinessError.malformedResponse }
             if emptyProfile { return ContactBusinessResponse() }
@@ -56,26 +63,30 @@ import Foundation
         check(!stale && client.calls.count == staleCount, "C-017 当前非好友不能用旧详情提交备注")
         client.suspendProfiles = true
         let first = Task { await store.loadProfile("peer") }
-        while client.waiting.count < 1 { await Task.yield() }
+        guard await waitUntil({ client.waiting.count >= 1 }, "首次资料请求") else { exit(1) }
         let second = Task { await store.loadProfile("peer") }
-        while client.waiting.count < 2 { await Task.yield() }
+        guard await waitUntil({ client.waiting.count >= 2 }, "第二次资料请求") else { exit(1) }
         client.waiting[1].resume(returning: ContactBusinessResponse(profile: ContactRecord(id: "peer", nickname: "最新资料"), isFriend: true))
         _ = await second.value
         client.waiting[0].resume(returning: ContactBusinessResponse(profile: ContactRecord(id: "peer", nickname: "旧资料"), isFriend: true))
         _ = await first.value
         check(store.profiles["peer"]?.nickname == "最新资料", "C-016 同UID资料错序旧结果失效")
         client.waiting.removeAll()
+        client.suspendProfiles = false; client.suspendRemarks = true
         let accepted = Task { await store.perform(.setRemark(friendID: "peer", remark: "验收", description: "")) }
-        while client.waiting.isEmpty { await Task.yield() }
+        guard await waitUntil({ !client.waiting.isEmpty }, "备注保存请求") else { exit(1) }
         store.prepare(userUID: "other", license: "other-tenant")
         client.waiting[0].resume(returning: ContactBusinessResponse(profile: ContactRecord(id: "peer", nickname: "旧用户资料"), isFriend: true))
         let acceptedResult = await accepted.value
-        check(!acceptedResult && store.notice == nil && store.profiles.isEmpty, "C-G7 写操作回读期间换号不得向新用户发布成功")
-        client.suspendProfiles = false; client.profileFailure = false
+        check(!acceptedResult && store.notice == nil && store.profiles.isEmpty, "C-G7 写操作回执期间换号不得向新用户发布成功")
+        client.suspendRemarks = false; client.profileFailure = false
         store.prepare(userUID: "me", license: "test-tenant"); await store.loadProfile("peer")
-        client.profileFailure = true
+        client.emptyRemarkConfirmation = true
         _ = await store.perform(.setRemark(friendID: "peer", remark: "验收", description: ""))
-        check(store.notice != "操作完成", "C-017 成功回执但资料失败必须显示待同步")
+        check(store.notice != "操作完成" && store.errorMessage != nil, "C-017 缺少保存确认资料时不得伪报完成")
+        client.emptyRemarkConfirmation = false
+        let saved = await store.perform(.setRemark(friendID: "peer", remark: "已确认备注", description: "已确认描述"))
+        check(saved && store.profiles["peer"]?.remarks == "已确认备注" && store.profiles["peer"]?.description == "已确认描述", "C-017 保存使用确认快照且不再回查旧资料")
         let incoming = FriendApplicationRecord(id: "hash-time", hashKey: "hash", sendTime: "time", fromUID: "peer", targetUID: "me", fromNickname: "对方", targetNickname: "我", status: 0)
         check(incoming.action(for: "me") == .accept && incoming.action(for: "peer") == .waiting, "C-010 好友申请方向")
         store.hide(incoming); check(store.isHidden(incoming), "C-012 本机隐藏保留正确身份")
@@ -92,10 +103,10 @@ import Foundation
         check(store.friendIDs.contains("peer") && store.profiles["peer"]?.nickname == "同期新好友", "C-016 新增好友事件更新旧陌生人资料关系")
         client.suspendSearch = true
         let olderSearch = Task { await store.search("first") }
-        while client.searchWaits.isEmpty { await Task.yield() }
+        guard await waitUntil({ !client.searchWaits.isEmpty }, "首次搜索请求") else { exit(1) }
         check(store.isSearching, "C-013 等待查找显示加载状态")
         let newerSearch = Task { await store.search("second") }
-        while client.searchWaits.count < 2 { await Task.yield() }
+        guard await waitUntil({ client.searchWaits.count >= 2 }, "第二次搜索请求") else { exit(1) }
         client.searchWaits[0].resume(returning: ContactBusinessResponse(contacts: [ContactRecord(id: "old")]))
         await olderSearch.value
         check(store.isSearching && store.searchResults.isEmpty, "C-013 旧搜索完成不能结束新搜索加载状态")
@@ -103,7 +114,7 @@ import Foundation
         await newerSearch.value
         check(!store.isSearching && store.searchResults.map(\.id) == ["new"], "C-013 最新搜索完成显示正确结果")
         let clearedSearch = Task { await store.search("clear") }
-        while client.searchWaits.count < 3 { await Task.yield() }
+        guard await waitUntil({ client.searchWaits.count >= 3 }, "清空前搜索请求") else { exit(1) }
         await store.search(" \n ")
         client.searchWaits[2].resume(returning: ContactBusinessResponse(contacts: [ContactRecord(id: "late")]))
         await clearedSearch.value
@@ -111,6 +122,16 @@ import Foundation
         print("Independent Contacts Acceptance: \(checks - failures)/\(checks) passed; \(failures) failed")
         if failures > 0 { exit(1) }
     }
+    /// 等待真实可观察状态有上限，协议变化应报告失败而非卡住整套验收。
+    @MainActor static func waitUntil(_ condition: () -> Bool, _ label: String) async -> Bool {
+        let deadline = ProcessInfo.processInfo.systemUptime + 5
+        while !condition() {
+            if ProcessInfo.processInfo.systemUptime >= deadline { check(false, "等待超时：" + label); return false }
+            await Task.yield()
+        }
+        return true
+    }
+
     /// 累计所有断言结果并以非零退出报告失败。
     @MainActor static func check(_ result: Bool, _ label: String) {
         checks += 1; if !result { failures += 1 }; print("\(result ? "PASS" : "FAIL") \(label)")

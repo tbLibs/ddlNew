@@ -97,7 +97,7 @@ struct ContactRecordDetailView: View {
         .navigationTitle("用户资料")
         .modifier(MessagingPageChrome())
         .messagingLoadingToast((businessStore.isLoading || businessStore.isSubmitting) && !editing && !moving && !sharing)
-        .messagingFeedbackToast(businessStore.errorMessage, isEnabled: !editing && !moving && !sharing)
+        .messagingFeedbackToast(businessStore.errorMessage ?? businessStore.notice, isEnabled: !editing && !moving && !sharing)
         .toast(isPresenting: $showingCopyToast, duration: 2) {
             AlertToast(displayMode: .alert, type: .regular, title: "账号已复制",
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
@@ -144,7 +144,9 @@ struct ContactRecordDetailView: View {
 
     /// 申请详情依据稳定申请身份和最新关系显示接受、等待或重新申请。
     @ViewBuilder private func applicationAction(_ contact: ContactRecord) -> some View {
-        if let userUID = businessStore.identity?.userUID,
+        if businessStore.pendingApplicationIDs.contains(contactID) {
+            Text("好友申请等待对方验证").foregroundStyle(MessagingTheme.secondaryText)
+        } else if let userUID = businessStore.identity?.userUID,
            let application = businessStore.applications.first(where: { applicationID == nil ? $0.peerID(for: userUID) == contactID : $0.id == applicationID }) {
             switch application.action(for: userUID) {
             case .accept:

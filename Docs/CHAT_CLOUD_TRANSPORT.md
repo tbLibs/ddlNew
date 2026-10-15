@@ -2,6 +2,8 @@
 
 本轮保留旧端的五种供应商字段和对象目录，不新增云 SDK。临时 STS 经现有 SDK 请求和解密，仅保存在上传调用内存中；配置缓存只保存供应商、桶和路由。
 
+2026-10-15联调确认：真实STS数据为嵌套 `credentials`，包含 `accessKeyId/accessKeySecret/securityToken/expiration`；供应商前缀字段是旧端内部转换后的模型字段。新端已优先映射真实包装，兼容旧前缀格式；包装存在但损坏时禁止回退，临时凭据仍不可序列化。修复前实际成功回执被映射拒绝；修复后Mac向iPhone的受控137字节文本已真实发送、下载及系统预览，单文件字节与SHA256均一致。该证据仅证明当前部署的小文件链路，四供应商、各媒体类型及大文件/取消全矩阵继续按下述边界验收。
+
 ## 合同与依据
 
 - Minio：`/public-key/getKey`、`/file/upload`、`/file/multi/getId`、`/file/multi/upload`、`/file/multi/complete`；超过 100 MiB 使用 50 MiB 分片，来自 xgd `NoaFileUploadTask`。

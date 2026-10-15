@@ -17,6 +17,10 @@ struct GroupApplicationsView: View {
     @State private var filter = GroupApplicationFilter.all
     private var pendingOnly: Bool { filter == .pending }
     private var allSelected: Bool { let ids = Set(store.records.filter { $0.status == 1 }.map(\.id)); return !ids.isEmpty && ids.isSubset(of: store.selectedIDs) }
+    @ObservedObject private var groups = GroupsStore.shared
+    @ObservedObject private var businessStore = ContactsBusinessStore.shared
+    @ObservedObject private var connection = OSSConnectionBootstrap.shared
+    @State private var profileRoute: ContactsRoute?
     @State private var confirmation: Bool?
     @Environment(\.scenePhase) private var scenePhase
 
@@ -57,7 +61,7 @@ struct GroupApplicationsView: View {
                 Button("取消", role: .cancel) { confirmation = nil }
         }
         .task {
-            if let uid = session.currentUser?.userUID { store.prepare(userUID: uid, groupID: groupID); await store.reload(pendingOnly: pendingOnly) }
+            if let uid = session.currentUser?.userUID, store.records.isEmpty { store.prepare(userUID: uid, groupID: groupID); await store.reload(pendingOnly: pendingOnly) }
         }
         .onChange(of: pendingOnly) { value in Task { await store.reload(pendingOnly: value) } }
         .onChange(of: scenePhase) { phase in if phase == .active { Task { await store.refresh() } } }
@@ -66,7 +70,13 @@ struct GroupApplicationsView: View {
             // 群系统会话收到变更后回查申请，不把系统消息正文冒充审核结果。
             Task { await store.refresh() }
         }
-        .onDisappear { store.reset() }
+        .navigationDestination(isPresented: Binding(get: { profileRoute != nil }, set: { if !$0 { profileRoute = nil } })) {
+            if let route = profileRoute {
+                ContactRecordDetailView(store: LoginSessionService.shared.contacts, businessStore: businessStore,
+                    contactID: route.contactID, fileHost: connection.current?.getFileHost, sourceGroupID: route.sourceGroupID)
+            }
+        }
+        .onDisappear { if profileRoute == nil { store.reset() } }
     }
 
     /// 仅群系统会话的新消息触发回查，普通聊天或本页已读回写不重刷申请。
@@ -82,9 +92,19 @@ struct GroupApplicationsView: View {
             if pendingOnly && record.status == 1 {
                 Button { toggle(record.id) } label: { Image(systemName: store.selectedIDs.contains(record.id) ? "checkmark.circle.fill" : "circle").font(.title3).frame(minWidth: 44, minHeight: 44) }.disabled(store.isReviewing).accessibilityLabel(record.nickname + (store.selectedIDs.contains(record.id) ? "，已选" : "，未选")).accessibilityAddTraits(store.selectedIDs.contains(record.id) ? .isSelected : [])
             }
+            Button { openProfile(record.inviterID, groupID: record.groupID) } label: {
+                ContactRecordAvatar(contact: ContactRecord(id: record.inviterID, nickname: record.inviterNickname,
+                    avatar: record.inviterAvatar), fileHost: connection.current?.getFileHost, size: 48.zoom())
+            }.buttonStyle(.plain).disabled(record.inviterID.isEmpty).accessibilityLabel("查看邀请人资料")
             VStack(alignment: .leading, spacing: 8.zoom()) {
-                Text(record.nickname.isEmpty ? "群申请" : record.nickname).font(.headline).foregroundStyle(MessagingTheme.text)
-                Text("群：\(record.groupID)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 4.zoom()) { invitationContent(record) }
+                    VStack(alignment: .leading, spacing: 4.zoom()) { invitationContent(record) }
+                }
+                if let roleName = businessStore.roleName(roleID: record.roleID, isDeleted: false) {
+                    Text(roleName).font(.caption).foregroundStyle(MessagingTheme.accent)
+                }
+                Text("申请加入\(groupName(record.groupID))").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                 if !record.reason.isEmpty { Text(record.reason).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
                 if record.status == 1 {
                     if pendingOnly { Text("待审核").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
@@ -97,6 +117,25 @@ struct GroupApplicationsView: View {
                 } else { Text(record.statusText).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.padding(.vertical, 12.zoom()).accessibilityIdentifier("groupApplication.\(record.id)")
+    }
+
+    /// 两方名称分别使用真实UID，缺少身份只显示文字，不生成资料目标。
+    @ViewBuilder private func invitationContent(_ record: GroupApplicationRecord) -> some View {
+        Button(record.inviterNickname.isEmpty ? "邀请人" : record.inviterNickname) { openProfile(record.inviterID, groupID: record.groupID) }
+            .buttonStyle(.plain).foregroundStyle(MessagingTheme.text).disabled(record.inviterID.isEmpty).frame(minHeight: 44)
+        Text("邀请").foregroundStyle(MessagingTheme.secondaryText)
+        Button(record.nickname.isEmpty ? "用户" : record.nickname) { openProfile(record.inviteeID, groupID: record.groupID) }
+            .buttonStyle(.plain).foregroundStyle(MessagingTheme.accent).disabled(record.inviteeID.isEmpty).frame(minHeight: 44)
+        Text("进群").foregroundStyle(MessagingTheme.secondaryText)
+    }
+
+    /// 从当前真实群快照取名称，群不在缓存时保留服务端群ID作为回退。
+    private func groupName(_ id: String) -> String { groups.groups.first { $0.id == id && !$0.name.isEmpty }?.name ?? id }
+
+    /// 资料携带原始来源群，仍由资料页核对群访问、私聊及用户限制。
+    private func openProfile(_ id: String, groupID: String) {
+        guard !id.isEmpty, !store.isReviewing else { return }
+        profileRoute = ContactsRoute(contactID: id, sourceGroupID: groupID)
     }
 
     /// 全选按钮可反选，批量审核仅提交当前页真实待审核ID。

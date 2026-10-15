@@ -16,6 +16,7 @@ struct MessageView: View {
     @ObservedObject private var authentication = IMUserAuthenticationService.shared
     @ObservedObject private var permissions = UserRoleAuthorityStore.shared
     @ObservedObject private var groups = LoginSessionService.shared.groups
+    @ObservedObject private var chatRuntime = ChatRuntime.shared
     @State private var query = ""
     @State private var filter: ConversationFilter = .all
     @FocusState private var searchFocused: Bool
@@ -80,7 +81,7 @@ struct MessageView: View {
         .background(MessagingTheme.background)
         .safeAreaInset(edge: .top, spacing: 0.zoom()) { header }
         .tint(MessagingTheme.accent)
-        .messagingFeedbackToast(store.operationError ?? store.errorMessage, isEnabled: !selectingMembers)
+        .messagingFeedbackToast(store.operationError ?? store.errorMessage ?? chatRuntime.conversationCleanupWarning, isEnabled: !selectingMembers)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .task { await store.reload() }
         .refreshable { await store.reload() }

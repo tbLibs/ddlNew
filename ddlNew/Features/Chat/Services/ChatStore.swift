@@ -22,6 +22,8 @@ import Combine
     @Published private(set) var selectedIDs: Set<String> = []
     @Published private(set) var busyIDs: Set<String> = []
     @Published private(set) var unreadArrivals = 0
+    /// 刷新型置顶事件不插入正文，但仍通知页面重读置顶列表。
+    @Published private(set) var pinRevision = 0
     @Published private(set) var locatedMessageID: String?
     var isAtBottom = true
     /// 前台恢复不保证几何变化，需要重新评估原视口里的未读正文。
@@ -313,6 +315,7 @@ import Combine
         case .memberMetadataRefresh: break
         case .permissionsChanged:
             if let context { do { permission = try client.permissions(context: context) } catch { permission.canSend = false } }
+        case .pinsChanged: pinRevision += 1
         case .refresh:
             if let context { do { merge(try client.cached(context: context, offset: 0), history: true) } catch { errorMessage = error.localizedDescription } }
         }
@@ -397,7 +400,7 @@ import Combine
         generation = UUID(); client.stop(); context = nil
         records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
         readIDs.removeAll(); pendingReadOwners.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
-        isLoading = false; hasMore = true; offset = 0; lastSend = nil; unreadArrivals = 0
+        isLoading = false; hasMore = true; offset = 0; lastSend = nil; unreadArrivals = 0; pinRevision = 0
         permission = ChatPermission(canSend: false); locatedMessageID = nil; errorMessage = nil
     }
 }

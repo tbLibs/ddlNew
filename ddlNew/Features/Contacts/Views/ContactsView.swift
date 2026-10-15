@@ -231,9 +231,11 @@ struct ContactsView: View {
     /// 展开状态只按分组ID保存，刷新或改名后不会影响其他分组。
     private func toggleGroup(_ id: String) { if openGroups.contains(id) { openGroups.remove(id) } else { openGroups.insert(id) } }
 
-    /// 平铺好友行使用稳定UID路由，名称优先，在线状态同时有语义描述。
+    /// 路由保持稳定UID，展示快照变化时重建导航标签，避免跨分区移动后沿用旧备注正文。
     private func contactLink(_ contact: ContactRecord) -> some View {
-        NavigationLink(value: ContactsRoute(contactID: contact.id)) {
+        let roleName = businessStore.roleName(roleID: contact.roleID, isDeleted: contact.isDeleted)
+        let presentationIdentity = ContactRowPresentationIdentity(contact: contact, fileHost: fileHost, roleName: roleName)
+        return NavigationLink(value: ContactsRoute(contactID: contact.id)) {
             HStack(spacing: 12.zoom()) {
                 ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 50.zoom())
                     .overlay(alignment: .topTrailing) {
@@ -244,8 +246,8 @@ struct ContactsView: View {
                     }
                 VStack(alignment: .leading, spacing: 4.zoom()) {
                     Text(contact.displayName).font(.body).foregroundStyle(MessagingTheme.text).lineLimit(2)
-                    if let role = businessStore.roleName(roleID: contact.roleID, isDeleted: contact.isDeleted) {
-                        Text(role).font(.caption).foregroundStyle(MessagingTheme.accent)
+                    if let roleName {
+                        Text(roleName).font(.caption).foregroundStyle(MessagingTheme.accent)
                     }
                 }
                 Spacer(minLength: 0)
@@ -254,7 +256,9 @@ struct ContactsView: View {
             .contentShape(Rectangle())
             .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 0.5).padding(.leading, 78.zoom()) }
         }
-        .buttonStyle(MessagingRowStyle()).accessibilityIdentifier("contact.\(contact.id)")
+        .buttonStyle(MessagingRowStyle())
+        .id(presentationIdentity)
+        .accessibilityIdentifier("contact.\(contact.id)")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(contact.displayName + (contact.isDeleted ? "，账号已注销" : contact.isOnline ? "，在线" : "，离线"))
     }

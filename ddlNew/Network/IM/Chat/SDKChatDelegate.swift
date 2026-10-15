@@ -61,11 +61,38 @@ nonisolated final class SDKChatDelegate: NSObject, NoaToolMessageDelegate, CIMTo
     /// 只转发归属于本轮会话的消息。
     private func publish(_ model: NoaIMChatMessageModel) {
         let record = SDKChatMessageMapper.record(model, userUID: userUID)
+        if record.type == 8 {
+            // SDK先派发撤回控制消息，再把原条写成status2；用原条身份更新占位，避免两条“消息已撤回”。
+            // 本应用保留原条供引用定位，不采用旧项目移除原条后追加控制提示的列表方式。
+            guard record.conversationID == conversationID, let targetID = model.backDelServiceMsgID, !targetID.isEmpty else { return }
+            let sdk = NoaIMSDKManager.sharedTool()
+            guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady(),
+                let original = sdk.toolGetOneChatMessage(withServiceMessageID: targetID, sessionID: conversationID) as NoaIMChatMessageModel? else { return }
+            var recalled = SDKChatMessageMapper.record(original, userUID: userUID)
+            guard recalled.conversationID == conversationID, recalled.serverID == targetID,
+                recalled.status != .deleted, recalled.type != 8 else { return }
+            recalled.status = .recalled
+            changed(.upsert(recalled))
+            return
+        }
         if let server = model.serverMessage {
             let kind = Int(server.sMsgType.rawValue)
+            if kind == 516, server.groupMessageTop?.gid == conversationID { changed(.pinsChanged); return }
+            if kind == 517 {
+                guard let pin = server.dialogUserMessageTop else { return }
+                let peer = pin.uid == userUID ? pin.friendUid : pin.uid
+                if peer == conversationID { changed(.pinsChanged) }
+                return
+            }
+            // 提示隐藏不等于事件失效，静默入退群仍刷新成员和权限；公告也更新置顶条。
+            if record.conversationID == conversationID {
+                if [200, 203, 204, 206, 211, 215].contains(kind) { changed(.memberMetadataRefresh) }
+                if [200, 203, 206, 211, 215].contains(kind) { changed(.permissionsChanged) }
+                if [208, 219].contains(kind) { changed(.pinsChanged) }
+            }
             if kind == 221 { for event in ChatGroupEventPolicy.events(kind: kind, groupID: server.groupSingleForbidMessage.gid, conversationID: conversationID) { changed(event) } }
             if kind == 204, let kick = server.kickGroupMessage { for event in ChatGroupEventPolicy.events(kind: kind, groupID: kick.gid, conversationID: conversationID, removedIDs: [kick.uid], deletesHistory: kick.msgDel) { changed(event) } }
         }
-        if record.conversationID == conversationID { changed(.upsert(record)) }
+        if record.conversationID == conversationID, record.isVisible { changed(.upsert(record)) }
     }
 }

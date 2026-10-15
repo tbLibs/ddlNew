@@ -44,7 +44,11 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     var snapchat = 0
     var isCompatible = true
     nonisolated var id: String { localID.isEmpty ? "server:" + serverID : localID }
-    nonisolated var isBody: Bool { status == .normal && ![8, 9, 13, 15].contains(type) }
+    nonisolated var isBody: Bool { status == .normal && ![8, 9, 13, 15, 1000].contains(type) }
+    /// 撤回控制记录只更新原消息占位；同步类系统事件没有正文，不生成额外行。
+    nonisolated var isVisible: Bool { status != .deleted && type != 8 && (type != 1000 || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+    /// 名片是独立用户入口，不套用消息发送者的来源群限制。
+    nonisolated var cardProfileID: String? { status == .normal && isCompatible && type == 6 && !cardUID.isEmpty ? cardUID : nil }
     nonisolated var displayText: String {
         if !isCompatible { return "当前版本暂不支持此消息，请更新后查看" }
         if status == .recalled || type == 8 { return "消息已撤回" }

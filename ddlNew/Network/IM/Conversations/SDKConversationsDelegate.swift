@@ -124,7 +124,23 @@ nonisolated final class SDKConversationsDelegate: NSObject, NoaToolSessionDelega
             let isCurrent = active && syncVersion == version
             lock.unlock()
             if isCurrent, sdk.myUserID() == userUID, sdk.isUserDatabaseReady() {
-                if !messages.values.isEmpty { sdk.toolInsertOrUpdateChatMessages(with: messages.values) }
+                let values = messages.values.filter { message in
+                    let type = Int(message.chatType.rawValue)
+                    guard type == 0 || type == 1 else { return true }
+                    let sessionID = type == 1 ? message.toID ?? "" : (message.fromID == userUID ? message.toID ?? "" : message.fromID ?? "")
+                    guard !sessionID.isEmpty else { return false }
+                    var cached: NoaIMChatMessageModel?
+                    if let sid = message.serviceMsgID, !sid.isEmpty {
+                        cached = sdk.toolGetOneChatMessage(withServiceMessageID: sid, sessionID: sessionID)
+                    }
+                    if cached == nil, let mid = message.msgID, !mid.isEmpty {
+                        cached = sdk.toolGetOneChatMessage(withMessageID: mid, sessionID: sessionID)
+                    }
+                    // AUTH会话latest可能仍为正常原文；批量SDK写入会直接replace，必须先保护真实库的删除/撤回墓碑。
+                    // 老项目也继承了这一无条件写库路径；这里以本机已受理状态为准，不用内存删除ID补丁。
+                    return cached?.messageStatus != 0 && cached?.messageStatus != 2
+                }
+                if !values.isEmpty { sdk.toolInsertOrUpdateChatMessages(with: values) }
                 onChange(change)
             }
             objc_sync_exit(sdk)

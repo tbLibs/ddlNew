@@ -23,6 +23,14 @@ import NoaChatCore
         }
         return try ChatGroupNoticePayload.notices(from: json)
     }
+    /// 仅群信息决定公告管理入口，不依赖成员或禁言请求，提交仍独立重新核权。
+    func managementRole() async throws -> Int {
+        guard let context else { throw ChatClientError.sessionExpired }
+        let group = try await client.request(context: context) { success, failure in
+            self.sdk.getGroupInfo(with: ["groupId": context.route.id, "userUid": context.userUID], onSuccess: success, onFailure: failure)
+        }
+        return ChatGroupNoticePayload.managementRole(from: group)
+    }
     /// 创建编辑删除前再从服务器核对角色，降权不沿用旧页面能力。
     func save(_ notice: ChatGroupNotice?, content: String, pinned: Bool, deleting: Bool = false, sendMessage: Bool = false) async throws {
         guard let context else { throw ChatClientError.sessionExpired }
