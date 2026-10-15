@@ -1,5 +1,15 @@
 # ddlNew 项目交接文档
 
+## 当前交接入口（2026-10-15 整理）
+
+继续昨晚消息、通讯录与群聊工作时，完整阅读[昨晚统一交接](SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md)，再按其中源码入口和未完成项推进。该文档整合已实现行为、真实/离线验证边界、设备与数据恢复、后续优先级和新聊天接续提示。
+
+本次整理开始时实时 Git 为 `feature-message-4 / 4a75da8 fix:修复bug`，工作区干净；昨晚84个路径变更已包含在该后续提交中。本助手未执行commit/push。本次整理仅新增/更新交接文档和安全证据摘要，未重新构建或操作设备。凌晨的未提交状态、运行版本和临时目录内容均为历史快照，后续先核对实时 Git 和设备。
+
+整理过程中另出现Podfile、Podfile.lock、工程文件和EncryptLib/同期改动，已原样保留，当前不再是全仓干净；详情见新交接第2节，接手先复核。
+
+## 昨晚阶段记录（截至 2026-10-15 01:20）
+
 2026-10-15 01:17收尾：当前feature-message-4 / 6252ab8，后续改动保留工作区，未自动commit/push。xgd旧Mac已实际启动、核对同服务器及真实身份，完成角色徽标、成员行直达、独立移除入口和公告只读界面对照；旧App已Stop，临时Per-User DerivedData恢复Default，旧仓库干净。最终62/62组离线（311.43秒）与签名build通过，真机保数据覆盖安装成功；完整116项逐项状态见[验收台账](CONTACTS_MESSAGES_PARITY_QA_2026-10-14.md)。
 
 删除持久化修正已真机闭环：AUTH latest写回前保护真实SDK库status0/2，删除必须确认SDK写入成功；新条实际删除→终止重启→AUTH→会话仍无原文→搜索空通过，未删对照仍在。A此前复活的自建DELETE_2230也已主动重新删除，B保留原条。
@@ -10,7 +20,7 @@
 
 更新时间：2026-10-15
 
-本次消息 / 通讯录 / 群聊 UI 对话的最新交接入口：[会话交接文档](SESSION_HANDOFF_2026-10-14_MESSAGES_CONTACTS_UI.md)。包含最终用户要求、工作区边界、验证证据和真机待验收项；以下早期阶段快照需结合最新追加记录理解。
+消息 / 通讯录 / 群聊最新交接入口：[昨晚统一交接](SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md)。[10月14日会话记录](SESSION_HANDOFF_2026-10-14_MESSAGES_CONTACTS_UI.md)保留设计迭代和历史过程；当前完成度及下一步采用新交接与逐项验收台账。
 
 本文供新的 Codex 对话接手项目。先执行“接手检查”，再根据任务读取对应源码；不要只凭本文修改代码，因为分支和工作区可能已经变化。
 
@@ -19,8 +29,8 @@
 1. 使用 `/Users/taobotaobo/Desktop/ddlNew/ddlNew.xcworkspace`，不要用 `ddlNew.xcodeproj` 单独构建。
 2. 执行 `git branch --show-current`、`git status --short` 和 `git log -5 --oneline`，保护用户已有改动。
 3. 阅读根目录 `README.md`，它记录当前目录职责和通讯录边界。
-4. 涉及旧逻辑对照时，只读参考旧项目 `/Users/taobotaobo/Desktop/ddl`，不要把旧项目文件直接复制回新项目。
-5. 修改完成后至少执行本文“验证命令”中的全量构建。通讯录测试脚本已在当前提交中删除；通讯录相关修改应先补回等价验证，再声明行为通过。
+4. 涉及消息、通讯录与群聊旧逻辑时，只读参考 `/Users/taobotaobo/Desktop/xgd`，按新交接的文件入口定位，不直接复制旧项目文件覆盖新实现。
+5. 修改业务代码后执行相关离线检查和workspace构建，按验收层级记录结果。当前统一离线入口为 `python3 Tests/MigrationAcceptance/run-all-checks.py`，昨晚最终62组；具体命令和真实设备边界见新交接。仅整理文档不重复构建业务代码。
 
 ## Git 快照
 

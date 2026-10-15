@@ -1,5 +1,7 @@
 # 本次对话交接：消息、通讯录与群聊 UI / 交互
 
+> 2026-10-15整理：新聊天使用[昨晚统一交接](SESSION_HANDOFF_2026-10-15_OVERNIGHT_MESSAGES_CONTACTS.md)。本文保留迭代过程；其中HEAD、未提交、未使用Mobile MCP及待复验描述均须按当时时间理解。整理时当前HEAD已为4a75da8，旧提示中的备注/公告/成员部分场景已完成真机验证，最新未完成项见新交接。
+
 2026-10-15 01:17收尾：当前feature-message-4 / 6252ab8，后续改动保留工作区，未自动commit/push。xgd旧Mac已实际启动、核对同服务器及真实身份，完成角色徽标、成员行直达、独立移除入口和公告只读界面对照；旧App已Stop，临时Per-User DerivedData恢复Default，旧仓库干净。最终62/62组离线（311.43秒）与签名build通过，真机保数据覆盖安装成功；完整116项逐项状态见[验收台账](CONTACTS_MESSAGES_PARITY_QA_2026-10-14.md)。
 
 删除持久化修正已真机闭环：AUTH latest写回前保护真实SDK库status0/2，删除必须确认SDK写入成功；新条实际删除→终止重启→AUTH→会话仍无原文→搜索空通过，未删对照仍在。A此前复活的自建DELETE_2230也已主动重新删除，B保留原条。

@@ -1,0 +1,14 @@
+{
+  "scope": "Historical verification from 2026-10-14 evening through 2026-10-15 01:20 Asia/Shanghai; not a new run.",
+  "code_commit_after_user_commit": "4a75da8",
+  "offline_scripts": 62,
+  "offline_passed": 62,
+  "offline_seconds": 311.43,
+  "build_log": "/tmp/ddlNew-parity-final-filename-close-build.log",
+  "build_succeeded": true,
+  "install_outcome": "success",
+  "recorded_final_ios_debug_dylib_sha256": "5c63ac3e7da68f6a6721779404bab449fd40c5dd44458125b7199f75c19adde3",
+  "binary_note": "Recorded digest identifies the overnight tested binary. DerivedData has since changed; rebuild and verify the target before another installation.",
+  "raw_runtime_artifacts": "/tmp/ddlNew-parity-evidence",
+  "artifact_note": "Only these safe summaries are persisted here. Original logs and screenshots under /tmp may be cleared."
+}

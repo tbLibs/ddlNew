@@ -1,0 +1,374 @@
+[
+  {
+    "script": "Tests/AccountLifecycle/run-checks.sh",
+    "exit": 0,
+    "seconds": 5.9,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-AccountLifecycle-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-checks.sh",
+    "exit": 0,
+    "seconds": 9.94,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-file-name-contract-checks.sh",
+    "exit": 0,
+    "seconds": 9.32,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-file-name-contract-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-forward-contract-checks.sh",
+    "exit": 0,
+    "seconds": 8.76,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-forward-contract-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-forward-freshness-checks.sh",
+    "exit": 0,
+    "seconds": 7.94,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-forward-freshness-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-friend-cache-permission-checks.sh",
+    "exit": 0,
+    "seconds": 0.84,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-friend-cache-permission-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-group-checks.sh",
+    "exit": 0,
+    "seconds": 2.51,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-group-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-media-checks.sh",
+    "exit": 0,
+    "seconds": 8.73,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-media-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-member-page-checks.sh",
+    "exit": 0,
+    "seconds": 8.08,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-member-page-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-mention-checks.sh",
+    "exit": 0,
+    "seconds": 1.46,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-mention-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-message-forwarder-checks.sh",
+    "exit": 0,
+    "seconds": 0.88,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-message-forwarder-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-message-parity-checks.sh",
+    "exit": 0,
+    "seconds": 8.47,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-message-parity-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-notice-payload-checks.sh",
+    "exit": 0,
+    "seconds": 8.85,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-notice-payload-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-notice-store-checks.sh",
+    "exit": 0,
+    "seconds": 6.63,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-notice-store-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-preview-invalidation-checks.sh",
+    "exit": 0,
+    "seconds": 5.42,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-preview-invalidation-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-read-count-client-checks.sh",
+    "exit": 0,
+    "seconds": 5.39,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-read-count-client-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-read-count-epoch-checks.sh",
+    "exit": 0,
+    "seconds": 4.89,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-read-count-epoch-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-read-count-observer-checks.sh",
+    "exit": 0,
+    "seconds": 5.23,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-read-count-observer-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-read-count-operation-checks.sh",
+    "exit": 0,
+    "seconds": 5.98,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-read-count-operation-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-read-count-runtime-checks.sh",
+    "exit": 0,
+    "seconds": 5.0,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-read-count-runtime-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-read-permission-checks.sh",
+    "exit": 0,
+    "seconds": 5.44,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-read-permission-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-review-action-checks.sh",
+    "exit": 0,
+    "seconds": 7.07,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-review-action-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-review-semantic-checks.sh",
+    "exit": 0,
+    "seconds": 6.76,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-review-semantic-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-runtime-departure-checks.sh",
+    "exit": 0,
+    "seconds": 6.06,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-runtime-departure-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-sdk-message-parity-checks.sh",
+    "exit": 0,
+    "seconds": 4.57,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-sdk-message-parity-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-settings-checks.sh",
+    "exit": 0,
+    "seconds": 4.57,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-settings-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-sticker-checks.sh",
+    "exit": 0,
+    "seconds": 4.43,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-sticker-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-system-visibility-checks.sh",
+    "exit": 0,
+    "seconds": 0.78,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-system-visibility-checks.sh.log"
+  },
+  {
+    "script": "Tests/Chat/run-viewport-checks.sh",
+    "exit": 0,
+    "seconds": 0.72,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Chat-run-viewport-checks.sh.log"
+  },
+  {
+    "script": "Tests/Contacts/run-business-checks.sh",
+    "exit": 0,
+    "seconds": 2.57,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Contacts-run-business-checks.sh.log"
+  },
+  {
+    "script": "Tests/Contacts/run-checks.sh",
+    "exit": 0,
+    "seconds": 10.32,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Contacts-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Contacts/run-race-checks.sh",
+    "exit": 0,
+    "seconds": 2.5,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Contacts-run-race-checks.sh.log"
+  },
+  {
+    "script": "Tests/Contacts/run-row-presentation-checks.sh",
+    "exit": 0,
+    "seconds": 1.21,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Contacts-run-row-presentation-checks.sh.log"
+  },
+  {
+    "script": "Tests/Contacts/run-search-parameters-checks.sh",
+    "exit": 0,
+    "seconds": 0.72,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Contacts-run-search-parameters-checks.sh.log"
+  },
+  {
+    "script": "Tests/Contacts/run-waiter-checks.sh",
+    "exit": 0,
+    "seconds": 1.04,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Contacts-run-waiter-checks.sh.log"
+  },
+  {
+    "script": "Tests/Conversations/run-checks.sh",
+    "exit": 0,
+    "seconds": 5.67,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Conversations-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Conversations/run-delete-persistence-checks.sh",
+    "exit": 0,
+    "seconds": 4.69,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Conversations-run-delete-persistence-checks.sh.log"
+  },
+  {
+    "script": "Tests/GroupApplications/run-checks.sh",
+    "exit": 0,
+    "seconds": 1.41,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-GroupApplications-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/GroupApplications/run-payload-checks.sh",
+    "exit": 0,
+    "seconds": 6.15,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-GroupApplications-run-payload-checks.sh.log"
+  },
+  {
+    "script": "Tests/Groups/run-checks.sh",
+    "exit": 0,
+    "seconds": 2.01,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Groups-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/HTTPNodePreference/run-checks.sh",
+    "exit": 0,
+    "seconds": 1.53,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-HTTPNodePreference-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Login/run-checks.sh",
+    "exit": 0,
+    "seconds": 1.69,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Login-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/LoginSecurity/run-checks.sh",
+    "exit": 0,
+    "seconds": 6.93,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-LoginSecurity-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/MediaTransport/run-checks.sh",
+    "exit": 0,
+    "seconds": 2.27,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MediaTransport-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-applications-search-checks.sh",
+    "exit": 0,
+    "seconds": 1.88,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-applications-search-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-chat-checks.sh",
+    "exit": 0,
+    "seconds": 5.37,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-chat-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-cloud-policy-checks.sh",
+    "exit": 0,
+    "seconds": 1.26,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-cloud-policy-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-contacts-checks.sh",
+    "exit": 0,
+    "seconds": 2.59,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-contacts-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-groups-checks.sh",
+    "exit": 0,
+    "seconds": 1.9,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-groups-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-log-redaction-checks.sh",
+    "exit": 0,
+    "seconds": 1.03,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-log-redaction-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-media-checks.sh",
+    "exit": 0,
+    "seconds": 9.54,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-media-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-notification-checks.sh",
+    "exit": 0,
+    "seconds": 12.58,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-notification-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-transport-checks.sh",
+    "exit": 0,
+    "seconds": 11.33,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-transport-checks.sh.log"
+  },
+  {
+    "script": "Tests/MigrationAcceptance/run-waiter-checks.sh",
+    "exit": 0,
+    "seconds": 1.66,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-MigrationAcceptance-run-waiter-checks.sh.log"
+  },
+  {
+    "script": "Tests/Network/run-checks.sh",
+    "exit": 0,
+    "seconds": 3.86,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Network-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Network/run-system-config-transport-checks.sh",
+    "exit": 0,
+    "seconds": 11.39,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Network-run-system-config-transport-checks.sh.log"
+  },
+  {
+    "script": "Tests/NetworkQuality/run-checks.sh",
+    "exit": 0,
+    "seconds": 8.21,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-NetworkQuality-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Search/run-checks.sh",
+    "exit": 0,
+    "seconds": 2.71,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Search-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Search/run-message-identity-checks.sh",
+    "exit": 0,
+    "seconds": 1.3,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Search-run-message-identity-checks.sh.log"
+  },
+  {
+    "script": "Tests/SessionMaintenance/run-checks.sh",
+    "exit": 0,
+    "seconds": 16.34,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-SessionMaintenance-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/SessionRestore/run-checks.sh",
+    "exit": 0,
+    "seconds": 3.92,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-SessionRestore-run-checks.sh.log"
+  },
+  {
+    "script": "Tests/Verification/run-checks.sh",
+    "exit": 0,
+    "seconds": 3.23,
+    "log": "/tmp/ddlNew-parity-final-62-offline/Tests-Verification-run-checks.sh.log"
+  }
+]
