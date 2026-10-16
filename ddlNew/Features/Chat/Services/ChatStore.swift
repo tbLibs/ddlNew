@@ -133,6 +133,21 @@ import Combine
            Date().timeIntervalSince(lastSend) < permission.sendInterval { throw ChatClientError.permission("发送过于频繁，请稍后重试") }
     }
 
+    /// 图片/视频先以本地资源占位；上传完成后用同一 localID 接续 SDK 消息。
+    func beginMediaUpload(_ message: ChatMessageRecord) throws {
+        guard let context, message.conversationID == context.route.id,
+              message.senderID == context.userUID, message.isMediaUploading,
+              [1, 2].contains(message.type) else { throw ChatClientError.sessionExpired }
+        try checkSend(context, messageType: message.type)
+        merge([message])
+    }
+
+    func discardMediaUpload(_ localID: String) {
+        guard records.contains(where: { $0.localID == localID && $0.isMediaUploading }) else { return }
+        records.removeAll { $0.localID == localID && $0.isMediaUploading }
+        messages = records.filter { $0.status != .deleted }
+    }
+
     /// 已上传附件再入SDK消息队列，提交时重新校验实时禁言和频控。
     func sendAttachment(_ message: ChatMessageRecord) throws {
         guard let context, message.conversationID == context.route.id, message.senderID == context.userUID else { throw ChatClientError.sessionExpired }
@@ -175,7 +190,7 @@ import Combine
             message.state = .sending; message.failure = nil
             message.timestamp = Int64(Date().timeIntervalSince1970 * 1000)
             try client.send(message, context: context)
-            merge([message]); lastSend = Date()
+            merge([message], retrying: true); lastSend = Date()
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -243,12 +258,15 @@ import Combine
             try await client.read(Array(values), context: context)
             guard generation == run, clearRevision == clearRun else { return }
             readIDs.formUnion(values.map(\.serverID))
-            for var value in values { value.isRead = true; merge([value]) }
+            // 一个已读批次只排序并发布一次，避免滚动中逐条刷新整个聊天列表。
+            let updated = values.map { value in var value = value; value.isRead = true; return value }
+            merge(updated)
         } catch { if generation == run, clearRevision == clearRun { errorMessage = error.localizedDescription } }
     }
 
     /// 引用摘要即时读取原记录，原文编辑、撤回和删除不显示旧副本。
     func referenceSummary(_ serverID: String) -> String {
+        guard !serverID.isEmpty else { return "" }
         guard let original = records.first(where: { $0.serverID == serverID }) else { return "引用原文尚未加载，点击定位" }
         if original.status == .deleted { return "原消息已删除" }
         return original.senderName + ": " + original.displayText
@@ -310,7 +328,7 @@ import Combine
         errorMessage = failures.isEmpty ? nil : "已确认删除\(successCount)条，\(failures.count)条未删除\n" + failures.joined(separator: "\n")
     }
 
-    /// ACK必须含服务端ID，成功后迟到失败不再改变气泡。
+    /// ACK必须含服务端ID；网络迟到失败不能覆盖成功，明确的业务拒收仍须显示失败。
     private func receive(_ event: ChatEvent) {
         switch event {
         case .upsert(let item):
@@ -322,7 +340,8 @@ import Combine
             selectedIDs = selectedIDs.intersection(messages.filter { $0.state == .sent && $0.isBody }.map(\.id))
         case .ack(let localID, let serverID, let timestamp):
             guard !serverID.isEmpty, var item = messages.first(where: { $0.localID == localID }),
-                  item.conversationID == context?.route.id, item.senderID == context?.userUID else { return }
+                  item.conversationID == context?.route.id, item.senderID == context?.userUID,
+                  item.failure?.isBlacklistRejection != true else { return }
             item.serverID = serverID; item.state = .sent; item.failure = nil
             if timestamp > 0 { item.timestamp = timestamp }
             eventRevision += 1; changedIDs[localID] = eventRevision; changedIDs[serverID] = eventRevision
@@ -333,6 +352,14 @@ import Combine
             var failed = messages[index]; failed.state = .failed; failed.failure = reason; merge([failed])
             // 仅本轮发送失败触发Toast，历史消息仍保留失败标记和重试入口。
             errorMessage = reason.message
+        case .blacklistRejected(let localID, let reason):
+            guard context?.route.kind == .single, reason.isBlacklistRejection,
+                  var item = messages.first(where: { !$0.localID.isEmpty && $0.localID == localID }),
+                  item.conversationID == context?.route.id, item.senderID == context?.userUID, item.isBody else { return }
+            item.state = .failed; item.failure = reason
+            eventRevision += 1; changedIDs[localID] = eventRevision; changedIDs[item.serverID] = eventRevision
+            merge([item])
+            selectedIDs.remove(item.id)
         case .cleared:
             if let context { onMessageUnavailable?(nil, context) }
             // 清历史同时撤销待发送已读；已在途批次由clearRevision拒绝迟到回写。
@@ -423,8 +450,8 @@ import Combine
     }
 
     /// 隐藏删除消息但保留墓碑，迟到历史不能把原文重新插入。
-    private func merge(_ incoming: [ChatMessageRecord], history: Bool = false, ack: Bool = false) {
-        records = ChatMessageMerge.merge(records, with: incoming, history: history, ack: ack)
+    private func merge(_ incoming: [ChatMessageRecord], history: Bool = false, ack: Bool = false, retrying: Bool = false) {
+        records = ChatMessageMerge.merge(records, with: incoming, history: history, ack: ack, retrying: retrying)
         messages = records.filter { $0.status != .deleted }
         if let context { for item in records where item.status != .normal { onMessageUnavailable?(item, context) } }
         if let reference, let refreshed = records.first(where: { $0.serverID == reference.serverID }) { self.reference = refreshed }

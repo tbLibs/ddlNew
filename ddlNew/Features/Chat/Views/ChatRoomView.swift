@@ -15,6 +15,8 @@ struct ChatRoomView: View {
     @StateObject private var store: ChatStore
     @ObservedObject private var runtime = ChatRuntime.shared
     @ObservedObject private var contacts = LoginSessionService.shared.contacts
+    private let conversations = LoginSessionService.shared.conversations
+    @State private var liveGroupTitle: String?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -45,10 +47,11 @@ struct ChatRoomView: View {
     @State private var editingMessage: ChatMessageRecord?
     @State private var forwardingMessages: [ChatMessageRecord] = []
     @State private var showForward = false
+    @State private var showCamera = false
     @State private var mediaMessage: ChatMessageRecord?
+    @State private var mediaGallery: ChatMediaGallery?
     @State private var viewport = CGRect.zero
     @State private var scrollGeometry = ChatScrollGeometry()
-    @State private var visibleMessageIDs: Set<String> = []
     @State private var resizeFollowTask: Task<Void, Never>?
     @State private var didInitialScroll = false
     @State private var followsInitialLatest = true
@@ -78,12 +81,17 @@ struct ChatRoomView: View {
                 }
 
                 ScrollView {
-                    VStack(spacing: 14.zoom()) {
-                        ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
-                            messageRow(message, previous: index > 0 ? messages[index - 1] : nil)
+                    VStack(spacing: 0) {
+                        // 历史较长时只构建视口附近的气泡，避免每次滑动布局整份历史。
+                        LazyVStack(spacing: 14.zoom()) {
+                            ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                                messageRow(message, previous: index > 0 ? messages[index - 1] : nil)
+                            }
                         }
+                        // 末尾标记独立于懒加载行，首屏和发送后定位仍能取得内容底部坐标。
                         Color.clear.frame(height: 1).id("latest")
                             .background(GeometryReader { geometry in Color.clear.preference(key: ChatLatestPreference.self, value: ChatLatestPreference.Value(frame: geometry.frame(in: .named("chatViewport")), lastMessageID: messages.last?.id)) })
+                            .padding(.top, messages.isEmpty ? 0 : 14.zoom())
                     }.padding(.horizontal, 16.zoom()).padding(.bottom, 14.zoom())
                 }
                 .refreshable {
@@ -140,15 +148,24 @@ struct ChatRoomView: View {
         }
     }
 
-    /// 单聊标题观察真实通讯录，修改或清空备注后不再依赖进入时的路由快照。
+    /// 标题跟随当前资料：单聊读取通讯录，群聊读取改名后由 SDK 发布的会话数据。
     private var chatTitle: String {
         if route.kind == .single, let contact = contacts.contacts.first(where: { $0.id == route.id }) { return contact.displayName }
+        if let liveGroupTitle { return liveGroupTitle }
         return route.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? route.id : route.title
+    }
+
+    /// 会话预览和未读频繁变化，仅当前群名改变才更新聊天页的展示状态。
+    private func updateGroupTitle(_ values: [ConversationRecord]) {
+        let title = route.kind == .group ? values.first(where: { $0.id == route.id && $0.kind == .group })?.title : nil
+        let name = title.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+        if liveGroupTitle != name { liveGroupTitle = name }
     }
 
     /// 导航配置与正文分开，控制大型聊天视图的泛型推断范围。
     private var chatNavigation: some View {
         chatViewport
+        .onReceive(conversations.$conversations) { updateGroupTitle($0) }
         .navigationTitle(composerMode.panel == .selection ? "选择消息（\(store.selectedIDs.count)）" : chatTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
@@ -201,10 +218,10 @@ struct ChatRoomView: View {
         .onChange(of: runtime.closedConversationContext) { closed in
             guard let closed, closed == openedContext else { return }
             // 离群后先撤销设置页，再退出聊天；阻止返回动画期间重新打开已关闭的Store。
-            conversationClosed = true; detailDestination = nil; mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false; store.close()
+            conversationClosed = true; detailDestination = nil; showCamera = false; mediaGallery = nil; mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false; store.close()
             DispatchQueue.main.async { dismiss() }
         }
-        .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && editingMessage == nil && !showForward && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
+        .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
     }
 
     /// 弹层仍使用原状态和上下文，不重新创建聊天Store。
@@ -238,12 +255,15 @@ struct ChatRoomView: View {
         .sheet(item: $mediaMessage) { message in
             if let context = store.context { NavigationStack { ChatMediaDetailView(message: message, context: context, onVoicePlayed: { Task { await store.markVisible(message.id, voicePlayed: true) } }).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { mediaMessage = nil } } } } }
         }
+        .fullScreenCover(item: $mediaGallery) { gallery in
+            if let context = store.context { ChatMediaGalleryView(gallery: gallery, context: context) }
+        }
     }
 
     /// 业务观察和确认操作独立于展示组件，继续保留原回调边界。
     var body: some View {
         chatPresentations
-        .messagingFeedbackToast(chatFeedbackMessage, isEnabled: !showSettings && !showForward && mediaMessage == nil && editingMessage == nil && pinningMessage == nil)
+        .messagingFeedbackToast(chatFeedbackMessage, isEnabled: !showSettings && !showForward && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && pinningMessage == nil)
         .onChange(of: store.messages) { _ in
             // 同一可见ID的服务端身份/已读资格可能补齐，消息变化时主动重查一次。
             updateVisibleMessages(recheck: true)
@@ -303,6 +323,10 @@ struct ChatRoomView: View {
         nonmutating set { scrollGeometry.latestLayout = newValue }
     }
     private var latestFrame: CGRect { latestLayout.frame }
+    private var visibleMessageIDs: Set<String> {
+        get { scrollGeometry.visibleMessageIDs }
+        nonmutating set { scrollGeometry.visibleMessageIDs = newValue }
+    }
     // 首屏布局仍参与测量，但未定位的历史位置不展示、不读消息，也不播放游戏动画。
     private var initialMessagesReady: Bool { route.targetMessageID != nil || didInitialScroll || !followsInitialLatest || displayedMessages.isEmpty }
 
@@ -330,7 +354,7 @@ struct ChatRoomView: View {
                 }
                 .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 16.zoom()).padding(.vertical, 6.zoom())
             }
-            ChatMediaComposer(chat: store, mode: $composerMode, focused: $composerFocused, inputSelection: $inputSelection,
+            ChatMediaComposer(chat: store, mode: $composerMode, focused: $composerFocused, inputSelection: $inputSelection, showCamera: $showCamera,
                 onAtSign: atSignAction)
         }.background(MessagingTheme.surface)
             .overlay(alignment: .top) { MessagingTheme.divider.frame(height: 0.5) }
@@ -434,15 +458,15 @@ struct ChatRoomView: View {
         positionLocatedMessage(proxy)
     }
 
-    /// 目标行已布局且聊天重新可见才居中滚动，后续普通几何变化不抢用户位置。
+    /// 先按稳定ID使懒加载目标进入布局，再以实际行坐标完成居中；隐藏页面不消费请求。
     private func positionLocatedMessage(_ proxy: ScrollViewProxy) {
         guard let id = pendingLocatedMessageID, store.isVisible,
               !showPinnedMessages, !showFullHistorySearch,
-              viewport.width > 0, viewport.height > 0, messageFrames[id] != nil else { return }
+              viewport.width > 0, viewport.height > 0 else { return }
         resizeFollowTask?.cancel(); resizeFollowTask = nil
         store.isAtBottom = false
         proxy.scrollTo(id, anchor: .center)
-        pendingLocatedMessageID = nil
+        if messageFrames[id] != nil { pendingLocatedMessageID = nil }
     }
 
     /// SDK成功回执强制回到最新消息，即使用户之前正在浏览旧记录。
@@ -462,6 +486,8 @@ struct ChatRoomView: View {
               latestLayout.lastMessageID == lastID,
               latestFrame.width > 0, viewport.width > 0, viewport.height > 0 else { return }
         proxy.scrollTo("latest", anchor: .bottom)
+        // 懒加载先使用估算高度跳转，末条实际进入视口后才消费本次请求。
+        guard ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) else { return }
         store.returnToLatest()
         pendingSendSuccessScroll = false
     }
@@ -494,7 +520,7 @@ struct ChatRoomView: View {
         }
     }
 
-    /// 仅可见集合变化才更新展示和已读任务，原始坐标变化不驱动整页重建。
+    /// 可见集合供已读和游戏行局部消费，跨消息边界也不使聊天根视图重建。
     private func updateVisibleMessages(recheck: Bool = false) {
         let visible = initialMessagesReady ? Set(messageFrames.filter { $0.value.intersects(viewport) }.keys) : []
         guard visible != visibleMessageIDs || recheck else { return }
@@ -577,10 +603,7 @@ struct ChatRoomView: View {
                     }
                     ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
                     isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
-                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: true,
-                    // 单聊用当前好友备注/昵称，好友缓存尚未就绪时由chatTitle回退到会话名或UID。
-                    senderDisplayName: route.kind == .single ? chatTitle : nil,
-                    allowsGameAnimation: initialMessagesReady && scenePhase == .active && visibleMessageIDs.contains(message.id), onGameAnimationComplete: { store.completeGameAnimation($0) })
+                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, scrollVisibility: scrollGeometry, onGameAnimationComplete: { store.completeGameAnimation($0) })
                     .allowsHitTesting(composerMode.panel != .selection)
                     .accessibilityHidden(composerMode.panel == .selection)
                     .overlay {
@@ -618,12 +641,17 @@ struct ChatRoomView: View {
 
     /// 点击和辅助功能共用操作，避免可访问用户无法打开媒体正文。
     private func activateMessage(_ message: ChatMessageRecord) {
+        guard !message.isMediaUploading else { return }
         if composerMode.panel == .selection { store.toggleSelection(message.id) }
         else if message.status == .normal {
             if let cardID = message.cardProfileID { selectedProfile = ContactsRoute(contactID: cardID) }
             else if message.type == 18 { forwardRecord = message }
             else if [3, 7].contains(message.type) { locationMessage = message }
-            else if [1, 2, 4, 5, 12].contains(message.type) { mediaMessage = message }
+            else if [1, 2, 12].contains(message.type) {
+                let gallery = ChatMediaGallery(selected: message, messages: store.messages)
+                if !gallery.items.isEmpty { mediaGallery = gallery }
+            }
+            else if [4, 5].contains(message.type) { mediaMessage = message }
         }
     }
 

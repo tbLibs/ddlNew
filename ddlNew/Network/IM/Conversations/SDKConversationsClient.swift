@@ -65,7 +65,8 @@ final class SDKConversationsClient: ConversationsClient {
                 let millis = model.sessionLatestTime
                 // 旧项目单聊优先读好友库最新头像；会话头像只在好友记录缺失时兜底。
                 let avatar: String
-                if kind == .single, let friend = sdk.toolCheckMyFriend(with: id) {
+                let friend = kind == .single ? sdk.toolCheckMyFriend(with: id) : nil
+                if let friend {
                     avatar = friend.disableStatus == 4 ? "" : (friend.avatar ?? "")
                 } else {
                     avatar = model.sessionAvatar ?? ""
@@ -75,7 +76,8 @@ final class SDKConversationsClient: ConversationsClient {
                     avatarURL: avatar, kind: kind,
                     preview: preview, latestTime: millis > 0 ? Date(timeIntervalSince1970: TimeInterval(millis) / 1000) : nil,
                     unreadCount: max(0, model.sessionUnreadCount), isMarkedUnread: model.readTag > 0,
-                    isPinned: model.sessionTop, isMuted: model.sessionNoDisturb, isDraft: isDraft
+                    isPinned: model.sessionTop, isMuted: model.sessionNoDisturb, isDraft: isDraft,
+                    isOnline: friend?.onlineStatus == true && friend?.disableStatus != 4
                 )
             }
         }.value

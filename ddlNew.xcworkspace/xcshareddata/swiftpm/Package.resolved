@@ -1,5 +1,5 @@
 {
-  "originHash" : "7aabf58b8e75ed286528364b9ed090bfc37a7054ba9b0f6e0992b1a31fd30a04",
+  "originHash" : "28d450138644548bfd58b5e91cbc4f4b7ad141ee9151189f8f91f6c279124388",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -47,6 +47,15 @@
       }
     },
     {
+      "identity" : "fsplayer-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/debugly/FSPlayer-SPM.git",
+      "state" : {
+        "revision" : "5fc767b541016656c6aab928703a2303b6e25317",
+        "version" : "1.1.1"
+      }
+    },
+    {
       "identity" : "kingfisher",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/onevcat/Kingfisher.git",
@@ -89,6 +98,15 @@
       "state" : {
         "revision" : "6021c6035e83a306047348666f6400dc61445d3b",
         "version" : "4.4.3"
+      }
+    },
+    {
+      "identity" : "player_swiftpm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tencent-RTC/Player_SwiftPM.git",
+      "state" : {
+        "revision" : "f8c0db7e0fbe7e517a27d3fc2ce5e1c68a572d89",
+        "version" : "13.4.21062"
       }
     },
     {

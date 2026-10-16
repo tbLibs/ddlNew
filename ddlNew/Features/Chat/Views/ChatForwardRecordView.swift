@@ -12,6 +12,7 @@ struct ChatForwardRecordView: View {
     let message: ChatMessageRecord
     let context: ChatContext
     @State private var media: ChatMessageRecord?
+    @State private var mediaGallery: ChatMediaGallery?
     @State private var location: ChatMessageRecord?
     var body: some View {
         MessagingScroll {
@@ -38,7 +39,17 @@ struct ChatForwardRecordView: View {
         .navigationTitle(message.text.isEmpty ? "聊天记录" : message.text).modifier(MessagingPageChrome())
         .sheet(item: $location) { item in NavigationStack { ChatLocationDetailView(message: item).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { location = nil }.frame(minHeight: 44) } } } }
         .sheet(item: $media) { item in NavigationStack { ChatMediaDetailView(message: item, context: context, allowSharing: false, onVoicePlayed: {}).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { media = nil }.frame(minHeight: 44) } } } }
+        .fullScreenCover(item: $mediaGallery) { gallery in
+            ChatMediaGalleryView(gallery: gallery, context: context, allowSharing: false, includeCachedHistory: false)
+        }
     }
     /// 合并记录内仅可打开媒体，不开放转发、收藏和系统分享。
-    private func open(_ item: ChatMessageRecord) { if [1, 2, 4, 5, 12].contains(item.type) { media = item }; if [3, 7].contains(item.type) { location = item } }
+    private func open(_ item: ChatMessageRecord) {
+        if [1, 2, 12].contains(item.type) {
+            let gallery = ChatMediaGallery(selected: item, messages: message.nestedMessages)
+            if !gallery.items.isEmpty { mediaGallery = gallery }
+        }
+        if [4, 5].contains(item.type) { media = item }
+        if [3, 7].contains(item.type) { location = item }
+    }
 }

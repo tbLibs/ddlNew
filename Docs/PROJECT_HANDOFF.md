@@ -1,5 +1,111 @@
 # ddlNew 项目交接文档
 
+## 2026-10-16 聊天图片视频全屏预览
+
+用户要求参考旧项目的图片、视频预览并评估复用三方库。只读对照 xgd `NoaChatViewController.imageVideoBrowserWith:`：旧端使用源码内置的 **KNPhotoBrowser**，混排本机缓存的图片视频，定位点击条，黑底全屏、左右分页、图片缩放、下拉退出、右上角更多；关闭页码和长按，视频先下载后自动播放。其 UIKit 库可以桥接 SwiftUI，但旧端版本已接入 SDWebImage、FSPlayer、旧资源路径、语言工具和解密管理器，不能原样直接接到新项目；这次按用户给出的备选方案使用 SwiftUI `TabView`，没有新增预览库依赖。
+
+新增 `ChatMediaGallery`、`ChatMediaGalleryView`、`ChatMediaZoomView` 与 `ChatMediaGalleryPlayback`。聊天图片/视频改为 `fullScreenCover`，保留打开聊天的 Store；进入后按稳定消息 ID 定位，时间正序混排，并复用 `SDKChatHistorySearchClient` 补齐本机全部图片视频缓存，不额外拉远端历史。当前页才挂载原图解码和播放器，邻页只展示已有缩略图。图片支持 GIF、捏合、双击、放大后平移，未放大时下滑关闭；不显示系统文件预览标题和底部常驻分享条。关闭入口在左上，右上菜单保存到相册或系统分享；相册用途说明同步包含图片视频。
+
+下载和 XOR/AES 解包复用原 `ChatMediaPreviewStore`，原有身份、取消、删除/撤回失效及临时文件清理不变。切页先停播/取消下载，再改变当前 ID，避免新页缓存命中后被旧页关闭回调覆盖。前后台、会话关闭和 AUTH 退出停止视频，迟到下载不能开始播放；保存授权等待后复核身份和原条，避免系统授权短暂切非活跃导致保存被静默放弃。文件和语音继续原详情；贴纸单独全屏，合并记录内仅浏览该记录媒体且不开放保存/分享，不混入整个会话缓存。
+
+验证：新增画廊专项先复现旧入口缺失（3/10通过），实现后10/10通过；追加真实生产翻页/加载方法的生命周期提取检查，并复现“尚未开始即被取消的旧任务关闭新页播放器”（16/17通过），将取消判断移到任何清理副作用之前后终版17/17通过。覆盖快速翻页、任务取消、非前台及AUTH退出的迟到播放隔离，日志 `/tmp/ddlNew-gallery-final-green.log`。夹具只替代网络、系统播放器与AUTH边界，不代表真实视频或手势已验收。首轮 workspace 构建遇到同期消息列表引用的新 `MessagingOnlineIndicator` 尚未进入该次构建文件快照，随后文件已出现在工作区；未改动该同期组件，等待共享构建结束后重试成功。最终无签名 generic iOS workspace 构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-media-gallery-complete-build.log`），本轮新增文件无编译警告，`git diff --check`通过。统一离线回归80/80组exit0，逐组耗时合计463.49秒，结果 `/tmp/ddlNew-20261016-media-gallery-qa/summary.json`；全量中的画廊专项为16项快照，追加取消入口修正后单独复验终版17/17通过。
+
+Mobile MCP继续暂停，不操作或安装设备，不提交/推送；原有聊天、在线标识与工程/SPM改动保留。重新Run后待验：图/视频左右连续翻页、GIF、横竖图捏合/双击/长图拖动、缩放后不误关闭、视频自动播放/快滑/后台停播、关闭返回原聊天位置、首次相册授权后保存、合并记录无分享菜单，以及浏览中远端撤回/清历史后停止播放和下载。实际视觉、系统手势、Photos写入及双端媒体结果不能由离线或编译代替。
+
+
+## 2026-10-16 消息与通讯录在线标识尺寸、位置统一
+
+用户反馈消息页16点圆点偏大、通讯录8点偏小，并要求位置参考旧端后统一。只读核对 xgd：`NoaSessionCell` 位于头像右下，`NoaContactListTableCell` 位于右上；本轮两页统一采用消息页的头像右下角，直径12点、1点内边框，均经UIAdapter缩放。新增共用 `MessagingOnlineIndicator`，使用既有在线绿和自适应页面底色，两处调用同一组件。在线状态、注销隐藏及辅助功能规则保持原实现；本节取代下一节16点展示尺寸的历史描述。
+
+专项验证：会话在线10/10、通讯录生产44项/SDK分页19项/字段合并检查通过；无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-online-indicator-size-build.log`），本轮三个UI文件无编译警告，`git diff --check`通过。Mobile MCP继续暂停，未安装或操作设备，真实视觉待重新Run；不提交/推送，既有聊天及会话在线数据改动保留。
+
+## 2026-10-16 消息列表好友在线标识
+
+用户要求消息列表参考旧项目标识在线用户。只读对照 xgd `NoaSessionCell.setupUI/setModel`：仅单聊读取 `LingIMFriendModel.onlineStatus`，在线时在50点头像右下角显示16点绿色圆点及1点边框，离线/无好友记录/其他会话隐藏。新项目原 `ConversationRecord` 没有在线字段，因此虽然通讯录已有真实在线状态，会话行仍无法显示。
+
+本轮给会话快照新增默认false的 `isOnline`；`SDKConversationsClient` 在原头像读取边界共用同一好友记录，只有单聊好友明确在线且未注销才设为true。`MessageView` 沿旧端头像右下角16点圆点呈现，使用已有 `MessagingTheme.online` 与自适应底色边框、UIAdapter缩放，整行VoiceOver追加“在线”。状态更新复用现有 SDK 在线通知→好友库写入→`SDKContactsDelegate`→`ContactsStore`→`TabbarView.onChange`→会话缓存重读；不增加在线轮询、网络接口、全局状态或订阅。下线后圆点消失，置顶、未读、摘要与排序保持原规则。
+
+新增 `Tests/Conversations/run-online-checks.sh` 提取真实会话映射及整行辅助功能方法，并运行真实 `ConversationsStore`。原实现4项失败（`/tmp/ddlNew-conversation-online-red.log`），修正后10/10通过（`/tmp/ddlNew-conversation-online-green.log`），覆盖在线、下线/再次上线、群聊、缺好友、注销、未读排序及切账号。会话排序/Store/操作/预览回归通过；最终统一离线79/79组通过、exit0，逐项耗时合计366.08秒（`/tmp/ddlNew-20261016-conversation-online-qa/summary.json`）。无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-conversation-online-build.log`），本轮修改文件无新增编译警告，`git diff --check`通过。
+
+Mobile MCP继续暂停，本轮未操作设备、不提交/推送，保留既有聊天改动。重新Run后需在消息页对照真实好友上下线，核对圆点实时出现/消失、浅深色及置顶同时显示；真实服务端在线通知与真机视觉不以离线检查替代。
+
+## 2026-10-16 单聊拉黑拒收即时更新发送失败
+
+用户报告：拉黑好友后发送，当前页只有“已拉黑”系统提示，原消息仍像成功，退出重进才出现红色感叹号。只读对照 xgd `NoaIMSDKManager+ServiceMessage.toolDealReceiveServiceMessageForUserFriendBlack` 与 `NoaChatViewController.cimToolChatMessageUpdate`：106通知携带好友ID、原消息本地ID和拉黑方向，SDK先插系统提示，再把原条落库为失败并更新UI。新项目同一SDK已做失败落库，但 `ChatMessageMerge` 无条件保护既有 `.sent`，把后到的失败更新覆盖回成功；重新进入读取库中失败才生效。
+
+修正：`SDKChatDelegate` 从106通知发布明确的拉黑拒收事件，核对单聊、收件人、好友ID、非空原消息ID与方向1/2；`ChatStore` 只更新当前单聊里本人对应的正文。`ChatMessageMerge` 让该业务拒收覆盖传输ACK，并保留拒收原因，SDK随后的普通失败、旧发送中/成功快照及迟到ACK不能恢复成功。主动重试清除本次拒收标记，解除拉黑后仍可沿SDK重发并由新ACK确认；普通网络超时仍不能回退正常成功消息。系统“已拉黑”/对方拒收提示和既有气泡失败图标、重试沿用旧端流程，没有把黑名单本地状态当成服务端投递结果，也没有改SDK持久化、发送协议或输入权限。
+
+离线检查已用提取的真实 `SDKChatDelegate.publish`、真实 `ChatStore` 与生产归并复现原缺陷（`/tmp/ddlNew-blacklist-send-red.log`），修正后通过。扩展覆盖ACK/拒收错序、SDK原条失败更新、历史旧成功回读、同ID主动重试、普通网络失败保护、9种正文类型、其他好友/收件人/群/未知ID隔离与关闭后迟到回调。最终统一离线78/78组通过、exit0，逐项耗时合计466.86秒（`/tmp/ddlNew-20261016-blacklist-send-qa/summary.json`），专项结果见该目录的 `Tests-Chat-run-sdk-message-parity-checks.sh.log`。最终无签名generic iOS workspace编译exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-blacklist-send-final-build.log`）；首轮构建发现的新纯值判断属性并发隔离警告已补 `nonisolated`，终版本轮修改文件无新增编译警告，`git diff --check`通过。
+
+Mobile MCP继续暂停，本轮不操作设备、不提交或推送，保留此前媒体/撤回/滚动等工作区修改。重新Run后待验：本人拉黑后连续发送、对方拉黑后发送，系统提示出现时原气泡立即带红色感叹号且不显示已读；重进状态一致；解除拉黑后点失败重试及普通单聊成功。服务器拒收和解除后真实投递仍须双端确认，离线与编译不能替代。
+
+## 2026-10-16 连续翻阅消息的可见性刷新隔离
+
+用户反馈上轮调整后仍不够丝滑，确认使用 Xcode Run 调试版。继续按 SwiftUI 性能审查技能检查源码，未恢复 Mobile MCP。发现上一轮测试只覆盖相同可见集合内的 9 点小幅移动：实际连续翻阅时，每跨过一条消息都会写 `ChatRoomView.@State visibleMessageIDs`，用于游戏动画的可见资格因此让整个聊天根视图参与更新，普通文字也受影响。新增跨消息边界的生产回调提取测试先失败：240 次回调产生 240 次页面状态写入。
+
+修复把可见集合移入页面持有但不观察的 `ChatScrollGeometry` 引用对象。真实已读仍即时使用同一集合；只有 `ChatVisibleGameStickerBubble` 订阅自己消息 ID 对应的布尔可见性，`removeDuplicates` 阻止其他文字进出视口刷新该游戏行。懒加载新建游戏行立即接收当前资格，离屏/重置撤销资格，前后台与减少动态效果逻辑保留。普通文字、输入区和整个列表不再观察该集合。未修改 SDK、消息收发或列表容器；同期工作区出现的黑名单拒收修正原样保留。
+
+验证：扩展滚动专项 16 项全部通过；同集合 240 次和跨边界 240 次回调均为零页面状态写入，后者从修改前的 240 次降至 0；游戏行初始不可见、其他文字变化不重复发布、迟订阅立即获知可见、离屏撤销资格均验证通过。首屏/发送回底部 11 项、定位 Store/布局各 12 项、输入焦点与游戏结果/动画归并检查通过。这里统计的是提取的生产回调中的页面状态写入，不能等同于真实 SwiftUI body 次数或帧率。
+
+构建：首次因默认 DerivedData 的 `build.db` 被另一构建占用而失败，未中断对方构建；尝试独立目录时需要重新准备依赖，随后确认原目录已释放锁，终止本轮自己的独立构建并复用已有缓存。最终无签名 generic iOS workspace 构建 exit 0、`BUILD SUCCEEDED`，日志 `/tmp/ddlNew-20261016-scroll-visibility-final-build.log`，`git diff --check` 通过。专项先失败/后通过日志为 `/tmp/ddlNew-scroll-boundary-red.log`、`/tmp/ddlNew-scroll-boundary-final.log`。
+
+验收仍需重新 Run 同一普通文字会话并连续上下翻阅，确认首屏、屏外置顶/引用定位、发送回底部以及游戏离屏/返回行为。若仍卡顿，下一步用真机 Product → Profile 的 SwiftUI/Time Profiler 记录同一会话 15–30 秒滑动；同时保留 Debug Run 与 Release Profile 对照，不能把“调试版”直接当作已证实的唯一原因。本轮未安装/操作设备，未提交或推送，未声明真机流畅度已达标。
+
+## 2026-10-16 普通文字聊天滚动性能续修
+
+用户再次报告聊天上下滑动严重掉帧，并确认普通文字也卡顿。本轮继续暂停 Mobile MCP，不操作设备。此前 10 月 15 日的几何状态降频修复仍在；本轮发现它未覆盖的源码开销：正文用普通 `VStack` 同时创建所有已加载消息行，行内重复构造 `NSDataDetector`、157 项表情词典及正则；没有引用的普通消息也调用 `referenceSummary("")` 扫描整份历史；一批已读完成后逐条归并、排序并发布消息快照。此外，群改名修复直接观察整个会话 Store，会话预览/未读变化也使聊天根视图失效。这些是已确认的代码工作量，尚未取得真机 Time Profiler 或掉帧轨迹，不能据此给出各项卡顿占比。
+
+本轮修改：
+
+- `ChatRoomView` 消息行改为 `LazyVStack`，保持稳定消息 ID、相邻日期判断与原间距；末尾定位标记位于懒加载区域之外，继续提供内容底部几何。置顶/引用定位先按 ID 使目标参与布局，拿到行坐标后才消费请求；发送成功回底部也等待实际底部进入视口才结束请求。首屏、下拉分页和键盘逻辑保留，真实可变行高的滚动表现仍待设备验收。
+- `ChatMessageBubble` 复用链接识别器；`ChatEmojiCatalog` 复用生产词典和正则，普通文字直接生成原文片段，不进行词典构造或正则匹配；未知标记、Unicode、UTF16 光标和删除语义继续保留。
+- `ChatStore` 空引用 ID 立即返回；一个可见已读批次只归并、排序及发布一次消息快照，原身份/清历史/语音播放资格守卫保留。
+- 群名更新改为订阅会话数据后比较当前群名，仅名称变化才写页面状态，其他会话与未读/预览变化不触发标题状态更新。群改名即时显示继续有效。
+
+验证：新增真实 `ChatStore.$messages` 订阅断言，修改前“一批可见已读只发布一次消息快照”失败，修改后通过。名称专项 24 项（含同群名连续 100 次输入零状态写入）、首次/发送定位 11 项、定位 Store 12 项与布局 12 项、滚动回调 11 项、视口 7 项、Chat Store 与表情/光标检查均通过。滚动回调继续保持同可见集合 240 次几何回调零页面状态写入和零重复已读调用。最终无签名 generic iOS workspace 编译 `BUILD SUCCEEDED`，日志 `/tmp/ddlNew-20261016-chat-scroll-final-build.log`，`git diff --check` 通过。
+
+离线文字开销对比：在同一 Mac 上，以 HEAD 的旧源码和修改后的真实表情解析/链接检测方法分别编译同一未优化宿主，唯一资源边界替换为实际 `ChatEmojiCatalog.plist` 路径。1000 条普通文字（中文/换行/Unicode emoji）合计约 310ms → 24ms；1000 条含旧表情与 URL 的混合文字约 288ms → 28ms，两组输出计数一致。脚本、提取源码与日志在 `/tmp/ddlNew-scroll-benchmark/`，已读失败复现在 `/tmp/ddlNew-scroll-store-red.log`，修复后在 `/tmp/ddlNew-scroll-store-green.log`。这是单次宿主微基准，**不代表真机帧率、SwiftUI 实际布局耗时或整体加速倍数**。
+
+接手验收：重新 Run 新包，在同一普通文字会话连续上下滑动；加载多页后复验日期、下拉锚点和位置保持；从屏外置顶/引用跳转、发送各类消息后回底部、展开/收起键盘、设置返回群名同步；混合媒体检查动图离屏停止与重新出现。若仍明显掉帧，采集该真机 Release 配置的 Animation Hitches/Time Profiler，并与相同历史量、相同滑动动作比较。本轮未安装、未声明真机已流畅，未提交或推送，既有媒体/相机/撤回样式改动保留。
+
+## 2026-10-16 群改名后聊天导航标题同步
+
+现象：从消息列表进入群聊，经右上角设置修改群名，再返回聊天页仍显示旧群名，退出到消息列表后重新进入才更新。根因是 `ChatRoomView.chatTitle` 对群聊只读取进入时的 `ChatRoute.title` 快照，未观察实时会话数据。SDK 的 `changeGroupNameWith` 已在成功后写入会话名称并发出会话更新，设置页保存后的详情重载也会更新会话缓存，数据链路本身已有刷新信号。
+
+修复：`ChatRoomView` 订阅登录会话持有的 `ConversationsStore`，群标题按当前群 ID 和 `.group` 类型读取最新会话名称，原生导航标题和自定义 principal 标题共用此值；数据暂缺或名称为空时回退路由名称，再回退群 ID。后续滚动性能修复收窄为仅群名变化时更新局部状态，避免整个会话 Store 的预览/未读刷新重建聊天页。单聊仍按通讯录备注/昵称取标题。参考 xgd `NoaChatViewController` 取得群资料后更新 `topView.chatName` 的行为，沿用当前共享数据流，不新增改名通知或额外网络请求。
+
+离线验证：在现有 `run-contact-name-checks.sh` 中提取真实生产 `chatTitle`，新增群名更新、其他群隔离、同 ID 单聊隔离及空值回退共 6 项。修改前两个群名更新断言失败，修改后名称专项 23 项通过；聊天设置专项 14 项、会话排序/Store/操作/预览检查全部通过。无签名 generic iOS workspace 构建 exit 0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-group-title-build.log`），`git diff --check` 通过。
+
+设备验收待办：重新 Run 后按“消息列表 → 群聊 → 右上角设置 → 修改群名称 → 返回群聊”确认标题为新名称，连续再改一次验证仍可更新，同时确认单聊备注标题正常。Mobile MCP 按用户要求继续暂停；本轮未安装或进行真机操作，未提交、未推送，保留工作区此前聊天改动。
+
+## 2026-10-16 图片与视频上传前后气泡样式
+
+后续按用户要求移除聊天输入框上方的“取消上传”按钮行，上传时仅在媒体气泡旁显示菊花，输入区不再因该行出现而增高。退出页面及会话失效时的上传取消和临时占位清理继续执行。
+
+聊天“拍摄”入口改用 `fullScreenCover` 全屏呈现原生相机，并铺满屏幕安全区；拍摄结果和取消继续通过原有相机代理返回聊天页。相机展示状态由聊天页持有，全屏覆盖触发离开回调时保留会话和在途附件；会话失效时关闭相机。
+
+底部“更多”菜单按用户要求移除，相册、拍摄、文件改为三等分；该菜单内的原图开关和收起键盘按钮随之移除，图片沿用默认准备方式。
+
+上述输入区和相机调整的焦点同步专项、首屏定位10项检查通过，最终无签名 generic iOS workspace 构建 `BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-chat-toolbar-final-build.log`），`git diff --check`通过。Mobile MCP保持暂停，全屏相机的实际拍摄和返回待真机复验。
+
+按 xgd `NoaChatViewController` 的本地先展示流程，图片/视频在上传开始前以临时文件或视频封面插入当前聊天列表，使用同一个 `localID` 在上传完成后接入 SDK 发送队列；ACK 仍是发送成功依据。上传及等待 ACK 时，16 点系统菊花位于本人媒体气泡左侧；取消、上传失败或入队失败会移除临时占位，上传失败继续用 Toast 提示。权限在插入占位前和正式发送前各复核一次；迟到取消只可删除仍处于上传中的占位。
+
+图片、视频在本地和远端状态均按旧端 170 点长边和非对称圆角展示；视频封面使用 xgd 的居中播放图标、左下视频标识与时长。GIF 完成后仍按原动画处理，但沿用相同媒体尺寸。临时路径仅用于页面预览，不进入 SDK 消息体；完成后释放上传临时文件。离线验证：`Tests/Chat/run-media-checks.sh` 7 项、`Tests/MigrationAcceptance/run-media-checks.sh` 6 项、`Tests/Chat/run-checks.sh`、消息可见性 11 项、动作 10 项均通过；最终无签名 generic iOS 构建见 `/tmp/ddlNew-20261016-media-preview-final-build.log`。Mobile MCP 继续暂停，尚未在真机上核对网络上传中的菊花、封面切换及双端接收；上传失败目前以移除占位加 Toast 处理，未实现旧端失败气泡内重试。
+
+## 2026-10-16 聊天气泡缺失头像与消息列表统一
+
+用户要求对方未设置头像时，聊天气泡使用消息列表的单聊默认头像。`ChatMessageBubble`原先使用灰白的`person.crop.circle.fill`，现改为消息列表`MessageView`的`person.fill`、森林绿强调色、薄荷底色与圆形边框，并按40点气泡头像缩放图标。远端头像URL、本人资料优先级及消息映射规则未变；下载失败时同样显示该占位。头像专项16/16通过；无签名generic iOS workspace构建`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-chat-avatar-placeholder-build.log`）。Mobile MCP按用户要求继续暂停，真机视觉仍待重新Run验收。
+
+## 2026-10-16 群聊撤回占位首屏稳定
+
+用户报告群聊进入时撤回提示稍后才出现并造成页面抖动。对照xgd：SDK把撤回控制条写入缓存，同时把原消息标为status2；新页首次读取缓存时直接过滤type8控制条，仅远端历史返回后补标原条，因此本机已知撤回可能晚于首屏出现。`SDKChatClient.cached`现读取同页控制条的目标ID，在发布首屏快照前用本机原条标记撤回；原条不在当前100条时，以原条撤回占位替换隐藏控制条，保持分页条数与原条身份，避免随后远端历史再插入。原条缺失、已删除或属于其他会话时不虚构占位；原有实时撤回、远端回读和引用失效规则保留。纯生产归并方法专项先RED后5/5通过（`Tests/Chat/run-recall-cache-checks.sh`）；Chat Store专项、SDK消息专项46项与消息可见性11项均通过，最终无签名generic iOS workspace构建`BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-recall-cache-build.log`）。真实SDK本机缓存内容及页面动画仍需重新Run验收。Mobile MCP继续暂停。
+
+## 2026-10-16 单聊气泡昵称回退
+
+用户澄清单聊接收消息的气泡上方原本就不显示对方名字，并要求撤回本轮显示改动。核对 xgd `NoaMessageContentBaseCell` 后确认旧端只在群聊显示发送者昵称；当前 `ChatRoomView` 已恢复仅群聊传入 `showsSenderName`，`ChatMessageBubble` 恢复原条件渲染。导航栏和好友备注/昵称映射未改变。回退后无签名 generic iOS workspace 构建 `BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-single-sender-name-revert-build.log`）。
+
+用户随后要求发送消息的已读状态采用旧项目样式，不再显示 `1/1已读`。旧端 `NoaMsgReadProgressView` 在本人成功发送、`showUserRead` 允许时，于气泡左下侧显示 16 点状态：未读空心圆、部分已读圆环与扇形进度、全部已读圈内对勾；通话消息不显示。当前 `ChatMessageBubble` 改为相同形状和位置，复用 xgd 的空心圆/对勾资源，使用现有绿色主题着色；部分已读比例按 SDK 人数夹到 0...1，人数仅作为辅助功能标签。发送中/失败、收到消息及无权限不显示状态。已读权限专项 59 项通过，终版无签名 generic iOS workspace 构建 `BUILD SUCCEEDED`（`/tmp/ddlNew-20261016-read-style-build.log`）。Mobile MCP 按用户要求暂停，本轮未进行真机视觉验收，也未提交或推送；此前聊天功能修复保留。
+
 ## 2026-10-15 聊天模块旧端对照轮次
 
 用户扩大范围要求按旧项目 xgd 对聊天模块做全功能对照，并允许 Mobile MCP。本轮已修复发送成功回最新、当前会话逐条转发回最新、发送中/失败本机删除、删除权限兼容和群管理员/群主撤回窗口差异；完整交接、验证范围和未迁移依赖见[聊天旧端对照交接](CHAT_LEGACY_PARITY_HANDOFF_2026-10-15.md)。验证：42/42 Chat离线入口、16/16 MigrationAcceptance、连接iPhone目的地 Xcode `BUILD SUCCEEDED`、`git diff --check`通过。Mobile MCP只读查看已有安装版聊天页和置顶入口；未发送测试消息，未安装本轮包，故代码行为仍需QA群和双端进行设备验收。不提交、不推送。

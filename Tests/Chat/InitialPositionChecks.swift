@@ -52,10 +52,14 @@ struct ChatLatestLayout: Equatable {
         sent.pendingSendSuccessScroll = true
         sent.latestLayout = ChatLatestLayout(frame: CGRect(x: 0, y: 1400, width: 358, height: 1), lastMessageID: "latest")
         sent.positionSendSuccess(sentProxy)
-        check(sentProxy.targets == ["latest"] && sent.store.isAtBottom && !sent.pendingSendSuccessScroll,
-              "发送成功后即使原先停留在历史位置也主动回到最新消息")
+        check(sentProxy.targets == ["latest"] && sent.pendingSendSuccessScroll,
+              "发送成功后先跳到懒加载末尾，实际底部尚未进入视口时保留请求")
+        sent.latestLayout = ChatLatestLayout(frame: CGRect(x: 0, y: 485, width: 358, height: 1), lastMessageID: "latest")
+        sent.positionSendSuccess(sentProxy)
+        check(sent.store.isAtBottom && !sent.pendingSendSuccessScroll,
+              "末尾实际进入视口后才完成发送成功定位")
         screen.resizeFollowTask?.cancel(); search.resizeFollowTask?.cancel(); hidden.resizeFollowTask?.cancel()
         if !failed.isEmpty { exit(1) }
-        print("首次定位生产回调检查：10项通过")
+        print("首次定位生产回调检查：11项通过")
     }
 }

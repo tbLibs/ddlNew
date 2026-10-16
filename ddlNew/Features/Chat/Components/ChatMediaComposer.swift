@@ -16,23 +16,21 @@ struct ChatMediaComposer: View {
     @Binding var mode: ChatComposerMode
     var focused: Binding<Bool>
     @Binding var inputSelection: NSRange
+    @Binding var showCamera: Bool
     var onAtSign: ((NSRange) -> Void)? = nil
     @StateObject private var media = ChatRuntime.shared.makeMediaStore()
     @StateObject private var recorder = ChatRuntime.shared.makeRecorder()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var photos: [PhotosPickerItem] = []
-    @State private var showCamera = false
     @State private var showFiles = false
-    @State private var originalImage = false
     @State private var preparation: Task<Void, Never>?
     @State private var hasRecorded = false
     @State private var startRecordingTask: Task<Void, Never>?
 
-    /// 面板只替换输入区内容，上传、录音与原图选择始终由同一组件持有。
+    /// 面板只替换输入区内容，上传、录音与媒体准备始终由同一组件持有。
     var body: some View {
         VStack(spacing: 0) {
-            if media.isUploading { HStack { Button("取消上传") { media.cancel() } } }
             if mode.panel != .selection {
                 inputRow
                 tools
@@ -46,15 +44,19 @@ struct ChatMediaComposer: View {
         .task { registerCleanup() }
         .messagingFeedbackToast(media.errorMessage ?? recorder.errorMessage)
         .onChange(of: photos) { values in preparePhotos(values) }
-        .sheet(isPresented: $showCamera) { ChatCameraPicker { key, value in
+        .fullScreenCover(isPresented: $showCamera) { ChatCameraPicker { key, value in
             if key == .mediaURL, let source = value as? URL { prepareVideo(source) }
             else if let image = value as? UIImage, let data = image.jpegData(compressionQuality: 0.9) { prepareImage(data) }
-        } }
+        }.ignoresSafeArea() }
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.item]) { result in
             if case .success(let url) = result { prepareFile(url) }
             else if case .failure(let error) = result { media.errorMessage = error.localizedDescription }
         }
-        .onDisappear { preparation?.cancel(); media.cancel(); cancelRecording() }
+        .onDisappear {
+            // 全屏相机只是覆盖聊天，不能取消正在发送的附件。
+            if !showCamera { preparation?.cancel(); media.cancel() }
+            cancelRecording()
+        }
         .onChange(of: mode.panel) { panel in if panel != .voice { cancelRecording() } }
         .onChange(of: focused.wrappedValue) { value in if value { mode.beginTyping() } }
         .onChange(of: chat.permission.canSend) { allowed in if !allowed { cancelRecording(); focused.wrappedValue = false } }
@@ -105,7 +107,7 @@ struct ChatMediaComposer: View {
         }
     }
 
-    /// 常用四项等分整个可用宽度，图标、文字与触点始终居中对应。
+    /// 相册、拍摄、文件三项等分可用宽度，图标、文字与触点居中对应。
     private var tools: some View {
         HStack(spacing: 0) {
             PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo") }
@@ -113,11 +115,6 @@ struct ChatMediaComposer: View {
             Button { focused.wrappedValue = false; prepareCamera() } label: { Label("拍摄", systemImage: "camera") }
                 .frame(maxWidth: .infinity)
             Button { focused.wrappedValue = false; showFiles = true } label: { Label("文件", systemImage: "doc") }
-                .frame(maxWidth: .infinity)
-            Menu {
-                Toggle("发送原图", isOn: $originalImage)
-                if focused.wrappedValue { Button("收起键盘") { focused.wrappedValue = false } }
-            } label: { Label("更多", systemImage: "ellipsis") }.accessibilityLabel("更多输入选项")
                 .frame(maxWidth: .infinity)
         }.labelStyle(ChatComposerToolLabelStyle(equalWidth: true)).buttonStyle(.plain)
             .disabled(!chat.permission.canSend).padding(.horizontal, 12.zoom())
@@ -157,7 +154,6 @@ struct ChatMediaComposer: View {
     /// 图片视频分别准备，最多9份按用户选择顺序提交。
     private func preparePhotos(_ values: [PhotosPickerItem]) {
         preparation?.cancel()
-        let preserveOriginal = originalImage
         preparation = Task {
             for item in values.prefix(9) {
                 guard !Task.isCancelled, let context = chat.context, ChatRuntime.shared.isCurrent(context) else { break }
@@ -166,7 +162,7 @@ struct ChatMediaComposer: View {
                     if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }), let movie = try await item.loadTransferable(type: ChatPickedMovie.self) {
                         attachment = try await ChatAttachmentPreparation.video(movie.file)
                         try? FileManager.default.removeItem(at: movie.file)
-                    } else if let data = try await item.loadTransferable(type: Data.self) { attachment = try await Task.detached { try ChatAttachmentPreparation.image(data, original: preserveOriginal) }.value }
+                    } else if let data = try await item.loadTransferable(type: Data.self) { attachment = try await Task.detached { try ChatAttachmentPreparation.image(data) }.value }
                     else { throw ChatClientError.unavailable("无法读取所选媒体，请重试") }
                     await send(attachment, context: context)
                 } catch { media.errorMessage = error.localizedDescription }
@@ -180,7 +176,7 @@ struct ChatMediaComposer: View {
         Task { let allowed = await AVCaptureDevice.requestAccess(for: .video); if allowed { showCamera = true } else { media.errorMessage = "相机权限未开启，请在系统设置中允许拍摄" } }
     }
     /// 用户拍摄的图片只准备真实字节，不乐观生成消息。
-    private func prepareImage(_ data: Data) { let preserveOriginal = originalImage; preparation = Task { guard let context = chat.context else { return }; do { let attachment = try await Task.detached { try ChatAttachmentPreparation.image(data, original: preserveOriginal) }.value; await send(attachment, context: context) } catch { media.errorMessage = error.localizedDescription } } }
+    private func prepareImage(_ data: Data) { preparation = Task { guard let context = chat.context else { return }; do { let attachment = try await Task.detached { try ChatAttachmentPreparation.image(data) }.value; await send(attachment, context: context) } catch { media.errorMessage = error.localizedDescription } } }
     /// 拍摄视频独立准备封面与原文件。
     private func prepareVideo(_ file: URL) { preparation = Task { guard let context = chat.context else { return }; do { let attachment = try await ChatAttachmentPreparation.video(file); await send(attachment, context: context) } catch { media.errorMessage = error.localizedDescription } } }
     /// 安全书签文件拷贝后才上传，系统取消不触发发送。
@@ -203,6 +199,9 @@ struct ChatMediaComposer: View {
     /// 上传取消或退出后不入队，临时附件完成后清理。
     private func send(_ attachment: ChatAttachment, context: ChatContext) async {
         defer { try? FileManager.default.removeItem(at: attachment.file); if let file = attachment.previewFile { try? FileManager.default.removeItem(at: file) } }
-        await media.send(attachment, context: context) { message in try chat.sendAttachment(message) }
+        await media.send(attachment, context: context,
+            stage: { message in try chat.beginMediaUpload(message) },
+            discard: { id in chat.discardMediaUpload(id) },
+            enqueue: { message in try chat.sendAttachment(message) })
     }
 }

@@ -20,13 +20,15 @@ production='import Foundation\nstruct ProductionMapper {\n'+summary+'\nstatic fu
 delegate=(root/'ddlNew/Network/IM/Chat/SDKChatDelegate.swift').read_text()
 start=delegate.index('    private func publish(')
 publish=delegate[start:delegate.rfind('\n}')].replace('private func publish', 'func publish')
-production += '\nstruct ProductionDelegate { let userUID: String; let conversationID: String; let changed: (ChatEvent) -> Void\n'+publish+'\n}\n'
+production += '\nstruct ProductionDelegate { let userUID: String; let conversationID: String; var isGroup = false; let changed: (ChatEvent) -> Void\n'+publish+'\n}\n'
 (tmp/'production.swift').write_text(production)
 # 夹具按生产Proto取值边界建模；生成字段集合只为编译真实方法，不复写摘要算法。
 fields=sorted(set(re.findall(r'server\.([a-zA-Z]+Message|delGroupNotice|groupMessageTop|dialogUserMessageTop)\b',(root/'ddlNew/Network/IM/Chat/SDKChatMessageMapper.swift').read_text()+delegate)))
-(tmp/'server.swift').write_text('import Foundation\nstruct ServerKind { let rawValue: Int }\nfinal class IMServerMessage { var sMsgType = ServerKind(rawValue: 0)\n'+''.join('var '+name+': Body! = Body()\n' for name in fields)+'}\n')
+(tmp/'server.swift').write_text('import Foundation\nstruct ServerKind { let rawValue: Int }\nfinal class IMServerMessage { var sMsgType = ServerKind(rawValue: 0); var to = "me"\n'+''.join('var '+name+': Body! = Body()\n' for name in fields)+'}\n')
+(tmp/'client.swift').write_text((root/'Tests/Chat/StoreChecks.swift').read_text().split('@main struct ChatChecks')[0])
 PY
 swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
+ "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" "$TMP_DIR/client.swift" \
  "$ROOT_DIR/Tests/Chat/SDKMessageParityChecks.swift" "$TMP_DIR/production.swift" "$TMP_DIR/server.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

@@ -33,6 +33,8 @@
 		DDADAC4530652BF600F0B6ED /* NoaChatCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */ = {isa = PBXBuildFile; productRef = DDC481FA306101510097F2C3 /* TBBasicLib */; };
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
+		FA5B1E000000000000000003 /* FSPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000002 /* FSPlayer */; };
+		FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000005 /* Player_SwiftPM */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +113,8 @@
 				0928A0010000000000000007 /* MJExtension in Frameworks */,
 				0928A0010000000000000008 /* LiveKit in Frameworks */,
 				0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */,
+				FA5B1E000000000000000003 /* FSPlayer in Frameworks */,
+				FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */,
 				28A1C0010000000000000001 /* Kingfisher in Frameworks */,
 				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
 				DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */,
@@ -237,6 +241,8 @@
 				0928A0010000000000000004 /* MJExtension */,
 				0928A0010000000000000005 /* LiveKit */,
 				0928A0010000000000000006 /* ZegoExpressEngine */,
+				FA5B1E000000000000000002 /* FSPlayer */,
+				FA5B1E000000000000000005 /* Player_SwiftPM */,
 				28A1C0010000000000000003 /* Kingfisher */,
 				28A1C0010000000000000004 /* CocoaAsyncSocket */,
 				AF019ABC305D300000000002 /* WCDBSwiftDynamic */,
@@ -288,6 +294,8 @@
 				0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */,
 				0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
+				FA5B1E000000000000000001 /* XCRemoteSwiftPackageReference "FSPlayer-SPM" */,
+				FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */,
 				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 				DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */,
@@ -602,7 +610,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "叮咚聊";
 				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描好友和群聊二维码及拍摄聊天照片";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制并发送语音消息";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将好友或群聊二维码保存到相册";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将聊天图片、视频和二维码保存到相册";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -669,7 +677,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "叮咚聊";
 				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描好友和群聊二维码及拍摄聊天照片";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制并发送语音消息";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将好友或群聊二维码保存到相册";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将聊天图片、视频和二维码保存到相册";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -806,6 +814,8 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
+			traits = (
+			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -893,6 +903,22 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.38.1;
+			};
+		};
+		FA5B1E000000000000000001 /* XCRemoteSwiftPackageReference "FSPlayer-SPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/debugly/FSPlayer-SPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
+		FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tencent-RTC/Player_SwiftPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.4.21062;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -992,6 +1018,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4142392EA096483992E8FCF3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
+		};
+		FA5B1E000000000000000002 /* FSPlayer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA5B1E000000000000000001 /* XCRemoteSwiftPackageReference "FSPlayer-SPM" */;
+			productName = FSPlayer;
+		};
+		FA5B1E000000000000000005 /* Player_SwiftPM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */;
+			productName = Player_SwiftPM;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

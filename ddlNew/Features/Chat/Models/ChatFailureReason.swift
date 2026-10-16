@@ -9,6 +9,8 @@ import Foundation
 
 enum ChatFailureReason: Int, Sendable {
     case unknown = 0, networkUnavailable, connectionNotReady, timeout, serverRejected, rateLimited, fileTooLarge, invalidResponse, connectionLost
+    case blockedByMe, blockedByPeer
+    nonisolated var isBlacklistRejection: Bool { self == .blockedByMe || self == .blockedByPeer }
     var message: String {
         switch self {
         case .networkUnavailable: return "网络不可用，请连接网络后重试"
@@ -20,6 +22,8 @@ enum ChatFailureReason: Int, Sendable {
         case .invalidResponse: return "服务器回执无效，请稍后重试"
         case .connectionLost: return "连接中断，请恢复连接后重试"
         case .unknown: return "发送失败，可重新发送"
+        case .blockedByMe: return "已拉黑"
+        case .blockedByPeer: return "对方已拒绝接受你的消息"
         }
     }
 }

@@ -14,7 +14,7 @@ enum ChatMessageAction: String, CaseIterable, Sendable {
 enum ChatActionPolicy {
     /// 只展示当前消息身份、类型、成功状态与动态权限允许的动作。
     nonisolated static func allowed(for message: ChatMessageRecord, userUID: String, permission: ChatPermission, now: Int64 = Int64(Date().timeIntervalSince1970 * 1000)) -> Set<ChatMessageAction> {
-        guard message.isBody, message.isCompatible, permission.isActive else { return [] }
+        guard message.isBody, !message.isMediaUploading, message.isCompatible, permission.isActive else { return [] }
         var result: Set<ChatMessageAction> = []
         let text = [0, 10].contains(message.type)
         if text { result.insert(.copy) }

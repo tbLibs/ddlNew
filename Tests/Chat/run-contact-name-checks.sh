@@ -28,6 +28,7 @@ marker='    func cimToolUserFriendChange('
 changed=block(delegate,marker) if marker in delegate else 'func cimToolUserFriendChange(_ message: LingIMFriendModel) {}'
 view=(root/'ddlNew/Features/Chat/Views/ChatRoomView.swift').read_text()
 titleView=block(view,'    private var chatTitle:') if '    private var chatTitle:' in view else 'var chatTitle: String { route.title }'
+groupUpdate=block(view,'    private func updateGroupTitle(').replace('private func', 'mutating func').replace('[ConversationRecord]', '[NameConversation]')
 code='''import Foundation
 struct ProductionNames {
  static func metadata(_ input: ChatMessageRecord, userUID: String, group: Bool = false) -> ChatMessageRecord {
@@ -52,12 +53,18 @@ CHANGED
 struct NameRoute { var id = "peer"; var kind = ConversationKind.single; var title = "旧路由名" }
 struct NameContact { var id = "peer"; var displayName = "新备注" }
 struct NameContacts { var contacts = [NameContact()] }
+struct NameConversation { var id = "peer"; var kind = ConversationKind.group; var title = "最新群名" }
+struct NameConversations { var conversations = [NameConversation()] }
 struct ProductionChatTitle {
  var route = NameRoute()
  var contacts = NameContacts()
+ var conversations = NameConversations()
+ var liveGroupTitle: String? { didSet { titleWrites += 1 } }
+ var titleWrites = 0
+GROUP_UPDATE
 VIEW
 }
-'''.replace('METADATA',metadata).replace('TITLE',title).replace('PREVIEW',preview).replace('CHANGED',changed).replace('VIEW',titleView.replace('private var','var'))
+'''.replace('GROUP_UPDATE',groupUpdate).replace('METADATA',metadata).replace('TITLE',title).replace('PREVIEW',preview).replace('CHANGED',changed).replace('VIEW',titleView.replace('private var','var'))
 (out/'Production.swift').write_text(code)
 # 复用真实SDK边界的匿名形状；业务分支仍执行以上生产源码。
 f=(root/'Tests/Chat/AvatarChecks.swift').read_text().split('@main struct AvatarChecks')[0]

@@ -32,6 +32,29 @@ import Foundation
         check(screen.chatTitle == "又改备注", "当前通讯录变化后单聊标题再次更新")
         screen.contacts.contacts = []; screen.route.title = ""
         check(screen.chatTitle == "peer", "缺资料和旧标题时使用稳定UID而不显示空标题")
+        screen.route.kind = .group; screen.route.title = "进入时群名"
+        screen.updateGroupTitle(screen.conversations.conversations)
+        check(screen.chatTitle == "最新群名", "群标题读取当前会话而不是进入时的路由快照")
+        screen.conversations.conversations[0].title = "修改后群名"
+        screen.updateGroupTitle(screen.conversations.conversations)
+        check(screen.chatTitle == "修改后群名", "群改名后无需退出聊天即可更新标题")
+        screen.titleWrites = 0
+        for _ in 0..<100 { screen.updateGroupTitle(screen.conversations.conversations) }
+        check(screen.titleWrites == 0, "会话未读或预览刷新但群名不变时不重绘聊天页")
+        screen.conversations.conversations[0].id = "another-group"
+        screen.updateGroupTitle(screen.conversations.conversations)
+        check(screen.chatTitle == "进入时群名", "其他群名称不能覆盖当前群标题")
+        screen.conversations.conversations[0].id = "peer"
+        screen.conversations.conversations[0].kind = .single
+        screen.updateGroupTitle(screen.conversations.conversations)
+        check(screen.chatTitle == "进入时群名", "相同ID的单聊不能覆盖群标题")
+        screen.conversations.conversations[0].kind = .group
+        screen.conversations.conversations[0].title = " \n "
+        screen.updateGroupTitle(screen.conversations.conversations)
+        check(screen.chatTitle == "进入时群名", "空群会话标题回退路由名称")
+        screen.conversations.conversations = []; screen.route.title = ""
+        screen.updateGroupTitle(screen.conversations.conversations)
+        check(screen.chatTitle == "peer", "群会话与路由名称均缺失时回退群ID")
         let client = LocationClient(), chat = ChatStore(client: LocationClient())
         let live = ChatStore(client: client)
         let context = ChatContext(userUID: "me", tenantID: "club", sessionID: UUID(), route: ChatRoute(id: "group", kind: .group, title: "群", avatarURL: ""))

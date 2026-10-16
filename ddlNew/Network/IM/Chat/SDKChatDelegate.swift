@@ -94,6 +94,12 @@ nonisolated final class SDKChatDelegate: NSObject, NoaToolMessageDelegate, CIMTo
         }
         if let server = model.serverMessage {
             let kind = Int(server.sMsgType.rawValue)
+            // 旧端SDK在106通知后更新原条失败；业务拒收优先于此前传输ACK。
+            if kind == 106, !isGroup, server.to == userUID,
+               let black = server.friendBlackMessage, black.fUid == conversationID,
+               !black.msgId.isEmpty, [1, 2].contains(black.type) {
+                changed(.blacklistRejected(localID: black.msgId, reason: black.type == 1 ? .blockedByMe : .blockedByPeer))
+            }
             if kind == 516, server.groupMessageTop?.gid == conversationID { changed(.pinsChanged); return }
             if kind == 517 {
                 guard let pin = server.dialogUserMessageTop else { return }

@@ -1,6 +1,7 @@
 import Foundation
 final class UserInfo: NSObject { var uId = ""; var uNick = ""; init(_ id: String, _ nick: String) { uId = id; uNick = nick } }
 final class Body {
+    var fUid = "peer"; var msgId = ""; var sMsgId = ""
     var uid = "B"; var nick = "张三"; var gid = "g"
     var operateUid = "A"; var operateNick = "甲"
     var fromUid = "A"; var fromNick = "甲"; var toUid = "B"; var toNick = "张三"
@@ -51,7 +52,7 @@ struct SDKChatMessageMapper {
 }
 @main struct SDKMessageParityChecks {
     /// 使用实际生产摘要与媒体映射验证显示型/同步型事件及转发缓存所需字段。
-    static func main() {
+    @MainActor static func main() async {
         func summary(_ kind: Int, mutate: (IMServerMessage) -> Void = { _ in }) -> String {
             let server = IMServerMessage(); server.sMsgType = ServerKind(rawValue: kind); mutate(server)
             return ProductionMapper.systemSummary(server, userUID: "A")
@@ -132,6 +133,78 @@ struct SDKChatMessageMapper {
         original.record.status = .normal
         recall.record = ChatMessageRecord(localID: "recall", conversationID: "other", senderID: "B", senderName: "B", type: 8, timestamp: 20)
         delegate.publish(recall); precondition(events.isEmpty, "其他会话撤回不能更新当前原条")
-        print("SDK message parity checks: 46 passed")
+        // 真实SDK先给传输ACK，再用106通知拒收并更新原条；页面必须当场显示失败。
+        let client = SuspendedChatClient()
+        client.page = ChatPage(messages: [], hasMore: true)
+        let store = ChatStore(client: client)
+        let context = ChatContext(userUID: "me", tenantID: "club", sessionID: UUID(), route: ChatRoute(id: "peer", kind: .single, title: "好友", avatarURL: ""))
+        await store.open(context)
+        let single = ProductionDelegate(userUID: "me", conversationID: "peer", changed: { client.callback?($0) })
+        store.input = "已拉黑后的消息"
+        store.sendText()
+        let outgoing = client.sent[0]
+        client.callback?(.ack(localID: outgoing.localID, serverID: "sent-server", timestamp: 100))
+        let rejected = NoaIMChatMessageModel()
+        rejected.record = ChatMessageRecord(localID: "black-tip", serverID: "tip-server", conversationID: "peer", senderID: "peer", senderName: "好友", type: 1000, timestamp: 101, state: .sent)
+        let black = IMServerMessage(); black.sMsgType = ServerKind(rawValue: 106)
+        black.friendBlackMessage.msgId = outgoing.localID
+        rejected.serverMessage = black
+        single.publish(rejected)
+        var sdkFailed = outgoing; sdkFailed.serverID = "sent-server"; sdkFailed.state = .failed
+        client.callback?(.upsert(sdkFailed))
+        precondition(store.messages.first { $0.localID == outgoing.localID }?.state == .failed,
+                     "拉黑拒收必须即时覆盖传输ACK，不能返回列表重进才显示失败")
+        precondition(store.messages.contains { $0.localID == "black-tip" && $0.text == "已拉黑" }, "保留旧端拉黑系统提示")
+        client.callback?(.ack(localID: outgoing.localID, serverID: "sent-server", timestamp: 100))
+        client.callback?(.upsert(outgoing))
+        var oldSuccess = outgoing; oldSuccess.state = .sent; oldSuccess.serverID = "sent-server"
+        client.page = ChatPage(messages: [oldSuccess], hasMore: false)
+        await store.loadMore()
+        precondition(store.messages.first { $0.localID == outgoing.localID }?.state == .failed && store.sendSuccessRevision == 1,
+                     "拒收后的迟到ACK、发送中更新和历史成功快照不能重新显示成功")
+        store.retry(outgoing.localID)
+        precondition(store.messages.first { $0.localID == outgoing.localID }?.state == .sending, "主动重试允许解除拉黑后重发")
+        client.callback?(.ack(localID: outgoing.localID, serverID: "retry-server", timestamp: 102))
+        client.callback?(.failed(localID: outgoing.localID, reason: .timeout))
+        precondition(store.messages.first { $0.localID == outgoing.localID }?.state == .sent && store.errorMessage == nil,
+                     "重试后的真实ACK恢复成功，迟到网络超时仍不回退成功")
+
+        // 拒收先于ACK同样有效，并覆盖所有走统一发送入口的正文类型。
+        for type in [0, 1, 2, 4, 5, 6, 12, 18, 21] {
+            client.policy.canUpload = true; client.policy.canUploadFile = true
+            let message = ChatMessageRecord(localID: "type-\(type)", conversationID: "peer", senderID: "me", senderName: "我", type: type, timestamp: 200 + Int64(type))
+            try! store.sendAttachment(message)
+            black.friendBlackMessage.msgId = message.localID; black.friendBlackMessage.type = 2
+            single.publish(rejected)
+            client.callback?(.ack(localID: message.localID, serverID: "server-\(type)", timestamp: 300))
+            precondition(store.messages.first { $0.localID == message.localID }?.state == .failed && store.messages.first { $0.localID == message.localID }?.failure == .blockedByPeer,
+                         "对方拉黑且拒收先到时，后续ACK也不能放行该类型消息")
+        }
+        precondition(store.messages.first { $0.localID == outgoing.localID }?.state == .sent, "拒收只改变对应消息")
+
+        store.input = "正常对照"; store.sendText()
+        let control = client.sent.last!
+        black.friendBlackMessage.msgId = control.localID
+        black.friendBlackMessage.fUid = "other"; single.publish(rejected)
+        black.friendBlackMessage.fUid = "peer"; black.to = "other-account"; single.publish(rejected)
+        black.to = "me"; black.friendBlackMessage.type = 0; single.publish(rejected)
+        black.friendBlackMessage.type = 1
+        let groupDelegate = ProductionDelegate(userUID: "me", conversationID: "peer", isGroup: true, changed: { client.callback?($0) })
+        groupDelegate.publish(rejected)
+        precondition(store.messages.first { $0.localID == control.localID }?.state == .sending,
+                     "其他好友、其他收件人、非法类型与群代理均不能拒收当前单聊")
+        black.friendBlackMessage.msgId = ""; single.publish(rejected)
+        black.friendBlackMessage.msgId = "missing"; single.publish(rejected)
+        precondition(store.messages.first { $0.localID == control.localID }?.state == .sending, "缺失或未知消息ID不猜测最近消息")
+        let received = ChatMessageRecord(localID: "received", conversationID: "peer", senderID: "peer", senderName: "好友", timestamp: 400, state: .sent)
+        client.callback?(.upsert(received)); black.friendBlackMessage.msgId = received.localID; single.publish(rejected)
+        precondition(store.messages.first { $0.localID == received.localID }?.state == .sent, "不能把收到的消息改为本人发送失败")
+        client.callback?(.ack(localID: control.localID, serverID: "control-server", timestamp: 401))
+        precondition(store.messages.first { $0.localID == control.localID }?.state == .sent, "正常单聊仍按真实ACK成功")
+        let stopped = client.callback; store.close()
+        black.friendBlackMessage.msgId = control.localID; single.publish(rejected)
+        stopped?(.upsert(oldSuccess))
+        precondition(store.messages.isEmpty, "关闭后旧拒收与SDK更新不得恢复会话")
+        print("SDK message parity and blacklist checks passed")
     }
 }

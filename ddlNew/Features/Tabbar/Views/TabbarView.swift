@@ -34,7 +34,7 @@ struct TabbarView: View {
         .tint(HomeTheme.forest)
         .environmentObject(community)
         .onChange(of: contacts.contacts) { _ in
-            // 好友同步可能晚于会话同步；头像以最新好友库为准，变化后重读会话快照。
+            // 好友同步可能晚于会话同步；头像、备注和在线状态变化后重读同一好友库快照。
             Task { await conversations.reload() }
         }
     }

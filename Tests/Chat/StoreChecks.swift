@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 @MainActor final class SuspendedChatClient: ChatClient {
     var callback: ((ChatEvent) -> Void)?
@@ -58,10 +59,33 @@ import Foundation
         client.callback?(.ack(localID: local, serverID: "12", timestamp: 300))
         client.callback?(.failed(localID: local, reason: .timeout))
         expect(store.messages.last?.state == .sent && store.errorMessage == nil, "迟到失败不能覆盖有效ACK或触发失败提示")
+        client.policy.canUpload = true
+        var preview = ChatMessageRecord(localID: "photo-preview", conversationID: context.route.id,
+            senderID: context.userUID, senderName: "我", type: 1, timestamp: 500)
+        preview.localMediaPreviewURL = URL(fileURLWithPath: "/tmp/photo.jpg")
+        preview.isMediaUploading = true
+        try? store.beginMediaUpload(preview)
+        expect(store.messages.first(where: { $0.localID == preview.localID })?.isMediaUploading == true,
+               "图片上传前先插入本地预览")
+        var uploaded = preview; uploaded.localMediaPreviewURL = nil; uploaded.isMediaUploading = false
+        uploaded.resource = "/remote/photo"; uploaded.thumbnail = "/remote/thumb"
+        try? store.sendAttachment(uploaded)
+        expect(store.messages.filter { $0.localID == preview.localID }.count == 1 &&
+               store.messages.first(where: { $0.localID == preview.localID })?.resource == "/remote/photo",
+               "上传完成沿用原消息身份")
+        store.discardMediaUpload(preview.localID)
+        expect(store.messages.contains(where: { $0.localID == preview.localID }), "迟到取消不能删除SDK队列消息")
+        var cancelledPreview = preview; cancelledPreview.localID = "cancelled-preview"
+        try? store.beginMediaUpload(cancelledPreview)
+        store.discardMediaUpload(cancelledPreview.localID)
+        expect(!store.messages.contains(where: { $0.localID == cancelledPreview.localID }), "取消仅清理上传中占位")
         client.policy.canSend = false
+        var rejectedPreview = preview; rejectedPreview.localID = "rejected-preview"
+        do { try store.beginMediaUpload(rejectedPreview); fatalError("禁言后不可展示上传占位") }
+        catch { expect(!store.messages.contains(where: { $0.localID == rejectedPreview.localID }), "权限拒绝不插入占位") }
         store.input = "不应发送"
         store.sendText()
-        expect(client.sent.count == 1 && store.input == "不应发送", "提交复核动态禁言并保留输入")
+        expect(client.sent.count == 2 && store.input == "不应发送", "提交复核动态禁言并保留输入")
         client.suspend = true
         let task = Task { await store.loadMore() }
         await Task.yield()
@@ -91,7 +115,11 @@ import Foundation
         await store.open(context); store.setVisibleMessageIDs(["r1", "r2", "voice"])
         await store.markVisible("r1"); await store.markVisible("r2"); await store.markVisible("voice")
         expect(client.readBatches.isEmpty, "可见回调不能立即逐条已读")
+        var readPublications = 0
+        let readObservation = store.$messages.dropFirst().sink { _ in readPublications += 1 }
         await store.flushVisibleReads()
+        expect(readPublications == 1, "一批可见已读只发布一次消息快照")
+        readObservation.cancel()
         expect(client.readBatches.count == 1 && Set(client.readBatches[0].map(\.serverID)) == ["r1", "r2"], "正文两秒批次排除未播放语音")
         store.isVisible = false; await store.markVisible("voice", voicePlayed: true)
         expect(client.readBatches.count == 2 && client.readBatches[1][0].serverID == "v", "详情播放才上报语音已读")

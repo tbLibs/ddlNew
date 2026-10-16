@@ -23,6 +23,8 @@ struct ConversationRecord: Identifiable, Sendable {
     let isPinned: Bool
     let isMuted: Bool
     let isDraft: Bool
+    /// 单聊好友库确认的在线状态，未知记录默认不显示在线标识。
+    var isOnline = false
 }
 
 enum ConversationsChange: Sendable {

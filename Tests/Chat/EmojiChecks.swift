@@ -17,6 +17,11 @@ import Foundation
         precondition(ChatEmojiCatalog.displayOffset(7, in: text, items: items) == 4)
         precondition(ChatEmojiCatalog.rawOffset(4, in: text, items: items) == 7)
         precondition(ChatEmojiCatalog.runs(in: "[未知]", items: items).allSatisfy { $0.emoji == nil })
+        for plain in ["普通文字🙂\n第二行", "未闭合[微笑", "]单独右括号", ""] {
+            let plainRuns = ChatEmojiCatalog.runs(in: plain, items: items)
+            precondition(plainRuns.map(\.text).joined() == plain && plainRuns.allSatisfy { $0.emoji == nil })
+            precondition(plainRuns.reduce(0) { $0 + $1.range.length } == plain.utf16.count)
+        }
         let value = ChatEmojiCatalog.replacing(text, range: NSRange(location: 3, length: 0), with: "[快乐]")
         precondition(value.text == "甲🙂[快乐][微笑]乙[气球]" && value.selection.location == 7)
         let deleted = ChatEmojiCatalog.deletingBackward("中[微笑]", selection: NSRange(location: 5, length: 0), items: items)

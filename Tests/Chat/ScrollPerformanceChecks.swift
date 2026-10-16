@@ -45,6 +45,12 @@ import SwiftUI
         print("240次同可见集合几何回调：页面状态写入=\(ScrollWrites.count)，重复已读调用=\(screen.store.marked.count)")
         check(ScrollWrites.count == 0, "同一可见集合内的逐像素滚动不触发整页状态更新")
         check(screen.store.marked.isEmpty, "同一可见集合内不逐帧重复创建已读任务")
+        // 连续翻阅会跨越消息边界，不能只测停留在相同五条消息里的9点小幅移动。
+        ScrollWrites.count = 0
+        for step in 1...240 { screen.framesChanged(frames(CGFloat(step % 80) * 110)) }
+        print("240次跨消息边界滚动：页面状态写入=\(ScrollWrites.count)")
+        check(ScrollWrites.count == 0, "连续翻阅不同消息也不把可见集合发布为聊天根视图状态")
+        screen.store.marked.removeAll()
         screen.framesChanged(frames(110))
         await drain(screen.store, count: 5)
         check(screen.store.visible == ["m1", "m2", "m3", "m4", "m5"], "滚动跨消息边界立即更新可见正文")
@@ -80,8 +86,21 @@ import SwiftUI
         check(divisions.enumerated().filter { $0.element }.map { $0.offset } == [0, 50], "日期只在首条和跨日处展示")
         print("100条消息日期展示：全量快照读取=\(dates.snapshotReads)")
         check(dates.snapshotReads == 0, "每行日期判断直接使用相邻记录，不重复过滤和扫描全部历史")
+        let visibility = ChatScrollGeometry()
+        var gameUpdates: [Bool] = []
+        let game = visibility.updates(for: "game").sink { gameUpdates.append($0) }
+        check(gameUpdates == [false], "新建游戏行先收到当前不可见资格")
+        visibility.visibleMessageIDs = ["game"]
+        for index in 0..<100 { visibility.visibleMessageIDs = ["game", "text\(index)"] }
+        check(gameUpdates == [false, true], "其他文字进出视口不刷新持续可见的游戏行")
+        var lazyUpdates: [Bool] = []
+        let lazyGame = visibility.updates(for: "game").sink { lazyUpdates.append($0) }
+        check(lazyUpdates == [true], "迟创建的懒加载游戏行立即收到当前可见资格")
+        visibility.visibleMessageIDs.removeAll()
+        check(gameUpdates == [false, true, false] && lazyUpdates == [true, false], "离屏或会话重置撤销游戏动画资格")
+        game.cancel(); lazyGame.cancel()
         if !failures.isEmpty { exit(1) }
-        print("滚动生产回调检查：11项通过")
+        print("滚动生产回调检查：16项通过")
     }
     @MainActor static func drain(_ store: ScrollStore, count: Int) async {
         let deadline = ContinuousClock.now.advanced(by: .seconds(2))

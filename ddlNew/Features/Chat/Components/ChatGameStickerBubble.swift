@@ -7,6 +7,20 @@
 import SwiftUI
 import UIAdapter
 
+/// 只有游戏行订阅可见资格，普通文字跨越视口边缘不再触发整页刷新。
+struct ChatVisibleGameStickerBubble: View {
+    let message: ChatMessageRecord
+    let onComplete: (ChatMessageRecord) -> Void
+    let visibility: ChatScrollGeometry
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isVisible = false
+
+    var body: some View {
+        ChatGameStickerBubble(message: message, onComplete: onComplete, canAnimate: isVisible && scenePhase == .active)
+            .onReceive(visibility.updates(for: message.id)) { isVisible = $0 }
+    }
+}
+
 /// 旧图片动画只演示投掷过程，最终图片始终使用消息中已确定的结果。
 struct ChatGameStickerBubble: View {
     let message: ChatMessageRecord

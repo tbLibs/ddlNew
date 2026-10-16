@@ -240,10 +240,9 @@ struct ContactsView: View {
         return NavigationLink(value: ContactsRoute(contactID: contact.id)) {
             HStack(spacing: 12.zoom()) {
                 ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 50.zoom())
-                    .overlay(alignment: .topTrailing) {
+                    .overlay(alignment: .bottomTrailing) {
                         if contact.isOnline && !contact.isDeleted {
-                            Circle().fill(MessagingTheme.online).frame(width: 8.zoom(), height: 8.zoom())
-                                .overlay(Circle().stroke(MessagingTheme.surface, lineWidth: 1)).accessibilityHidden(true)
+                            MessagingOnlineIndicator()
                         }
                     }
                 VStack(alignment: .leading, spacing: 4.zoom()) {

@@ -39,8 +39,18 @@ import ObjectiveC
     func cached(context: ChatContext, offset: Int) throws -> [ChatMessageRecord] {
         try validate(context)
         if offset == 0 { try flushReadTransitions(context: context); try clearManualReadTag(context: context) }
-        return (sdk.toolGetChatMessageHistory(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? [])
-            .map { SDKChatMessageMapper.record($0, userUID: context.userUID) }
+        let models = sdk.toolGetChatMessageHistory(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? []
+        let records = models.map { SDKChatMessageMapper.record($0, userUID: context.userUID) }
+        var recallTargets: [String: String] = [:]
+        for (model, record) in zip(models, records) where record.type == 8 {
+            if let target = model.backDelServiceMsgID, !target.isEmpty { recallTargets[record.id] = target }
+        }
+        // 旧端SDK已把撤回控制条持久化，并将原条标为status2。缓存页未带原条时，
+        // 用本机原条替换隐藏的控制条，避免首屏完成后远端历史才补出“消息已撤回”。
+        return ChatRecallCache.reconcile(records, targets: recallTargets) { target in
+            guard let model = sdk.toolGetOneChatMessage(withServiceMessageID: target, sessionID: context.route.id) as NoaIMChatMessageModel? else { return nil }
+            return SDKChatMessageMapper.record(model, userUID: context.userUID)
+        }
     }
 
     /// 独立SDK代理只绑定当前聊天，会话关闭即释放。

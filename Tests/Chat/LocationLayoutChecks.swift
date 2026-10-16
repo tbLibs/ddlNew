@@ -29,7 +29,8 @@ import SwiftUI
         screen.showPinnedMessages = false
         screen.resizeFollowTask = Task {}
         screen.changed(proxy)
-        check(proxy.targets.isEmpty, "目标历史尚未布局时保留定位请求")
+        check(proxy.targets == ["old"] && screen.pendingLocatedMessageID == "old", "目标历史尚未布局时先按ID跳转，使懒加载行生成且保留定位请求")
+        proxy.targets.removeAll()
         check(!screen.followsInitialLatest && !screen.store.isAtBottom && screen.resizeFollowTask == nil, "显式定位取消首屏及延迟底部跟随")
         screen.messageFrames = ["old": CGRect(x: 0, y: -600, width: 300, height: 50)]
         screen.showPinnedMessages = true

@@ -230,6 +230,12 @@ struct MessageView: View {
                             .offset(x: (-10).zoom(), y: (-2).zoom()).accessibilityHidden(true)
                     }
                 }
+                .overlay(alignment: .bottomTrailing) {
+                    // 沿旧端消息页的位置，与通讯录共用右下角在线标识。
+                    if conversation.kind == .single && conversation.isOnline {
+                        MessagingOnlineIndicator()
+                    }
+                }
             VStack(alignment: .leading, spacing: 6.zoom()) {
                 Text(conversation.title.isEmpty ? "未命名会话" : conversation.title)
                     .font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text).lineLimit(2)
@@ -327,6 +333,7 @@ struct MessageView: View {
     /// 合并状态文案供 VoiceOver 读取整条会话。
     private func accessibilityLabel(for conversation: ConversationRecord) -> String {
         var parts = [conversation.title.isEmpty ? "未命名会话" : conversation.title]
+        if conversation.kind == .single && conversation.isOnline { parts.append("在线") }
         if conversation.isPinned { parts.append("已置顶") }
         if conversation.isMuted { parts.append("免打扰") }
         if conversation.unreadCount > 0 { parts.append("\(conversation.unreadCount) 条未读") }

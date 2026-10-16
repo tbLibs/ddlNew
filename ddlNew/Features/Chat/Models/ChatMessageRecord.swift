@@ -34,6 +34,9 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     var duration: Double = 0
     var mediaWidth: Double = 0
     var mediaHeight: Double = 0
+    /// 仅供当前会话上传期间展示，不进入 SDK 消息体或持久化缓存。
+    var localMediaPreviewURL: URL? = nil
+    var isMediaUploading = false
     var stickerID: String = ""
     var isStickerSet: Bool = false
     var gameType: Int = 0
