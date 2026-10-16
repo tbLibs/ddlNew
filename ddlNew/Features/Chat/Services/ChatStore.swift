@@ -22,6 +22,8 @@ import Combine
     @Published private(set) var selectedIDs: Set<String> = []
     @Published private(set) var busyIDs: Set<String> = []
     @Published private(set) var unreadArrivals = 0
+    /// 仅SDK确认发送成功后递增，页面据此执行一次最新消息定位。
+    @Published private(set) var sendSuccessRevision = 0
     /// 刷新型置顶事件不插入正文，但仍通知页面重读置顶列表。
     @Published private(set) var pinRevision = 0
     @Published private(set) var locatedMessageID: String?
@@ -319,11 +321,13 @@ import Combine
             if isNew && !isAtBottom { unreadArrivals += 1 }
             selectedIDs = selectedIDs.intersection(messages.filter { $0.state == .sent && $0.isBody }.map(\.id))
         case .ack(let localID, let serverID, let timestamp):
-            guard !serverID.isEmpty, var item = messages.first(where: { $0.localID == localID }) else { return }
+            guard !serverID.isEmpty, var item = messages.first(where: { $0.localID == localID }),
+                  item.conversationID == context?.route.id, item.senderID == context?.userUID else { return }
             item.serverID = serverID; item.state = .sent; item.failure = nil
             if timestamp > 0 { item.timestamp = timestamp }
             eventRevision += 1; changedIDs[localID] = eventRevision; changedIDs[serverID] = eventRevision
             merge([item], ack: true)
+            sendSuccessRevision += 1
         case .failed(let localID, let reason):
             guard let index = messages.firstIndex(where: { $0.localID == localID }), messages[index].state != .sent else { return }
             var failed = messages[index]; failed.state = .failed; failed.failure = reason; merge([failed])
@@ -371,6 +375,15 @@ import Combine
         for item in incoming where item.conversationID == context.route.id {
             eventRevision += 1; changedIDs[item.localID] = eventRevision; changedIDs[item.serverID] = eventRevision
             merge([item])
+        }
+    }
+
+    /// 逐条转发接口返回真实服务端ID后回到当前会话最新消息；合并转发仍等待SDK ACK。
+    func applyForwardedMessages(_ incoming: [ChatMessageRecord], context: ChatContext) {
+        guard self.context == context else { return }
+        applyOperationMessages(incoming, context: context)
+        if incoming.contains(where: { $0.conversationID == context.route.id && $0.senderID == context.userUID && $0.state == .sent && !$0.serverID.isEmpty }) {
+            sendSuccessRevision += 1
         }
     }
 

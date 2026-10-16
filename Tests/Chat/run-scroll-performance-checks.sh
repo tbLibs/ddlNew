@@ -14,7 +14,7 @@ def block(marker):
         depth += (s[end] == '{') - (s[end] == '}'); end += 1
     return s[start:end], s[opening+1:end-1]
 fields = []
-for name in ['messageFrames', 'latestLayout', 'visibleMessageIDs', 'scrollGeometry', 'followsInitialLatest', 'resizeFollowTask']:
+for name in ['messageFrames', 'latestLayout', 'visibleMessageIDs', 'scrollGeometry', 'followsInitialLatest', 'resizeFollowTask', 'pendingSendSuccessScroll']:
     match = re.search(r'^    @State private var '+name+r'\b.*$', s, re.M)
     if match: fields.append(match.group().replace('@State private', '@Tracked'))
     elif '    private var '+name+':' in s:
@@ -24,7 +24,7 @@ _, latest = block('.onPreferenceChange(ChatLatestPreference.self)')
 _, drag = block('.onChanged { _ in')
 drag = drag.split(' in', 1)[1]
 ended = block('.onEnded { _ in')[1].split(' in', 1)[1] if '.onEnded { _ in' in s else ''
-frames = frames.split(' in', 1)[1]; latest = latest.split(' in', 1)[1]
+frames = frames.split(' in', 1)[1]; latest = latest.split(' in', 1)[1].replace('positionSendSuccess(proxy)', '')
 method = block('    private func updateVisibleMessages(')[0].replace('private ', '')
 code = '''import SwiftUI
 @MainActor final class ProductionScroll {

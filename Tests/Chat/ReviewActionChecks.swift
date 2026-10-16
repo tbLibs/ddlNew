@@ -20,10 +20,12 @@ import Foundation
         permission.isGroup = true; permission.role = 2; message.senderRole = 1
         check(allowed(message, permission), "群主可撤回管理员旧消息")
         message = ChatMessageRecord(localID: "mine", serverID: "own", conversationID: "g", senderID: "me", senderName: "我", senderRole: 2, timestamp: 1, state: .sent)
-        check(!allowed(message, permission), "群主本人旧消息仍受本人时限约束")
+        check(allowed(message, permission), "群主本人旧消息沿旧端不受撤回分钟窗限制")
+        permission.role = 0
+        check(!allowed(message, permission), "普通群成员本人旧消息仍受撤回分钟窗限制")
         message.timestamp = 99_000
-        check(allowed(message, permission), "本人窗口内消息可撤回")
-        print("Review action checks: 9 passed")
+        check(allowed(message, permission), "普通成员本人窗口内消息可撤回")
+        print("Review action checks: 10 passed")
     }
 
     /// 使用固定当前时间校验生产策略，避免依赖测试执行时钟。

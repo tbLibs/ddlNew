@@ -29,6 +29,7 @@ struct ChatRoomView: View {
     @State private var showPinnedMessages = false
     @State private var pendingSheetLocation: (id: String, context: ChatContext)?
     @State private var pendingLocatedMessageID: String?
+    @State private var pendingSendSuccessScroll = false
     @State private var pinRefreshTask: Task<Void, Never>?
     @State private var showMentionPicker = false
     @State private var mentionMembers: [ChatGroupMember] = []
@@ -116,6 +117,7 @@ struct ChatRoomView: View {
                 }
                 .onPreferenceChange(ChatLatestPreference.self) { layout in
                     latestLayout = layout
+                    positionSendSuccess(proxy)
                     if followsInitialLatest { positionInitialMessages(proxy) }
                     else if resizeFollowTask == nil { store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) }
                 }
@@ -134,6 +136,7 @@ struct ChatRoomView: View {
             }
             .onChange(of: composerFocused) { _ in followAfterResize(proxy) }
             .onChange(of: store.locationRevision) { _ in receiveLocatedMessage(proxy) }
+            .onChange(of: store.sendSuccessRevision) { _ in receiveSendSuccess(proxy) }
         }
     }
 
@@ -188,7 +191,7 @@ struct ChatRoomView: View {
             if let context = runtime.context(for: route) {
                 if store.context != context {
                     didInitialScroll = false; followsInitialLatest = true
-                    pendingSheetLocation = nil; pendingLocatedMessageID = nil
+                    pendingSheetLocation = nil; pendingLocatedMessageID = nil; pendingSendSuccessScroll = false
                     latestLayout = ChatLatestPreference.Value(); messageFrames.removeAll(); visibleMessageIDs.removeAll()
                 }
                 openedContext = context; await store.open(context)
@@ -381,6 +384,7 @@ struct ChatRoomView: View {
         let followsLatest = store.isAtBottom
         viewport = CGRect(origin: .zero, size: size)
         updateVisibleMessages()
+        positionSendSuccess(proxy)
         if followsInitialLatest { positionInitialMessages(proxy) }
         else if followsLatest { followAfterResize(proxy) }
         else if resizeFollowTask == nil { store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) }
@@ -390,6 +394,7 @@ struct ChatRoomView: View {
     private func resumeChat(_ proxy: ScrollViewProxy) {
         store.isForeground = scenePhase == .active
         store.isVisible = true
+        positionSendSuccess(proxy)
         positionLocatedMessage(proxy)
         if followsInitialLatest { positionInitialMessages(proxy) }
     }
@@ -438,6 +443,27 @@ struct ChatRoomView: View {
         store.isAtBottom = false
         proxy.scrollTo(id, anchor: .center)
         pendingLocatedMessageID = nil
+    }
+
+    /// SDK成功回执强制回到最新消息，即使用户之前正在浏览旧记录。
+    private func receiveSendSuccess(_ proxy: ScrollViewProxy) {
+        followsInitialLatest = false; didInitialScroll = true
+        pendingLocatedMessageID = nil
+        resizeFollowTask?.cancel(); resizeFollowTask = nil
+        pendingSendSuccessScroll = true
+        store.returnToLatest()
+        positionSendSuccess(proxy)
+    }
+
+    /// 等末条消息对应的布局完成后消费回执，避免ACK早于列表更新时滚动到旧位置。
+    private func positionSendSuccess(_ proxy: ScrollViewProxy) {
+        guard pendingSendSuccessScroll, store.isVisible,
+              let lastID = displayedMessages.last?.id,
+              latestLayout.lastMessageID == lastID,
+              latestFrame.width > 0, viewport.width > 0, viewport.height > 0 else { return }
+        proxy.scrollTo("latest", anchor: .bottom)
+        store.returnToLatest()
+        pendingSendSuccessScroll = false
     }
 
     /// 沿旧端在真实布局回调无动画对齐首屏，用户翻历史或显式定位后停止首次跟随。
@@ -551,7 +577,10 @@ struct ChatRoomView: View {
                     }
                     ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
                     isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
-                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, allowsGameAnimation: initialMessagesReady && scenePhase == .active && visibleMessageIDs.contains(message.id), onGameAnimationComplete: { store.completeGameAnimation($0) })
+                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: true,
+                    // 单聊用当前好友备注/昵称，好友缓存尚未就绪时由chatTitle回退到会话名或UID。
+                    senderDisplayName: route.kind == .single ? chatTitle : nil,
+                    allowsGameAnimation: initialMessagesReady && scenePhase == .active && visibleMessageIDs.contains(message.id), onGameAnimationComplete: { store.completeGameAnimation($0) })
                     .allowsHitTesting(composerMode.panel != .selection)
                     .accessibilityHidden(composerMode.panel == .selection)
                     .overlay {

@@ -1,5 +1,9 @@
 # ddlNew 项目交接文档
 
+## 2026-10-15 聊天模块旧端对照轮次
+
+用户扩大范围要求按旧项目 xgd 对聊天模块做全功能对照，并允许 Mobile MCP。本轮已修复发送成功回最新、当前会话逐条转发回最新、发送中/失败本机删除、删除权限兼容和群管理员/群主撤回窗口差异；完整交接、验证范围和未迁移依赖见[聊天旧端对照交接](CHAT_LEGACY_PARITY_HANDOFF_2026-10-15.md)。验证：42/42 Chat离线入口、16/16 MigrationAcceptance、连接iPhone目的地 Xcode `BUILD SUCCEEDED`、`git diff --check`通过。Mobile MCP只读查看已有安装版聊天页和置顶入口；未发送测试消息，未安装本轮包，故代码行为仍需QA群和双端进行设备验收。不提交、不推送。
+
 ## 2026-10-15 通讯录启动角标与置顶消息主动定位
 
 用户报告启动进入Tab后通讯录红角标短暂出现后消失，以及点击聊天置顶无法定位，并明确要求参考旧xgd。只读对照旧端`NoaChatViewController.groupTopMessageViewDidClickView/groupTopMessageLocation`、`ZGroupTopMessageListViewController.locationButtonAction`和`AppDelegate+DB.updateFriendApplyCountFromService`：置顶正文直接定位、独立列表按钮打开全部置顶；列表先返回聊天再定位，取消首次末尾对齐，本机历史补齐后居中；删除/撤回目标提示找不到。通讯录采用SDK申请未读计数与真实同步记录，不以历史申请列表条数推算未读。
@@ -11,6 +15,8 @@
 新增`Tests/Chat/run-location-checks.sh`执行真实Store和提取的生产入口/弹层/布局方法，外部SDK及滚动执行用匿名边界替代。重复定位、入口差异、本地历史、布局前时序、在途历史、撤回目标、补页首条不变分别先RED再GREEN；终版Store12项与布局12项通过（`/tmp/ddlNew-location-final-green.log`）。独立只读复核确认三处追加问题补修后未发现剩余阻断。首次全套75/76组通过，失败项为滚动性能测试提取器缺少proxy绑定，已修测试边界；生产几何状态/批量已读逻辑保持。终版统一离线76/76组exit0，逐项耗时合计254.60秒，结果`/tmp/ddlNew-pin-location-final-qa-results/summary.json`。终版无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-pin-location-final-build.log`），本轮聊天文件无新增编译警告，`git diff --check`通过。
 
 追加定位框对比修正：用户真机报告本人绿色气泡与原绿色定位框同色。`ChatMessageBubble`现对本人非视觉媒体气泡使用`onPrimaryAction`反差色（浅色白、深色深绿），3pt内描边向内缩2pt并保留气泡外沿；对方及透明媒体继续使用主题强调色。现有色板计算的浅/深对比为7.87:1、7.71:1。仅样式变更，不新增行为测试或重复全套回归；无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261015-location-outline-build.log`），该气泡文件无新增编译警告，`git diff --check`通过。真实定位框视觉仍待重新Run复验。
+
+发送成功后回到最新消息：用户要求聊天文字、图片、视频、文件和语音发送成功后自动定位到末条。统一采用SDK带服务端消息ID的`.ack`作为成功边界（附件上传完成/入队不当作消息发送成功），`ChatStore`仅对当前会话的本人消息确认后递增`sendSuccessRevision`；`ChatRoomView`收到后取消旧定位/延迟跟随，设置回到最新意图，并在末条实际布局可用时滚动到底部、清除新消息计数。发送失败不触发；文本、附件、录音、游戏等最终进入同一SDK ACK入口。构建与完整对照轮次的最终验证已记录在本文件顶部及专项交接文档。
 
 Mobile MCP继续暂停，本轮未操作设备、未提交/推送。离线与构建不代表真实SwiftUI滚动、弹层返回或键盘收起动画已验收；重新Run后需复验：冷启动通讯录零/非零未读、顶部正文直达旧消息、列表定位后返回、滑离后重复点同一条、较早消息/下拉补页中点击、键盘已展开时定位及已撤回目标的失败Toast。源码与实时Git优先。
 

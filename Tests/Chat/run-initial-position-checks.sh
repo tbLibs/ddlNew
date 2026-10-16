@@ -20,12 +20,15 @@ geometry = geometry.split(' in', 1)[1]
 new = 'private func positionInitialMessages(' in s
 methods = block('    private func followAfterResize(')[0]
 if new: methods += '\n' + block('    private func positionInitialMessages(')[0]
+if '    private func positionSendSuccess(' in s:
+    methods += '\n' + block('    private func positionSendSuccess(')[0].replace('private ', '')
 if '    private func resumeChat(' in s:
     methods += '\n' + block('    private func resumeChat(')[0]
     resume = 'resumeChat(proxy)'
 else:
     resume = block('.onAppear { store.isForeground')[1]
 fields = 'var latestFrame = CGRect.zero\n' if not new else 'var latestLayout = ChatLatestLayout()\nvar latestFrame: CGRect { latestLayout.frame }\n'
+fields += 'var pendingSendSuccessScroll = false\n'
 argument = '_ frame: CGRect' if not new else '_ layout: ChatLatestLayout'
 geometry_call = 'layout.frame' if not new else 'layout'
 code = '''import SwiftUI
@@ -41,6 +44,7 @@ code = '''import SwiftUI
     var scenePhase = ScenePhase.active
     func updateVisibleMessages() { visibleUpdates += 1 }
     func positionLocatedMessage(_ proxy: PositionProxy) {}
+    func returnToLatest() { store.isAtBottom = true }
 FIELDS
 METHODS
     func changed(_ id: String?, proxy: PositionProxy) { CHANGED }

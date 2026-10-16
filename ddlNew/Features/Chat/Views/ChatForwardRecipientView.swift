@@ -124,7 +124,7 @@ struct ChatForwardRecipientView: View {
             do {
                 let records = try await SDKChatActionsClient().forward(messages, from: context, to: route, merged: merged, onEnqueued: { chat.applyOperationMessages($0, context: context) })
                 guard ChatRuntime.shared.isCurrent(context) else { return }
-                chat.applyOperationMessages(records, context: context)
+                chat.applyForwardedMessages(records, context: context)
                 results.append(route.title + (merged ? "：已入队，等待消息回执" : "：\(records.count)条消息已获服务器确认")); selectedIDs.remove(key(route))
             } catch { results.append(route.title + "：" + error.localizedDescription) }
         }

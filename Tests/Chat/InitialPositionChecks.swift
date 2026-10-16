@@ -11,6 +11,7 @@ struct ChatLatestLayout: Equatable {
     var isVisible = true
     var isForeground = true
     var messages = [PositionMessage(id: "latest")]
+    func returnToLatest() { isAtBottom = true }
 }
 @MainActor final class PositionProxy {
     var targets: [String] = []
@@ -47,8 +48,14 @@ struct ChatLatestLayout: Equatable {
         check(hiddenProxy.targets.isEmpty, "离开页面后的布局不能滚动旧页")
         hidden.resume(proxy: hiddenProxy)
         check(hiddenProxy.targets == ["latest"], "隐藏时布局完成，返回同一会话仍主动重试定位")
+        let sent = ProductionInitialPosition(); let sentProxy = PositionProxy()
+        sent.pendingSendSuccessScroll = true
+        sent.latestLayout = ChatLatestLayout(frame: CGRect(x: 0, y: 1400, width: 358, height: 1), lastMessageID: "latest")
+        sent.positionSendSuccess(sentProxy)
+        check(sentProxy.targets == ["latest"] && sent.store.isAtBottom && !sent.pendingSendSuccessScroll,
+              "发送成功后即使原先停留在历史位置也主动回到最新消息")
         screen.resizeFollowTask?.cancel(); search.resizeFollowTask?.cancel(); hidden.resizeFollowTask?.cancel()
         if !failed.isEmpty { exit(1) }
-        print("首次定位生产回调检查：9项通过")
+        print("首次定位生产回调检查：10项通过")
     }
 }

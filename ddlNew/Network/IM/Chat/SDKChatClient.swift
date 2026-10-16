@@ -208,7 +208,8 @@ import ObjectiveC
         let recallMinutes = Double(config?.messageRecallTime ?? "0") ?? 0
         let editMinutes = authority?.positiveMinutes("edited_message_sent") ?? 0
         var value = ChatPermission(canUpload: authority?.allows("upImageVideoFile") == true, canUploadFile: authority?.allows("upFile") == true,
-            canDelete: authority?.allows("deleteMessage") == true,
+            // 旧端任一删除权限都会开放“从我的设备删除”；remoteDeleteMessage 另外控制双方删除。
+            canDelete: authority?.allows("deleteMessage") == true || authority?.allows("remoteDeleteMessage") == true,
             canDeleteBoth: authority?.allows("remoteDeleteMessage") == true,
             canRecallOthers: config?.groupMangerMessageRecallTime == "1",
             canRecall: recallMinutes > 0, canEdit: editMinutes > 0,
@@ -444,7 +445,7 @@ import ObjectiveC
         var params: [String: Any] = ["userUid": context.userUID, "chatType": context.route.kind == .group ? 1 : 0,
             "receiveId": context.route.id, "msgId": message.localID, "sMsgId": message.serverID]
         if action == .delete || action == .deleteBoth {
-            if message.state == .failed && action == .delete {
+            if action == .delete && (message.state != .sent || message.serverID.isEmpty || message.type == 20) {
                 guard let model = (sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id) as NoaIMChatMessageModel?),
                     sdk.toolDeleteChatMessage(with: model) else { throw ChatClientError.unavailable("无法保存本机删除状态，请重试") }
                 return

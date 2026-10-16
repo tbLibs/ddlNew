@@ -20,6 +20,7 @@ struct ChatMessageBubble: View {
     var onMention: (() -> Void)? = nil
     var referenceSummary: String = "引用原文尚未加载，点击定位"
     var showsSenderName = false
+    var senderDisplayName: String? = nil
     var allowsGameAnimation = false
     var onGameAnimationComplete: (ChatMessageRecord) -> Void = { _ in }
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
@@ -30,7 +31,10 @@ struct ChatMessageBubble: View {
             if own { Spacer(minLength: 36) }
             if !own { avatar }
             VStack(alignment: own ? .trailing : .leading, spacing: 5.zoom()) {
-                if showsSenderName && !own && !message.senderName.isEmpty { Text(message.senderName).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                if showsSenderName && !own {
+                    let name = senderDisplayName ?? message.senderName
+                    if !name.isEmpty { Text(name).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                }
                 content
                     .padding(isVisualMedia ? 0 : 10.zoom())
                     .background(isVisualMedia ? Color.clear : own ? MessagingTheme.outgoingBubble : MessagingTheme.surface)

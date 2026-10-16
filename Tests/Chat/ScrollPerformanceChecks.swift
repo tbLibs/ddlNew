@@ -17,6 +17,7 @@ import SwiftUI
     var marked: [String] = []
     func setVisibleMessageIDs(_ ids: Set<String>) { visible = ids }
     func markVisible(_ id: String) async { marked.append(id) }
+    func returnToLatest() { isAtBottom = true }
 }
 @main struct ScrollPerformanceChecks {
     @MainActor static func main() async {

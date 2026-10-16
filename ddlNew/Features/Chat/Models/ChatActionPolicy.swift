@@ -24,10 +24,12 @@ enum ChatActionPolicy {
         let own = message.senderID == userUID
         if permission.canDeleteBoth && (own || permission.isGroup && [1, 2].contains(permission.role)) { result.insert(.deleteBoth) }
         let elapsed = max(0, (TimeInterval(now) - TimeInterval(message.timestamp)) / 1000)
-        // 管理员撤回低角色成员的消息没有本人时限；本人消息仍按服务器窗口判断。
+        // 管理员撤回低角色成员的消息没有本人时限；群管理员本人消息也沿旧端不受分钟窗限制。
         if own {
-            if permission.canRecall, let window = permission.recallWindow,
-               window > 0 && elapsed <= window { result.insert(.recall) }
+            // 旧端仅普通群成员受本人撤回时限约束；管理员和群主仍需全局开启撤回，但不受分钟窗限制。
+            let isPrivilegedGroupMember = permission.isGroup && [1, 2].contains(permission.role)
+            let isWithinRecallWindow = permission.recallWindow.map { $0 > 0 && elapsed <= $0 } == true
+            if permission.canRecall && (isPrivilegedGroupMember || isWithinRecallWindow) { result.insert(.recall) }
         } else if permission.isGroup && permission.canRecallOthers && [1, 2].contains(permission.role),
                   message.senderRole.map({ [0, 1].contains($0) && $0 < permission.role }) == true {
             result.insert(.recall)
