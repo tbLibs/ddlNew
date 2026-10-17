@@ -18,18 +18,20 @@ final class IMLoggedInReconnectEngine {
     /// 业务层 55 秒收尾，早于 SDK 的 60 秒兜底。
     private let timeout: TimeInterval
     private let cooldown: TimeInterval
+    private let refreshedNodesAreProbed: Bool
     private var lastRefresh: TimeInterval?
     private var generation = UUID()
     private var work: Task<Void, Never>?
     private var timer: Task<Void, Never>?
     private var completion: Completion?
 
-    init(session: IMReconnectSession, timeout: TimeInterval = 55, cooldown: TimeInterval = 60,
+    init(session: IMReconnectSession, refreshedNodesAreProbed: Bool = false, timeout: TimeInterval = 55, cooldown: TimeInterval = 60,
          clock: @escaping @MainActor () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          isCurrentSession: @escaping @MainActor (IMReconnectSession) -> Bool,
          cachedNodes: @escaping @MainActor () -> [OSSLegacyEndpoint],
          refreshNodes: @escaping @MainActor () async throws -> [OSSLegacyEndpoint],
          probe: @escaping @MainActor (OSSLegacyEndpoint) async throws -> Bool) {
+        self.refreshedNodesAreProbed = refreshedNodesAreProbed
         self.session = session; self.timeout = timeout; self.cooldown = cooldown
         self.clock = clock; self.isCurrentSession = isCurrentSession
         self.cachedNodes = cachedNodes; self.refreshNodes = refreshNodes; self.probe = probe
@@ -62,7 +64,10 @@ final class IMLoggedInReconnectEngine {
                 lastRefresh = now
                 let refreshed = try await refreshNodes()
                 try check(runID)
-                let winner = try await firstReachable(refreshed, runID: runID)
+                // DNS1 刷新已在每个来源完成竞速，第一项就是成功节点；不再重复临时握手。
+                let winner: OSSLegacyEndpoint?
+                if refreshedNodesAreProbed { winner = refreshed.first }
+                else { winner = try await firstReachable(refreshed, runID: runID) }
                 finish(runID, node: winner, failure: winner == nil ? "tcp_nodes_unreachable" : nil)
             } catch is CancellationError { }
             catch { finish(runID, node: nil, failure: "navigation_refresh_failed") }

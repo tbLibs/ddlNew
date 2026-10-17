@@ -116,3 +116,13 @@ let builtInOSSHTTPBaseURLs = [
 
 /// 已确认强制修改密码的最小身份标记；只含用户 UID 与所属俱乐部。
 let loginForcedPasswordRequirementAppStorageKey = "ddlNew.loginForcedPasswordRequirement.v1"
+
+// APP DNS1 新流程开关：旧五路实现保留，但开启时不再进入旧导航。
+nonisolated let dns1NavigationEnabled = true
+nonisolated let dns1MainDomain = "facaifacai99.xyz"
+nonisolated let dns1BackupDomain = ""
+nonisolated let dns1AccountId = "899981"
+nonisolated let dns1AccessKey = "899981_32929921960122368"
+nonisolated let dns1AccessKeySecret = "d298cd440c204fc28f9170a01f7d45e6"
+nonisolated let dns1BinURLTemplate = "https://nav-sg.oss-cn-hongkong.aliyuncs.com/nav_%s/npoint.bin"
+nonisolated let dns1NavigationCacheKey = "ddlNew.dns1Navigation.v2"

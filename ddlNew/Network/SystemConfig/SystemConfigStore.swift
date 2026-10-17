@@ -22,7 +22,7 @@ final class SystemConfigStore {
 
     private init() {}
 
-    func save(_ configuration: SystemConfigRecord, lastLiceseId: String, apiHost: URL) throws {
+    func save(_ configuration: SystemConfigRecord, lastLiceseId: String, apiHost: URL?) throws {
         guard configuration.isValidForLogin else {
             throw SystemConfigStoreError.invalidConfiguration
         }
@@ -36,7 +36,7 @@ final class SystemConfigStore {
         guard let json = Mapper<SystemConfigCacheRecord>().toJSONString(record),
               let restored = Mapper<SystemConfigCacheRecord>().map(JSONString: json),
               restored.lastLiceseId == lastLiceseId,
-              restored.apiHost == apiHost.absoluteString,
+              restored.apiHost == (apiHost?.absoluteString ?? ""),
               restored.configuration.isValidForLogin else {
             throw SystemConfigStoreError.serializationFailed
         }
@@ -44,14 +44,14 @@ final class SystemConfigStore {
     }
 
     /// 缓存可用于页面展示；后续发起登录前仍需判断是否已刷新。
-    func load(apiHost: URL) -> SystemConfigRecord? {
-        guard let record = storedRecord(apiHost: apiHost) else { return nil }
+    func load(apiHost: URL?, lastLiceseId: String? = nil) -> SystemConfigRecord? {
+        guard let record = storedRecord(apiHost: apiHost, lastLiceseId: lastLiceseId) else { return nil }
         return record.configuration
     }
 
     /// 老项目每五分钟刷新系统配置；超时缓存不当作登录就绪状态。
-    func loadFresh(apiHost: URL) -> SystemConfigRecord? {
-        guard let record = storedRecord(apiHost: apiHost) else {
+    func loadFresh(apiHost: URL?, lastLiceseId: String? = nil) -> SystemConfigRecord? {
+        guard let record = storedRecord(apiHost: apiHost, lastLiceseId: lastLiceseId) else {
             return nil
         }
         let age = Date().timeIntervalSince1970 - record.fetchedAt
@@ -59,11 +59,12 @@ final class SystemConfigStore {
         return record.configuration
     }
 
-    private func storedRecord(apiHost: URL) -> SystemConfigCacheRecord? {
+    private func storedRecord(apiHost: URL?, lastLiceseId: String?) -> SystemConfigCacheRecord? {
         let json = SystemConfigEntryStorage().json
         guard !json.isEmpty,
               let record = Mapper<SystemConfigCacheRecord>().map(JSONString: json),
-              record.apiHost == apiHost.absoluteString,
+              record.apiHost == (apiHost?.absoluteString ?? ""),
+              (lastLiceseId == nil ? apiHost != nil : record.lastLiceseId == lastLiceseId),
               record.configuration.isValidForLogin else {
             return nil
         }

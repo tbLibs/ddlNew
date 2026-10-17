@@ -35,7 +35,7 @@ import UniformTypeIdentifiers
         cancel(); let run = generation
         guard ChatRuntime.shared.isCurrent(context), let plan = OSSConnectionBootstrap.shared.current,
               plan.lastLiceseId == context.tenantID,
-              let config = SystemConfigStore.shared.load(apiHost: plan.apiHost) else { throw ChatClientError.sessionExpired }
+              let config = SystemConfigStore.shared.load(apiHost: plan.apiHost, lastLiceseId: plan.lastLiceseId) else { throw ChatClientError.sessionExpired }
         if config.ossConfigType != "0" {
             let cloud = SDKCloudChatMediaClient(); cloudClient = cloud
             defer { cloudClient = nil }
@@ -43,11 +43,12 @@ import UniformTypeIdentifiers
             try validate(run, context: context)
             return result
         }
+        guard let uploadHost = plan.uploadFileHost else { throw ChatClientError.unavailable("服务器未提供文件上传地址") }
         try checkPermission(attachment)
         let encodedFile = try await Task.detached { try LegacyChatMediaCodec.prepareUpload(file: attachment.file, type: attachment.type) }.value
         defer { if encodedFile != attachment.file { try? FileManager.default.removeItem(at: encodedFile) } }
         let uploadAttachment = ChatAttachment(file: encodedFile, type: attachment.type, name: attachment.name, bytes: Int64(try encodedFile.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0), duration: attachment.duration, width: attachment.width, height: attachment.height)
-        let delegate = ChatTransferSessionDelegate(origin: plan.uploadFileHost)
+        let delegate = ChatTransferSessionDelegate(origin: uploadHost)
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 60
         let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
@@ -141,7 +142,8 @@ import UniformTypeIdentifiers
 
     /// 所有HTTP请求使用旧Minio真实签名、UID及上传公钥令牌。
     private func request(path: String, query: [String: String] = [:], plan: OSSConnectionPlan, tenantCode: String, context: ChatContext, fileName: String? = nil, publicKey: String? = nil) throws -> URLRequest {
-        var components = URLComponents(url: plan.uploadFileHost.appendingPathComponent(String(path.dropFirst())), resolvingAgainstBaseURL: false)!
+        guard let uploadHost = plan.uploadFileHost,
+              var components = URLComponents(url: uploadHost.appendingPathComponent(String(path.dropFirst())), resolvingAgainstBaseURL: false) else { throw ChatClientError.unavailable("服务器未提供文件上传地址") }
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
         guard let url = components.url else { throw ChatClientError.invalidResponse }
         var request = URLRequest(url: url); request.httpMethod = "POST"

@@ -175,6 +175,12 @@ final class IMConnectionCoordinator: ObservableObject {
 
     private func reconnectPlan(lastLiceseId: String, refresh: Bool, runID: UUID) async throws -> OSSConnectionPlan {
         try check(runID)
+        if dns1NavigationEnabled {
+            let winner = try await DNS1NodeRaceCoordinator.race(license: lastLiceseId, useCache: !refresh)
+            try check(runID)
+            try OSSNavigationStore.shared.save(winner, lastLiceseId: lastLiceseId)
+            return try OSSConnectionBootstrap.shared.prepare(requireFresh: false, probedTCPAddress: winner.node.urlString)
+        }
         if !refresh, let cached = try? OSSConnectionBootstrap.shared.prepare(requireFresh: false) {
             return cached
         }

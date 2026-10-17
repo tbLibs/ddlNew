@@ -128,9 +128,9 @@ nonisolated struct SystemConfigCacheRecord: Mappable {
     var configuration = SystemConfigRecord()
 
     /// 将配置与取得配置的导航上下文一起保存。
-    init(lastLiceseId: String, apiHost: URL, configuration: SystemConfigRecord) {
+    init(lastLiceseId: String, apiHost: URL?, configuration: SystemConfigRecord) {
         self.lastLiceseId = lastLiceseId
-        self.apiHost = apiHost.absoluteString
+        self.apiHost = (apiHost?.absoluteString ?? "")
         self.fetchedAt = Date().timeIntervalSince1970
         self.configuration = configuration
     }

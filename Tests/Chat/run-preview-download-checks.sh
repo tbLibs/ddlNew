@@ -27,5 +27,6 @@ PY
 swiftc -parse-as-library "$task_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$task_root/ddlNew/Features/Chat/Models/"*.swift \
  "$task_root/ddlNew/Common/Media/LegacyChatMediaCodec.swift" \
+ "$task_root/ddlNew/Network/Core/RemoteAvatarURL.swift" \
  "$task_temp/ProductionPreview.swift" "$task_root/Tests/Chat/PreviewDownloadChecks.swift" -o "$task_temp/checks"
 "$task_temp/checks"

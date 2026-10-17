@@ -24,7 +24,8 @@
 | `ddlNew/Common/Crypto` | 通用加解密工具 |
 | `ddlNew/Common/Media` | 旧媒体格式编解码、云上传及共用网络图片处理 |
 | `ddlNew/Network/Core` | Moya 请求封装、公共请求头、ObjectMapper 扩展 |
-| `ddlNew/Network/DNS` | 五路 DNS 查询、数据解码、域名规范化 |
+| `ddlNew/Network/DNS1` | 当前 APP t 域解析、BIN 降级、原生 TCP/ECDH 竞速 |
+| `ddlNew/Network/DNS` | 保留的旧五路 DNS 查询、数据解码、域名规范化 |
 | `ddlNew/Network/OSS` | OSS 节点竞速、导航响应、导航缓存和连接准备 |
 | `ddlNew/Network/IM` | SDK 连接、TCP/ECDH、用户 AUTH 与 SDK 适配 |
 | `ddlNew/Network/SystemConfig` | 系统配置请求、解析和存储 |
@@ -50,7 +51,7 @@
 
 `NoaChatSDKCore`、`NetWorkStatus`、Pods 和静态库不属于本次应用目录整理范围。`ddlNew/Basic/LXChatEncrypt` 保持原位，以保留静态库链接和头文件路径。
 
-启动连接流程保留 DNS/OSS、SDK 配置、TCP/ECDH、系统配置的现有顺序。账号密码请求成功还不代表 IM 登录就绪：必须收到 SDK 的用户 AUTH ACK 成功回调，才完成登录并允许后续业务流程。目录整理不改变该判定。
+启动连接当前使用 APP DNS1：t 域主备/BIN 给出原生 TCP，ECDH 竞速后建立正式连接，再经 TCP 获取系统配置；HTTP 为可选文件地址。旧五路/OSS 导航实现保留但不执行，细节见 `Docs/PROJECT_HANDOFF.md` 的 2026-10-17 章节。账号密码请求成功还不代表 IM 登录就绪：必须收到 SDK 的用户 AUTH ACK 成功回调，才完成登录并允许后续业务流程。目录整理不改变该判定。
 
 ## 通讯录验证
 

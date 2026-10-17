@@ -110,6 +110,7 @@ final class OSSNavigationStore {
         guard var record = try storedRecord() else {
             throw OSSNavigationStoreError.invalidStoredNavigation
         }
+        guard record.liceseId == lastLiceseId else { throw OSSNavigationStoreError.invalidStoredNavigation }
         record.lastLiceseId = lastLiceseId
         record.lastIPDomainPortStr = record.ipDomainPortStr
         let mapper = Mapper<OSSNavigationRecord>()
@@ -126,6 +127,8 @@ final class OSSNavigationStore {
     /// 主动更换俱乐部只清除启动入口，保留最新导航及已保存的配置。
     func clearLastUsableEntry() throws {
         let storage = OSSNavigationEntryStorage()
+        // 主动更换企业同时撤销旧版本入口，避免升级恢复再次带回旧邀请码。
+        if dns1NavigationEnabled { LegacyDNS1EntryStorage().json = "" }
         guard !storage.json.isEmpty else { return }
         let mapper = Mapper<OSSNavigationRecord>()
         guard var record = mapper.map(JSONString: storage.json) else {
@@ -143,6 +146,11 @@ final class OSSNavigationStore {
 
     /// 本地入口只用于决定页面，不表示缓存未过期、账号已登录或 IM 已连接。
     func lastUsableLiceseId() -> String? {
+        // 升级只迁移上次成功的邀请码；旧节点不参与新流程。新缓存存在后不再读旧入口。
+        if dns1NavigationEnabled, OSSNavigationEntryStorage().json.isEmpty {
+            let old = LegacyDNS1EntryStorage()
+            return Mapper<OSSNavigationRecord>().map(JSONString: old.json)?.lastLiceseId.nilIfDNS1Empty
+        }
         // 页面恢复只读取入口字段，节点有效性留给连接准备流程检查。
         guard let record = Mapper<OSSNavigationRecord>().map(JSONString: OSSNavigationEntryStorage().json) else {
             return nil
@@ -159,7 +167,8 @@ final class OSSNavigationStore {
         guard let record = Mapper<OSSNavigationRecord>().map(JSONString: json) else {
             throw OSSNavigationStoreError.invalidStoredNavigation
         }
-        _ = try record.snapshot()
+        let snapshot = try record.snapshot()
+        if dns1NavigationEnabled { _ = try DNS1NodeRaceCoordinator.payload(from: snapshot.body) }
         return record
     }
 
@@ -173,5 +182,15 @@ final class OSSNavigationStore {
 /// 固定 key 保存唯一一份导航的 ObjectMapper JSON，读取时只校验导航内容。
 @MainActor
 private struct OSSNavigationEntryStorage {
+    @AppStorage(dns1NavigationEnabled ? dns1NavigationCacheKey : ossNavigationAppStorageKey) var json = ""
+}
+
+@MainActor private struct LegacyDNS1EntryStorage {
     @AppStorage(ossNavigationAppStorageKey) var json = ""
+}
+private extension String {
+    var nilIfDNS1Empty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
 }

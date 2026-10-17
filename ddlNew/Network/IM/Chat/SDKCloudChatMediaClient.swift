@@ -14,7 +14,7 @@ import UniformTypeIdentifiers
         cancel(); let run = generation
         try validate(run, context: context)
         guard let plan = OSSConnectionBootstrap.shared.current, plan.lastLiceseId == context.tenantID,
-              let config = SystemConfigStore.shared.load(apiHost: plan.apiHost),
+              let config = SystemConfigStore.shared.load(apiHost: plan.apiHost, lastLiceseId: plan.lastLiceseId),
               let provider = CloudStorageProvider(rawValue: config.ossConfigType) else { throw ChatClientError.invalidResponse }
         try checkPermission(attachment)
         let credentials = try await temporaryCredentials(provider: provider, context: context, run: run)

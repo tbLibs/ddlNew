@@ -25,6 +25,7 @@ final class HTTPAuthAvailabilityProbe {
 
     func verifyKeyEndpoint(plan: OSSConnectionPlan, configuration: SystemConfigRecord) async throws {
         try _Concurrency.Task<Never, Never>.checkCancellation()
+        guard let apiHost = plan.apiHost else { throw HTTPAuthProbeError.invalidResponse }
         let timestamp = Int64(Date().timeIntervalSince1970)
         let signature = try SystemConfigCrypto.authenticationSignature(
             tenantCode: configuration.tenantCode,
@@ -35,9 +36,9 @@ final class HTTPAuthAvailabilityProbe {
             signature: signature,
             lastLiceseId: plan.lastLiceseId
         )
-        let provider = BusinessApiRequest.provider(for: plan.apiHost)
+        let provider = BusinessApiRequest.provider(for: apiHost)
         let response = try await provider.rx
-            .request(.generateEncryptKey(baseURL: plan.apiHost, headers: headers))
+            .request(.generateEncryptKey(baseURL: apiHost, headers: headers))
             .filterSuccessfulStatusCodes()
             .value
         try _Concurrency.Task<Never, Never>.checkCancellation()

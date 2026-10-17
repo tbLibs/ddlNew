@@ -81,7 +81,8 @@ enum OSSAuthResponseDecoder {
         // 同一节点可能同时支持 TCP 和 HTTP，因此两类筛选不能互斥。
         let tcp = usable.filter { $0.protocols.contains("tcp") }
         let http = usable.filter { $0.protocols.contains("http") }
-        guard !tcp.isEmpty, !http.isEmpty else {
+        // 仅明确标记的本地 DNS1 版本允许 TCP-only；旧协议校验保持原合同。
+        guard !tcp.isEmpty, !http.isEmpty || body.meta.navVersion.hasPrefix("DNS1:v2:") else {
             throw OSSAuthResponseError.missingUsableEndpoints
         }
         return OSSNavigationResult(body: body, tcpEndpoints: tcp, httpEndpoints: http)

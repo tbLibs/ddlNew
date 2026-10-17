@@ -56,6 +56,14 @@ struct NetworkRecoveryChecks {
         let directResult = await result(direct)
         precondition(directResult.0 == cached)
 
+        // DNS1 刷新返回的首项已经完成 ECDH；缓存仍须探测，刷新首胜直接交 SDK 正式连接。
+        var nativeProbes = 0
+        let native = IMLoggedInReconnectEngine(session: session, refreshedNodesAreProbed: true,
+            isCurrentSession: { _ in true }, cachedNodes: { [cached] }, refreshNodes: { [fresh, cached] },
+            probe: { _ in nativeProbes += 1; return false })
+        let nativeResult = await result(native)
+        precondition(nativeResult.0 == fresh && nativeProbes == 1)
+
         enum ProbeFailure: Error { case rejected }
         var throwRefreshes = 0
         let partialFailure = IMLoggedInReconnectEngine(session: session,

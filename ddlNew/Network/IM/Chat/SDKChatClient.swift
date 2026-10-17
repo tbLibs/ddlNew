@@ -214,7 +214,7 @@ import ObjectiveC
     func permissions(context: ChatContext) throws -> ChatPermission {
         try validate(context)
         let authority = UserRoleAuthorityStore.shared.current
-        let config = OSSConnectionBootstrap.shared.current.flatMap { SystemConfigStore.shared.load(apiHost: $0.apiHost) }
+        let config = OSSConnectionBootstrap.shared.current.flatMap { SystemConfigStore.shared.load(apiHost: $0.apiHost, lastLiceseId: $0.lastLiceseId) }
         let recallMinutes = Double(config?.messageRecallTime ?? "0") ?? 0
         let editMinutes = authority?.positiveMinutes("edited_message_sent") ?? 0
         var value = ChatPermission(canUpload: authority?.allows("upImageVideoFile") == true, canUploadFile: authority?.allows("upFile") == true,

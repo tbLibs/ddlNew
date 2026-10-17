@@ -50,7 +50,7 @@ enum AppStartupCoordinator {
     private static func restoreConnectionPlan(lastLiceseId: String) {
         do {
             let plan = try OSSConnectionBootstrap.shared.prepare(requireFresh: false)
-            let hasConfiguration = SystemConfigStore.shared.load(apiHost: plan.apiHost) != nil
+            let hasConfiguration = SystemConfigStore.shared.load(apiHost: plan.apiHost, lastLiceseId: plan.lastLiceseId) != nil
             debugPrint("[启动恢复] 邀请码：\(lastLiceseId)，TCP 候选：\(plan.tcpCandidates.count) 个，配置缓存：\(hasConfiguration)")
         } catch {
             // 缓存不可用不等于入口丢失：由后台恢复重新导航，等待页继续显示。

@@ -9,7 +9,7 @@ import Foundation
 import CryptoKit
 import CommonCrypto
 
-enum AesEncryptUtils {
+nonisolated enum AesEncryptUtils {
     /// 旧项目 TXT/导航载荷采用 AES-128。
     static let keyLengthBits = 128
 

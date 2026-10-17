@@ -49,9 +49,11 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         try check(runID)
 
         let options = NoaIMSDKApiOptions()
-        options.imApi = plan.apiHost.absoluteString
+        options.imApi = plan.apiHost?.absoluteString ?? ""
         options.imOrgName = businessOrgName
         sdk.configSDKApi(with: options)
+        // SDK 的 options 会忽略空字符串；显式清除旧企业 HTTP Host，防止 TCP-only 沿用旧地址。
+        sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
         sdk.configSDKLiceseId(plan.lastLiceseId)
         sdk.configSDKSsoInfo(plan.lastLiceseId)
         sdk.configSDKTenantCode("")
@@ -60,7 +62,10 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         sdk.clearMyUserInfo()
         socket.clearUserInfo()
 
-        let node = try await firstReachableNode(in: plan.tcpCandidates)
+        // 新流程已逐来源完成真实 ECDH 竞速，直接正式连接；缓存/旧流程仍走原探测。
+        let node: OSSIMTCPNode
+        if let probed = plan.probedTCPNode, plan.tcpCandidates.contains(probed) { node = probed }
+        else { node = try await firstReachableNode(in: plan.tcpCandidates) }
         try check(runID)
         selectedNode = node
         debugPrint("[IM连接] ECDH 探测首胜：\(node.host):\(node.port)，开始正式连接")

@@ -35,7 +35,8 @@ import AVFoundation
         invalidatedMessageID = nil; isInvalidated = false
         close(); let run = generation
         loadedContext = context; loadedSenderID = message.senderID; loadedMessageID = message.id; loadedServerID = message.serverID
-        guard ChatRuntime.shared.isCurrent(context), let host = OSSConnectionBootstrap.shared.current?.getFileHost,
+        let host = OSSConnectionBootstrap.shared.current?.getFileHost
+        guard ChatRuntime.shared.isCurrent(context),
               let resource = RemoteAvatarURL.resolve(message.resource, relativeTo: host) else { errorMessage = "资源地址已不可用"; return }
         loading = true; defer { if generation == run { loading = false } }
         do {

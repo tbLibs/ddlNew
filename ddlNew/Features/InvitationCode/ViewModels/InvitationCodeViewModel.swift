@@ -72,7 +72,7 @@ final class InvitationCodeViewModel: ObservableObject {
         let runID = UUID()
         raceRunID = runID
         isRacing = true
-        statusMessage = "正在竞速导航节点…"
+        statusMessage = "正在获取连接节点…"
         raceTask = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -83,20 +83,20 @@ final class InvitationCodeViewModel: ObservableObject {
             }
             do {
                 // 旧项目在 OSS Auth 前获取出口公网 IP；失败时沿用空字符串兜底。
-                let clientIP = await PublicIPResolver.resolve()
+                let clientIP = dns1NavigationEnabled ? "" : await PublicIPResolver.resolve()
                 try Task<Never, Never>.checkCancellation()
                 let winner = try await OSSNodeRaceCoordinator.race(lastLiceseId: lastLiceseId, credentials: credentials, clientIP: clientIP)
                 try Task<Never, Never>.checkCancellation()
                 let snapshot = try OSSNavigationStore.shared.save(winner, lastLiceseId: lastLiceseId)
                 guard !Task.isCancelled, self.raceRunID == runID else { return }
                 let plan = try OSSConnectionBootstrap.shared.prepare(
-                    requireFresh: false
+                    requireFresh: false, probedTCPAddress: winner.source == .dns1 ? winner.node.urlString : nil
                 )
                 raceWinner = winner
                 navigationSnapshot = snapshot
                 connectionPlan = plan
                 debugPrint("[OSS竞速] 获胜来源：\(winner.source.rawValue)，地址：\(winner.node.urlString)")
-                debugPrint("[OSS连接] HTTP：\(plan.apiHost.absoluteString)，TCP 候选：\(plan.tcpCandidates.count) 个")
+                debugPrint("[OSS连接] HTTP：\(plan.apiHost?.absoluteString ?? "无（TCP 直连）")，TCP 候选：\(plan.tcpCandidates.count) 个")
 
                 statusMessage = "正在建立 TCP/ECDH 连接，成功后获取系统配置…"
                 do {
@@ -123,7 +123,7 @@ final class InvitationCodeViewModel: ObservableObject {
                 return
             } catch {
                 guard !Task.isCancelled, self.raceRunID == runID else { return }
-                statusMessage = "导航获取或节点准备失败，请重试"
+                statusMessage = "服务器连接失败，请重试"
                 debugPrint("[OSS导航] 获取或节点准备失败：\(error)")
             }
         }

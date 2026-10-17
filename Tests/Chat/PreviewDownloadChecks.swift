@@ -30,19 +30,16 @@ import Foundation
     static func sharedInstance() -> AVAudioSession { shared }
     func setActive(_ active: Bool, options: Options) throws {}
 }
-struct ChatTransferSessionDelegate { let origin: URL }
+struct ChatTransferSessionDelegate { let origin: URL? }
 @MainActor final class ChatRuntime {
     static let shared = ChatRuntime()
     func isCurrent(_ context: ChatContext) -> Bool { true }
     func isMessageDeleted(_ message: ChatMessageRecord, context: ChatContext) -> Bool { false }
 }
 @MainActor final class OSSConnectionBootstrap {
-    struct Navigation { let getFileHost = URL(string: "https://offline.invalid")! }
+    struct Navigation { var getFileHost: URL? = URL(string: "https://offline.invalid")! }
     static let shared = OSSConnectionBootstrap()
-    let current: Navigation? = Navigation()
-}
-enum RemoteAvatarURL {
-    static func resolve(_ resource: String, relativeTo host: URL) -> URL? { URL(string: resource, relativeTo: host) }
+    var current: Navigation? = Navigation()
 }
 
 /// 明确暂停在真实解包之前，让取消时序不依赖文件大小或固定yield次数。
@@ -116,6 +113,21 @@ enum PreviewDecodeGate {
         await preview.load(message, context: context)
         precondition(preview.isInvalidated && preview.file == nil && URLSession.downloads.count == downloadsBeforeReload, "失效原条不可经重试恢复下载")
 
+        // TCP-only 没有文件Host时仍可使用服务端完整云地址，相对路径则明确不可用。
+        OSSConnectionBootstrap.shared.current = .init(getFileHost: nil)
+        message.localID = "absolute-cloud"
+        message.resource = "https://cloud.example/anonymous.png"
+        let cloud = ProductionPreview()
+        let cloudLoad = Task { [message] in await cloud.load(message, context: context) }
+        let cloudDecoding = await PreviewDecodeGate.waitForEntry()
+        precondition(cloudDecoding, "完整云URL不依赖导航HTTP")
+        PreviewDecodeGate.release.signal(); await cloudLoad.value
+        precondition(cloud.file != nil && cloud.errorMessage == nil, "TCP-only云附件应可预览")
+        let relative = ProductionPreview()
+        message.localID = "relative-cloud"; message.resource = "/anonymous.png"
+        let downloadsBeforeRelative = URLSession.downloads.count
+        await relative.load(message, context: context)
+        precondition(relative.file == nil && relative.errorMessage != nil && URLSession.downloads.count == downloadsBeforeRelative, "无文件Host不能猜测相对资源地址")
         print("Preview download checks passed: cancelled entry, decode cancellation, retry, deletion invalidation and file cleanup")
     }
 }

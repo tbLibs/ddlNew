@@ -2,7 +2,7 @@ import Foundation
 import ObjectMapper
 
 // 这里只替代传输和磁盘边界，生产配置服务及 ObjectMapper 映射原样执行。
-struct OSSConnectionPlan { let apiHost: URL; let lastLiceseId: String }
+struct OSSConnectionPlan { let apiHost: URL?; let lastLiceseId: String }
 @MainActor final class OSSConnectionBootstrap {
     static let shared = OSSConnectionBootstrap()
     var current: OSSConnectionPlan?
@@ -11,7 +11,7 @@ struct OSSConnectionPlan { let apiHost: URL; let lastLiceseId: String }
     static let shared = SystemConfigStore()
     var saved: [SystemConfigRecord] = []
     /// 仅收集配置写入结果，验证旧轮次和取消结果不会落盘。
-    func save(_ config: SystemConfigRecord, lastLiceseId: String, apiHost: URL) throws { saved.append(config) }
+    func save(_ config: SystemConfigRecord, lastLiceseId: String, apiHost: URL?) throws { saved.append(config) }
 }
 @MainActor final class SDKSessionMaintenanceClient {
     static let json = "{\"tenantCode\":\"mock-tenant\",\"loginMethod\":\"1\",\"captchaChannel\":1}"
@@ -20,7 +20,7 @@ struct OSSConnectionPlan { let apiHost: URL; let lastLiceseId: String }
     static var pending: CheckedContinuation<String, Error>?
     static var loggedIn: Bool?
     /// 传输替身可挂起旧响应，生产服务的解析和归属守卫保持原样。
-    func configuration(host: URL, loggedIn: Bool) async throws -> String {
+    func configuration(host: URL?, loggedIn: Bool) async throws -> String {
         Self.calls += 1; Self.loggedIn = loggedIn
         if Self.suspendNext { Self.suspendNext = false; return try await withCheckedThrowingContinuation { Self.pending = $0 } }
         return Self.json
@@ -78,6 +78,10 @@ enum SystemConfigCrypto {
         SDKSessionMaintenanceClient.pending?.resume(returning: SDKSessionMaintenanceClient.json); SDKSessionMaintenanceClient.pending = nil
         do { _ = try await cancelled.value; fatalError("取消的配置请求不能成功") }
         catch { precondition(SystemConfigStore.shared.saved.count == prior) }
-        print("System config transport checks: 3 passed")
+        let tcpOnly = OSSConnectionPlan(apiHost: nil, lastLiceseId: "native")
+        OSSConnectionBootstrap.shared.current = tcpOnly
+        _ = try await SystemConfigService.shared.fetchAndCache(for: tcpOnly)
+        precondition(SystemConfigStore.shared.saved.count == prior + 1, "TCP-only 系统配置不能被空 HTTP 拦住")
+        print("System config transport checks: 4 passed")
     }
 }

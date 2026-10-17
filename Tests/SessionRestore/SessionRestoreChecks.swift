@@ -38,7 +38,7 @@ struct UserSessionSnapshot { let user: UserInfo; let credentials: UserSessionCre
 }
 enum AccountLoginError: Error { case connectionNotReady, connectionChanged }
 enum ShowAppPageType: Equatable { case login, tabbar, invitationCode }
-struct Plan { let apiHost = URL(string: "https://example.invalid")!; let tcpCandidates = [1] }
+struct Plan { let lastLiceseId = "fixture-license"; let apiHost = URL(string: "https://example.invalid")!; let tcpCandidates = [1] }
 struct SDKContactsClient {}
 struct SDKConversationsClient {}
 // 合并后真实通讯录和消息会话共用登录生命周期，替身记录订阅、读库和清理顺序。
@@ -138,7 +138,7 @@ struct SDKConversationsClient {}
 }
 @MainActor final class SystemConfigStore {
     static let shared = SystemConfigStore()
-    func load(apiHost: URL) -> Int? { 1 }
+    func load(apiHost: URL?, lastLiceseId: String? = nil) -> Int? { 1 }
 }
 
 @main struct Checks {

@@ -1,5 +1,24 @@
 # ddlNew 项目交接文档
 
+## 2026-10-17 APP DNS1 原生 TCP 连接流程迁移
+
+本轮按 xgd 已确认的新流程迁移：APP 仅查询 `t{小写邀请码}.{mainDomain/backupDomain}`，不查询 Web 的 w 前缀。首次连接依次尝试主域、备域（配置非空时）、BIN；启动恢复和已登录重连先探测同企业的新缓存，再进入这三个来源。每个来源拿到原生 TCP 后并发进行真实 ECDH 探测，全部失败才进入下一来源；首胜交现有 SDK 建立正式 Socket，正式 ECDH 后通过 TCP 获取 systemConfig，配置有效才保存可恢复入口，用户 AUTH 成功才进主界面。旧五路 DNS、OSS Auth 和旧降级实现保留，开启 `dns1NavigationEnabled` 时均不参与新链路。
+
+新增 `Network/DNS1`：AAAA 两字节大端索引 + 十四字节内容，首索引仅允许0/1，排序、重复冲突和缺片校验；接受 TCP CSV 或含 tcp 的 JSON。BIN 使用原大小写邀请码的 MD5 十六进制字符串，经既有 SHA1/AES-128-ECB/PKCS7 解密，支持原始密文和 Base64 包装。DNS 请求及 BIN 下载最多5秒，单来源 TCP 探测最多4秒；取消结束业务等待，忽略无取消句柄的 SDK 迟到回调。新流程不调用旧导航服务，也不调用 getTcpConnectionList。
+
+缓存使用独立 `ddlNew.dns1Navigation.v2`，绑定邀请码并校验主域、备域及 BIN 模板的版本摘要。为复用现有 ObjectMapper 存储，新载荷在内存转为本地 Protobuf 容器，`meta.navVersion` 标识 DNS1 版本，`meta.traceID` 在该本地版本保存可选 HTTP URL 数组；这不是服务端旧导航响应。旧缓存只迁移上次成功的邀请码，不恢复旧节点。已探测首胜仅放在当轮内存连接方案，磁盘恢复不能继承成功状态；旧 SDK 配置接口忽略空 Host，因此显式清空 API Host，防止串用前一企业。
+
+`OSSConnectionPlan` 的 HTTP/文件/上传地址现在可空。空 Host 的系统配置缓存必须匹配邀请码；业务请求继续走 SDK TCP。完整云附件 URL 可以直接预览，无 Host 的相对文件地址不能推算；Minio 私有上传缺少显式 HTTP 地址时返回明确错误，第三方 OSS 上传仍按系统配置走原供应商流程。HTTP 不是连接前置条件，不查询 w 地址补 HTTP，也不从 TCP 端口猜 HTTP。网络质量及 HTTP 优选不凭空添加旧导航开关。
+
+源码入口：`DNS1NodeRaceCoordinator.swift`、`DNS1SourceRace.swift`、`DNS1Payload.swift`、`DNS1CallbackWaiter.swift`；现有 `OSSNodeRaceCoordinator` 新分支统一承接邀请码和登录后刷新，`IMConnectionCoordinator` 新分支承接冷启动/访客恢复。原 generation、登录身份、取消、AUTH 与维护归属守卫保持。
+
+验证：DNS1 协议/来源/取消39项通过，生产适配与真实 Protobuf/ObjectMapper 缓存25项通过（网络 SDK 使用匿名边界）；覆盖升级只迁移入口、不使用旧节点、跨企业隔离、空 HTTP 配置归属、即时首胜不落盘及旧 HTTP 回调隔离。统一81组初跑79组通过，附件下载及启动恢复两组因测试替身仍使用旧参数形状编译失败，更新替身并增加 TCP-only 附件场景后专项复跑通过；后新增缓存集成入口也通过，当前82个入口已分批验证，未把它描述为一次82组全量运行。原网络重连、系统配置（含 TCP-only）、会话恢复与附件取消/下载专项均通过。
+
+只读真实接口检查：t1000 返回7条AAAA，生产解码为4个TCP、0个HTTP；BIN生产解密得到相同4个TCP和4个HTTP。未发送账号登录或业务写请求。最终无签名 generic iOS workspace 构建 exit0、BUILD SUCCEEDED（`/tmp/ddlNew-dns1-release-check-build.log`），`git diff --check` 通过；保留既有SDK umbrella及静态库调试路径警告。验证入口为 `Tests/DNS1/run-checks.sh`、`run-integration-checks.sh` 和显式联网的 `check-live.py`；过程日志与夹具均在临时目录，没有新增调试数据文档。
+
+Mobile MCP继续暂停，本轮未操作或安装设备、未提交/推送。真机邀请码1000、冷启动AUTH恢复、断线重连及相对资源/私有上传仍需对应服务器与设备验收，不把接口解析、匿名SDK边界或无签名构建作为真实登录/双端消息验收。
+
+
 ## 2026-10-16 聊天图片视频全屏预览
 
 用户要求参考旧项目的图片、视频预览并评估复用三方库。只读对照 xgd `NoaChatViewController.imageVideoBrowserWith:`：旧端使用源码内置的 **KNPhotoBrowser**，混排本机缓存的图片视频，定位点击条，黑底全屏、左右分页、图片缩放、下拉退出、右上角更多；关闭页码和长按，视频先下载后自动播放。其 UIKit 库可以桥接 SwiftUI，但旧端版本已接入 SDWebImage、FSPlayer、旧资源路径、语言工具和解密管理器，不能原样直接接到新项目；这次按用户给出的备选方案使用 SwiftUI `TabView`，没有新增预览库依赖。
@@ -282,13 +301,10 @@ Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现�
 
 ```text
 邀请码
-→ 五路 DNS 并发解析
-→ 节点归一化
-→ OSS Auth 竞速
-→ Nav Protobuf 响应校验与解密
-→ 保存导航、HTTP/TCP 节点和系统配置
-→ SDK 配置
-→ TCP/ECDH 节点竞速与正式连接
+→ APP t 域 DNS1（主域 → 备域 → BIN）
+→ 解出原生 TCP，逐来源 ECDH 竞速
+→ 保存新版本节点缓存（HTTP 可选）
+→ SDK 配置与正式 TCP/ECDH 连接
 → 获取 systemConfig
 → 登录页
 → 检查账号是否存在
@@ -337,7 +353,9 @@ Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现�
 - `ddlNew/Protocols/Nav/nav.proto`
 - `ddlNew/Protocols/Nav/Nav.pb.swift`
 
-五路 DNS 来源同时启动：
+以下为保留的旧实现说明；当前启用 DNS1 后不执行这些来源，现行流程见本页 2026-10-17 章节。
+
+旧五路 DNS 来源同时启动：
 
 1. 阿里 HTTPDNS SDK AAAA：`ALIDNS`
 2. 腾讯 DoH AAAA：`TENCENT_AAAA`
@@ -410,14 +428,15 @@ Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现�
 
 固定 key 定义在 `ddlNew/Configuration/Const.swift`，当前策略是每类数据只有一份，不按邀请码拼接 key：
 
-- `ddlNew.ossNavigation.v1`：ObjectMapper JSON，结构与旧项目 `NoaSsoInfoModel` 的用途对齐，包含导航节点、配置和 `lastLiceseId`。
+- `ddlNew.dns1Navigation.v2`：当前 DNS1 节点与成功入口；校验企业及配置版本。
+- `ddlNew.ossNavigation.v1`：保留的旧导航缓存，升级仅迁移成功入口的邀请码，不使用其节点。
 - `ddlNew.selectedHTTPHost.v1`：当前选中的 HTTP Host。
 - `ddlNew.systemConfig.v1`：最新系统配置 ObjectMapper JSON。
 - `ddlNew.userInfo.v1`：用户资料，不含密码和 token。
 - 用户会话凭据：Keychain `ddlNew.userSession/currentSession.v1`。
 - 记住的登录表单：Keychain `ddlNew.rememberedLogin/loginForm.v1`。
 
-读取唯一导航和系统配置时不再按邀请码核对；用户会话凭据仍需核对其所属 `lastLiceseId`，避免跨俱乐部认证。
+DNS1 恢复候选必须匹配邀请码与当前配置版本；系统配置读取传入所属邀请码，尤其空 HTTP 不可跨企业复用；用户会话凭据继续核对 `lastLiceseId`。
 
 `Const.swift` 当前还承载旧协议所需的 DNS/OSS 常量。不要在日志、文档或回答中展开这些值。若以后治理密钥，应设计安全注入和迁移方案，不要只移动明文位置。
 

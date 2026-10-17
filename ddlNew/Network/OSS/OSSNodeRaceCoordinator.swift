@@ -44,6 +44,8 @@ enum OSSNodeRaceCoordinator {
         credentials: OSSAuthCredentials,
         clientIP: String = ""
     ) async throws -> OSSRaceWinner {
+        // 新入口优先：旧五路代码保留，但不会作为 DNS1 失败后的降级路径。
+        if dns1NavigationEnabled { return try await DNS1NodeRaceCoordinator.race(license: lastLiceseId) }
         guard !lastLiceseId.isEmpty else { throw OSSNodeRaceError.missingLastLiceseId }
         guard !credentials.signingKeyID.isEmpty, !credentials.signingKeySecret.isEmpty else {
             throw OSSNodeRaceError.missingCredentials
@@ -183,7 +185,7 @@ enum OSSNodeRaceCoordinator {
             return try await manager.cloudflareDoHAAAA()
         case .aliTXT:
             return try await manager.aliDoHTXT()
-        case .oldResolver, .cachedFallback, .builtInFallback, .ossHTTPDomestic, .ossHTTPOverseas:
+        case .dns1, .oldResolver, .cachedFallback, .builtInFallback, .ossHTTPDomestic, .ossHTTPOverseas:
             return []
         }
     }

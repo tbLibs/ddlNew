@@ -9,6 +9,9 @@ import Foundation
 
 /// 与旧项目的五路 DNS 来源标记保持一致，供后续节点竞速识别来源。
 enum DNSHostSource: String, CaseIterable, Sendable {
+    /// 新版 APP TCP 数据；与旧 ALIDNS 导航来源分开。
+    case dns1 = "DNS1_TCP"
+
     /// 阿里 HTTPDNS SDK 的 AAAA 记录。
     case aliAAAA = "ALIDNS"
     /// 腾讯 DoH 的 AAAA 记录。
