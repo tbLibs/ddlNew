@@ -23,8 +23,8 @@ struct InviteScreen: View {
             VStack(spacing: 22) {
                 ClubLogo(size: 60).padding(.top, 48)
                 VStack(spacing: 10) {
-                    Text("连接你的俱乐部").font(.system(size: 25, weight: .bold))
-                    Text(invalid ? "修改邀请码后可以再次尝试" : (connecting ? "正在确认俱乐部信息" : "输入邀请码后进入专属会员空间"))
+                    Text("连接本地体验空间").font(.system(size: 25, weight: .bold))
+                    Text(invalid ? "修改连接码后可以再次尝试" : (connecting ? "正在打开本地体验空间" : "输入连接码 100001 体验本地功能，无需个人邀请"))
                         .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                 }
                 ClubCard(padding: 20) {
@@ -33,13 +33,13 @@ struct InviteScreen: View {
                             VStack(spacing: 12) {
                                 ClubIcon(name: "alert", size: 26).foregroundColor(ClubTheme.darkTeal)
                                     .frame(width: 72, height: 72).background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 24))
-                                Text("未找到对应的俱乐部").font(.system(size: 20, weight: .semibold))
-                                Text("请检查邀请码，或向俱乐部工作人员确认。")
+                                Text("连接码不正确").font(.system(size: 20, weight: .semibold))
+                                Text("当前仅支持连接码 100001，不会连接在线俱乐部服务。")
                                     .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                             }.frame(maxWidth: .infinity).padding(.vertical, 20)
                         }
-                        ClubField(title: "俱乐部邀请码", placeholder: "例如 100001", icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
-                        Button("连接俱乐部") {
+                        ClubField(title: "连接码", placeholder: "例如 100001", icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
+                        Button("进入本地体验") {
                             codeFocused = false
                             keyboard.dismiss()
                             guard !code.isEmpty else { return }
@@ -65,7 +65,7 @@ struct InviteScreen: View {
         .background(ClubBackground()).allowsHitTesting(!connecting).blur(radius: connecting ? 2 : 0)
         .introspect(.scrollView, on: .iOS(.v15, .v16, .v17, .v18, .v26, .v27)) { $0.keyboardDismissMode = .interactive }
         .toast(isPresenting: $connecting, duration: 0, tapToDismiss: false) {
-            AlertToast(type: .loading, title: "正在连接俱乐部", subTitle: "请稍候，不要关闭 App",
+            AlertToast(type: .loading, title: "正在进入本地体验", subTitle: "请稍候，不要关闭 App",
                        style: .style(backgroundColor: ClubTheme.card, titleColor: ClubTheme.ink))
         }
         .onChange(of: code) { value in
@@ -106,11 +106,11 @@ struct LoginScreen: View {
                     Text("远山").font(.system(size: 15, weight: .semibold)).foregroundColor(ClubTheme.darkTeal)
                         .frame(width: 74, height: 74).background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 25))
                     Text("远山户外俱乐部").font(.system(size: 25, weight: .bold))
-                    Text("会员登录").font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
+                    Text("本地账号登录").font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                 }.padding(.top, 48)
                 ClubCard(padding: 20) {
                     VStack(alignment: .leading, spacing: 10) {
-                        ClubField(title: "会员卡号或账号", placeholder: "请输入会员卡号或账号", icon: "person", text: $card, focus: $cardFocused)
+                        ClubField(title: "本地账号或示例账号", placeholder: "请输入本地账号或示例账号", icon: "person", text: $card, focus: $cardFocused)
                         ClubField(title: "密码", placeholder: "请输入密码", icon: "lock", text: $password, secure: true, focus: $passwordFocused).padding(.top, 12)
                         if invalid {
                             Text(store.snapshot.accountDeleted == true && card == "YS20260018" ? "账号已注销，无法再次登录。" : "账号或密码不正确，请重新输入。")
@@ -133,7 +133,7 @@ struct LoginScreen: View {
                             }
                         }.buttonStyle(ClubButtonStyle()).disabled(loading)
                             .padding(.top, 10).accessibilityIdentifier("login")
-                        Button("注册账号") {
+                        Button("注册本地账号") {
                             dismissKeyboard()
                             showRegistration = true
                         }
@@ -145,7 +145,7 @@ struct LoginScreen: View {
                     }
                 }
                 HStack(spacing: 32) {
-                    Button("更换俱乐部") { dismissKeyboard(); Task { await store.signOut(changeClub: true) } }
+                    Button("返回连接页") { dismissKeyboard(); Task { await store.signOut(changeClub: true) } }
                 }.font(.system(size: 14)).foregroundColor(ClubTheme.darkTeal).padding(.top, 5).disabled(loading)
             }.padding(.horizontal, 24).padding(.bottom, 28).frame(maxWidth: 460).frame(maxWidth: .infinity)
         }.background(ClubBackground())
@@ -160,7 +160,7 @@ struct LoginScreen: View {
                                  secondaryButton: .cancel(Text("取消")))
                 case .credentials:
                     return Alert(title: Text("请输入账号和密码"),
-                                 message: Text("请填写会员卡号或账号及密码后再登录。"),
+                                 message: Text("请填写本地账号或示例账号及密码后再登录。"),
                                  dismissButton: .default(Text("知道了")))
                 }
             }
@@ -194,8 +194,8 @@ struct AccountRegistrationScreen: View {
             ScrollView {
                 VStack(spacing: 22) {
                     ClubLogo(size: 60).padding(.top, 28)
-                    Text("创建账号").font(.system(size: 25, weight: .bold))
-                    Text("设置账号和密码，注册成功后返回登录页")
+                    Text("创建本地账号").font(.system(size: 25, weight: .bold))
+                    Text("账号仅保存在本设备，不支持跨设备登录；再次注册将替换原本地账号")
                         .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                     ClubCard(padding: 20) {
                         VStack(alignment: .leading, spacing: 14) {
@@ -237,7 +237,7 @@ struct AccountRegistrationScreen: View {
                 .frame(maxWidth: 460).frame(maxWidth: .infinity)
             }
             .background(ClubBackground())
-            .navigationTitle("注册账号")
+            .navigationTitle("注册本地账号")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(saving) } }
         }
