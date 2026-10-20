@@ -35,6 +35,7 @@
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
 		FA5B1E000000000000000003 /* FSPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000002 /* FSPlayer */; };
 		FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000005 /* Player_SwiftPM */; };
+		FA5B1E000000000000000009 /* JXPhotoBrowser in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000008 /* JXPhotoBrowser */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -115,6 +116,7 @@
 				0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */,
 				FA5B1E000000000000000003 /* FSPlayer in Frameworks */,
 				FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */,
+				FA5B1E000000000000000009 /* JXPhotoBrowser in Frameworks */,
 				28A1C0010000000000000001 /* Kingfisher in Frameworks */,
 				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
 				DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */,
@@ -243,6 +245,7 @@
 				0928A0010000000000000006 /* ZegoExpressEngine */,
 				FA5B1E000000000000000002 /* FSPlayer */,
 				FA5B1E000000000000000005 /* Player_SwiftPM */,
+				FA5B1E000000000000000008 /* JXPhotoBrowser */,
 				28A1C0010000000000000003 /* Kingfisher */,
 				28A1C0010000000000000004 /* CocoaAsyncSocket */,
 				AF019ABC305D300000000002 /* WCDBSwiftDynamic */,
@@ -296,6 +299,7 @@
 				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
 				FA5B1E000000000000000001 /* XCRemoteSwiftPackageReference "FSPlayer-SPM" */,
 				FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */,
+				FA5B1E000000000000000007 /* XCRemoteSwiftPackageReference "PhotoBrowser" */,
 				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 				DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */,
@@ -921,6 +925,14 @@
 				minimumVersion = 13.4.21062;
 			};
 		};
+		FA5B1E000000000000000007 /* XCRemoteSwiftPackageReference "PhotoBrowser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/JiongXing/PhotoBrowser.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1028,6 +1040,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */;
 			productName = Player_SwiftPM;
+		};
+		FA5B1E000000000000000008 /* JXPhotoBrowser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA5B1E000000000000000007 /* XCRemoteSwiftPackageReference "PhotoBrowser" */;
+			productName = JXPhotoBrowser;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

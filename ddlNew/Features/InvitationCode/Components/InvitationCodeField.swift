@@ -15,7 +15,7 @@ struct InvitationCodeField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10.zoom()) {
-            Text("俱乐部邀请码")
+            Text("邀请码")
                 .font(.system(size: 12.zoom(), weight: .semibold))
 
             HStack(spacing: 12.zoom()) {

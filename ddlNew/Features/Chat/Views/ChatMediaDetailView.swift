@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import AVKit
 import UIAdapter
 
 struct ChatMediaDetailView: View {
@@ -15,7 +14,6 @@ struct ChatMediaDetailView: View {
     var allowSharing = true
     let onVoicePlayed: () -> Void
     @StateObject private var store = ChatRuntime.shared.makePreviewStore()
-    @State private var videoPlayer: AVPlayer?
     @State private var requestedDownload = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -43,10 +41,7 @@ struct ChatMediaDetailView: View {
                 }.padding(24.zoom())
             }
             if let file = store.file {
-                if message.type == 2 {
-                    VideoPlayer(player: videoPlayer).onAppear { if videoPlayer == nil { videoPlayer = AVPlayer(url: file) } }
-                        .accessibilityLabel("视频播放器")
-                } else if message.type == 4 {
+                if message.type == 4 {
                     MessagingScroll {
                         VStack(spacing: 24.zoom()) {
                             Image(systemName: store.playing ? "waveform" : "speaker.wave.2").font(.system(size: 48.zoom())).foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
@@ -59,16 +54,14 @@ struct ChatMediaDetailView: View {
                                 .buttonStyle(MessagingActionButtonStyle(fullWidth: true))
                         }.padding(24.zoom())
                     }
-                } else {
-                    if message.type == 5 {
-                        HStack(spacing: 12.zoom()) {
-                            Image(systemName: "doc.fill").font(.title).foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
-                            VStack(alignment: .leading, spacing: 4.zoom()) {
-                                Text(attachmentName).font(.body.weight(.semibold))
-                                if message.size > 0 { Text(ByteCountFormatter.string(fromByteCount: message.size, countStyle: .file)).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                        }.padding(16.zoom()).background(MessagingTheme.surface)
-                    }
+                } else if message.type == 5 {
+                    HStack(spacing: 12.zoom()) {
+                        Image(systemName: "doc.fill").font(.title).foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4.zoom()) {
+                            Text(attachmentName).font(.body.weight(.semibold))
+                            if message.size > 0 { Text(ByteCountFormatter.string(fromByteCount: message.size, countStyle: .file)).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }.padding(16.zoom()).background(MessagingTheme.surface)
                     ChatFilePreview(file: file)
                 }
                 if allowSharing {
@@ -81,15 +74,14 @@ struct ChatMediaDetailView: View {
         .navigationTitle(attachmentName).modifier(MessagingPageChrome())
         .messagingLoadingToast(store.loading, title: "正在下载附件")
         .messagingFeedbackToast(store.errorMessage)
-        .task { registerCleanup(); if message.type != 5 { await store.load(message, context: context) } }
-        .onDisappear { videoPlayer?.pause(); videoPlayer = nil; store.close() }
-        .onChange(of: store.isInvalidated) { invalidated in if invalidated { videoPlayer?.pause(); videoPlayer = nil } }
+        .task { registerCleanup(); if message.type == 4 { await store.load(message, context: context) } }
+        .onDisappear { store.close() }
         .onChange(of: scenePhase) { phase in
-            if phase != .active { videoPlayer?.pause(); videoPlayer = nil; store.close() }
-            else if (message.type != 5 || requestedDownload), ChatRuntime.shared.isCurrent(context), store.file == nil, !store.loading, !store.isInvalidated { Task { await store.load(message, context: context) } }
+            if phase != .active { store.close() }
+            else if (message.type == 4 || requestedDownload), ChatRuntime.shared.isCurrent(context), store.file == nil, !store.loading, !store.isInvalidated { Task { await store.load(message, context: context) } }
         }
     }
-    private var attachmentName: String { if !message.fileName.isEmpty { return message.fileName }; switch message.type { case 1: return "图片"; case 2: return "视频"; case 4: return "语音"; case 12: return "贴纸"; default: return "消息附件" } }
+    private var attachmentName: String { if !message.fileName.isEmpty { return message.fileName }; return message.type == 4 ? "语音" : "消息附件" }
     /// 弱下载所有者供根会话取消，独立于 SwiftUI task 的强页面捕获。
     private func registerCleanup() { let preview = store; ChatRuntime.shared.registerCleanup(owner: preview, conversationID: context.route.id) { [weak preview] in preview?.close() } }
 }

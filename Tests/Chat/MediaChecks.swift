@@ -33,6 +33,16 @@ import Foundation
         let task = Task { await store.send(ChatAttachment(file: file, type: 4, name: "voice.m4a", bytes: 900, duration: 0.5), context: context) { _ in count += 1 } }
         await task.value
         precondition(count == 0 && store.errorMessage != nil, "不足1024字节语音不能上传发送")
+        let short = ChatMediaStore(client: CompletedMedia())
+        for duration in [0.99, Double.nan, Double.infinity, 60.1] {
+            await short.send(ChatAttachment(file: file, type: 4, name: "voice.m4a", bytes: 2048, duration: duration), context: context) { _ in preconditionFailure("非法时长不能上传或入队") }
+            precondition(short.errorMessage != nil)
+        }
+        var acceptedVoice = 0
+        for duration in [1.0, 60.0] {
+            await short.send(ChatAttachment(file: file, type: 4, name: "voice.m4a", bytes: 2048, duration: duration), context: context) { _ in acceptedVoice += 1 }
+        }
+        precondition(acceptedVoice == 2, "合法语音上下限可上传入队")
         let uploading = Task { await store.send(ChatAttachment(file: file, type: 5, name: "文档.txt", bytes: 1024), context: context) { _ in count += 1 } }
         await Task.yield(); store.cancel()
         client.pending?.resume(returning: ChatUploadedAttachment(resource: "/real/file", thumbnail: ""))

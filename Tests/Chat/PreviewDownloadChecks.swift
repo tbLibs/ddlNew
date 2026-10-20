@@ -23,7 +23,7 @@ import Foundation
 }
 
 /// iOS音频与导航仅提供加载方法需要的形状，不激活系统设备。
-@MainActor final class AVAudioPlayer { func stop() {} }
+@MainActor final class AVAudioPlayer { var duration = 1.0; var currentTime = 0.0; func stop() {} }
 @MainActor final class AVAudioSession {
     struct Options: OptionSet { let rawValue: Int; static let notifyOthersOnDeactivation = Options(rawValue: 1) }
     static let shared = AVAudioSession()

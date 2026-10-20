@@ -25,7 +25,7 @@ import Combine
               enqueue: (ChatMessageRecord) throws -> Void) async {
         guard !isUploading else { return }
         guard attachment.bytes > 0 else { errorMessage = "附件为空，请重新选择"; return }
-        if attachment.type == 4 && (attachment.bytes < 1024 || attachment.duration <= 0 || attachment.duration > 60) { errorMessage = "录音太短或超过60秒，请重新录制"; return }
+        if attachment.type == 4 && (attachment.bytes < 1024 || !attachment.duration.isFinite || attachment.duration < 1 || attachment.duration > 60) { errorMessage = "录音太短或超过60秒，请重新录制"; return }
         let run = generation; isUploading = true; progress = 0; errorMessage = nil
         defer { if generation == run { isUploading = false } }
         var message = ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id,

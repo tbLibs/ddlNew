@@ -22,6 +22,7 @@ struct ChatMessageBubble: View {
     var showsSenderName = false
     var scrollVisibility: ChatScrollGeometry?
     var onGameAnimationComplete: (ChatMessageRecord) -> Void = { _ in }
+    var voicePlayback: ChatVoicePlayback? = nil
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @ObservedObject private var session = UserSessionStore.shared
 
@@ -56,6 +57,12 @@ struct ChatMessageBubble: View {
                         if own && isVisualMedia && message.state == .sending {
                             ProgressView().controlSize(.mini).frame(width: 16.zoom(), height: 16.zoom())
                                 .offset(x: -22.zoom()).accessibilityLabel(message.isMediaUploading ? "上传中" : "发送中")
+                        }
+                    }
+                    .overlay(alignment: .trailing) {
+                        if !own && message.type == 4 && message.status == .normal && !message.isRead {
+                            Circle().fill(MessagingTheme.error).frame(width: 6.zoom(), height: 6.zoom())
+                                .offset(x: 15.zoom()).accessibilityLabel("语音未读")
                         }
                     }
                 HStack(spacing: 8.zoom()) {
@@ -173,8 +180,11 @@ struct ChatMessageBubble: View {
                 KFImage(url).setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: 440.zoom(), height: 400.zoom()))).downloader(NetworkImageDownloader.downloader(for: connection.current?.getFileHost))
                     .placeholder { ProgressView() }.resizable().scaledToFit().frame(maxWidth: 220.zoom(), maxHeight: 200.zoom())
             } else if message.type == 4 {
-                Label(voiceDuration, systemImage: "waveform")
-                    .font(.body).frame(minWidth: 80.zoom(), minHeight: 28.zoom(), alignment: own ? .trailing : .leading).accessibilityLabel("语音消息，" + voiceDuration + "，点击播放")
+                if let voicePlayback {
+                    ChatVoiceMessageContent(message: message, own: own, playback: voicePlayback)
+                } else {
+                    Label(voiceDuration, systemImage: "play.fill").font(.body)
+                }
             } else if message.type == 5 {
                 HStack(spacing: 12.zoom()) {
                     Image(systemName: "doc.fill").font(.system(size: 32.zoom()))

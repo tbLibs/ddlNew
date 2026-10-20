@@ -1,5 +1,5 @@
 //
-//  ChatMediaGalleryView.swift
+//  ChatPhotoBrowserView.swift
 //  ddlNew
 //
 //  Created by taobo on 2026/10/16.
@@ -8,144 +8,131 @@
 import SwiftUI
 import AVKit
 import Photos
-import Kingfisher
 import UIAdapter
 
-/// 图片视频共用黑底全屏分页，下载解包和消息失效仍由现有预览 Store 负责。
-struct ChatMediaGalleryView: View {
-    let gallery: ChatMediaGallery
+/// 黑底由库独占并随下拉淡出，SwiftUI 外层保持透明。
+struct ChatPhotoBrowserView: View {
+    let gallery: ChatPhotoBrowserRequest
     let context: ChatContext
     var allowSharing = true
     var includeCachedHistory = true
-    @StateObject private var preview = ChatRuntime.shared.makePreviewStore()
-    @StateObject private var playback = ChatMediaGalleryPlayback()
+    @StateObject private var resources: ChatPhotoBrowserResources
+    @StateObject private var playback: ChatPhotoBrowserPlayback
     @State private var items: [ChatMessageRecord]
     @State private var currentID: String
-    @State private var zoomScale: CGFloat = 1
     @State private var controlsVisible = true
+    @State private var isClosing = false
     @State private var retryRevision = 0
     @State private var isSaving = false
     @State private var saveFeedback: String?
     @State private var saveTask: Task<Void, Never>?
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
+    @State private var shareRequest: ChatPhotoBrowserShareRequest?
+    private let onClose: () -> Void
+    // 必须从源 SwiftUI 场景传入，不能读取独立 UIHostingController 的默认 background。
+    let scenePhase: ScenePhase
 
     /// 一次呈现持有一份浏览快照；当前页为独立可变状态，缓存补页不改变点击身份。
-    init(gallery: ChatMediaGallery, context: ChatContext, allowSharing: Bool = true, includeCachedHistory: Bool = true) {
-        self.gallery = gallery; self.context = context
+    init(gallery: ChatPhotoBrowserRequest, context: ChatContext, allowSharing: Bool = true, includeCachedHistory: Bool = true, scenePhase: ScenePhase, onClose: @escaping () -> Void) {
+        let playback = ChatPhotoBrowserPlayback()
+        _playback = StateObject(wrappedValue: playback)
+        _resources = StateObject(wrappedValue: ChatPhotoBrowserResources(
+            warmImage: ChatPhotoBrowserImageProcessor.prefetch,
+            warmVideo: { [weak playback] file in
+                playback?.prepare(file: file)
+                return { [weak playback] in playback?.release(file: file) }
+            }))
+        self.gallery = gallery; self.context = context; self.onClose = onClose
+        self.scenePhase = scenePhase
         self.allowSharing = allowSharing; self.includeCachedHistory = includeCachedHistory
         _items = State(initialValue: gallery.items)
         _currentID = State(initialValue: gallery.initialID)
     }
 
     private var currentMessage: ChatMessageRecord? { items.first { $0.id == currentID } }
-    private var loadKey: LoadKey { LoadKey(id: currentID, active: scenePhase == .active, retry: retryRevision) }
+    private var preview: ChatMediaPreviewStore { resources.current }
+    private var loadKey: LoadKey { LoadKey(id: currentID, active: scenePhase == .active && !isClosing, retry: retryRevision) }
 
     var body: some View {
         ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-            TabView(selection: Binding(get: { currentID }, set: select)) {
-                ForEach(items) { message in
-                    mediaPage(message)
-                        .tag(message.id)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea()
-            .simultaneousGesture(DragGesture().onEnded { value in
-                if ChatMediaGallery.shouldDismiss(translation: value.translation, zoomScale: zoomScale) { dismiss() }
-            })
+            ChatPhotoBrowser(items: items, currentID: currentID, resources: resources, playback: playback,
+                             isActive: scenePhase == .active, onSelect: select,
+                             onTapImage: { controlsVisible.toggle() }, onClose: close)
+                .ignoresSafeArea()
+            previewStatus.frame(maxWidth: .infinity, maxHeight: .infinity)
             if controlsVisible { toolbar }
         }
-        .background(.black)
-        .preferredColorScheme(.dark)
+        // 只覆盖预览子树，避免外观偏好向呈现容器传播并使聊天页切换颜色。
+        .environment(\.colorScheme, .dark)
         .statusBarHidden(!controlsVisible)
-        .accessibilityAction(.escape) { dismiss() }
+        .accessibilityAction(.escape) { close() }
         .messagingFeedbackToast(preview.errorMessage ?? saveFeedback)
+        // 呈现入口放在稳定的页面上，Menu 关闭或预览文件状态变化都不会移除它。
+        .sheet(item: $shareRequest) { request in
+            ChatPhotoBrowserShareSheet(file: request.file) { error in
+                finishShare(requestID: request.id, error: error)
+            }
+        }
         .task(id: loadKey) { await loadCurrent() }
         .task { await loadCachedHistory() }
-        .onChange(of: preview.isInvalidated) { invalidated in if invalidated { playback.stop() } }
-        .onChange(of: scenePhase) { phase in if phase != .active { playback.stop(); preview.close() } }
+        .onChange(of: preview.isInvalidated) { invalidated in if invalidated { playback.stop(); shareRequest = nil } }
+        .onChange(of: scenePhase) { phase in if phase != .active { playback.stop(); resources.close() } }
         .onReceive(ChatRuntime.shared.$revision) { _ in
-            if !ChatRuntime.shared.isCurrent(context) { playback.stop(); preview.close(); dismiss() }
+            if !ChatRuntime.shared.isCurrent(context) { playback.stop(); resources.close(); close() }
         }
         .onReceive(ChatRuntime.shared.$closedConversationContext) { closed in
-            if closed == context { playback.stop(); preview.close(); dismiss() }
+            if closed == context { playback.stop(); resources.close(); close() }
         }
         .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { notification in
             let began = (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?.uintValue == AVAudioSession.InterruptionType.began.rawValue
             if began { playback.player?.pause() }
         }
-        .onDisappear { saveTask?.cancel(); playback.stop(); preview.close() }
+        .onDisappear { saveTask?.cancel(); playback.stop(); resources.close() }
     }
 
-    /// 在翻页绑定写入前停播和取消旧下载，避免 onChange 与新页缓存命中互相覆盖。
+    /// 翻页先停播，保留仍在窗口内的图片与文件，滑动中不切回缩略图。
     private func select(_ id: String) {
-        guard id != currentID else { return }
-        playback.stop(); preview.close()
-        currentID = id; zoomScale = 1; controlsVisible = true; saveFeedback = nil
+        guard !isClosing, id != currentID else { return }
+        let isVideo = items.first(where: { $0.id == id })?.type == 2
+        playback.pause(releaseAudioSession: !isVideo)
+        if scenePhase == .active { resources.prepare(items: items, currentID: id, context: context) }
+        else { resources.close() }
+        currentID = id; controlsVisible = true; saveFeedback = nil
     }
 
-    /// 仅当前页挂载解码图片或播放器，TabView 预建邻页时不播放、不下载原文件。
-    @ViewBuilder private func mediaPage(_ message: ChatMessageRecord) -> some View {
-        ZStack {
-            Color.black
-            if message.id == currentID, let file = preview.file, !preview.isInvalidated {
-                if message.type == 2, let player = playback.player {
-                    VideoPlayer(player: player).accessibilityLabel("视频播放器")
-                } else if message.type != 2 {
-                    ChatMediaZoomView(file: file, onScaleChanged: { scale in
-                        if abs(zoomScale - scale) > 0.01 { zoomScale = scale }
-                    }, onTap: { controlsVisible.toggle() }, onFailure: {
-                        preview.errorMessage = "图片无法预览，请重试"
-                    })
-                }
+    /// 加载和失败反馈保留 SwiftUI 呈现，不触发浏览器整页重载。
+    @ViewBuilder private var previewStatus: some View {
+        if preview.loading {
+            ProgressView().tint(.white).padding(20.zoom()).background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 12.zoom()))
+                .allowsHitTesting(false)
+        } else if preview.errorMessage != nil {
+            if !preview.isInvalidated, let message = currentMessage {
+                Button { resources.retry(message, context: context); retryRevision += 1 } label: {
+                    Label("重新加载", systemImage: "arrow.clockwise").padding(16.zoom())
+                }.foregroundStyle(.white).background(.black.opacity(0.7), in: Capsule())
             } else {
-                placeholder(message)
-            }
-            if message.id == currentID {
-                if preview.loading {
-                    ProgressView().tint(.white).padding(20.zoom()).background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 12.zoom()))
-                } else if preview.errorMessage != nil {
-                    if !preview.isInvalidated {
-                        Button { retryRevision += 1 } label: { Label("重新加载", systemImage: "arrow.clockwise").padding(16.zoom()) }
-                            .foregroundStyle(.white).background(.black.opacity(0.7), in: Capsule())
-                    } else {
-                        Image(systemName: "photo.badge.exclamationmark").font(.largeTitle).foregroundStyle(.white.opacity(0.6)).accessibilityLabel("原消息已失效")
-                    }
-                }
+                Image(systemName: "photo.badge.exclamationmark").font(.largeTitle).foregroundStyle(.white.opacity(0.6)).accessibilityLabel("原消息已失效")
+                    .allowsHitTesting(false)
             }
         }
-        .clipped()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(message.type == 2 ? "视频" : "图片")
     }
 
-    /// 封面继续共用旧媒体处理器和文件 Host 策略；原条失效后不再展示旧封面。
-    @ViewBuilder private func placeholder(_ message: ChatMessageRecord) -> some View {
-        if message.id != currentID || !preview.isInvalidated {
-            let host = OSSConnectionBootstrap.shared.current?.getFileHost
-            if !message.thumbnail.isEmpty, let url = RemoteAvatarURL.resolve(message.thumbnail, relativeTo: host) {
-                KFImage(url)
-                    .setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: 800, height: 800)))
-                    .downloader(NetworkImageDownloader.downloader(for: host))
-                    .cancelOnDisappear(true).resizable().scaledToFit()
-                    .accessibilityHidden(true)
-            }
-        }
+    private func close() {
+        guard !isClosing else { return }
+        isClosing = true
+        shareRequest = nil
+        saveTask?.cancel(); playback.pause(releaseAudioSession: true)
+        // 保留关闭动画中的最后画面，onDisappear 再释放资源。
+        onClose()
     }
 
     /// 图片使用轻量悬浮操作，视频播放控制沿用系统播放器；没有常驻底部分享条。
     private var toolbar: some View {
         HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.down").font(.system(size: 20.zoom(), weight: .semibold)).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("关闭预览")
             Spacer()
             if allowSharing, let file = preview.file, !preview.isInvalidated, let message = currentMessage {
                 Menu {
                     Button { save(file, message: message) } label: { Label("保存到相册", systemImage: "square.and.arrow.down") }.disabled(isSaving)
-                    ShareLink(item: file) { Label("分享", systemImage: "square.and.arrow.up") }
+                    Button { share(file, message: message) } label: { Label("分享", systemImage: "square.and.arrow.up") }
                 } label: {
                     Image(systemName: "ellipsis").font(.system(size: 22.zoom(), weight: .semibold)).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
                 }.accessibilityLabel("更多操作")
@@ -156,18 +143,36 @@ struct ChatMediaGalleryView: View {
         .background(LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom).ignoresSafeArea(edges: .top))
     }
 
+    private func share(_ file: URL, message: ChatMessageRecord) {
+        guard allowSharing, !isClosing, shareRequest == nil, !preview.isInvalidated,
+              currentID == message.id, preview.file == file, ChatRuntime.shared.isCurrent(context),
+              !ChatRuntime.shared.isMessageDeleted(message, context: context) else { return }
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            saveFeedback = "附件已不可用，请重新加载后分享"
+            return
+        }
+        saveFeedback = nil
+        shareRequest = ChatPhotoBrowserShareRequest(file: file)
+    }
+
+    private func finishShare(requestID: UUID, error: String?) {
+        guard shareRequest?.id == requestID else { return }
+        shareRequest = nil
+        if !isClosing, ChatRuntime.shared.isCurrent(context) { saveFeedback = error }
+    }
+
     /// 任务键绑定页码、前后台与重试；快速翻页时旧解包结果没有发布和播放资格。
     private func loadCurrent() async {
         guard !Task.isCancelled else { return }
-        playback.stop(); preview.close()
-        guard scenePhase == .active, let message = currentMessage, !Task.isCancelled,
+        guard !isClosing, scenePhase == .active, let message = currentMessage, !Task.isCancelled,
               ChatRuntime.shared.isCurrent(context) else { return }
+        resources.prepare(items: items, currentID: currentID, context: context)
         let preview = preview; let playback = playback
         ChatRuntime.shared.registerCleanup(owner: preview, conversationID: context.route.id) { [weak preview, weak playback] in
             playback?.stop(); preview?.close()
         }
-        await preview.load(message, context: context)
-        guard !Task.isCancelled, currentID == message.id, scenePhase == .active,
+        await resources.waitForLoad(message.id)
+        guard !Task.isCancelled, !isClosing, currentID == message.id, scenePhase == .active,
               ChatRuntime.shared.isCurrent(context), !preview.isInvalidated, let file = preview.file, message.type == 2 else { return }
         do {
             try playback.play(file: file) { [weak preview] in preview?.errorMessage = "视频无法播放，请重试" }
@@ -191,7 +196,8 @@ struct ChatMediaGalleryView: View {
                 offset = page.nextOffset
             }
             guard !Task.isCancelled else { return }
-            items = ChatMediaGallery(selected: gallery.selected, messages: cached + gallery.items).items
+            items = ChatPhotoBrowserRequest(selected: gallery.selected, messages: cached + gallery.items).items
+            if scenePhase == .active { resources.prepare(items: items, currentID: currentID, context: context) }
         } catch {
             // 缓存补页失败仍可浏览已经打开的记录，下载失败由当前页单独反馈。
         }

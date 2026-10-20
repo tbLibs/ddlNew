@@ -39,8 +39,7 @@ struct OriginalInvitationCodeView: View {
                             }.frame(maxWidth: .infinity).padding(.vertical, 20)
                         }
                         ClubField(title: "俱乐部邀请码", placeholder: "例如 10001", icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
-                        Text("请输入俱乐部提供的邀请码")
-                            .font(.system(size: 11)).foregroundColor(ClubTheme.secondary)
+                        
                         Button("连接俱乐部") {
                             codeFocused = false
                             keyboard.dismiss()
@@ -56,12 +55,6 @@ struct OriginalInvitationCodeView: View {
                             .accessibilityIdentifier("connectClub")
                     }
                 }.padding(.top, 4)
-                if !invalid {
-                    Text("没有邀请码？请联系俱乐部工作人员获取。")
-                        .font(.system(size: 11)).foregroundColor(ClubTheme.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading).padding(14)
-                        .background(ClubTheme.card.opacity(0.7)).clipShape(RoundedRectangle(cornerRadius: 15))
-                }
                 LegalEntryLinks()
                 Spacer(minLength: 24)
             }.padding(.horizontal, 24).frame(maxWidth: 460).frame(maxWidth: .infinity)

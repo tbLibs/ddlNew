@@ -21,7 +21,7 @@ def method(name):
         cursor += 1
     return source[start:cursor] + '\n'
 methods = method('func invalidateDeletedMessages(') + method('private func invalidate(') + method('func close(')
-methods += method('func invalidateMessage(')
+methods += method('func invalidateMessage(') + method('private func releaseVoiceAudio(')
 helper = '''
     /// 测试形状只注入已绑定附件；不读取真实账号或资源。
     func prepare(context: ChatContext, senderID: String, session: URLSession, player: AVAudioPlayer) {

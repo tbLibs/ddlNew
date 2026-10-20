@@ -20,6 +20,7 @@ struct ChatRoomView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var voicePlayback = ChatVoicePlayback()
     @State private var openedContext: ChatContext?
     @State private var conversationClosed = false
     @State private var confirmAction: ChatMessageAction?
@@ -49,7 +50,7 @@ struct ChatRoomView: View {
     @State private var showForward = false
     @State private var showCamera = false
     @State private var mediaMessage: ChatMessageRecord?
-    @State private var mediaGallery: ChatMediaGallery?
+    @State private var mediaGallery: ChatPhotoBrowserRequest?
     @State private var viewport = CGRect.zero
     @State private var scrollGeometry = ChatScrollGeometry()
     @State private var resizeFollowTask: Task<Void, Never>?
@@ -221,7 +222,7 @@ struct ChatRoomView: View {
             conversationClosed = true; detailDestination = nil; showCamera = false; mediaGallery = nil; mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false; store.close()
             DispatchQueue.main.async { dismiss() }
         }
-        .onDisappear { resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
+        .onDisappear { voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
     }
 
     /// 弹层仍使用原状态和上下文，不重新创建聊天Store。
@@ -255,9 +256,7 @@ struct ChatRoomView: View {
         .sheet(item: $mediaMessage) { message in
             if let context = store.context { NavigationStack { ChatMediaDetailView(message: message, context: context, onVoicePlayed: { Task { await store.markVisible(message.id, voicePlayed: true) } }).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { mediaMessage = nil } } } } }
         }
-        .fullScreenCover(item: $mediaGallery) { gallery in
-            if let context = store.context { ChatMediaGalleryView(gallery: gallery, context: context) }
-        }
+        .chatPhotoBrowser(item: $mediaGallery, context: store.context)
     }
 
     /// 业务观察和确认操作独立于展示组件，继续保留原回调边界。
@@ -277,7 +276,8 @@ struct ChatRoomView: View {
         .onChange(of: showSettings) { showing in
             if !showing { pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() } }
         }
-        .onChange(of: scenePhase) { store.isForeground = $0 == .active }
+        .onChange(of: scenePhase) { phase in store.isForeground = phase == .active; if phase != .active { voicePlayback.stop() } }
+        .onChange(of: composerMode.panel) { panel in if panel == .selection { voicePlayback.stop() } }
         .confirmationDialog("删除所选消息", isPresented: $showDeleteSelection, titleVisibility: .visible) {
             if selectedCanDelete { Button("仅为我删除", role: .destructive) { Task { await deleteSelection(both: false) } } }
             if selectedCanDeleteBoth { Button("从双方或群成员设备删除", role: .destructive) { Task { await deleteSelection(both: true) } } }
@@ -355,6 +355,7 @@ struct ChatRoomView: View {
                 .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 16.zoom()).padding(.vertical, 6.zoom())
             }
             ChatMediaComposer(chat: store, mode: $composerMode, focused: $composerFocused, inputSelection: $inputSelection, showCamera: $showCamera,
+                onBeginRecording: { voicePlayback.stop() },
                 onAtSign: atSignAction)
         }.background(MessagingTheme.surface)
             .overlay(alignment: .top) { MessagingTheme.divider.frame(height: 0.5) }
@@ -603,7 +604,7 @@ struct ChatRoomView: View {
                     }
                     ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
                     isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
-                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, scrollVisibility: scrollGeometry, onGameAnimationComplete: { store.completeGameAnimation($0) })
+                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, scrollVisibility: scrollGeometry, onGameAnimationComplete: { store.completeGameAnimation($0) }, voicePlayback: voicePlayback)
                     .allowsHitTesting(composerMode.panel != .selection)
                     .accessibilityHidden(composerMode.panel == .selection)
                     .overlay {
@@ -642,16 +643,22 @@ struct ChatRoomView: View {
     /// 点击和辅助功能共用操作，避免可访问用户无法打开媒体正文。
     private func activateMessage(_ message: ChatMessageRecord) {
         guard !message.isMediaUploading else { return }
+        if message.type != 4 { voicePlayback.stop() }
         if composerMode.panel == .selection { store.toggleSelection(message.id) }
         else if message.status == .normal {
             if let cardID = message.cardProfileID { selectedProfile = ContactsRoute(contactID: cardID) }
             else if message.type == 18 { forwardRecord = message }
             else if [3, 7].contains(message.type) { locationMessage = message }
             else if [1, 2, 12].contains(message.type) {
-                let gallery = ChatMediaGallery(selected: message, messages: store.messages)
+                let gallery = ChatPhotoBrowserRequest(selected: message, messages: store.messages)
                 if !gallery.items.isEmpty { mediaGallery = gallery }
             }
-            else if [4, 5].contains(message.type) { mediaMessage = message }
+            else if message.type == 4, let context = store.context {
+                voicePlayback.toggle(message, context: context,
+                    onPlayed: { [store] in Task { await store.markVisible(message.id, voicePlayed: true) } },
+                    onError: { [store] in store.errorMessage = $0 })
+            }
+            else if message.type == 5 { mediaMessage = message }
         }
     }
 

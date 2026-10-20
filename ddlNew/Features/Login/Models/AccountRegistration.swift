@@ -18,11 +18,9 @@ nonisolated struct AccountRegistrationInput {
     let password: String
     let confirmation: String
     let inviteCode: String
-    let acceptedPolicy: Bool
 
     func validate(in context: AccountRegistrationContext) throws {
         guard context.allowsAccountRegistration else { throw AccountRegistrationError.disabled }
-        guard acceptedPolicy else { throw AccountRegistrationError.policyRequired }
         guard account.range(of: "^[A-Za-z]{2}[A-Za-z0-9]{4,14}$", options: .regularExpression) != nil else {
             throw AccountRegistrationError.invalidAccount
         }
@@ -43,13 +41,12 @@ nonisolated struct AccountRegistrationInput {
 }
 
 nonisolated enum AccountRegistrationError: LocalizedError {
-    case disabled, policyRequired, invalidAccount, passwordMismatch, inviteCodeRequired, accountExists
+    case disabled, invalidAccount, passwordMismatch, inviteCodeRequired, accountExists
     case invalidPassword(requiresSymbol: Bool)
 
     var errorDescription: String? {
         switch self {
         case .disabled: return "当前俱乐部未开启账号注册"
-        case .policyRequired: return "请先阅读并同意隐私政策"
         case .invalidAccount: return "账号长度6～16位，前两位必须为英文，只支持英文或数字"
         case .invalidPassword(let symbol): return symbol ? "密码长度6～16位，须包含字母、数字和英文符号" : "密码长度6～16位，须包含字母、数字，可使用英文符号"
         case .passwordMismatch: return "两次输入的密码不一致"

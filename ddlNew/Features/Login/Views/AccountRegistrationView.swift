@@ -1,5 +1,4 @@
 import SwiftUI
-import TBBasicLib
 
 struct AccountRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
@@ -9,8 +8,6 @@ struct AccountRegistrationView: View {
     @State private var password = ""
     @State private var confirmation = ""
     @State private var inviteCode = ""
-    @State private var acceptedPolicy = false
-    @State private var webLink: TBBasicLib.WebLink?
     @FocusState private var focusedField: Field?
     private enum Field: Hashable { case account, password, confirmation, invite }
 
@@ -31,14 +28,6 @@ struct AccountRegistrationView: View {
                     if context?.requiresInviteCode == true {
                         field("邀请码", text: $inviteCode, focus: .invite)
                     }
-                    Toggle("我已阅读并同意隐私政策", isOn: $acceptedPolicy)
-                        .font(.subheadline).tint(LoginPalette.darkTeal)
-                        .accessibilityIdentifier("registrationPolicyConsent")
-                    HStack(spacing: 24) {
-                        Button("隐私政策") { open(privacyPolicyURLString) }
-                        Button("使用支持") { open(usageSupportURLString) }
-                    }
-                    .font(.footnote).foregroundStyle(LoginPalette.darkTeal).frame(minHeight: 44)
                     Button(buttonTitle) {
                         focusedField = nil
                         if viewModel.accountWasRegistered {
@@ -46,7 +35,7 @@ struct AccountRegistrationView: View {
                             return
                         }
                         viewModel.register(AccountRegistrationInput(account: account, password: password,
-                            confirmation: confirmation, inviteCode: inviteCode, acceptedPolicy: acceptedPolicy))
+                            confirmation: confirmation, inviteCode: inviteCode))
                     }
                     .buttonStyle(LoginButtonStyle())
                     .disabled(viewModel.phase.isBusy || viewModel.phase == .succeeded || context == nil)
@@ -69,7 +58,6 @@ struct AccountRegistrationView: View {
                 }
                 ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成") { focusedField = nil } }
             }
-            .sheet(item: $webLink) { TBBasicLib.SafariView(url: $0.url).ignoresSafeArea() }
             .onDisappear {
                 viewModel.cancel()
                 password = ""
@@ -102,11 +90,5 @@ struct AccountRegistrationView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .accessibilityIdentifier("registration\(String(describing: focus))")
         }
-    }
-
-    private func open(_ address: String) {
-        focusedField = nil
-        guard let url = URL(string: address), url.scheme == "https", url.host != nil else { return }
-        webLink = TBBasicLib.WebLink(url: url)
     }
 }

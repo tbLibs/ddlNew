@@ -7,6 +7,8 @@ import Foundation
     func invalidateAndCancel() { cancelled = true }
 }
 @MainActor final class AVAudioPlayer {
+    var duration = 1.0
+    var currentTime = 0.0
     var stopped = false
     /// 记录生产关闭逻辑是否停止播放，不打开实际媒体。
     func stop() { stopped = true }

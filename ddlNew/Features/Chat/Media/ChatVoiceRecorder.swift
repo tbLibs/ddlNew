@@ -12,6 +12,7 @@ import Combine
 @MainActor final class ChatVoiceRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published private(set) var isRecording = false
     @Published private(set) var duration = 0.0
+    @Published private(set) var level = 0.0
     @Published var errorMessage: String?
     private var recorder: AVAudioRecorder?
     private var timer: Timer?
@@ -19,56 +20,82 @@ import Combine
     private var file: URL?
     private var context: ChatContext?
     private var interruptionObserver: NSObjectProtocol?
+    private var ownsAudioSession = false
+    private var onLimitReached: (() -> Void)?
 
     /// 麦克风授权返回后再次校验认证轮次，取消授权等待不会启动录音。
-    func start(context: ChatContext) async {
+    func start(context: ChatContext, onLimitReached: (() -> Void)? = nil) async {
         cancel(); errorMessage = nil; self.context = context; let run = generation
+        self.onLimitReached = onLimitReached
         let session = AVAudioSession.sharedInstance()
         let permitted = await withCheckedContinuation { continuation in session.requestRecordPermission { continuation.resume(returning: $0) } }
-        guard generation == run, ChatRuntime.shared.isCurrent(context) else { return }
+        guard generation == run, !Task.isCancelled, ChatRuntime.shared.isCurrent(context) else { return }
         guard permitted else { errorMessage = "麦克风权限未开启，请在系统设置中允许录音"; return }
         do {
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP]); try session.setActive(true)
+            ownsAudioSession = true
             let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".m4a")
+            self.file = file
             let recorder = try AVAudioRecorder(url: file, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 64000])
-            recorder.delegate = self
+            self.recorder = recorder; recorder.delegate = self; recorder.isMeteringEnabled = true
             guard recorder.record(forDuration: 60) else { throw ChatClientError.unavailable("无法开始录音，请重试") }
             self.recorder = recorder; self.file = file; isRecording = true; duration = 0
             observeInterruption()
-            timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
                 guard let owner = self else { return }
-                Task { @MainActor in owner.updateDuration() }
+                Task { @MainActor in guard owner.generation == run else { return }; owner.updateDuration() }
             }
+            self.timer = timer; RunLoop.main.add(timer, forMode: .common)
         } catch { errorMessage = error.localizedDescription; cancel() }
     }
 
     /// 计时器只在主actor读取录音状态，不从系统定时回调访问可变属性。
-    private func updateDuration() { duration = recorder?.currentTime ?? duration }
-
-    /// 停止保留录音供用户发送或取消，不自动触发上传。
-    func stopRecording() {
-        duration = max(duration, recorder?.currentTime ?? 0); recorder?.stop()
-        timer?.invalidate(); timer = nil; isRecording = false
+    private func updateDuration() {
+        guard let recorder, isRecording else { return }
+        duration = min(60, max(duration, recorder.currentTime))
+        recorder.updateMeters()
+        level = min(1, max(0, pow(10, Double(recorder.averagePower(forChannel: 0)) / 40)))
     }
 
-    /// 用户确认才产生语音附件，未满足1024字节或超过60秒不发送。
+    /// 松手或到达上限时交付一次；与旧端一致，不足一秒不发送。
     func finish() throws -> ChatAttachment {
         guard let recorder, let file, let context, ChatRuntime.shared.isCurrent(context) else { throw ChatClientError.sessionExpired }
+        onLimitReached = nil
         duration = max(duration, recorder.currentTime); recorder.stop(); timer?.invalidate(); timer = nil; isRecording = false
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        releaseAudioSession()
+        if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }; interruptionObserver = nil
         let bytes = Int64(try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0)
-        guard bytes >= 1024, duration > 0, duration <= 60.5 else { try? FileManager.default.removeItem(at: file); throw ChatClientError.unavailable("录音太短，请重新录制") }
-        self.file = nil; self.recorder = nil
+        guard bytes >= 1024, duration >= 1, duration <= 60.5 else { cancel(); throw ChatClientError.unavailable("说话时间太短") }
+        self.file = nil; self.recorder = nil; self.context = nil
         return ChatAttachment(file: file, type: 4, name: file.lastPathComponent, bytes: bytes, duration: min(60, duration))
     }
 
-    /// 达60秒停录后仍等待用户确认发送，不自动声称消息成功。
+    /// 系统到60秒结束只发布一次发送意图；随后松手不能再次交付附件。
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         Task { @MainActor in
             guard self.recorder === recorder else { return }
             self.timer?.invalidate(); self.timer = nil; self.isRecording = false
-            if flag { self.duration = min(60, max(self.duration, recorder.currentTime)); self.errorMessage = "录音已停止，请发送或取消" }
+            if flag {
+                self.duration = 60
+                let completion = self.onLimitReached; self.onLimitReached = nil
+                completion?()
+            }
             else { self.errorMessage = "录音被中断，请重新录制"; self.cancel() }
+        }
+    }
+
+    /// 只归还本录音器取得的音频会话，空闲取消不能停止聊天中的播放。
+    private func releaseAudioSession() {
+        guard ownsAudioSession else { return }
+        ownsAudioSession = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    /// 编码失败与系统中断一样清理未交付文件，迟到回调不影响新录音。
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        Task { @MainActor in
+            guard self.recorder === recorder else { return }
+            self.cancel(); self.errorMessage = "录音出错了，请稍后再试"
         }
     }
 
@@ -85,9 +112,9 @@ import Combine
     /// 上滑/取消、后台及离页都删除未发送文件并释放音频会话。
     func cancel() {
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }; interruptionObserver = nil
-        generation = UUID(); timer?.invalidate(); timer = nil; recorder?.stop(); recorder = nil
+        generation = UUID(); onLimitReached = nil; timer?.invalidate(); timer = nil; recorder?.stop(); recorder = nil
         if let file { try? FileManager.default.removeItem(at: file) }; file = nil; context = nil
-        isRecording = false; duration = 0
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        isRecording = false; duration = 0; level = 0
+        releaseAudioSession()
     }
 }

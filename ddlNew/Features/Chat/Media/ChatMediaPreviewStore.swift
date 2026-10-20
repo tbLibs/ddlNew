@@ -27,6 +27,13 @@ import AVFoundation
     private var loadedServerID: String?
     private var invalidatedMessageID: String?
     private var interruptionObserver: NSObjectProtocol?
+    private var ownsAudioSession = false
+
+    /// 语音行按需读取实际播放进度，不把高频时间发布到整个聊天页面。
+    var voiceProgress: Double {
+        guard let player, player.duration.isFinite, player.duration > 0 else { return 0 }
+        return min(1, max(0, player.currentTime / player.duration))
+    }
 
     /// 缓存路径包含俱乐部和用户，不从上个用户文件缓存打开附件。
     func load(_ message: ChatMessageRecord, context: ChatContext) async {
@@ -92,11 +99,17 @@ import AVFoundation
     /// 语音文件真正开始播放后才由页面报告已读，下载与可见不算播放。
     func playVoice() throws -> Bool {
         guard let file else { return false }
+        self.player?.stop()
         let player = try AVAudioPlayer(contentsOf: file); player.delegate = self; self.player = player
-        try configureAudio()
-        observeInterruption()
-        guard player.play() else { throw ChatClientError.unavailable("语音无法播放，请重试") }
-        playing = true; return true
+        do {
+            try configureAudio()
+            observeInterruption()
+            guard player.play() else { throw ChatClientError.unavailable("语音无法播放，请重试") }
+            playing = true; return true
+        } catch {
+            player.stop(); self.player = nil; playing = false; releaseVoiceAudio()
+            throw error
+        }
     }
 
     /// 用户切换听筒或扬声器，蓝牙耳机仍由系统音频路由决定。
@@ -108,6 +121,14 @@ import AVFoundation
         if usesReceiver { try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothHFP]); try session.overrideOutputAudioPort(.none) }
         else { try session.setCategory(.playback, mode: .spokenAudio) }
         try session.setActive(true)
+        ownsAudioSession = true
+    }
+
+    /// 播放失败和中断后playing已为false，仍须按实际所有权归还音频会话。
+    private func releaseVoiceAudio() {
+        guard ownsAudioSession else { return }
+        ownsAudioSession = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     /// 电话和其他系统中断立即停播，未播放过的语音不伪造已读。
@@ -117,13 +138,13 @@ import AVFoundation
         interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
             let began = (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?.uintValue == AVAudioSession.InterruptionType.began.rawValue
             guard began, let owner = self else { return }
-            Task { @MainActor in guard owner.generation == run else { return }; owner.player?.stop(); owner.playing = false }
+            Task { @MainActor in guard owner.generation == run else { return }; owner.player?.stop(); owner.playing = false; owner.releaseVoiceAudio() }
         }
     }
 
     /// 实际播放结束更新按钮状态，回调不得延长页面生命周期。
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        Task { @MainActor in guard self.player === player else { return }; self.playing = false; try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
+        Task { @MainActor in guard self.player === player else { return }; self.playing = false; self.releaseVoiceAudio() }
     }
 
     /// 指定聊天清缓存，路径包含用户、俱乐部与会话，不能清其他聊天资源。
@@ -137,7 +158,7 @@ import AVFoundation
     /// 离页停止播放和网络；保留原条归属和失效提示，避免回前台禁下载却显示空白。
     func close() {
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }; interruptionObserver = nil
-        if playing { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
+        releaseVoiceAudio()
         generation = UUID(); session?.invalidateAndCancel(); session = nil; decodingTask?.cancel(); decodingTask = nil
         player?.stop(); player = nil; file = nil; playing = false; loading = false
         if !isInvalidated { errorMessage = nil }

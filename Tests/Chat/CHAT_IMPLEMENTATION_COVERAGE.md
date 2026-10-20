@@ -16,7 +16,7 @@
 | CHAT-008 | F/Views/ChatRoomView.swift, F/Components/ChatMessageBubble.swift, N/SDKChatMessageMapper.swift | 首条/跨日分隔、服务器时间、方向/名称/头像/状态/未知降级 |
 | CHAT-009 | F/Services/ChatStore.swift, F/Models/ChatDraft.swift, N/SDKChatClient.swift | Unicode正文、真实敏感词替换、失败保输入、SDK draftDict恢复正文/引用/@；设置往返保草稿 |
 | CHAT-010 | F/Models/ChatMentionSegment.swift, F/Services/ChatStore.swift, F/Views/ChatRoomView.swift, N/SDKChatClient.swift | UID片段、同名隔离、@所有人、整片段删除、UTF16移动、草稿恢复；普通禁止私聊群不开放@入口；过滤不改UID |
-| CHAT-011 | F/Media/ChatVoiceRecorder.swift, F/Components/ChatMediaComposer.swift, F/Media/ChatMediaStore.swift, F/Media/ChatMediaPreviewStore.swift, F/Views/ChatMediaDetailView.swift | 麦克风授权、60秒停录、显式发送/取消、太短拒绝、真实上传、播放/听筒、系统中断、实际播放已读 |
+| CHAT-011 | F/Media/ChatVoiceRecorder.swift, F/Media/ChatVoicePlayback.swift, F/Components/ChatMediaComposer.swift, F/Components/ChatVoiceRecordButton.swift, F/Components/ChatVoiceMessageContent.swift, F/Models/ChatVoicePressState.swift, F/Media/ChatMediaStore.swift, F/Media/ChatMediaPreviewStore.swift | xgd镜像播放图标/波形/时长/未读点；按住录音、移出松手取消、区域内松开发送、60秒自动发送一次、短于1秒拒绝；授权/中断/后台清理，真实上传/ACK、气泡单条播放/切换、实际播放已读；设备/双端待验 |
 | CHAT-012 | F/Components/ChatMediaComposer.swift, F/Media/ChatCameraPicker.swift, F/Media/ChatAttachmentPreparation.swift, F/Media/ChatPickedMovie.swift, N/SDKChatMediaClient.swift | PhotosPicker最多9、相机照片视频、原图/GIF、方向处理、旧大图转文件、视频真封面、进度/取消；云client与codec由根提供 |
 | CHAT-013 | F/Media/ChatAttachmentPreparation.swift, F/Media/ChatMediaPreviewStore.swift, F/Views/ChatMediaDetailView.swift, F/Media/ChatFilePreview.swift, N/SDKChatMediaClient.swift | 安全书签复制、真实上传下载、原文件名/旧MIME类型、QuickLook/分享打开、账号/会话缓存分区 |
 | CHAT-014 | F/Models/ChatSticker.swift, F/Services/ChatStickersStore.swift, F/Views/ChatStickersView.swift, N/SDKChatStickersClient.swift, N/SDKChatClient.swift, N/SDKChatMessageMapper.swift | 已用包/已有收藏查询、20分页去重、type12真SDK发送、静态/GIF真实资源、游戏历史实际type/result；商城/新游戏入口未做 |
@@ -37,7 +37,7 @@
 | CHAT-029 | 无 | 明确暂缓：定时自动删除 |
 | CHAT-030 | F/Views/ChatSettingsView.swift, F/Services/ChatSettingsStore.swift, N/SDKChatSettingsClient.swift | 单聊置顶/免打扰、好友资料、async选人成群、真实清空及缓存；文件助手无免打扰 |
 | CHAT-031 | F/Views/ChatHistorySearchView.swift, F/Services/ChatHistorySearchStore.swift, N/SDKChatHistorySearchClient.swift | 全SDK本地缓存文字/媒体/文件分类、50结果游标、字面关键字、真成员过滤、closeSearchUser守卫、原条定位 |
-| CHAT-032 | F/Views/ChatMediaDetailView.swift, F/Media/ChatMediaPreviewStore.swift, F/Media/ChatFilePreview.swift | 真下载、旧XOR/AES解码、独立缓存、系统打开/分享、视频音频退出暂停、VO等价打开动作 |
+| CHAT-032 | F/Views/ChatPhotoBrowserView.swift, F/Media/PhotoBrowser/, F/Views/ChatMediaDetailView.swift, F/Media/ChatMediaPreviewStore.swift, F/Media/ChatFilePreview.swift | 图片/视频用JXPhotoBrowser分页/缩放/下拉关闭，右上更多；语音/文件走详情；真下载、XOR/AES解码、独立缓存、系统打开/分享、退出停播、VO等价打开动作 |
 | CHAT-033 | F/Views/ChatSettingsView.swift, F/Services/ChatSettingsStore.swift, N/SDKChatSettingsClient.swift, F/Models/ChatGroupAction.swift | 真详情、0/1/2独立矩阵、服务端每次提交复核、角色事件回读/群失效关闭；未确认role3禁提交 |
 | CHAT-034 | F/Views/ChatGroupAvatarView.swift, F/Views/ChatSettingsView.swift, N/SDKChatSettingsClient.swift, N/SDKChatMediaClient.swift | 群头像显示/照片上传101、前后真实角色校验、原值保留、真改名；成功同步SDK群/会话名称头像；根codec/cloud支持101 |
 | CHAT-035 | F/Views/ChatGroupMembersView.swift, F/Views/ChatSettingsView.swift, N/SDKChatSettingsClient.swift | 真成员100分页去重、人数独立角色开关、搜索、私聊资料guard、ContactsRoute携来源groupID |

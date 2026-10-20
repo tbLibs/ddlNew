@@ -1,5 +1,99 @@
 # ddlNew 项目交接文档
 
+## 2026-10-19 预览右上分享无响应
+
+用户反馈图片预览右上更多菜单内点击分享无响应。当前使用嵌在条件Menu内容中的ShareLink，实际预览由独立UIHostingController呈现；本轮将分享改为普通Button生成当前文件快照，`.sheet(item:)`固定挂在 `ChatPhotoBrowserView` 根部，再通过 `ChatPhotoBrowserShareSheet: UIViewControllerRepresentable` 承载 UIActivityViewController。菜单收起或预览Store因后台清空file，都不会移除分享请求与呈现入口；图片、视频使用同一原文件URL，仍由用户在系统面板选择目标，不自动发送。
+
+分享前复核当前消息、文件、AUTH上下文、撤回/删除及allowSharing，缓存丢失给出提示；UUID隔离过期完成回调，取消/完成清理请求，系统错误显示Toast。预览关闭或当前消息失效清空分享请求；合并记录仍禁用分享。保留已修正的透明呈现、scenePhase显式传递与下拉关闭，不改动语音/文件详情中的分享。
+
+验证：新增提取真实分享/完成方法的10项检查，覆盖文件快照、去重、Store关闭后快照保留、过期回调、取消/失败反馈、合并记录禁分享、撤回、错消息及缓存丢失；浏览器合计50/50通过（`/tmp/ddlNew-browser-share-checks.log`）。无签名 generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-browser-share-build.log`），本轮分享文件无新增编译警告，范围内diff检查通过。Mobile MCP继续暂停，未弹出或操作真实系统分享目标；离线检查验证请求生命周期，不能证明系统面板已实际呈现或文件已外发，真机点击分享/取消/再次分享待复验。未提交/推送，保留其他工作区改动。
+
+## 2026-10-19 聊天语音样式与按住发送对齐 xgd
+
+用户要求语音消息样式和录音发送交互按旧 xgd 调整。只读对照 `NoaMessageVoiceCell`、`NoaAudioPlayAnimationView`、`NoaMessageModel.calculateVoiceMessage` 和 `NoaChatInputVoiceView` / `NoaChatInputView`：语音气泡改为播放/暂停图标、固定幅度波形、向上取整秒数，本人/对方左右镜像，长度随时长增加（旧端110～210点含气泡留白），对方未读显示6点红点。复用旧端四个播放图标资源并按当前森林绿主题着色；进度读取真实AVAudioPlayer时间，仅当前播放行刷新，减少动态效果时不做连续进度动画。
+
+录音面板改为100点圆形麦克风和“按住说话”，按下开始、按钮区域内松开发送、移出后松开取消、移回继续发送；状态卡显示真实音量、秒数及“上滑取消发送”/“松开取消发送”。删除原点按开始/停止/确认发送的草稿阶段。不足1秒或1024字节拒绝发送，录满60秒自动交付一次，上传与SDK ACK仍由既有发送链路确认；保持当前AAC/m4a录制与既有媒体封装，没有迁移旧端PCM→MP3转码。旁白双击开始/再次双击发送，并提供取消动作；尚未实际VoiceOver走查。
+
+新增 `ChatVoiceRecordButton` 用UIControl保留触摸区域进入/退出与系统取消语义；`ChatVoicePressState`消费一次结束事件。授权期间松手、切面板、失去发送权限、离页、后台、编码失败和系统中断均取消未交付录音。复核发现的“60秒delegate结束后、SwiftUI onChange前松手会删除文件”竞态已改为同一MainActor回调内直接消费并交付，不等待界面刷新，旧轮次/随后松手不能重复发送。录音与播放各自维护音频会话所有权，空闲取消不停止另一方，播放失败/中断/完成/关闭都释放。
+
+聊天点击语音现在直接在气泡中播放，同条再点停止、切条取消旧下载及播放；复用 `ChatMediaPreviewStore` 的下载、解包、缓存、AUTH、删除/撤回和清历史失效规则。开始录音、离页、后台、进入多选或打开其他媒体会停播；只有播放器真正开始播放才调用现有 `markVisible(voicePlayed: true)`，不以下载或可见替代已读。文件详情及合并记录内现有附件入口保留。
+
+验证：新增录音器、按住状态/播放切换、音频失败/中断三个离线入口均通过；录音测试先复现不足1秒仍可交付，音频测试先复现play返回false后的会话泄漏。组合测试覆盖60秒同步交付后的松手不重发，另覆盖权限迟到、取消删文件、上下限/非法时长、切条及AUTH/删除后的迟到下载。既有媒体、预览失效12项、下载/解包取消、浏览器路由/资源40项通过；输入模式/焦点、Chat Store、头像16项与Runtime离群8项通过。最终无签名 generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-voice-final-build.log`），本轮Chat文件无新增编译警告，范围内diff检查通过；只读代码复核未发现剩余阻断问题。
+
+Mobile MCP继续暂停，未申请本机麦克风权限、未安装或操作设备、未发送真实业务消息；真实触摸、录音音质、系统音频路由、旁白及双端送达/收听仍需真机复验。未提交/推送，保留已有图片预览、登录和邀请码改动。本节覆盖历史交接中“语音显式确认发送”和“聊天语音打开详情”的描述。
+
+## 2026-10-19 透明呈现后的打开黑屏回归
+
+用户报告上一轮透明呈现改动后点击图片直接黑屏。定位到新建 UIKit UIHostingController 未传入源 SwiftUI 场景的 scenePhase：新 SwiftUI EnvironmentValues 实测默认值为 background，而 `ChatPhotoBrowserView.loadCurrent` 对非 active 直接返回、图片 Cell 的 isForeground=false 会清空图像。同时呈现控制器在请求ID未变时只保留原rootView，不能同步回前台。因此黑底已呈现，下载/图片显示仍被后台守卫拦截。未通过设备日志确认具体一次黑屏，以下为代码与边界回归证据。
+
+在页面内的 `ChatPhotoBrowserPresentation` 读取源场景环境，显式传给 `ChatPhotoBrowserView`（必填参数，无默认后台兜底）；同身份的既有Hosting同步更新rootView，包括开场动画中，保持SwiftUI状态身份及既有容器，避免重新弹层。图片加载、视频停播与前后台清理继续使用真实源场景状态，未移除后台守卫，保留透明背景与下拉退出方案。
+
+新增提取真实updateUIViewController方法的场景传递检查；修复前首次前台、恢复前台及两个状态同步检查失败（16/20），修复后20/20通过。默认环境值用本机SwiftUI直接查询为background；不将这个查询当作iOS真机画面复现。同期语音点击改为原地播放，画廊路由测试补齐对应语音边界替身，不改动语音生产代码。浏览器回归40/40通过，包含同期语音路由检查；无签名 generic iOS workspace 构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-browser-scene-phase-retry-build.log`），本轮预览代码无新增编译警告，范围内diff检查通过。首轮构建遇到同期build.db占用，未中止其他构建，等待后重试成功。Mobile MCP继续暂停，真机首次点击、后台回来、下拉取消/退出待复验，不提交/推送。
+
+## 2026-10-19 下拉退出的黑色背景与 SwiftUI Demo 对照
+
+用户反馈图片下拉退出仍露出黑色遮罩，并要求对照 PhotoBrowser 的 SwiftUI Demo。核对本机锁定4.2.0的 `Demo-SwiftUI/Demo/ContentView.swift`、`PhotoBannerView.swift`、`PhotoBrowserPresenter.swift`、`BrowserSettingsView.swift` 及库呈现/手势源码：Demo 的 UIViewControllerRepresentable 用于嵌入式 Banner；全屏点击通过 Presenter 调用 `browser.present(from:)`，库设置 `.overFullScreen`，默认淡入淡出。先前把嵌入式浏览器放入 SwiftUI fullScreenCover 并叠加 `Color.black` 和 `.background(.black)`，导致库下拉仅改变自身 backgroundColor 的 alpha，外层黑底仍遮住聊天。这是代码层确认的遮挡链路，未操作设备复现画面。
+
+删除两层 SwiftUI 固定黑底。新增 `ChatPhotoBrowserPresentation`，从当前 SwiftUI 页面内的 UIViewControllerRepresentable 锚点呈现透明 UIHostingController，使用与 Demo 相同的 `.overFullScreen` 覆盖方式、系统 crossDissolve 统一淡出，底下聊天保留；兼容最低 iOS16，不依赖16.4才提供的 presentationBackground。当前是承载现有 SwiftUI 业务页面的适配，并非原封不动调用 Demo Presenter：保存/分享、下载/撤回生命周期仍由 SwiftUI 负责，黑底和拖拽由库独占。没有查找全局顶层窗口或修改包源码。聊天与合并记录都改走该入口，关闭回写原绑定；右上更多保留，未恢复左上箭头。
+
+呈现控制器串行处理开关，开场途中关闭、退出途中重开、父页面卸载都在转场完成后收敛，避免重复覆盖或遗留透明容器。新增 `Tests/Chat/run-photo-browser-presentation-checks.sh`，编译实际控制器并替换 UIKit 边界，覆盖透明/overFullScreen配置、开关竞态和卸载清理13项；浏览器39项、播放器10项检查通过。无签名 generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-browser-backdrop-build.log`）；范围内diff检查通过。上述离线测试不验证UIKit真实合成或动画，Mobile MCP继续暂停，慢拖露出聊天、取消回弹、完成下拉和快速重开仍待真机复验。未提交/推送，保留其他工作区改动。
+
+## 2026-10-19 清理旧预览实现与关闭箭头
+
+按用户要求清理旧图片/视频预览代码，当前只保留 JXPhotoBrowser 入口。原 `ChatMediaGalleryView` 的 TabView 分页和 `ChatMediaZoomView` 自写缩放已被库替代；本轮进一步删除 `ChatMediaDetailView` 遗留的 VideoPlayer 分支、播放器状态及清理逻辑，并将 QuickLook 严格限定为文件消息。详情页现在只服务语音和文件，图片/视频/贴纸统一由聊天及合并记录的 `ChatPhotoBrowserView` 打开。
+
+SwiftUI 页面和快照改名为 `ChatPhotoBrowserView`、`ChatPhotoBrowserRequest`；库桥接、图片/视频 Cell、加载预备和播放管理统一收敛到 `Features/Chat/Media/PhotoBrowser/`。删除旧 `ChatMediaGallery*` 文件名与类型，原独立视频视图合并为视频 Cell 内的私有 AVKit 渲染适配。仍在使用的下载解密、三页缓存、首帧封面与播放器生命周期能力迁入新模块，未删除这些业务能力；共用 `ChatMediaPreviewStore` 继续服务新浏览器及文件/语音。
+
+预览工具栏删除左上角关闭箭头，仅保留原右上角三个点菜单；关闭沿用库的下拉手势和辅助功能 escape。合并记录原本禁用保存/分享，继续不显示菜单。测试入口同步改为 `Tests/Chat/run-photo-browser-checks.sh` 和 `run-photo-browser-playback-checks.sh`。
+
+验证：浏览器路由/桥接/资源39项、播放器10项、预览失效12项，以及下载/解包取消、重试和文件清理检查通过。无签名 generic iOS workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-browser-cleanup-build.log`），本轮聊天代码无新增编译警告，范围内 `git diff --check` 通过。Mobile MCP继续暂停，未安装或操作设备，实际手势与视频流畅度待真机复验；未提交或推送，保留其他工作区改动。本节覆盖下方历史章节中的旧类型名及左上角关闭入口描述。
+
+## 2026-10-19 JXPhotoBrowser SwiftUI 预览迁移
+
+用户要求把现有图片/视频预览替换为已添加的 JXPhotoBrowser，并明确采用 SwiftUI 接入。核对本机 SPM 锁定的4.2.0源码、`Demo-SwiftUI/PhotoBannerView`、`PhotoBrowserPresenter`及官方视频 Cell 示例：库核心为 UIKit，SwiftUI采用桥接，视频是自定义 Cell 扩展而非包内独立播放器产品。按该方式新增 `ChatPhotoBrowser: UIViewControllerRepresentable`，原 `ChatMediaGalleryView` 继续由 SwiftUI `fullScreenCover` 持有状态、工具栏、保存/分享、错误反馈与生命周期。未从全局窗口寻找控制器，也未修改依赖源码或版本。
+
+原 TabView 分页和自写 `ChatMediaZoomView` 已移除，图片使用库的 `JXZoomImageCell` 承担捏合、双击及下拉手势；薄适配 Cell 通过已有 Kingfisher 处理器显示解包文件，GIF仍用 AnimatedImageView，离屏停动画并取消加载，复用/失效时清除请求身份，防止迟到图片写回。视频按 `JXPhotoBrowserCellProtocol` 进入同一浏览器，Cell承载SwiftUI视频内容与系统播放控制，复用三页播放器和首帧封面逻辑。库负责全部水平分页和下拉关闭，关闭动作回写SwiftUI，关闭动画期间暂停声音但保留画面，消失后统一释放。
+
+库页码通过不可见 Overlay 桥接到消息ID，等页码落定后启动当前视频；重复布局通知不重新加载，快滑过期回调和卸载后回调丢弃。补入本机历史时按消息ID恢复位置，只有媒体列表身份变化才调用库的reloadData；下载完成或播放状态变化只刷新可见Cell，避免整页重载。保留初始点击定位、图片/视频混排、贴纸独立预览、合并记录不分享/不混入会话历史、原文件保存/分享、三页预备、撤回/删除、后台及AUTH清理。
+
+验证：画廊、SwiftUI桥接页码/回调、资源生命周期39项和播放器10项检查通过，原预览失效12项、下载/解包取消及文件清理通过；最终无签名 generic iOS workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-jx-swiftui-final-build.log`），本轮桥接和Cell无新增编译警告；本轮范围 `git diff --check`通过。全仓此前 `OriginalInvitationCodeView.swift` 第42行行尾空格未在本轮处理。专项日志 `/tmp/ddlNew-jx-gallery-checks.log`、`/tmp/ddlNew-jx-playback-checks.log`。Mobile MCP按此前约定继续暂停，未安装或操作设备，真机GIF、视频控制、慢拖/拖到一半取消、快滑、下拉关闭和保存分享需要重新Run复验，离线回归不代表手势或帧率已验收。未提交/推送，保留已有依赖、登录和邀请码改动；当前预览实现以本节为准。
+
+## 2026-10-19 通过 SPM 添加 JXPhotoBrowser
+
+按用户指定的 `https://github.com/JiongXing/PhotoBrowser.git` 添加 Swift Package，应用 target `ddlNew` 引入并链接 `JXPhotoBrowser` 产品，版本规则为 4.2.0 起、下一个主版本之前。workspace 的 `Package.resolved` 已由 Xcode 解析并锁定 4.2.0（`0a09aa30ffddfbae30195e3d8c2814a5a5f321f3`），原有 26 个依赖的版本与 revision 均保持不变。该发布版最低 iOS 15，兼容当前应用 iOS 16 目标。
+
+本轮仅接入依赖，现有聊天预览仍走 `ChatMediaGalleryView`，尚未迁移到 JXPhotoBrowser，也未增加 SwiftUI 桥接或视频 Cell。既有聊天、登录及邀请码工作区改动保留，不提交/推送，Mobile MCP 继续暂停。
+
+验证：SPM 解析成功、工程文件格式及应用 target 产品/链接关系检查通过；无签名 generic iOS workspace 构建正在执行，结果待补。解析日志 `/tmp/ddlNew-20261019-photobrowser-resolve-system.log`，构建日志 `/tmp/ddlNew-20261019-photobrowser-build.log`。
+
+## 2026-10-19 多视频预览翻页停顿与闪帧
+
+用户已确认上一轮图片预览与聊天页闪色修复有效，继续反馈多个视频左右切换时停顿、闪一下。代码检查发现翻页、加载当前页、开始播放三处重复销毁旧播放器并清空 AVPlayerItem，播放界面只在选中页挂载，且新播放器尚未出首帧就撤掉封面。生产播放管理器替换系统边界后，保留旧页画面、音频会话连续性、往返复用及统一释放四项初测均失败。
+
+`ChatMediaGalleryPlayback` 改为随三页资源窗口缓存暂停的播放器；选中时才播放，翻页仅暂停并保留旧页画面，连续视频沿用一次音频会话，进入图片归还音频但保留邻页画面，退出/后台统一清理。`ChatMediaGalleryResources` 同时提前下载、解包相邻视频并准备播放器，退出窗口、重试及关闭时释放，最多保留当前与左右各一页；迟到下载继续受任务取消、上下文和 Store 身份守卫约束。视频下载和播放策略以本节为准。
+
+新增 `ChatMediaGalleryVideoView` 桥接 AVPlayerViewController，保留系统播放控制；每页挂载独立稳定的播放器，非当前页关闭交互。封面只在系统 `isReadyForDisplay` 表示首帧已准备好后移除，使用实际画面就绪信号而非固定延时。已预备失败的视频选中时仍显示重试反馈，旧页迟到失败不能停掉新页。
+
+验证：生产播放管理器专项10/10项、画廊生产方法与资源窗口30/30项通过；原预览失效12项、下载/解包取消及文件清理通过。最终无签名 generic iOS workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-video-gallery-final-build.log`），本轮媒体文件无新增编译警告，修改范围 `git diff --check`通过。专项日志为 `/tmp/ddlNew-video-playback-final.log` 与 `/tmp/ddlNew-video-gallery-final.log`；全仓仍有此前 `OriginalInvitationCodeView.swift` 第42行行尾空格，未在本轮改动。Mobile MCP继续暂停，未操作或安装设备；新版本多视频慢拖、拖一半取消、快速往返、首帧遮罩与实际流畅度仍需真机复验。未提交/推送，保留此前图片预览、登录和邀请码改动。
+
+## 2026-10-19 媒体预览闪色与翻页中途缺图
+
+用户录屏 `ScreenRecording_10-19-2026 14-00-03_1.MP4` 按50毫秒抽帧：2.85～2.90秒聊天页短暂变深色，2.95秒恢复浅色后全屏预览滑入；7.4秒附近翻页一侧为空黑，只有另一页图片移动。原画廊使用 `.preferredColorScheme(.dark)`，同时只有 `currentID` 对应页挂载原图，翻页立即 `preview.close()` 清空文件；邻页依赖缩略图。后者已用生产 `select` 提取回归复现失败，不能用之前17项生命周期检查当作滑动视觉已验收。
+
+预览深色改为局部 `.environment(\.colorScheme, .dark)`，避免外观偏好向呈现容器传播。新增 `ChatMediaGalleryResources`，按消息ID保留当前与左右各一页，图片下载、解包及本地解码在开始滑动前主动准备，不依赖 TabView 邻页出现；邻页被选中复用同一 Store 和文件，退出三页窗口才取消释放。每个 Store 继续注册原 Runtime 删除/撤回失效机制，后台、关闭、AUTH或会话失效取消整个窗口；迟到翻页不能在后台重启准备。视频只在选中时下载播放，离开立即停播，未完成的视频下载取消；已完成的邻页视频文件可复用。
+
+静态图片通过共用 Kingfisher 处理器后台解码，预览长边最多2048像素、缓存仅内存且120秒过期；GIF保留动画，非当前页停动图并重置缩放。下载原文件、保存和分享仍使用完整文件。当前与邻页最多三份活跃预览，Kingfisher自身的可复用内存缓存不计为活跃页面，也不宣称整个进程只保留三张位图。
+
+验证：画廊生产方法与资源窗口专项24/24项通过（`/tmp/ddlNew-gallery-paging-final.log`）；原预览失效12项、下载/解包取消与文件清理、首屏定位11项通过。最终无签名 generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-gallery-final-build.log`），本轮文件无新增编译警告、`git diff --check`通过。录屏抽帧保存在 `/tmp/ddlNew-gallery-recording/`，未修改原视频。Mobile MCP继续暂停；新包实际闪色消失、慢拖/撤回拖动、快速往返、GIF/视频切换和放大手势需重新Run复验，离线检查不等同真机帧率。未提交或推送，保留既有登录、邀请码及工程改动。
+
+## 2026-10-19 登录协议勾选迁移
+
+按用户要求对照 xgd `NoaLoginAccountManagerView` 与 `ProtocolPolicyView`：真实 `LoginView` 增加默认未勾选的协议复选框，隐私政策和使用支持分别打开现有在线网页，阅读不自动勾选。未勾选点击登录时先显示提示，取消不发起登录；“同意并继续”勾选后执行原账号登录。勾选只在当前页面生命周期内保留，不随记住密码持久化。登录页既有账号文案修改保留。
+
+真实 `AccountRegistrationView` 删除协议勾选、网页入口和浏览器状态；`AccountRegistrationInput` 删除同意字段、校验及对应错误，既有注册检查同步更新。注册仍按原流程注册并完成 AUTH，注册入口不额外增加协议拦截；缓存会话恢复保持原行为。
+
+验证：账号注册专项通过，账号登录 26/26 项通过；无签名 generic iOS workspace 构建 exit 0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261019-login-consent-build.log`），本轮文件 `git diff --check` 通过。全仓检查仍有原有 `OriginalInvitationCodeView.swift` 第42行行尾空格，未改动该文件。Mobile MCP 保持暂停，实际弹窗、勾选和网页返回交互待真机复验；不提交或推送。
+
 ## 2026-10-17 APP DNS1 原生 TCP 连接流程迁移
 
 本轮按 xgd 已确认的新流程迁移：APP 仅查询 `t{小写邀请码}.{mainDomain/backupDomain}`，不查询 Web 的 w 前缀。首次连接依次尝试主域、备域（配置非空时）、BIN；启动恢复和已登录重连先探测同企业的新缓存，再进入这三个来源。每个来源拿到原生 TCP 后并发进行真实 ECDH 探测，全部失败才进入下一来源；首胜交现有 SDK 建立正式 Socket，正式 ECDH 后通过 TCP 获取 systemConfig，配置有效才保存可恢复入口，用户 AUTH 成功才进主界面。旧五路 DNS、OSS Auth 和旧降级实现保留，开启 `dns1NavigationEnabled` 时均不参与新链路。

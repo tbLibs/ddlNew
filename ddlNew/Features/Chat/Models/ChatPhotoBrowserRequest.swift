@@ -1,5 +1,5 @@
 //
-//  ChatMediaGallery.swift
+//  ChatPhotoBrowserRequest.swift
 //  ddlNew
 //
 //  Created by taobo on 2026/10/16.
@@ -8,7 +8,7 @@
 import Foundation
 
 /// 一次全屏浏览的消息快照，翻页使用消息身份，不使用会随补页变化的数组下标。
-struct ChatMediaGallery: Identifiable {
+struct ChatPhotoBrowserRequest: Identifiable {
     let selected: ChatMessageRecord
     let items: [ChatMessageRecord]
     var id: String { initialID }
@@ -29,8 +29,4 @@ struct ChatMediaGallery: Identifiable {
         items = unique.values.sorted { $0.timestamp == $1.timestamp ? $0.id < $1.id : $0.timestamp < $1.timestamp }
     }
 
-    /// 放大后的拖动留给图片，水平划动留给分页，仅明显向下划动退出。
-    static func shouldDismiss(translation: CGSize, zoomScale: CGFloat) -> Bool {
-        zoomScale <= 1.01 && translation.height > 100 && translation.height > abs(translation.width) * 1.5
-    }
 }

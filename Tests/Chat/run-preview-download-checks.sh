@@ -19,7 +19,7 @@ def method(name):
         depth += (source[cursor] == '{') - (source[cursor] == '}')
         cursor += 1
     return source[start:cursor] + '\n'
-methods = ''.join(method(name) for name in ['func load(', 'func invalidateMessage(', 'private func invalidate(', 'func close(', 'static func clearCache('])
+methods = ''.join(method(name) for name in ['func load(', 'func invalidateMessage(', 'private func invalidate(', 'func close(', 'static func clearCache(', 'private func releaseVoiceAudio('])
 # 包装器只在真实解包前加暂停点，仍执行 LegacyChatMediaCodec 的生产流式实现。
 methods = methods.replace('LegacyChatMediaCodec.decodeFile(temporary)', 'PreviewDecodeGate.decodeFile(temporary)')
 (out/'ProductionPreview.swift').write_text(prefix + methods + '}\n')

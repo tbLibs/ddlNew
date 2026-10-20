@@ -1,5 +1,5 @@
 {
-  "originHash" : "28d450138644548bfd58b5e91cbc4f4b7ad141ee9151189f8f91f6c279124388",
+  "originHash" : "6f88a0f335b26276176f31f92827fb38a476e90a7b8bc366c256041bd6c64977",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -98,6 +98,15 @@
       "state" : {
         "revision" : "6021c6035e83a306047348666f6400dc61445d3b",
         "version" : "4.4.3"
+      }
+    },
+    {
+      "identity" : "photobrowser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/JiongXing/PhotoBrowser.git",
+      "state" : {
+        "revision" : "0a09aa30ffddfbae30195e3d8c2814a5a5f321f3",
+        "version" : "4.2.0"
       }
     },
     {

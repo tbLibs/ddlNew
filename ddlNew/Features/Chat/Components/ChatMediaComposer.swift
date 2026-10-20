@@ -17,6 +17,7 @@ struct ChatMediaComposer: View {
     var focused: Binding<Bool>
     @Binding var inputSelection: NSRange
     @Binding var showCamera: Bool
+    var onBeginRecording: () -> Void = {}
     var onAtSign: ((NSRange) -> Void)? = nil
     @StateObject private var media = ChatRuntime.shared.makeMediaStore()
     @StateObject private var recorder = ChatRuntime.shared.makeRecorder()
@@ -25,7 +26,8 @@ struct ChatMediaComposer: View {
     @State private var photos: [PhotosPickerItem] = []
     @State private var showFiles = false
     @State private var preparation: Task<Void, Never>?
-    @State private var hasRecorded = false
+    @State private var voicePress = ChatVoicePressState()
+    @State private var recordingGestureID = UUID()
     @State private var startRecordingTask: Task<Void, Never>?
 
     /// 面板只替换输入区内容，上传、录音与媒体准备始终由同一组件持有。
@@ -43,6 +45,7 @@ struct ChatMediaComposer: View {
         .tint(MessagingTheme.accent)
         .task { registerCleanup() }
         .messagingFeedbackToast(media.errorMessage ?? recorder.errorMessage)
+        .onChange(of: recorder.errorMessage) { error in if error != nil && !recorder.isRecording { cancelRecording() } }
         .onChange(of: photos) { values in preparePhotos(values) }
         .fullScreenCover(isPresented: $showCamera) { ChatCameraPicker { key, value in
             if key == .mediaURL, let source = value as? URL { prepareVideo(source) }
@@ -121,26 +124,41 @@ struct ChatMediaComposer: View {
             .frame(minHeight: max(56, 56.zoom()))
     }
 
-    /// 录音展开后由用户点按开始、停止与确认发送，取消不清空文字草稿。
+    /// 旧端100点按住按钮及160×60录音状态卡，移出按钮切换取消提示。
     private var voicePanel: some View {
-        VStack(spacing: 12.zoom()) {
-            HStack {
-                Text(recorder.isRecording ? "正在录音 \(Int(recorder.duration)) / 60秒" : hasRecorded ? "录音已停止，确认后发送" : "点击开始录音，最长60秒").font(.subheadline)
-                Spacer()
-                Button("关闭") { cancelRecording(); mode.beginTyping() }.frame(minHeight: 44)
+        VStack(spacing: 0) {
+            Text("按住说话").font(.system(size: 16.zoom())).foregroundStyle(MessagingTheme.secondaryText)
+                .padding(.top, 16.zoom())
+            ZStack {
+                Circle().fill(voicePress.isHolding && !voicePress.isInside ? MessagingTheme.error : MessagingTheme.primaryAction)
+                Image(systemName: "mic").font(.system(size: 38.zoom(), weight: .light))
+                    .foregroundStyle(MessagingTheme.onPrimaryAction).accessibilityHidden(true)
+                ChatVoiceRecordButton(holding: voicePress.isHolding, onBegin: beginRecording,
+                    onMove: { voicePress.move(inside: $0) }, onEnd: releaseRecording, onCancel: cancelRecording)
             }
-            HStack(spacing: 24.zoom()) {
-                if hasRecorded && !recorder.isRecording {
-                    Button("重录") { cancelRecording() }.frame(minWidth: 60, minHeight: 44)
-                    Button { sendRecording() } label: { Label("发送录音", systemImage: "paperplane.fill") }.buttonStyle(MessagingActionButtonStyle())
-                } else {
-                    Button { toggleRecording() } label: {
-                        Image(systemName: recorder.isRecording ? "stop.fill" : "mic.fill").font(.system(size: 30.zoom()))
-                            .frame(width: 76.zoom(), height: 76.zoom()).foregroundStyle(MessagingTheme.onPrimaryAction).background(MessagingTheme.primaryAction, in: Circle())
-                    }.accessibilityLabel(recorder.isRecording ? "停止录音" : "开始录音").disabled(startRecordingTask != nil)
+            .frame(width: 100.zoom(), height: 100.zoom()).padding(.top, 30.zoom())
+        }
+        .frame(maxWidth: .infinity).frame(height: 220.zoom(), alignment: .top)
+        .background(MessagingTheme.surface)
+        .overlay(alignment: .top) {
+            if voicePress.isHolding {
+                VStack(spacing: 5.zoom()) {
+                    HStack(spacing: 12.zoom()) {
+                        Image(systemName: "mic.fill").font(.system(size: 20.zoom()))
+                        ChatVoiceRecordingMeter(level: recorder.level).frame(width: 44.zoom(), height: 17.zoom())
+                        Text("\(Int(recorder.duration))s").font(.system(size: 16.zoom())).monospacedDigit()
+                    }
+                    Text(voicePress.isInside ? "上滑取消发送" : "松开取消发送").font(.system(size: 10.zoom()))
                 }
+                .foregroundStyle(.white).frame(width: 160.zoom(), height: 60.zoom())
+                .background(voicePress.isInside ? MessagingTheme.primaryAction : MessagingTheme.error,
+                            in: RoundedRectangle(cornerRadius: 16.zoom()))
+                .shadow(color: (voicePress.isInside ? MessagingTheme.accent : MessagingTheme.error).opacity(0.4), radius: 5)
+                .offset(y: -70.zoom()).allowsHitTesting(false)
+                .accessibilityLabel(voicePress.isInside ? "正在录音，上滑取消发送" : "松开取消发送")
             }
-        }.padding(.horizontal, 20.zoom()).padding(.bottom, 20.zoom()).disabled(!chat.permission.canSend)
+        }
+        .disabled(!chat.permission.canSend)
     }
 
     /// 同步清理捕获独立弱对象，避免SwiftUI页面被根runtime长期持有。
@@ -181,21 +199,47 @@ struct ChatMediaComposer: View {
     private func prepareVideo(_ file: URL) { preparation = Task { guard let context = chat.context else { return }; do { let attachment = try await ChatAttachmentPreparation.video(file); await send(attachment, context: context) } catch { media.errorMessage = error.localizedDescription } } }
     /// 安全书签文件拷贝后才上传，系统取消不触发发送。
     private func prepareFile(_ file: URL) { preparation = Task { guard let context = chat.context else { return }; do { let attachment = try await Task.detached { try ChatAttachmentPreparation.file(file) }.value; await send(attachment, context: context) } catch { media.errorMessage = error.localizedDescription } } }
-    /// 录音开始、停止和发送分开，取消保留原文本草稿。
-    private func toggleRecording() {
-        if recorder.isRecording { recorder.stopRecording(); hasRecorded = true }
-        else if let context = chat.context, startRecordingTask == nil {
-            startRecordingTask = Task {
-                await recorder.start(context: context)
-                guard !Task.isCancelled else { return }
-                hasRecorded = recorder.isRecording; startRecordingTask = nil
-            }
+    /// 按下即请求录音；权限弹窗期间松手会撤销该轮，不迟到启动麦克风。
+    private func beginRecording() {
+        guard chat.permission.canSend, let context = chat.context, startRecordingTask == nil else { return }
+        media.errorMessage = nil
+        guard !media.isUploading else { recorder.errorMessage = "附件正在发送，请稍后再试"; return }
+        guard voicePress.begin() else { return }
+        onBeginRecording()
+        let run = UUID(); recordingGestureID = run
+        startRecordingTask = Task {
+            await recorder.start(context: context, onLimitReached: {
+                guard recordingGestureID == run, voicePress.reachLimit() else { return }
+                sendRecording()
+            })
+            guard !Task.isCancelled, recordingGestureID == run else { return }
+            startRecordingTask = nil
+            if !recorder.isRecording { voicePress.cancel() }
         }
     }
-    /// 收起面板、失去权限或后台会取消麦克风授权等待与未发送录音。
-    private func cancelRecording() { startRecordingTask?.cancel(); startRecordingTask = nil; recorder.cancel(); hasRecorded = false }
-    /// 用户确认发送停止后的录音，资源太短不能入队。
-    private func sendRecording() { do { let attachment = try recorder.finish(); hasRecorded = false; if let context = chat.context { preparation = Task { await send(attachment, context: context) } } } catch { recorder.errorMessage = error.localizedDescription } }
+
+    /// 松手时以实际按钮区域判定；录满自动发送后的松手被状态机消费。
+    private func releaseRecording(inside: Bool) {
+        guard let shouldSend = voicePress.release(inside: inside) else { return }
+        if shouldSend && recorder.isRecording { sendRecording() } else { cancelRecording() }
+    }
+
+    /// 收起、移出松手、系统取消、失去权限和后台统一清理未发送录音。
+    private func cancelRecording() {
+        recordingGestureID = UUID(); startRecordingTask?.cancel(); startRecordingTask = nil
+        recorder.cancel(); voicePress.cancel()
+    }
+
+    /// 松手与60秒上限共用一次交付；上传和最终SDK ACK继续走原发送链路。
+    private func sendRecording() {
+        recordingGestureID = UUID(); startRecordingTask?.cancel(); startRecordingTask = nil
+        voicePress.cancel()
+        do {
+            guard chat.permission.canSend, let context = chat.context else { cancelRecording(); return }
+            let attachment = try recorder.finish()
+            preparation = Task { await send(attachment, context: context) }
+        } catch { recorder.cancel(); recorder.errorMessage = error.localizedDescription }
+    }
     /// 上传取消或退出后不入队，临时附件完成后清理。
     private func send(_ attachment: ChatAttachment, context: ChatContext) async {
         defer { try? FileManager.default.removeItem(at: attachment.file); if let file = attachment.previewFile { try? FileManager.default.removeItem(at: file) } }

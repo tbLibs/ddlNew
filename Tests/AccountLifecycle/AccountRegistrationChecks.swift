@@ -79,7 +79,7 @@ typealias LoginSessionService = RegistrationSession
         return "cipher"
     })
     var input: AccountRegistrationInput {
-        AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "Ab1234", inviteCode: " invite ", acceptedPolicy: true)
+        AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "Ab1234", inviteCode: " invite ")
     }
 }
 
@@ -106,26 +106,26 @@ typealias LoginSessionService = RegistrationSession
         try fixture.input.validate(in: context)
         for account in ["123456", "A12345", "Ab12", "Ab_123", "Ab12345678901234567", " Ab1234 "] {
             do {
-                try AccountRegistrationInput(account: account, password: "Ab1234", confirmation: "Ab1234", inviteCode: "yes", acceptedPolicy: true).validate(in: context)
+                try AccountRegistrationInput(account: account, password: "Ab1234", confirmation: "Ab1234", inviteCode: "yes").validate(in: context)
                 throw TestFailure.unexpectedSuccess
             } catch is AccountRegistrationError {}
         }
         for password in ["abcdef", "123456", "Ab12", "Ab1234 ", "Ab123😀", "Ab123()"] {
             do {
-                try AccountRegistrationInput(account: "Ab1234", password: password, confirmation: password, inviteCode: "yes", acceptedPolicy: true).validate(in: context)
+                try AccountRegistrationInput(account: "Ab1234", password: password, confirmation: password, inviteCode: "yes").validate(in: context)
                 throw TestFailure.unexpectedSuccess
             } catch is AccountRegistrationError {}
         }
         let symbolContext = AccountRegistrationContext(connectionID: UUID(), registerMethod: "1", requiresInviteCode: false, requiresPasswordSymbol: true)
         do { try fixture.input.validate(in: symbolContext); throw TestFailure.unexpectedSuccess }
         catch AccountRegistrationError.invalidPassword(let symbol) { try require(symbol, "符号策略必须生效") }
-        try AccountRegistrationInput(account: "Ab1234", password: "Ab123!", confirmation: "Ab123!", inviteCode: "", acceptedPolicy: true).validate(in: symbolContext)
+        try AccountRegistrationInput(account: "Ab1234", password: "Ab123!", confirmation: "Ab123!", inviteCode: "").validate(in: symbolContext)
         do {
-            try AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "different", inviteCode: "yes", acceptedPolicy: true).validate(in: context)
+            try AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "different", inviteCode: "yes").validate(in: context)
             throw TestFailure.unexpectedSuccess
         } catch AccountRegistrationError.passwordMismatch {}
         do {
-            try AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "Ab1234", inviteCode: "  ", acceptedPolicy: true).validate(in: context)
+            try AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "Ab1234", inviteCode: "  ").validate(in: context)
             throw TestFailure.unexpectedSuccess
         } catch AccountRegistrationError.inviteCodeRequired {}
         for method in ["1", "5", "6", "7", ""] {
@@ -148,11 +148,6 @@ typealias LoginSessionService = RegistrationSession
         try require(p["code"] as? String == "" && p["areaCode"] as? String == "", "账号注册不携带手机号验证码")
         try require(p["userPw"] as? String == "cipher" && p["encryptKey"] as? String == "new-key", "仅提交加密密码")
         try require(p["inviteCode"] as? String == "invite", "邀请码应按配置提交")
-        let denied = AccountRegistrationInput(account: "Ab1234", password: "Ab1234", confirmation: "Ab1234", inviteCode: "yes", acceptedPolicy: false)
-        let before = fixture.driver.calls
-        do { _ = try await fixture.service.register(denied) { _ in }; throw TestFailure.unexpectedSuccess }
-        catch AccountRegistrationError.policyRequired {}
-        try require(fixture.driver.calls == before, "未同意政策不得发请求")
     }
 
     @MainActor static func existingAccountStops() async throws {

@@ -28,6 +28,9 @@ struct LoginView: View {
     /// 两个网页入口共用一个 Safari 弹窗，避免同时呈现多个浏览器。
     @State private var webLink: TBBasicLib.WebLink?
     @State private var showingRegistration = false
+    /// 沿用旧端：本次登录页默认未勾选，阅读网页不会自动同意。
+    @State private var acceptedPolicy = false
+    @State private var showingPolicyConfirmation = false
     /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
     @FocusState private var cardFocused: Bool
     @FocusState private var passwordFocused: Bool
@@ -37,8 +40,8 @@ struct LoginView: View {
             VStack(spacing: 24) {
                 brandHeader
                 loginForm
-                auxiliaryActions
                 legalEntries
+                auxiliaryActions
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
@@ -68,6 +71,15 @@ struct LoginView: View {
             .onDisappear { verification.cancel(requestID: request.id) }
         }
         .sheet(isPresented: $showingRegistration) { AccountRegistrationView() }
+        .alert("提示", isPresented: $showingPolicyConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("同意并继续") {
+                acceptedPolicy = true
+                login()
+            }
+        } message: {
+            Text("请阅读并同意《隐私政策》和《使用支持》")
+        }
         .onChange(of: verification.request?.id) { _ in dismissKeyboard() }
         .onAppear(perform: restoreRememberedLogin)
         .onChange(of: rememberPassword) { enabled in
@@ -95,9 +107,6 @@ struct LoginView: View {
             Text("远山户外俱乐部")
                 .font(.system(size: 25, weight: .bold))
 
-            Text("会员登录")
-                .font(.system(size: 12))
-                .foregroundColor(LoginPalette.secondary)
         }
         .padding(.top, 48)
     }
@@ -105,7 +114,7 @@ struct LoginView: View {
     private var loginForm: some View {
         VStack(alignment: .leading, spacing: 10) {
             LoginField(
-                title: "会员卡号",
+                title: "账号",
                 placeholder: "请输入会员卡号",
                 icon: "person",
                 text: $card,
@@ -113,9 +122,6 @@ struct LoginView: View {
             )
             .disabled(viewModel.loginPhase.isBusy)
 
-            Text("例如 YS20260018，会员卡号区分字母和数字")
-                .font(.system(size: 11))
-                .foregroundColor(LoginPalette.secondary)
 
             LoginField(
                 title: "密码",
@@ -127,11 +133,6 @@ struct LoginView: View {
             )
             .disabled(viewModel.loginPhase.isBusy)
             .padding(.top, 12)
-
-            Text("密码由俱乐部创建会员账户时提供")
-                .font(.system(size: 11))
-                .foregroundColor(LoginPalette.secondary)
-                .accessibilityIdentifier("loginHint")
 
             Toggle("记住密码", isOn: $rememberPassword)
                 .font(.system(size: 14))
@@ -201,13 +202,31 @@ struct LoginView: View {
         .padding(.top, 5)
     }
 
-    /// 使用 Safari 内嵌浏览器打开在线网页，不引用旧版法律页面或资源文件。
+    /// 勾选与阅读入口独立；打开在线网页不改变用户的同意状态。
     private var legalEntries: some View {
-        HStack(spacing: 24) {
-            Button("隐私政策") { openWebPage(privacyPolicyURLString) }
-                .accessibilityIdentifier("openPrivacyPolicy")
-            Button("使用支持") { openWebPage(usageSupportURLString) }
-                .accessibilityIdentifier("openSupport")
+        HStack(alignment: .top, spacing: 8) {
+            Button { acceptedPolicy.toggle() } label: {
+                Image(systemName: acceptedPolicy ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 22))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("同意隐私政策和使用支持")
+            .accessibilityValue(acceptedPolicy ? "已勾选" : "未勾选")
+            .accessibilityAddTraits(acceptedPolicy ? .isSelected : [])
+            .accessibilityIdentifier("acceptLegalDocuments")
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text("我已阅读并同意以下内容")
+                    .foregroundColor(LoginPalette.secondary)
+                HStack(spacing: 24) {
+                    Button("隐私政策") { openWebPage(privacyPolicyURLString) }
+                        .accessibilityIdentifier("openPrivacyPolicy")
+                    Button("使用支持") { openWebPage(usageSupportURLString) }
+                        .accessibilityIdentifier("openSupport")
+                }
+                .frame(minHeight: 44)
+            }
         }
         .font(.footnote)
         .foregroundColor(LoginPalette.darkTeal)
@@ -234,8 +253,12 @@ struct LoginView: View {
     }
 
     private func login() {
-        securityNotice.clear()
         dismissKeyboard()
+        guard acceptedPolicy else {
+            showingPolicyConfirmation = true
+            return
+        }
+        securityNotice.clear()
         viewModel.login(account: card, password: password, rememberPassword: rememberPassword)
     }
 
