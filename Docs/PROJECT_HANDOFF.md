@@ -1,5 +1,99 @@
 # ddlNew 项目交接文档
 
+## 2026-10-21 离线好友呼叫与旧端错误提示对齐
+
+按用户确认对齐 xgd `NoaMediaCallManager.callRequestWith`、`NoaCallManager.requestSingleCallWith` 和 `NoaNetResultCode.plist`：好友在线标识不作为本地拦截依据，由服务端决定是否受理。新端单聊语音/视频现仅在创建请求成功后建立可展示通话、打开呼叫页和响铃；请求等待期间停留原聊天，busy阻止重复创建。失败保留原页并由既有全局Toast提示；群创建失败继续保留选人页。
+
+`SDKCallClient` 在原20秒运输等待/取消机制内保留业务错误码和文案，通过 `CallError.server` 向协调器传递；旧端910004映射“用户不在线”、910001映射“对方正在通话中”，同时保留相关通话/注销/拉黑映射，未知码优先使用非空服务端文案，否则显示通用失败。身份校验发生在业务结果解包之前，旧账号错误不能弹到新账号。
+
+创建等待使用独立 pendingCreation 记录，不提前制造 session/浮窗；提前到达的接听/成员通知按请求身份暂存，受理后按房间ID消费，已收到终态的房间不会弹出。取消后迟到成功继续在原认证身份下补偿取消，退出/切账号不以新身份发送补偿。仍由服务端通知收口未应答，本轮未增加客户端呼叫倒计时，原30秒媒体连接超时保留。
+
+验证：新增等待期间不弹页/不响铃检查先复现失败；现协调器51项通过（`/tmp/ddlNew-call-offline-state-green.log`），覆盖两供应商语音/视频拒绝、重复点击、提前接听、取消和身份失效。真实SDK请求方法+原运输等待器的边界回归修复前1/9、修复后9/9通过（`/tmp/ddlNew-call-offline-request-green.log`），包含离线/忙线/拉黑、未知错误、首次回执及旧身份错误隔离；其余五个Calls脚本（协议、映射、系统资源、视频、浮窗）均通过。无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-call-offline-build.log`），`git diff --check`通过。Mobile MCP保持暂停，未操作设备、未修改旧项目、未提交/推送；真实离线账号请求与提示、在线接通及服务端未应答仍待重新Run双端复验。保留同期聊天历史等修改。
+
+## 2026-10-21 真实历史日志与 xgd 首屏状态对齐
+
+用户重新Run并下拉后要求读取Xcode日志，随后强调xgd进入聊天就自动加载且正文没有缺口。本轮从Xcode控制台读取到多组 `[ChatHistory] start older=true` 后均为 `failed cancelled=true contextChanged=false`，offset反复停在12、1、3等值，未出现对应response/finish。首屏则确实发起并返回：一组rows=58、mapped=58、cached=1、received=58、visible=1；另有rows=63/75。这证明新端已有首屏自动请求，但下拉等待被取消且返回/展示数量存在差异；原日志将Task取消与CancellationError合并输出，不能仅凭它确定所有取消来源，也不能从数量直接认定哪些具体消息被删除。
+
+对照旧端 `NoaChatViewController.viewDidLoad/requestHistoryList` → SDK `messageGetHistoryRecordWith/messageRequestHistoryRecordWith`：进入即读本机、请求第一页、按服务端状态回写，再回读展示。旧 `LIMMergeLocalFieldsBeforeHistoryUpsert` 保留翻译与小时间差，不把本机旧0/2状态永久压过服务端正常状态；新端 `ChatHistoryCachePolicy`、SDK历史回写以及UI合并原先都无条件保留旧非正常状态，且请求前快照只读取status1，旧状态无法被服务端校正。新增单/群用例复现“三条消息中间一条本机残留删除、服务端均正常，进入仍只显示两条”。本节取代以前历史合并中“旧墓碑永久优先”的过宽策略。
+
+已改：进入自动同步入口继续沿用；SDK新增只读 `toolGetChatMessageHistoryIncludingInactiveWith` / DB对应分页方法作为请求前版本快照，包含所有状态，正常展示查询仍仅status1，不改表结构、不清库。服务端状态可校正请求前已存在且期间未变更的旧缓存；请求期间新删除/撤回、物理删除、编辑及旧账号结果继续保护。`ChatPage.restoredServerIDs`将受校验的状态恢复传给Store，避免SDK已恢复而UI旧记录仍隐藏；实时变更版本优先。Debug额外记录remoteStatus、mappedStatus、mappedType、本机状态冲突数量，均不含正文或身份ID。
+
+下拉改由 `ChatStore.refreshHistory` 持有独立Task，刷新控件外层Task取消不再中断网络等待；重复刷新共享在途任务，真正close/clear同步取消。页面等待其完成后仅在原上下文仍可见时恢复锚点，不再因刷新控件自身取消而跳过定位。测试使用生产SDKChatRequestWaiter替代原先不可取消的continuation替身，并从真实refreshable抽取调用入口；取消场景先35/36复现失败，再修复。首屏旧状态用例另先39/41失败，再修复；请求期间删除、仍为服务端删除、退出/清空迟到隔离一并覆盖。正常正文不依赖人工下拉来应用这次状态校正。终版专项47/47通过（`/tmp/ddlNew-history-authoritative-green.log`）；语义13项、Chat Store回归、SDK消息/黑名单回归、定位Store12项及布局12项通过。最终无签名generic iOS workspace构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-history-authoritative-build.log`），范围内diff检查通过。
+
+Mobile MCP保持暂停，未安装或操作设备、未修改xgd、未提交或推送；Xcode临时日志筛选已恢复。真实用户缺失条目的状态来源仍需修复版首屏日志复验，不把离线用例当作逐条真实历史完整性证明；用户无需下拉即可触发首屏状态校正。
+
+## 2026-10-21 历史下拉复查：空页重试与重复页
+
+用户复验反馈单聊和群聊均会转圈但无法拉出更早历史，已有正文之间也有缺口。只读再次核对旧 xgd `NoaChatViewController.headerRefreshData/requestHistoryList`：每次手动下拉均查询，空页只 endRefreshing，不永久禁用入口。新端页面和 Store 双重 hasMore 守卫会在一次空页后直接拒绝后续手动请求；同时本机100条而远端短页20条时，游标尚处于已显示区间，一次只查一页会连续数次仅得到重复消息。连续隐藏控制页也有相同行为。
+
+现页面移除手动下拉的 hasMore 拦截，Store允许重新查询空页；一次手势跨过无新增可见正文但游标/偏移有进展的页，出现新增正文、空页、无进展、取消或上下文变化即停止，每次最多5页，下次手势接续。hasMore继续供自动定位结束判断使用。保留旧端协议 sMsgId/isThanMsgId=1/pageNumber=1、SDK缓存回读及分页锚点，不改旧项目。Debug新增 `[ChatHistory]` 的请求开始、返回条数、映射/缓存条数、可见条数、分页进展及失败/取消诊断，不输出正文或身份ID。
+
+新增空页恢复和连续隐藏页检查先复现29/33通过；修复后追加本机100条/远端20条重复页场景，终版35/35通过（`/tmp/ddlNew-history-retry-green.log`）。Chat Store既有回归、定位Store12项/布局12项、滚动16项通过。初次重复运行专项时遇到本轮继续编辑Store导致Swift输入文件变化，固定源码后重跑exit0。最终无签名generic iOS workspace构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-history-retry-build.log`），全仓diff检查通过。用户当前消息中间缺失的具体原因尚未获得真实分页响应证据，不把这些离线修复当作真实历史完整性验收。已只读查看Xcode现有控制台，未找到可用历史响应；临时筛选已恢复。Mobile MCP保持暂停，未操作设备、未重新安装、未提交或推送。新代码需重新Run后在同一单/群聊复现，以诊断计数继续定位返回/过滤/展示边界。
+
+## 2026-10-21 进入聊天后清除会话未读
+
+用户反馈消息列表有未读，进入聊天再返回仍不消失，并明确要求按旧 xgd 修改。上一轮只定位未修改；本轮对照 `CandyTalkHomeViewController.cellClickAction/sessionUpdateReadedStatusWith`：旧端进入单/群聊立即清本机 `sessionUnreadCount`，同步 `conversationReadedStatus(readTag=0, latestSMsgId)`，记录 `clearReadNumSMsgIdDictKey` 供重连使用。新端之前只清手动 readTag，正文扣减又只接受本 AUTH 实时 receive 成员，因此启动/重启同步的初始正数即使正文已读也不能归零。以下实现取代本文10月14日“打开仅清本机手动 readTag”的历史策略。
+
+`ChatStore.open` 在注册观察后、缓存和历史加载前同步调用 `ChatClient.clearConversationUnread`。真实 `SDKChatClient` 在身份校验和 SDK 锁内清会话计数及手动标记，写库成功才更新 Runtime 计数边界，再按旧端协议立即提交服务端请求；同上下文重复 open 不再次清除。读取当前会话最新 SID，缺失时回退最新消息；非空边界复用旧 SDK 的 MMKV key，并更新 SDK 当前同步快照，保留其它会话条目。会话库写入触发现有列表和 Tab 角标刷新；快速返回不依赖正文两秒批次。接口成功回调不回写旧会话模型，因此不额外清除请求后新到消息；失败只向仍有效的当前聊天报告，重进即便本机已经为零也再次同步。无会话不制造记录，旧账号/旧页面迟到回执隔离。
+
+本次清除仅针对会话提醒，正文可见批量 read、语音实际播放后 read 继续原流程，没有把全部历史正文/语音标成已读。SDK 原有506跨端通知仍按其协议整会话清零（通知无消息边界），此处未修改其行为；离线测试验证本轮请求回执和本机计数边界，不代表真实跨端通知竞态已验收。
+
+验证：生产 Store 开页接线与生产 SDK 清读方法分别先复现失败（`/tmp/ddlNew-unread-entry-store-red.log`、`/tmp/ddlNew-unread-entry-sdk-red.log`）；追加重连边界测试也先失败（`/tmp/ddlNew-unread-boundary-red.log`）。修正后入口21项、既有计数8项及 Chat Store 回归通过，涵盖单/群启动初始未读、手动标记、协议参数、语音正文分离、快速返回、请求间新消息、保存失败、空成功/明确拒绝、身份失效和持久化边界。最终无签名 generic iOS workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-unread-entry-final-build.log`），本轮生产文件无新增编译警告；统一离线入口 96/96 组通过，exit0，逐组耗时合计 408.37 秒，汇总 `/tmp/ddlNew-20261021-unread-entry-qa/summary.json`；全仓 `git diff --check` 通过。
+
+Mobile MCP继续暂停，未安装或操作设备、未提交或推送；保留同期历史分页、通话和媒体改动。需要重新 Run 新包验证消息列表及底栏角标、进入后立即返回、冷启动已有未读、断网/重连及真实服务端同步。
+
+## 2026-10-21 视频通话远端画面绑定修正
+
+用户反馈视频通话看不到对方摄像头。对照 xgd `Zego/Manager/NoaCallManager.onRoomStreamUpdate` 与 `Zego/Controllers/NoaCallSingleVC`：旧端新增视频流后默认允许画布显示，立即绑定远端流，摄像头设备事件再修正开关。新端原先把新增流固定标为 cameraEnabled=false，页面因此不创建画布，先以 nil canvas 播放；若没有后续设备状态回调就一直只有声音。锁定 Zego 3.5.0 头文件明确 nil canvas 仅播放音频，且自定义采集/CDN不提供摄像头状态回调。此为源码及离线复现的差异，未抓取用户当前通话的供应商和实际网络流量。
+
+`ZegoCallEngine` 现对视频新增流默认建立画布资格，按 streamID 保存明确的摄像头状态（含早于成员映射到达的关闭），重复通知不重置已知开关；替换流停止旧播放器并重用当前画布，旧流迟到删除不能清空当前视频。语音通话仍不显示摄像头。`CallVideoSurface` 直接观察协调器发布状态，确保 LiveKit 订阅/重订阅及轨道替换引发重新绑定；容器复用原渲染视图，缩小释放画布但保留媒体连接，恢复再绑定。LiveKit 自动订阅与房间配置已核对，继续沿用与旧端相同的配置，没有升级或替换第三方库。
+
+新增 `Tests/Calls/run-video-checks.sh` 编译生产 Zego 流/摄像头回调及视频容器方法，SDK/UIView边界使用替身。修复前11/17通过，修复后17/17通过（`/tmp/ddlNew-call-video-green.log`），覆盖无设备回调时画布建立、早到关闭、重复通知、流替换/迟到删除、错误房间/旧引擎隔离、语音限制、缩小恢复、LiveKit轨道重绑与清理；现有协调器35项及浮窗10项通过。无签名 generic iOS workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-call-video-build.log`），`git diff --check`通过。Mobile MCP保持暂停，尚未验证真实服务器拉流、解码或新旧端双向摄像头画面；重新Run后需两端验证首次接通、对方摄像头开关、大小窗交换及缩小恢复。未提交/推送，保留同期聊天历史分页等修改。
+
+## 2026-10-21 聊天下拉历史与旧端分页对齐
+
+用户反馈进入聊天后下拉拿不到历史，要求对照 xgd。只读核对旧端 `NoaChatViewController.requestHistoryList/headerRefreshData` 及 `NoaIMSDKManager+ChatMessage.messageGetHistoryRecordWith`：旧端云端补拉后回读 SDK 本机历史，网络失败仍尝试本机分页；新端只合并远端映射结果，且 `rows.count < 100` 即关闭 `hasMore`，页面与 Store 随后直接拦截下拉。本机超过100条但服务端空页、服务端实际返回短页以及断网翻阅均可用生产历史方法和真实 Store 离线复现，不据此声称已抓到用户当前服务器响应。
+
+`SDKChatClient.history` 现沿原接口补拉并落库后回读 SDK 同偏移缓存，与远端状态归并；非空短页继续游标分页，远端空页且本机不足100条才结束。运输失败在身份、取消及内容 revision 校验后回读本机，成功回退仍保留远端重试，无本机数据时继续报错。`ChatPage` 额外携带原始远端游标和本机下一偏移，`ChatStore` 不再用过滤后的可见消息数推算进度；整页控制条不会反复请求同一页，置顶/引用定位可跨过隐藏页，关闭与清历史清除分页状态。页面现有下拉、静默加载、失败 Toast 与补页锚点逻辑保留，没有修改旧项目。
+
+新增 `Tests/Chat/run-history-pagination-checks.sh`，提取真实 SDK 历史/缓存/快照方法并运行真实 ChatStore，仅 SDK 库、运输和认证边界使用匿名替身。最初9/21通过，确认缓存遗漏、短页提前结束和断网不补本机；修正后21/21通过。追加控制消息页先复现23/27通过，保留原始游标/偏移后27/27通过，覆盖单/群聊、本机150条、实际20条短页、100/101边界、隐藏控制页、网络失败/非法响应及退出后迟到隔离。生产 Store、定位Store12项/布局12项、滚动16项、首次定位11项、撤回缓存5项、语义12项、视口7项与SDK消息归并专项通过。终版无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-history-pagination-final-build.log`），本轮三个生产文件无新增编译警告。统一离线入口95/95组通过，exit0，逐组耗时合计422.73秒，汇总 `/tmp/ddlNew-20261021-history-pagination-qa/summary.json`；SDK缓存替身另按真实方法反转为页内时间正序后，专项终版仍27/27通过（`/tmp/ddlNew-history-pagination-final-checks.log`）。全仓 `git diff --check` 通过。
+
+Mobile MCP继续暂停，本轮未安装/操作设备、未提交或推送，既有通话、媒体及用户其它工作区改动保留。重新 Run 后需在同一单/群聊拉到消息顶部下拉，核对超过100条连续补页、补页阅读位置、断网本机翻阅及恢复联网后的历史；真实服务器页长、权限与 SwiftUI 手势表现仍待对应设备验收。
+
+## 2026-10-21 通话缩小浮窗的控制器层级崩溃
+
+用户真机反馈视频通话点击左上角缩小立即崩溃，UIKit 报浮窗宿主应无 parent，但实际 parent 为 `CallPresentationController`。源码确认 `syncBubble` 将 `UIHostingController<CallFloatingView>` 声明为零尺寸锚点的 child，却把宿主视图直接加入 `UIWindow`，两套层级不一致。现移除浮窗的 addChild/didMove 以及对应移除 child 调用，继续作为当前场景窗口浮层，由 `bubble` 强引用宿主；恢复、通话结束或锚点卸载时移除视图并释放宿主。拖动、安全区限制、全局浮层和原通话会话保留。
+
+新增 `Tests/Calls/run-presentation-checks.sh` 编译生产浮窗同步、拖动与边界方法，用 UIKit 边界替身检查窗口层级契约、宿主持有/释放、重复缩小恢复、位置保留、锚点暂离与卸载。修改前8/10通过，两个层级契约检查失败；修正后10/10通过（`/tmp/ddlNew-call-minimize-green.log`）。现有通话协调器35/35通过（`/tmp/ddlNew-call-minimize-state.log`）。iOS workspace 无签名 generic iOS 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-call-minimize-build.log`），`git diff --check`通过。离线替身不能代替 UIKit 真机运行；Mobile MCP 继续暂停，重新 Run 后的视频/语音缩小、浮窗拖动、恢复和结束清理待设备复验。未提交或推送，保留其他工作区改动。
+
+## 2026-10-20 语音与视频通话迁移
+
+用户明确要求产品经理先对照 xgd 整理需求，再开发底部入口、单聊/群聊语音视频、通话页及应用内来电，继续使用旧端同样三方库。需求与旧源码依据见 [通话迁移需求](CALL_MIGRATION_REQUIREMENTS_2026-10-20.md)，实施分工见 [实施计划](superpowers/plans/2026-10-20-calls.md)。当前代码实现和离线验证已完成，真实新旧端双向音画与来电验收待设备联调；Mobile MCP 继续暂停。
+
+本轮新增 `Features/Calls` 和 `Network/IM/Calls`。`CallCoordinator` 绑定 UID、邀请码、AUTH 轮次和当前通话 UUID/hash/callId；AUTH 成功即注册全局 SDK 来电代理，先于联系人/会话异步读库，退出在 SDK reset 前关闭。`SystemConfigService` 与 `SessionMaintenanceCoordinator` 将已通过当前节点归属检查的配置送入内存 `CallConfigurationStore`，仅解析通话开关、供应商和 Zego appID，不保存 appSign、服务端 secret 或房间 token。当前通话保存配置快照，刷新配置不切换正在使用的引擎。
+
+信令复用 NoaChatCore 两套现有接口；媒体使用原有 SPM LiveKit 1.0.8、ZegoExpressEngine 3.5.0，版本未升级。LiveKit 采用每通独立 `Room`，避免旧 SDK 包装打印 token 和单例房间串轮次；新端直接调用 Promise API，故补充显式链接现有锁定的 Promises 2.4.1 产品。Zego 使用真实引擎登录、确认加入、推拉流及10秒心跳。两媒体引擎共用停流/销毁等待，跨供应商重拨也要等上一通释放。铃声、屏幕常亮、摄像头、代理、心跳和视频画布随终态清理；后台停视频，前台按用户原开关恢复。
+
+聊天底部新增“视频通话”“语音通话”，按系统开关、会话类型和群角色显示，动作提交前重新校验。群先选择真实成员，创建失败保留选择；已有群通话通过顶部人数/头像提示明确加入，通话内可追加邀请。全局 `CallPresentation` 锚定当前场景窗口，覆盖已有媒体/设置弹层；单聊支持真实大小视频交换，群显示成员状态/视频网格，最小化为可拖动浮窗并保留房间、时长和画面偏好。底层 modal 异步消失时会重新核对实际呈现，避免通话仍在但页面丢失。错误沿用居中 Toast。
+
+来电或呼出在媒体接管前执行 `ChatRuntime.prepareForCall`，通过已注册清理动作停止独立视频播放器、语音播放和未发送录音，保留附件上传。通话中录音、语音播放和视频播放不能抢占音频会话。SDK 已落库的通话消息经 `ChatCallSummary` 展示取消、拒绝、未应答、时长及群发起/结束；LiveKit 读取 `sMsgType=504/customEvent.type=101或103`，102不产生历史行，Zego读取type20及netCall字段，不另插结束消息。
+
+验证：最终无签名 generic iOS workspace 构建 `BUILD SUCCEEDED`，日志 `/tmp/ddlNew-calls-build-final.log`；本轮 Calls 源码无新增编译警告。统一离线脚本首轮91项中88项通过，两个测试夹具补充通话边界、一项同期源码变动导致的编译检查重跑后通过；加上随后新增的两个 Calls 专项，最终汇总93/93，证据 `/tmp/ddlNew-calls-regression/final-summary.json`。其中真实协调器35项，另有请求合同、响应映射、系统资源、历史文案和媒体互斥检查。先复现再修复了建房前收到终态、旧accept任务串新房间、旧系统中断影响新通话等问题；独立产品/SDK复核发现的问题已修正。离线测试替代系统权限/网络/媒体边界，不代表实际通话接通。
+
+待设备按需求文档 QA-CALL-01 至12验收：两供应商各自新→旧、旧→新单聊语音视频；至少三账号群选人/部分接听/追加邀请/已有房间加入；拒绝/取消/未应答/其他设备接听；静音、免提、蓝牙、前后摄像头、浮窗恢复；已有媒体弹层来电、后台/锁屏及弱网重连。未新增 CallKit/PushKit，进程被杀后的 VoIP 唤醒不在已确认的旧端应用内链路范围。工作区保留同期图片失败重传修改；本轮未提交或推送。
+
+## 2026-10-20 图片发送失败保留原条与重传
+
+用户反馈图片发送超时后气泡直接消失。只读对照 xgd `NoaMessageSendTask.sendMessage` 与 `NoaMessageSendHander.ZMessageReSendWithFailMsg`：旧端上传不完整时将原消息标为失败并写回消息库，重试沿用原本地ID和本机原件。新端 `ChatMediaStore` 原先在上传/入队失败时调用discard删除占位，`ChatMediaComposer`随后删除临时图片；本轮覆盖下方10月16日“失败移除占位、未实现失败气泡重试”的历史边界。
+
+图片/视频上传失败及上传完成但SDK入队抛错时，现保留本地预览、结束菊花并显示既有红色失败按钮。用户随后明确取消失败Toast：图片/视频上传、SDK入队或ACK超时失败仅更新气泡与红色重试按钮，不重复弹Toast；准备失败、权限与缺原件等操作校验继续原有提示。原件/视频封面由独立 `ChatUploads` 应用目录持有，排除备份；失败记录复用SDK消息表与localImgName/localVideoName/localVideoCover字段保存，采用应用目录相对路径，远端resource/thumbnail不写本机路径。重进聊天从本人失败记录恢复；未上传完整时重新上传，同localID继续SDK队列，已有完整云地址时直接重入队；最终成功仍以ACK为准。首次上传主动取消仍移除尚未入队占位；取消重传保留原失败条，重复点击、权限变化、缺原件、清历史和旧身份迟到结果受守卫隔离。成功入队、本机删除及当前记录清历史释放对应原件。
+
+新增失败保留回归先复现旧删除分支，追加真实Store/上传器与实际文件检查覆盖字节保留、重进缓存、同ID重传、再次失败、SDK入队失败、重复点击、权限、取消、缺文件、删除、清历史和ACK；另先复现旧失败缓存刷新覆盖正在重传状态，修正后专项通过。新增SDK保存/恢复方法提取检查覆盖图片/视频独立原件封面、相对路径/越界、用户归属、成功/删除保护和写库失败；该边界替身不等于真实WCDB进程重启验收。追加不弹Toast回归先复现旧提示分支，修正后验证图片上传失败、SDK超时和入队失败不发布Toast。两个专项日志 `/tmp/ddlNew-media-failure-green.log`、`/tmp/ddlNew-media-persistence-green.log`，云目录/配额15项通过。最终统一离线89/91组通过（`/tmp/ddlNew-20261020-media-failure-final-qa/summary.json`）；未通过的`Tests/Chat/run-photo-browser-checks.sh`及`run-voice-recorder-checks.sh`均因同期通话新增calls/CallCoordinator缺少离线替身而编译失败，本轮图片/持久化及云策略入口通过。首轮修改期间产生的cloud-policy单文件编译依赖已通过拆分新协议/文件所有权模型修正，游戏脚本读到在写源码的失败也在终版通过；不将全套描述为全绿。
+
+构建过程：首轮被同期通话代码编译错误阻断，后续源码编译完成但LiveKit通话相关Promises符号链接失败；终版无签名generic iOS workspace构建exit65，日志`/tmp/ddlNew-20261020-media-failure-terminal-build.log`，本轮图片修复文件编译完成且无新增警告，失败为LiveKitCallEngine对Promises.Promise的then/catch未定义符号，未确认完整BUILD SUCCEEDED。范围内diff检查通过。没有修改通话实现或撤销同期工作区改动。Mobile MCP继续暂停，未安装/操作设备、未发送真实业务消息；弱网图片/视频失败后的红标、退出重进、点击重传及双端实收仍待重新Run真机验收。未提交/推送。
+
+后续按用户要求取消图片/视频发送失败Toast：上传失败、SDK入队失败与ACK超时均保留失败气泡和重试按钮。媒体、Chat Store及SDK保存/恢复三个专项通过；本次无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-20261020-media-no-toast-build.log`），覆盖前述构建失败的当前状态；不等于真机弱网与双端重传已验收。未提交/推送。
+
 ## 2026-10-19 预览右上分享无响应
 
 用户反馈图片预览右上更多菜单内点击分享无响应。当前使用嵌在条件Menu内容中的ShareLink，实际预览由独立UIHostingController呈现；本轮将分享改为普通Button生成当前文件快照，`.sheet(item:)`固定挂在 `ChatPhotoBrowserView` 根部，再通过 `ChatPhotoBrowserShareSheet: UIViewControllerRepresentable` 承载 UIActivityViewController。菜单收起或预览Store因后台清空file，都不会移除分享请求与呈现入口；图片、视频使用同一原文件URL，仍由用户在系统面板选择目标，不自动发送。

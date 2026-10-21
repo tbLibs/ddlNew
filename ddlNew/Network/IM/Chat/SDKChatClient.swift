@@ -7,6 +7,7 @@
 
 import Foundation
 import NoaChatCore
+import MMKV
 import UniformTypeIdentifiers
 import ObjectiveC
 
@@ -33,6 +34,54 @@ import ObjectiveC
     func validate(_ context: ChatContext) throws {
         guard self.context == context, validSession(context), sdk.myUserID() == context.userUID,
               sdk.isUserDatabaseReady() else { throw ChatClientError.sessionExpired }
+    }
+
+    /// 对齐旧端进入单/群聊的会话清读；正文已读和语音播放状态仍由read单独处理。
+    func clearConversationUnread(context: ChatContext, onFailure: @escaping @MainActor (String) -> Void) throws {
+        objc_sync_enter(sdk)
+        defer { objc_sync_exit(sdk) }
+        try validate(context)
+        guard context.route.kind == .single || context.route.kind == .group,
+              let current = (sdk.toolCheckMySession(with: context.route.id) as LingIMSessionModel?) else { return }
+        let latest = current.sessionLatestServerMsgID?.isEmpty == false
+            ? current.sessionLatestServerMsgID ?? ""
+            : (current.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: context.route.id))?.serviceMsgID ?? ""
+        let checkpoint = ChatRuntime.shared.beginReadCountClear(context: context, count: current.sessionUnreadCount, boundaryID: latest)
+        if current.sessionUnreadCount != 0 || current.readTag != 0 {
+            current.sessionUnreadCount = 0; current.readTag = 0
+            guard sdk.toolUpdateSession(with: current) else {
+                throw ChatClientError.unavailable("本机会话未读数未能清除，请返回聊天后重试")
+            }
+        }
+        // 本机清除成功即撤销原计数成员，避免随后正文已读再扣到新到消息。
+        if let checkpoint {
+            ChatRuntime.shared.confirmReadCountClear(checkpoint, context: context, count: 0, latestID: latest)
+        }
+        // 复用旧端与SDK的重连清读边界；仅记录打开时的SID，保留其它会话已有记录。
+        if !latest.isEmpty {
+            let key = "clearReadNumSMsgIdDictKey"
+            var boundaries = MMKV.default()?.object(of: NSDictionary.self, forKey: key) as? [String: String] ?? [:]
+            boundaries[context.route.id] = latest
+            _ = MMKV.default()?.set(boundaries as NSDictionary, forKey: key)
+            sdk.clearReadNumSMsgIdDict = boundaries
+        }
+        var values: [String: Any] = ["userUid": context.userUID, "peerUid": context.route.id,
+                                     "dialogType": context.route.kind == .group ? 1 : 0, "readTag": 0]
+        if !latest.isEmpty { values["latestSMsgId"] = latest }
+        let run = generation
+        let reportFailure: @Sendable (String) -> Void = { [weak self] message in
+            Task { @MainActor [weak self] in
+                guard let self, self.generation == run, (try? self.validate(context)) != nil else { return }
+                onFailure(message)
+            }
+        }
+        // 此接口只转发运输请求，不自行写库；成功回执不回写旧快照，保留后来到达的新消息。
+        sdk.conversationReadedStatus(NSMutableDictionary(dictionary: values), onSuccess: { data, _ in
+            let accepted = data == nil || data is NSNull || (data as? NSNumber) == 1
+            if !accepted { reportFailure("会话已读同步未被接受，请返回聊天后重试") }
+        }, onFailure: { code, _, _ in
+            reportFailure("会话已读同步失败（\(code)），请返回聊天后重试")
+        })
     }
 
     /// 本地历史分页使用SDK固定100条查询，不构造独立消息库。
@@ -98,14 +147,30 @@ import ObjectiveC
         var params: [String: Any] = ["pageSize": 100, "pageNumber": 1, "userUid": context.userUID]
         params[context.route.kind == .group ? "groupId" : "fromUid"] = context.route.id
         if let before, !before.isEmpty { params["sMsgId"] = before; params["isThanMsgId"] = 1 }
-        let json = try await request(context: context) { success, failure in
-            if context.route.kind == .group { self.sdk.queryGroupMsgRecord(NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure) }
-            else { self.sdk.querySingleMsgRecord(NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure) }
+        let json: [String: Any]
+        do {
+            json = try await request(context: context) { success, failure in
+                if context.route.kind == .group { self.sdk.queryGroupMsgRecord(NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure) }
+                else { self.sdk.querySingleMsgRecord(NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure) }
+            }
+        } catch {
+            try validate(context)
+            guard !Task.isCancelled, ChatRuntime.shared.contentRevision(context) == contentAtStart else { throw CancellationError() }
+            // 与旧端一致，网络失败仍回读本机更早一页；远端结束状态未知，保留重试。
+            let local = try cached(context: context, offset: offset)
+            guard !local.isEmpty else { throw error }
+            return ChatPage(messages: local, hasMore: true, nextCursor: before, nextOffset: offset + local.count)
         }
         try validate(context)
         guard ChatRuntime.shared.contentRevision(context) == contentAtStart else { throw CancellationError() }
         guard let rows = json["rows"] as? [[String: Any]] else { throw ChatClientError.invalidResponse }
         var mapped: [ChatMessageRecord] = []
+        var oldest: ChatMessageRecord?
+        var restoredServerIDs: Set<String> = []
+        #if DEBUG
+        var remoteStatusCounts: [Int: Int] = [:]
+        var localStatusConflicts = 0
+        #endif
         // 只有当前轮次持有SDK锁，转换与落库不会污染另一账号数据库。
         objc_sync_enter(sdk)
         defer { objc_sync_exit(sdk) }
@@ -114,6 +179,14 @@ import ObjectiveC
             let model = SDKChatMessageMapper.historyModel(row, context: context)
             let record = SDKChatMessageMapper.record(model, userUID: context.userUID)
             guard record.conversationID == context.route.id else { continue }
+            #if DEBUG
+            remoteStatusCounts[record.status.rawValue, default: 0] += 1
+            #endif
+            // 隐藏控制条也占远端历史位置，不能仅从最终可见正文推算下一次游标。
+            if !record.serverID.isEmpty, oldest.map({ record.timestamp < $0.timestamp ||
+                (record.timestamp == $0.timestamp && record.serverID.compare($0.serverID, options: .numeric) == .orderedAscending) }) ?? true {
+                oldest = record
+            }
             if [8, 9, 15].contains(record.type) {
                 if let target = model.backDelServiceMsgID, let original = (sdk.toolGetOneChatMessage(withServiceMessageID: target, sessionID: context.route.id) as NoaIMChatMessageModel?) {
                     original.messageStatus = record.type == 8 ? 2 : 0
@@ -130,8 +203,14 @@ import ObjectiveC
             if let old, let latest, ChatHistoryCachePolicy.keepCurrent(remote: record, current: latest, atRequest: baseline) { target = old }
             else { target = model }
             if let old {
-                if old.messageStatus != 1 { target.messageStatus = old.messageStatus }
-                else if model.messageStatus != 1 { target.messageStatus = model.messageStatus }
+                #if DEBUG
+                if old.messageStatus != 1 && old.messageStatus != record.status.rawValue { localStatusConflicts += 1 }
+                #endif
+                // target已按请求开始快照判断是否保护期间变更，不能再无条件覆盖服务器状态。
+                if old.messageStatus == 1 && model.messageStatus != 1 { target.messageStatus = model.messageStatus }
+                if old.messageStatus != 1 && target.messageStatus == 1 && !record.serverID.isEmpty {
+                    restoredServerIDs.insert(record.serverID)
+                }
                 target.chatMessageReaded = old.chatMessageReaded || model.chatMessageReaded
                 target.haveReadCount = max(old.haveReadCount, model.haveReadCount)
                 target.totalNeedReadCount = max(old.totalNeedReadCount, model.totalNeedReadCount)
@@ -140,14 +219,27 @@ import ObjectiveC
             sdk.toolInsertOrUpdateChatMessage(with: target)
             mapped.append(SDKChatMessageMapper.record(target, userUID: context.userUID))
         }
-        return ChatPage(messages: mapped, hasMore: rows.count >= 100)
+        // 云端可能只保留部分历史或限制实际页长；补拉后仍以SDK库补齐本机分页。
+        // 非空短页不能证明游标已到头，空页且本机不足一页时才停止下拉。
+        let local = try cached(context: context, offset: offset)
+        #if DEBUG
+        // 只输出分页计数，不输出聊天正文、用户或消息ID。
+        print("[ChatHistory] response rows=\(rows.count) mapped=\(mapped.count) cached=\(local.count) cursorAdvanced=\(oldest?.serverID != before)")
+        let statusCounts = Dictionary(grouping: mapped, by: { $0.status.rawValue }).map { "\($0.key):\($0.value.count)" }.sorted().joined(separator: ",")
+        let typeCounts = Dictionary(grouping: mapped, by: \.type).map { "\($0.key):\($0.value.count)" }.sorted().joined(separator: ",")
+        let remoteStatuses = remoteStatusCounts.map { "\($0.key):\($0.value)" }.sorted().joined(separator: ",")
+        print("[ChatHistory] remoteStatus=[\(remoteStatuses)] localStatusConflicts=\(localStatusConflicts)")
+        print("[ChatHistory] mappedStatus=[\(statusCounts)] mappedType=[\(typeCounts)] visibleCandidates=\(mapped.filter(\.isVisible).count)")
+        #endif
+        return ChatPage(messages: ChatMessageMerge.merge(local, with: mapped), hasMore: !rows.isEmpty || local.count == 100,
+                        nextCursor: oldest?.serverID, nextOffset: offset + local.count, restoredServerIDs: restoredServerIDs)
     }
 
     /// 发请求前记录当前完整SDK缓存版本，回写时识别等待期间的编辑、已读和删除。
     private func cacheSnapshot(context: ChatContext) throws -> [String: ChatMessageRecord] {
         try validate(context); var values: [String: ChatMessageRecord] = [:]; var offset = 0
         while true {
-            let rows = sdk.toolGetChatMessageHistory(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? []
+            let rows = sdk.toolGetChatMessageHistoryIncludingInactive(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? []
             for model in rows { let item = SDKChatMessageMapper.record(model, userUID: context.userUID); if !item.serverID.isEmpty { values["s:" + item.serverID] = item }; if !item.localID.isEmpty { values["m:" + item.localID] = item } }
             if rows.count < 100 { break }; offset += rows.count
         }
@@ -292,6 +384,22 @@ import ObjectiveC
         guard saved != nil else { throw ChatClientError.unavailable("消息未能保存，请重试") }
     }
 
+    /// 上传失败写入现有SDK消息表，本机路径只写local字段，不作为云资源发送。
+    func saveFailedMedia(_ message: ChatMessageRecord, context: ChatContext) throws {
+        try validate(context)
+        guard [1, 2].contains(message.type), message.senderID == context.userUID,
+              message.conversationID == context.route.id, message.state == .failed,
+              message.localMediaFileURL.flatMap({ ChatUploadFiles.localURL($0.path) }) != nil else { throw ChatClientError.invalidResponse }
+        let existing: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
+        if let existing, existing.messageStatus != 1 || existing.messageSendType.rawValue == 1 { return }
+        let model = makeModel(message, context: context)
+        model.messageSendType = CIMChatMessageSendType(rawValue: UInt(ChatSendState.failed.rawValue))!
+        model.localImgName = message.type == 1 ? ChatUploadFiles.storedPath(message.localMediaFileURL) : nil
+        model.localVideoName = message.type == 2 ? ChatUploadFiles.storedPath(message.localMediaFileURL) : nil
+        model.localVideoCover = message.type == 2 ? ChatUploadFiles.storedPath(message.localMediaPreviewURL) : nil
+        guard sdk.toolInsertOrUpdateChatMessage(with: model) else { throw ChatClientError.unavailable("失败消息保存失败，请保留当前聊天后重试") }
+    }
+
     /// 只更新同一消息当前结果的展示标记，迟到动画不能标记重试后的新结果。
     func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws {
         try validate(context)
@@ -413,7 +521,7 @@ import ObjectiveC
         ChatRuntime.shared.commitVisibleReadCount(plan, context: context)
     }
 
-    /// 开页只清本机手动标记；SDK远端readTag0事件会清整个会话，不能替代可见正文已读。
+    /// 后续正文补读仅清本机手动标记；整会话清读由打开入口独立执行。
     private func clearManualReadTag(context: ChatContext) throws {
         objc_sync_enter(sdk)
         defer { objc_sync_exit(sdk) }

@@ -58,6 +58,7 @@ final class SystemConfigService {
             lastLiceseId: plan.lastLiceseId,
             apiHost: plan.apiHost
         )
+        CallConfigurationStore.shared.update(json: json, tenantID: plan.lastLiceseId)
         return configuration
     }
 

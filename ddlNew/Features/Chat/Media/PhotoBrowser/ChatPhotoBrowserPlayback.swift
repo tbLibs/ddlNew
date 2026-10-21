@@ -22,6 +22,7 @@ import Combine
     }
 
     func play(file: URL, onFailure: @escaping @MainActor () -> Void) throws {
+        guard CallCoordinator.shared.session == nil else { throw ChatClientError.unavailable("通话中暂不能播放视频") }
         pause()
         if !ownsAudioSession {
             let session = AVAudioSession.sharedInstance()

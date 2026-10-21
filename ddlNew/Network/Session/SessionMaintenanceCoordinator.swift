@@ -81,6 +81,7 @@ final class SessionMaintenanceCoordinator {
                 throw AccountLoginError.invalidResponse
             }
             try SystemConfigStore.shared.save(config, lastLiceseId: license, apiHost: plan.apiHost)
+            CallConfigurationStore.shared.update(json: json, tenantID: license)
             // 只更新租户、验证码和业务配置，不重置 SDK 用户、数据库或 Socket。
             NoaIMSDKManager.sharedTool().configSDKTenantCode(config.tenantCode)
             NoaIMSDKManager.sharedTool().configSDKCaptchaChannel(config.captchaChannel)

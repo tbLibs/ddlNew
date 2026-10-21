@@ -7,6 +7,7 @@ import Foundation
         precondition(!ChatHistoryCachePolicy.keepCurrent(remote: latest, current: baseline, atRequest: baseline), "未变更SDK缓存应允许服务端离线新正文更新")
         baseline.status = .deleted
         precondition(ChatHistoryCachePolicy.keepCurrent(remote: message("旧正文"), current: baseline, atRequest: nil), "SDK墓碑不能被正常历史覆盖")
+        precondition(!ChatHistoryCachePolicy.keepCurrent(remote: message("服务器正文"), current: baseline, atRequest: baseline), "请求前已存在且期间未变更的删除缓存应以服务器状态校正")
         precondition(ChatHistoryCachePolicy.wasDeletedDuringRequest(current: nil, atRequest: latest), "补页期间已物理删除原条不能重新插入")
         let invalidation = ChatGroupEventPolicy.events(kind: 221, groupID: "g", conversationID: "g")
         precondition(invalidation.contains { if case .permissionsChanged = $0 { return true }; return false }, "个人禁言必须使权限缓存失效")
@@ -24,7 +25,7 @@ import Foundation
         precondition(!ChatHistoryCachePolicy.keepCurrent(remote: editedRemote, current: unchanged, atRequest: atStart), "@映射每次产生新片段UUID不能误认为SDK正文变更")
         let permanent = ChatGroupBanRecord(id: "u", name: "成员", avatar: "", expires: "9999-01-01 00:00:00", updatedAt: "")
         precondition(permanent.statusText == "永久禁言", "旧永久禁言以远期日期返回也必须正确识别")
-        print("Review semantic checks: 12 passed")
+        print("Review semantic checks: 13 passed")
     }
     /// 建立具有ACK双ID的SDK缓存值。
     static func message(_ text: String) -> ChatMessageRecord { ChatMessageRecord(localID: "m", serverID: "s", conversationID: "g", senderID: "u", senderName: "成员", text: text, timestamp: 100, state: .sent) }

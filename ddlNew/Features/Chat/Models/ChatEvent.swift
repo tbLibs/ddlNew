@@ -22,4 +22,15 @@ enum ChatEvent: Sendable {
 struct ChatPage: Sendable {
     let messages: [ChatMessageRecord]
     let hasMore: Bool
+    /// 控制消息可能不生成可见行，分页进度必须保留原始远端游标与本机偏移。
+    let nextCursor: String?
+    let nextOffset: Int?
+    /// 服务端明确恢复且请求期间未变更的旧本机状态；普通缓存页不携带此资格。
+    let restoredServerIDs: Set<String>
+
+    init(messages: [ChatMessageRecord], hasMore: Bool, nextCursor: String? = nil, nextOffset: Int? = nil, restoredServerIDs: Set<String> = []) {
+        self.messages = messages; self.hasMore = hasMore
+        self.nextCursor = nextCursor; self.nextOffset = nextOffset
+        self.restoredServerIDs = restoredServerIDs
+    }
 }

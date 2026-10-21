@@ -35,6 +35,12 @@ enum ChatMessageMerge {
                     if !ack { item.timestamp = old.timestamp }
                     if history || stale { item.type = old.type; item.text = old.text; item.referenceID = old.referenceID; item.mentions = old.mentions; item.nestedMessages = old.nestedMessages; item.resource = old.resource; item.thumbnail = old.thumbnail; item.stickerID = old.stickerID; item.isStickerSet = old.isStickerSet; item.gameType = old.gameType }
                 }
+                // 上传原条的旧失败缓存不能结束当前重传；真正上传结果以非历史更新接续。
+                if history, let uploading = olds.first(where: { $0.isMediaUploading }), item.state != .sent {
+                    item.state = .sending; item.failure = nil; item.isMediaUploading = true
+                    item.localMediaFileURL = uploading.localMediaFileURL
+                    item.localMediaPreviewURL = uploading.localMediaPreviewURL
+                }
                 if item.type == 21 && !(item.state == .sending && olds.contains(where: { $0.state == .failed })) && olds.contains(where: {
                     $0.gameAnimationPlayed && $0.type == 21 && $0.gameType == item.gameType && $0.text == item.text
                         && (ack || $0.timestamp == item.timestamp)

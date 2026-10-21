@@ -41,6 +41,7 @@ import Combine
     private var queuedReads: [String: ChatMessageRecord] = [:]
     private var readFlushTask: Task<Void, Never>?
     private(set) var context: ChatContext?
+    weak var mediaRetryClient: (any ChatMediaRetryClient)?
     private let client: any ChatClient
     private var generation = UUID()
     private var records: [ChatMessageRecord] = []
@@ -48,6 +49,9 @@ import Combine
     private var clearRevision = UUID()
     private var changedIDs: [String: Int] = [:]
     private var offset = 0
+    private var historyCursor: String?
+    private var refreshTask: Task<Void, Never>?
+    private var refreshRequestID = UUID()
     private var lastSend: Date?
     private var readIDs: Set<String> = []
     /// 在途已读按批次持有资格，旧回执的清理不能撤销新批次。
@@ -66,6 +70,13 @@ import Combine
             guard let self, self.generation == run, self.context == context else { return }
             self.receive(event)
         }
+        // 沿旧端进入即清会话提醒；独立于正文可见/语音播放及历史加载，快速返回也已落库。
+        do {
+            try client.clearConversationUnread(context: context) { [weak self] message in
+                guard let self, self.generation == run, self.context == context else { return }
+                self.errorMessage = message
+            }
+        } catch { errorMessage = error.localizedDescription }
         do {
             merge(try client.cached(context: context, offset: 0), history: true)
             permission = try client.permissions(context: context)
@@ -77,10 +88,35 @@ import Combine
         if let target = context.route.targetMessageID { await locate(target) }
     }
 
-    /// 固定游标取更旧100条；请求失败保留现有快照与重试入口。
+    /// 下拉控件的任务可能随SwiftUI刷新取消，网络补页由当前聊天持有。
+    /// 真正离开或清空聊天时仍同步取消，不能把旧请求带进下一会话。
+    func refreshHistory() async {
+        if let refreshTask { await refreshTask.value; return }
+        guard context != nil, !isLoading else { return }
+        let id = UUID(); refreshRequestID = id
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.loadMore()
+        }
+        refreshTask = task
+        await task.value
+        if refreshRequestID == id { refreshTask = nil }
+    }
+
+    /// 手动下拉允许重试空页；连续隐藏/重复页在一次手势内继续补查正文。
     func loadMore() async {
-        guard hasMore else { return }
-        await loadPage(before: messages.first(where: { !$0.serverID.isEmpty })?.serverID)
+        guard let context, !isLoading else { return }
+        let run = generation
+        let visibleBefore = Set(messages.filter(\.isVisible).map(\.id))
+        // 单次手势限制补查次数，防止异常服务端或大量控制条占用页面；下次可接着拉。
+        for _ in 0..<5 {
+            let previousCursor = historyCursor
+            let previousOffset = offset
+            await loadPage(before: historyCursor ?? messages.first(where: { !$0.serverID.isEmpty })?.serverID)
+            guard !Task.isCancelled, generation == run, self.context == context else { return }
+            if messages.contains(where: { $0.isVisible && !visibleBefore.contains($0.id) }) { return }
+            guard hasMore, historyCursor != previousCursor || offset != previousOffset else { return }
+        }
     }
 
     /// 合并远程补页而非覆盖实时消息；轮次改变后不发布任何结果。
@@ -90,17 +126,30 @@ import Combine
         let beganAt = eventRevision
         let clearAtStart = clearRevision
         isLoading = true
+        #if DEBUG
+        print("[ChatHistory] start older=\(before != nil) offset=\(offset) knownMore=\(hasMore)")
+        #endif
         defer { if generation == run { isLoading = false } }
         do {
-            let page = try await client.history(context: context, before: before, offset: before == nil ? 0 : offset)
+            let page = try await client.history(context: context, before: before, offset: offset)
             guard !Task.isCancelled, generation == run, self.context == context, clearRevision == clearAtStart else { return }
             for message in page.messages {
                 let changedAfterRequest = (changedIDs[message.localID] ?? 0) > beganAt || (changedIDs[message.serverID] ?? 0) > beganAt
+                if !changedAfterRequest, message.status == .normal, page.restoredServerIDs.contains(message.serverID) {
+                    records.removeAll { $0.status != .normal && $0.serverID == message.serverID }
+                }
                 merge([message], history: changedAfterRequest)
             }
-            offset = messages.count
+            offset = page.nextOffset ?? messages.count
+            historyCursor = page.nextCursor ?? before
             hasMore = page.hasMore
+            #if DEBUG
+            print("[ChatHistory] finish received=\(page.messages.count) visible=\(messages.filter(\.isVisible).count) offset=\(offset) more=\(hasMore)")
+            #endif
         } catch {
+            #if DEBUG
+            print("[ChatHistory] failed taskCancelled=\(Task.isCancelled) cancellationError=\(error is CancellationError) contextChanged=\(generation != run)")
+            #endif
             guard generation == run, !Task.isCancelled else { return }
             errorMessage = error.localizedDescription
         }
@@ -139,7 +188,19 @@ import Combine
               message.senderID == context.userUID, message.isMediaUploading,
               [1, 2].contains(message.type) else { throw ChatClientError.sessionExpired }
         try checkSend(context, messageType: message.type)
-        merge([message])
+        guard !records.contains(where: { $0.localID == message.localID && $0.status != .normal }) else { throw ChatClientError.sessionExpired }
+        merge([message], retrying: true)
+    }
+
+    /// 失败原件随SDK本地消息保存；页面不移除气泡，退出重进仍可重传。
+    func failMediaUpload(_ message: ChatMessageRecord) {
+        guard let context, message.conversationID == context.route.id, message.senderID == context.userUID,
+              let current = records.first(where: { $0.localID == message.localID }),
+              current.status == .normal, current.state != .sent else { return }
+        var failed = message; failed.state = .failed; failed.isMediaUploading = false
+        merge([failed])
+        do { try client.saveFailedMedia(failed, context: context) }
+        catch { errorMessage = error.localizedDescription }
     }
 
     func discardMediaUpload(_ localID: String) {
@@ -179,18 +240,52 @@ import Combine
 
     /// 人工重发复用原本地ID；成功消息和发送中消息不重复入队。
     func retry(_ id: String) {
-        guard let context, let index = messages.firstIndex(where: { $0.id == id }), messages[index].state == .failed else { return }
+        guard let context, !busyIDs.contains(id), let index = messages.firstIndex(where: { $0.id == id }),
+              messages[index].status == .normal, messages[index].state == .failed else { return }
         errorMessage = nil
         do {
             try checkSend(context, messageType: messages[index].type)
             var message = messages[index]
+            if [1, 2].contains(message.type), message.resource.isEmpty || message.thumbnail.isEmpty {
+                guard let mediaRetryClient else { throw ChatClientError.unavailable("附件上传器尚未就绪，请稍后重试") }
+                let run = generation; let clearRun = clearRevision
+                busyIDs.insert(id)
+                Task { [weak self] in
+                    guard let self else { return }
+                    defer { if self.generation == run { self.busyIDs.remove(id) } }
+                    guard self.generation == run, self.clearRevision == clearRun, self.context == context else { return }
+                    await mediaRetryClient.retry(message, context: context,
+                        stage: { [weak self] value in
+                            guard let self, self.generation == run, self.clearRevision == clearRun, self.context == context else { throw ChatClientError.sessionExpired }
+                            try self.beginMediaUpload(value)
+                        }, discard: { [weak self] value in
+                            guard let self, self.generation == run, self.clearRevision == clearRun, self.context == context else { return }
+                            self.discardMediaUpload(value)
+                        }, failed: { [weak self] value in
+                            guard let self, self.generation == run, self.clearRevision == clearRun, self.context == context else { return }
+                            self.failMediaUpload(value)
+                        }, enqueue: { [weak self] value in
+                            guard let self, self.generation == run, self.clearRevision == clearRun, self.context == context,
+                                  !self.isMessageDeleted(value) else { throw ChatClientError.sessionExpired }
+                            try self.sendAttachment(value)
+                        })
+                }
+                return
+            }
             if message.type == 21, let game = ChatGameSticker(rawValue: message.gameType) {
                 message.text = game.randomResult(); message.gameAnimationPlayed = false
             }
             message.state = .sending; message.failure = nil
             message.timestamp = Int64(Date().timeIntervalSince1970 * 1000)
-            try client.send(message, context: context)
+            let localFile = message.localMediaFileURL
+            message.localMediaFileURL = nil; message.localMediaPreviewURL = nil
+            do { try client.send(message, context: context) }
+            catch {
+                if [1, 2].contains(message.type) { return }
+                throw error
+            }
             merge([message], retrying: true); lastSend = Date()
+            ChatUploadFiles.remove(localFile)
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -308,7 +403,7 @@ import Combine
             busyIDs.insert(id)
             try await client.perform(action, message: item, context: context)
             guard generation == run, !Task.isCancelled else { return false }
-            if action == .delete || action == .deleteBoth { var deleted = item; deleted.status = .deleted; merge([deleted]); selectedIDs.remove(id) }
+            if action == .delete || action == .deleteBoth { ChatUploadFiles.remove(item.localMediaFileURL); var deleted = item; deleted.status = .deleted; merge([deleted]); selectedIDs.remove(id) }
             if action == .recall { var recalled = item; recalled.status = .recalled; merge([recalled]) }
             return true
         } catch { if generation == run { errorMessage = error.localizedDescription }; return false }
@@ -350,8 +445,8 @@ import Combine
         case .failed(let localID, let reason):
             guard let index = messages.firstIndex(where: { $0.localID == localID }), messages[index].state != .sent else { return }
             var failed = messages[index]; failed.state = .failed; failed.failure = reason; merge([failed])
-            // 仅本轮发送失败触发Toast，历史消息仍保留失败标记和重试入口。
-            errorMessage = reason.message
+            // 图片/视频仅显示失败标记与重试，其他类型保留原有反馈。
+            if ![1, 2].contains(failed.type) { errorMessage = reason.message }
         case .blacklistRejected(let localID, let reason):
             guard context?.route.kind == .single, reason.isBlacklistRejection,
                   var item = messages.first(where: { !$0.localID.isEmpty && $0.localID == localID }),
@@ -361,11 +456,13 @@ import Combine
             merge([item])
             selectedIDs.remove(item.id)
         case .cleared:
+            refreshTask?.cancel(); refreshTask = nil; refreshRequestID = UUID()
             if let context { onMessageUnavailable?(nil, context) }
             // 清历史同时撤销待发送已读；已在途批次由clearRevision拒绝迟到回写。
             readFlushTask?.cancel(); readFlushTask = nil
             queuedReads.removeAll(); visibleIDs.removeAll(); pendingReadOwners.removeAll(); readIDs.removeAll()
-            clearRevision = UUID(); hasMore = false; records.removeAll(); messages.removeAll(); selectedIDs.removeAll(); offset = 0
+            for item in records { ChatUploadFiles.remove(item.localMediaFileURL) }
+            clearRevision = UUID(); hasMore = false; records.removeAll(); messages.removeAll(); selectedIDs.removeAll(); offset = 0; historyCursor = nil
         case .memberHistoryDeleted(let ids): removeSenderMessages(Set(ids))
         case .memberMetadataChanged(let members):
             remapSenders(members)
@@ -493,8 +590,9 @@ import Combine
             }
             guard hasMore else { break }
             let previous = messages.first?.id
+            let previousCursor = historyCursor; let previousOffset = offset
             await loadMore()
-            guard messages.first?.id != previous || messages.contains(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) else { break }
+            guard messages.first?.id != previous || historyCursor != previousCursor || offset != previousOffset || messages.contains(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) else { break }
         }
         if generation == run, clearRevision == clearRun, locationRequest == request, !Task.isCancelled { errorMessage = "当前历史中未找到这条消息，可能已删除或不可访问" }
     }
@@ -504,12 +602,13 @@ import Combine
 
     /// 退出同时释放代理和身份，所有旧轮次异步结果失效。
     func close() {
+        refreshTask?.cancel(); refreshTask = nil; refreshRequestID = UUID()
         persistDraft()
         readFlushTask?.cancel(); readFlushTask = nil; queuedReads.removeAll(); visibleIDs.removeAll()
         generation = UUID(); client.stop(); context = nil
         records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
         readIDs.removeAll(); pendingReadOwners.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
-        isLoading = false; hasMore = true; offset = 0; lastSend = nil; unreadArrivals = 0; pinRevision = 0
+        isLoading = false; hasMore = true; offset = 0; historyCursor = nil; lastSend = nil; unreadArrivals = 0; pinRevision = 0
         permission = ChatPermission(canSend: false); locatedMessageID = nil; locationRevision = 0; locationRequest = UUID(); errorMessage = nil
     }
 }

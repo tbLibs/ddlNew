@@ -225,6 +225,8 @@ struct SDKConversationsClient {}
                "真实 AUTH 后启动维护和安全检查")
         expect(ChatRuntime.shared.userUID == "user" && ChatRuntime.shared.sessionID == service.maintenanceSessionID,
                "聊天资格绑定AUTH成功的具体登录轮次")
+        expect(CallCoordinator.shared.userUID == "user" && CallCoordinator.shared.sessionID == service.maintenanceSessionID,
+               "全局来电监听绑定同一AUTH轮次")
         expect(service.contactBusiness.identity == "user" && service.groups.identity == "user", "通讯录和群绑定同一登录身份")
         SDKSessionMaintenanceClient.logoutCalls = []
         SDKSessionMaintenanceClient.logoutDelay = 30_000_000
@@ -233,6 +235,8 @@ struct SDKConversationsClient {}
         try await firstLogout.value; try await secondLogout.value
         expect(ChatRuntime.shared.userUID == nil && service.contactBusiness.identity == nil && service.groups.identity == nil,
                "退出同时撤销聊天、关系与群管理资格")
+        expect(CallCoordinator.shared.userUID == nil && CallConfigurationStore.shared.clearCount > 0,
+               "退出关闭通话并清理临时配置")
         expect(SDKSessionMaintenanceClient.logoutCalls.count == 1, "并发退出只发一次服务端请求")
         expect(SDKSessionMaintenanceClient.logoutCalls.first?.0 == "user"
                && SDKSessionMaintenanceClient.logoutCalls.first?.1 == "fixture", "退出请求使用当时的 UID 与 Token")

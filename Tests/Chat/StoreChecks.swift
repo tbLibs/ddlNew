@@ -7,6 +7,15 @@ import Combine
     var page = ChatPage(messages: [], hasMore: false)
     var suspend = false
     var sent: [ChatMessageRecord] = []
+    var openedConversations: [String] = []
+    var openReadFailure: (@MainActor (String) -> Void)?
+    func clearConversationUnread(context: ChatContext, onFailure: @escaping @MainActor (String) -> Void) throws {
+        openedConversations.append(context.route.id); openReadFailure = onFailure
+    }
+    /// 用本机缓存边界承接生产Store的失败消息保存，重开页面从缓存恢复。
+    func saveFailedMedia(_ message: ChatMessageRecord, context: ChatContext) throws {
+        page = ChatPage(messages: page.messages.filter { $0.localID != message.localID } + [message], hasMore: page.hasMore)
+    }
     var playedGames: [ChatMessageRecord] = []
     func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws { playedGames.append(message) }
     var readBatches: [[ChatMessageRecord]] = []
@@ -47,6 +56,9 @@ import Combine
         client.page = ChatPage(messages: [message("one", server: "11")], hasMore: true)
         await store.open(context)
         expect(store.messages.count == 1, "离线缓存可见")
+        expect(client.openedConversations == ["peer"], "进入聊天即提交会话未读清除，不依赖可见正文与两秒批次")
+        await store.open(context)
+        expect(client.openedConversations.count == 1, "相同聊天上下文重复open不重复清除新消息")
         client.callback?(.pinsChanged)
         expect(store.pinRevision == 1 && store.messages.count == 1, "置顶刷新事件无正文变化仍通知列表回读")
         let old = client.callback

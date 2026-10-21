@@ -45,9 +45,21 @@ enum SDKChatMessageMapper {
                     return SDKChatMessageMapper.record(nested, userUID: userUID)
                 }
             }
+        case 20:
+            record.text = ChatCallSummary.zego(chatType: Int(model.netCallChatType), kind: Int(model.netCallType),
+                status: Int(model.netCallStatus), duration: Int(model.netCallDuration),
+                outgoing: model.netCallRoomCreateUser == userUID)
         case 1000: record.text = model.serverMessage.map { systemSummary($0, userUID: userUID) } ?? ""
         case 21: record.text = model.gameStickersResut ?? ""; record.gameType = Int(model.gameSticekersType); record.gameAnimationPlayed = model.isGameAnimationed
         default: break
+        }
+        // 仅恢复本人失败消息的本地原件；云资源字段继续保持SDK真实值。
+        if record.senderID == userUID, record.state == .failed, record.status == .normal, [1, 2].contains(type) {
+            record.localMediaFileURL = ChatUploadFiles.localURL(type == 1 ? model.localImgName : model.localVideoName)
+            if record.localMediaFileURL != nil {
+                record.localMediaPreviewURL = type == 1 ? record.localMediaFileURL : ChatUploadFiles.localURL(model.localVideoCover)
+                record.fileName = record.localMediaFileURL?.lastPathComponent ?? ""
+            }
         }
         let sdk = NoaIMSDKManager.sharedTool()
         if sdk.myUserID() == userUID, sdk.isUserDatabaseReady() {
@@ -78,6 +90,9 @@ enum SDKChatMessageMapper {
     /// 系统事件显示旧项目对应的业务摘要；同步、已读与置顶事件只更新状态不输出正文。
     nonisolated static func systemSummary(_ server: IMServerMessage, userUID: String) -> String {
         let kind = Int(server.sMsgType.rawValue)
+        if kind == 504, let event = server.customEvent {
+            return ChatCallSummary.liveKit(type: Int(event.type), content: event.content, userUID: userUID)
+        }
         var groupID = ""; var silence = false; var subtype = 0; var informSwitch = 0
         var informUIDs: [String] = []; var actorID = ""; var targetID = ""
         let groupKinds = [200, 203, 204, 205, 206, 207, 208, 210, 211, 213, 215, 216, 217, 218, 219, 221, 222, 230, 231, 237, 238]

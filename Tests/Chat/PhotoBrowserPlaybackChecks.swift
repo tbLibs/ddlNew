@@ -1,5 +1,11 @@
 import Foundation
 
+@MainActor final class CallCoordinator {
+    static let shared = CallCoordinator()
+    var session: UUID?
+}
+enum ChatClientError: Error { case unavailable(String) }
+
 final class AVPlayerItem: NSObject, @unchecked Sendable {
     @objc enum Status: Int { case unknown, readyToPlay, failed }
     @objc dynamic var status = Status.unknown
@@ -78,6 +84,11 @@ final class AVAudioSession {
         check(retainedVideo.currentItem != nil && retainedVideo.rate == 0 && AVAudioSession.shared.deactivations == beforePhoto + 1,
               "进入图片归还音频会话但保留邻页视频画面")
         playback.stop()
+        let activations = AVAudioSession.shared.activations
+        CallCoordinator.shared.session = UUID()
+        do { try playback.play(file: firstURL, onFailure: {}); check(false, "通话中不能启动视频") }
+        catch { check(playback.player == nil && AVAudioSession.shared.activations == activations, "通话中视频不能接管音频会话") }
+        CallCoordinator.shared.session = nil
         print("Gallery playback checks: \(checks - failures)/\(checks)")
         if failures > 0 { exit(1) }
     }

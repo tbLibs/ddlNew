@@ -1,6 +1,7 @@
 import Foundation
 final class UserInfo: NSObject { var uId = ""; var uNick = ""; init(_ id: String, _ nick: String) { uId = id; uNick = nick } }
 final class Body {
+    var content = ""
     var fUid = "peer"; var msgId = ""; var sMsgId = ""
     var uid = "B"; var nick = "张三"; var gid = "g"
     var operateUid = "A"; var operateNick = "甲"
@@ -58,6 +59,8 @@ struct SDKChatMessageMapper {
             return ProductionMapper.systemSummary(server, userUID: "A")
         }
         NoaIMSDKManager.notificationStatus = 0
+        precondition(summary(504) { $0.customEvent.type = 101; $0.customEvent.content = #"{"state":"discard","from_id":"A","discard_reason":"cancel","mode":1}"# } == "已取消")
+        precondition(summary(504) { $0.customEvent.type = 102; $0.customEvent.content = #"{"action":"new"}"# }.isEmpty, "群呼叫信令不能生成历史消息")
         precondition(summary(210).isEmpty, "关闭群通知不能暴露群系统摘要")
         NoaIMSDKManager.notificationStatus = 1
         precondition(summary(215) { $0.inviteConfirmGroupMessage?.isSilence = true }.isEmpty, "静默邀请不能显示摘要")

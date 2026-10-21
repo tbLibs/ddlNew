@@ -74,12 +74,13 @@ private struct ChatPhotoBrowserVideoContent: View {
     let player: AVPlayer?
     let isActive: Bool
     let isHidden: Bool
+    @ObservedObject private var calls = CallCoordinator.shared
 
     var body: some View {
         ZStack {
             Color.black
             if !isHidden {
-                if let player {
+                if let player, calls.session == nil {
                     ChatPhotoBrowserPlayerView(player: player, isActive: isActive) { cover }
                         .id(ObjectIdentifier(player))
                 } else { cover }

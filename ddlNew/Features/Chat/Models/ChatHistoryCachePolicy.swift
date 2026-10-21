@@ -7,10 +7,10 @@
 import Foundation
 
 enum ChatHistoryCachePolicy {
-    /// HTTP等待期间缓存变更、ACK较新或墓碑优先保留SDK最新完整模型。
+    /// 请求期间变更和较新ACK保留本机；未变更的旧状态按服务端回写，与旧端首屏同步一致。
     nonisolated static func keepCurrent(remote: ChatMessageRecord, current: ChatMessageRecord, atRequest: ChatMessageRecord?) -> Bool {
         guard let atRequest else { return true }
-        return current.status.rawValue != 1 || current.timestamp > remote.timestamp || version(current) != version(atRequest)
+        return version(current) != version(atRequest) || (current.status == .normal && current.timestamp > remote.timestamp)
     }
     /// 比较实际消息字段，排除每次显示映射新建的@片段UUID和作者展示元数据。
     nonisolated private static func version(_ record: ChatMessageRecord) -> [String] {

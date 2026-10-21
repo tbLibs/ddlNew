@@ -16,6 +16,10 @@ while depth:
     depth += (source[cursor] == '{') - (source[cursor] == '}')
     cursor += 1
 harness = '''import Foundation
+@MainActor final class CallCoordinator {
+    static let shared = CallCoordinator()
+    var session: UUID?
+}
 @MainActor final class GalleryRouteStore {
     var messages: [ChatMessageRecord] = []
     var context: ChatContext? = ChatContext(userUID: "u", tenantID: "t", sessionID: UUID(), route: ChatRoute(id: "chat", kind: .single, title: "", avatarURL: ""))
@@ -33,6 +37,7 @@ struct GalleryComposer { var panel = GalleryPanel.keyboard }
     func toggle(_ message: ChatMessageRecord, context: ChatContext, onPlayed: @escaping () -> Void, onError: @escaping (String) -> Void) { openedID = message.id }
 }
 @MainActor final class GalleryRouteHarness {
+    let calls = CallCoordinator.shared
     let store = GalleryRouteStore()
     let voicePlayback = GalleryVoiceBoundary()
     var composerMode = GalleryComposer()
@@ -55,6 +60,7 @@ def method(name):
     return view[start:cursor] + '\n'
 (out/'GalleryLifecycle.swift').write_text('import Foundation\n@MainActor final class GalleryLifecycleHarness {\n' + '''
     let context: ChatContext
+    let calls = CallCoordinator.shared
     let items: [ChatMessageRecord]
     var currentID: String
     var currentMessage: ChatMessageRecord? { items.first { $0.id == currentID } }

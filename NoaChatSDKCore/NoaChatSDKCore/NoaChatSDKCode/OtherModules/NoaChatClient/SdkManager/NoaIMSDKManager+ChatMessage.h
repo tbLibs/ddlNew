@@ -26,6 +26,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param offset 开始取数据的位置
 - (NSArray *)toolGetChatMessageHistoryWith:(NSString *)sessionID offset:(NSInteger)offset;
 
+/// 历史合并前的状态快照，包含删除和撤回；不能直接作为聊天展示列表。
+- (NSArray *)toolGetChatMessageHistoryIncludingInactiveWith:(NSString *)sessionID offset:(NSInteger)offset;
+
 /// 获取会话聊天历史记录
 /// @param sessionID 会话对方ID(好友ID/群聊ID)
 /// @param limit 条数

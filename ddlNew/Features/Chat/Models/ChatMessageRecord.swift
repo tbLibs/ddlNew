@@ -34,8 +34,9 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     var duration: Double = 0
     var mediaWidth: Double = 0
     var mediaHeight: Double = 0
-    /// 仅供当前会话上传期间展示，不进入 SDK 消息体或持久化缓存。
+    /// 本机上传原件和封面，失败时随SDK本地消息保存，不进入远端资源字段。
     var localMediaPreviewURL: URL? = nil
+    var localMediaFileURL: URL? = nil
     var isMediaUploading = false
     var stickerID: String = ""
     var isStickerSet: Bool = false
@@ -50,7 +51,7 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     nonisolated var id: String { localID.isEmpty ? "server:" + serverID : localID }
     nonisolated var isBody: Bool { status == .normal && ![8, 9, 13, 15, 1000].contains(type) }
     /// 撤回控制记录只更新原消息占位；同步类系统事件没有正文，不生成额外行。
-    nonisolated var isVisible: Bool { status != .deleted && type != 8 && (type != 1000 || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+    nonisolated var isVisible: Bool { status != .deleted && type != 8 && (![1000, 20].contains(type) || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
     /// 名片是独立用户入口，不套用消息发送者的来源群限制。
     nonisolated var cardProfileID: String? { status == .normal && isCompatible && type == 6 && !cardUID.isEmpty ? cardUID : nil }
     nonisolated var displayText: String {
@@ -67,7 +68,7 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
         case 12: return "[贴纸]"
         case 21: return gameType == 2 ? "[骰子] " + text : gameType == 1 ? "[石头剪刀布] " + text : "[游戏表情] " + text
         case 18: return "[聊天记录]"
-        case 20: return "[通话]"
+        case 20: return text
         default: return "当前版本暂不支持此消息"
         }
     }

@@ -19,6 +19,8 @@ struct ChatMediaComposer: View {
     @Binding var showCamera: Bool
     var onBeginRecording: () -> Void = {}
     var onAtSign: ((NSRange) -> Void)? = nil
+    @ObservedObject private var calls = CallCoordinator.shared
+    @ObservedObject private var callConfiguration = CallConfigurationStore.shared
     @StateObject private var media = ChatRuntime.shared.makeMediaStore()
     @StateObject private var recorder = ChatRuntime.shared.makeRecorder()
     @Environment(\.scenePhase) private var scenePhase
@@ -44,6 +46,7 @@ struct ChatMediaComposer: View {
         }
         .tint(MessagingTheme.accent)
         .task { registerCleanup() }
+        .onChange(of: chat.context) { _ in registerCleanup() }
         .messagingFeedbackToast(media.errorMessage ?? recorder.errorMessage)
         .onChange(of: recorder.errorMessage) { error in if error != nil && !recorder.isRecording { cancelRecording() } }
         .onChange(of: photos) { values in preparePhotos(values) }
@@ -57,7 +60,7 @@ struct ChatMediaComposer: View {
         }
         .onDisappear {
             // 全屏相机只是覆盖聊天，不能取消正在发送的附件。
-            if !showCamera { preparation?.cancel(); media.cancel() }
+            if !showCamera && !calls.isPresented && calls.selection == nil { preparation?.cancel(); media.cancel() }
             cancelRecording()
         }
         .onChange(of: mode.panel) { panel in if panel != .voice { cancelRecording() } }
@@ -110,18 +113,37 @@ struct ChatMediaComposer: View {
         }
     }
 
-    /// 相册、拍摄、文件三项等分可用宽度，图标、文字与触点居中对应。
+    /// 通话资格独立于文字禁言；大字时自适应换行，保持触点大小。
     private var tools: some View {
-        HStack(spacing: 0) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0),
+                                 count: dynamicTypeSize.isAccessibilitySize ? 3 : (offersCalls ? 5 : 3)), spacing: 4.zoom()) {
+            if offersCalls {
+                Button { beginCall(.video) } label: { Label("视频通话", systemImage: "video") }
+                    .disabled(calls.busy)
+                Button { beginCall(.audio) } label: { Label("语音通话", systemImage: "phone") }
+                    .disabled(calls.busy)
+            }
             PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo") }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity).disabled(!chat.permission.canSend)
             Button { focused.wrappedValue = false; prepareCamera() } label: { Label("拍摄", systemImage: "camera") }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity).disabled(!chat.permission.canSend || calls.session != nil)
             Button { focused.wrappedValue = false; showFiles = true } label: { Label("文件", systemImage: "doc") }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity).disabled(!chat.permission.canSend)
         }.labelStyle(ChatComposerToolLabelStyle(equalWidth: true)).buttonStyle(.plain)
-            .disabled(!chat.permission.canSend).padding(.horizontal, 12.zoom())
+            .padding(.horizontal, 12.zoom())
             .frame(minHeight: max(56, 56.zoom()))
+    }
+
+    private var offersCalls: Bool {
+        guard let context = chat.context else { return false }
+        return calls.canOfferCall(context: context)
+    }
+
+    private func beginCall(_ kind: CallKind) {
+        guard let context = chat.context else { return }
+        focused.wrappedValue = false; mode.beginTyping()
+        cancelRecording(); onBeginRecording()
+        Task { await calls.start(context: context, kind: kind) }
     }
 
     /// 旧端100点按住按钮及160×60录音状态卡，移出按钮切换取消提示。
@@ -163,6 +185,7 @@ struct ChatMediaComposer: View {
 
     /// 同步清理捕获独立弱对象，避免SwiftUI页面被根runtime长期持有。
     private func registerCleanup() {
+        chat.mediaRetryClient = media
         guard let context = chat.context else { return }
         let mediaStore = media; let recordingStore = recorder
         ChatRuntime.shared.registerCleanup(owner: mediaStore, conversationID: context.route.id) { [weak mediaStore] in mediaStore?.cancel() }
@@ -202,6 +225,7 @@ struct ChatMediaComposer: View {
     /// 按下即请求录音；权限弹窗期间松手会撤销该轮，不迟到启动麦克风。
     private func beginRecording() {
         guard chat.permission.canSend, let context = chat.context, startRecordingTask == nil else { return }
+        guard calls.session == nil else { recorder.errorMessage = "通话中暂不能录制语音"; return }
         media.errorMessage = nil
         guard !media.isUploading else { recorder.errorMessage = "附件正在发送，请稍后再试"; return }
         guard voicePress.begin() else { return }
@@ -246,6 +270,7 @@ struct ChatMediaComposer: View {
         await media.send(attachment, context: context,
             stage: { message in try chat.beginMediaUpload(message) },
             discard: { id in chat.discardMediaUpload(id) },
+            failed: { message in chat.failMediaUpload(message) },
             enqueue: { message in try chat.sendAttachment(message) })
     }
 }

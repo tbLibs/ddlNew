@@ -18,6 +18,7 @@ struct ChatPhotoBrowserView: View {
     var includeCachedHistory = true
     @StateObject private var resources: ChatPhotoBrowserResources
     @StateObject private var playback: ChatPhotoBrowserPlayback
+    @ObservedObject private var calls = CallCoordinator.shared
     @State private var items: [ChatMessageRecord]
     @State private var currentID: String
     @State private var controlsVisible = true
@@ -50,12 +51,12 @@ struct ChatPhotoBrowserView: View {
 
     private var currentMessage: ChatMessageRecord? { items.first { $0.id == currentID } }
     private var preview: ChatMediaPreviewStore { resources.current }
-    private var loadKey: LoadKey { LoadKey(id: currentID, active: scenePhase == .active && !isClosing, retry: retryRevision) }
+    private var loadKey: LoadKey { LoadKey(id: currentID, active: scenePhase == .active && !isClosing && calls.session == nil, retry: retryRevision) }
 
     var body: some View {
         ZStack(alignment: .top) {
             ChatPhotoBrowser(items: items, currentID: currentID, resources: resources, playback: playback,
-                             isActive: scenePhase == .active, onSelect: select,
+                             isActive: scenePhase == .active && calls.session == nil, onSelect: select,
                              onTapImage: { controlsVisible.toggle() }, onClose: close)
                 .ignoresSafeArea()
             previewStatus.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -75,6 +76,7 @@ struct ChatPhotoBrowserView: View {
         .task(id: loadKey) { await loadCurrent() }
         .task { await loadCachedHistory() }
         .onChange(of: preview.isInvalidated) { invalidated in if invalidated { playback.stop(); shareRequest = nil } }
+        .onChange(of: calls.session?.id) { id in if id != nil { playback.stop(); resources.close() } }
         .onChange(of: scenePhase) { phase in if phase != .active { playback.stop(); resources.close() } }
         .onReceive(ChatRuntime.shared.$revision) { _ in
             if !ChatRuntime.shared.isCurrent(context) { playback.stop(); resources.close(); close() }
@@ -164,7 +166,7 @@ struct ChatPhotoBrowserView: View {
     /// 任务键绑定页码、前后台与重试；快速翻页时旧解包结果没有发布和播放资格。
     private func loadCurrent() async {
         guard !Task.isCancelled else { return }
-        guard !isClosing, scenePhase == .active, let message = currentMessage, !Task.isCancelled,
+        guard !isClosing, scenePhase == .active, calls.session == nil, let message = currentMessage, !Task.isCancelled,
               ChatRuntime.shared.isCurrent(context) else { return }
         resources.prepare(items: items, currentID: currentID, context: context)
         let preview = preview; let playback = playback
@@ -172,7 +174,7 @@ struct ChatPhotoBrowserView: View {
             playback?.stop(); preview?.close()
         }
         await resources.waitForLoad(message.id)
-        guard !Task.isCancelled, !isClosing, currentID == message.id, scenePhase == .active,
+        guard !Task.isCancelled, !isClosing, currentID == message.id, scenePhase == .active, calls.session == nil,
               ChatRuntime.shared.isCurrent(context), !preview.isInvalidated, let file = preview.file, message.type == 2 else { return }
         do {
             try playback.play(file: file) { [weak preview] in preview?.errorMessage = "视频无法播放，请重试" }

@@ -64,17 +64,20 @@ struct ddlNewApp: App {
                 }
             }
             .environmentObject(clubStore)
+            .callPresentation()
             .fullScreenCover(item: Binding(get: { loginSecurity.request }, set: { _ in loginSecurity.dismiss() })) { request in
                 PasswordChangeView(request: request, coordinator: loginSecurity)
             }
             .onChange(of: scenePhase) { phase in
                 loginSecurity.setForegroundActive(phase == .active)
                 SessionMaintenanceCoordinator.shared.setForegroundActive(phase == .active)
+                CallCoordinator.shared.setForeground(phase == .active)
             }
             .task {
                 guard !hasRestoredLocalEntry else { return }
                 loginSecurity.setForegroundActive(scenePhase == .active)
                 SessionMaintenanceCoordinator.shared.setForegroundActive(scenePhase == .active)
+                CallCoordinator.shared.setForeground(scenePhase == .active)
                 do {
                     let page = try await AppStartupCoordinator.restoreLocalEntry()
                     try Task<Never, Never>.checkCancellation()

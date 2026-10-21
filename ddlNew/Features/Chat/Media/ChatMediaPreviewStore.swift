@@ -98,6 +98,7 @@ import AVFoundation
 
     /// 语音文件真正开始播放后才由页面报告已读，下载与可见不算播放。
     func playVoice() throws -> Bool {
+        guard CallCoordinator.shared.session == nil else { throw ChatClientError.unavailable("通话中暂不能播放语音") }
         guard let file else { return false }
         self.player?.stop()
         let player = try AVAudioPlayer(contentsOf: file); player.delegate = self; self.player = player

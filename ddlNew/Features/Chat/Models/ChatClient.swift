@@ -16,10 +16,14 @@ import Foundation
     func observe(context: ChatContext, onEvent: @escaping @MainActor (ChatEvent) -> Void)
     /// 释放代理及等待中的业务请求。
     func stop()
+    /// 打开会话即清本机角标并同步服务端，异步失败不阻塞历史展示。
+    func clearConversationUnread(context: ChatContext, onFailure: @escaping @MainActor (String) -> Void) throws
     /// 敏感过滤在消息入队前完成，展示与真正发送正文一致。
     func prepareMessage(_ message: ChatMessageRecord, context: ChatContext) throws -> ChatMessageRecord
     /// 提交给SDK，成功入队仍然需要ACK。
     func send(_ message: ChatMessageRecord, context: ChatContext) throws
+    /// 上传失败仅保存本机消息，不进入SDK网络发送队列。
+    func saveFailedMedia(_ message: ChatMessageRecord, context: ChatContext) throws
     /// 每次提交前重新读取动态角色与群状态。
     func permissions(context: ChatContext) throws -> ChatPermission
     /// 上报当前可见收到消息，语音在播放后单独调用。
@@ -35,6 +39,9 @@ import Foundation
 }
 
 extension ChatClient {
+    /// 无会话数据库的注入客户端无需同步会话角标。
+    func clearConversationUnread(context: ChatContext, onFailure: @escaping @MainActor (String) -> Void) throws {}
+    func saveFailedMedia(_ message: ChatMessageRecord, context: ChatContext) throws {}
     /// 不持久化消息的注入客户端不写入动画标记。
     func markGameAnimationPlayed(_ message: ChatMessageRecord, context: ChatContext) throws {}
     /// 无过滤需求的测试客户端保留原文。

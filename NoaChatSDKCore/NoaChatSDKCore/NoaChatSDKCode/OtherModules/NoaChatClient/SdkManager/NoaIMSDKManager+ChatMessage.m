@@ -289,6 +289,11 @@ static inline void LIMMergeLocalFieldsBeforeHistoryUpsert(NoaIMChatMessageModel 
     return [[historyList reverseObjectEnumerator] allObjects];
 }
 
+- (NSArray *)toolGetChatMessageHistoryIncludingInactiveWith:(NSString *)sessionID offset:(NSInteger)offset {
+    NSString *table = [NSString stringWithFormat:@"CIMDB_%@_%@_Table", [IMSDKManager myUserID], sessionID];
+    return [DBTOOL getChatMessageHistoryIncludingInactiveWith:table limit:kPageNumber offset:offset];
+}
+
 #pragma mark - 重连后获取会话聊天历史
 - (NSArray *)toolReConnectGetChatMessageHistoryWith:(NSString *)sessionID limit:(NSInteger)limit offset:(NSInteger)offset {
     NSString *sessionTableName = [NSString stringWithFormat:@"CIMDB_%@_%@_Table",[IMSDKManager myUserID],sessionID];

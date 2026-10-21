@@ -1,5 +1,18 @@
 import Foundation
 
+@MainActor final class CallCoordinator {
+    static let shared = CallCoordinator()
+    var userUID: String?
+    var sessionID: UUID?
+    func activate(userUID: String, tenantID: String, sessionID: UUID) { self.userUID = userUID; self.sessionID = sessionID }
+    func close() { userUID = nil; sessionID = nil }
+}
+@MainActor final class CallConfigurationStore {
+    static let shared = CallConfigurationStore()
+    var clearCount = 0
+    func clear() { clearCount += 1 }
+}
+
 struct SDKGlobalSearchClient {}
 @MainActor final class GlobalSearchStore {
     var userUID: String?

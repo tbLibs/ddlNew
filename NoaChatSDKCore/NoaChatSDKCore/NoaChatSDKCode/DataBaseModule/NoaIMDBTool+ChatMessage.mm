@@ -40,6 +40,12 @@
     return [self.noaChatDB getObjectsOfClass:NoaIMChatMessageModel.class fromTable:sessionTableName where:NoaIMChatMessageModel.messageStatus == 1 orders:{NoaIMChatMessageModel.sendTime.asOrder(WCTOrderedDescending), NoaIMChatMessageModel.serviceMsgID.asOrder(WCTOrderedDescending)} limit:limit offset:offset];
 }
 
+// 只用于同步前的版本快照；正常聊天查询仍严格读取messageStatus == 1。
+- (NSArray<NoaIMChatMessageModel *> *)getChatMessageHistoryIncludingInactiveWith:(NSString *)sessionTableName limit:(NSInteger)limit offset:(NSInteger)offset {
+    [DBTOOL isTableStateOkWithName:sessionTableName model:NoaIMChatMessageModel.class];
+    return [self.noaChatDB getObjectsOfClass:NoaIMChatMessageModel.class fromTable:sessionTableName orders:{NoaIMChatMessageModel.sendTime.asOrder(WCTOrderedDescending), NoaIMChatMessageModel.serviceMsgID.asOrder(WCTOrderedDescending)} limit:limit offset:offset];
+}
+
 #pragma mark - 获取某个会话的聊天历史最新的一条消息
 - (NoaIMChatMessageModel *)getChatMessageHistoryFirstMsgWith:(NSString *)sessionTableName {
     [DBTOOL isTableStateOkWithName:sessionTableName model:NoaIMChatMessageModel.class];

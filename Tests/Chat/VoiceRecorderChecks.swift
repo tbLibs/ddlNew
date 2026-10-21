@@ -1,5 +1,10 @@
 import Foundation
 
+@MainActor final class CallCoordinator {
+    static let shared = CallCoordinator()
+    var session: UUID?
+}
+
 let AVFormatIDKey = "format", AVSampleRateKey = "sample", AVNumberOfChannelsKey = "channels", AVEncoderBitRateKey = "rate"
 let kAudioFormatMPEG4AAC = 1
 let AVAudioSessionInterruptionTypeKey = "interruption"
@@ -136,6 +141,19 @@ enum ChatClientError: Error { case sessionExpired, unavailable(String) }
         recorder.cancel()
         precondition(AVAudioSession.shared.active, "空闲录音器取消不能停掉其他语音播放")
         AVAudioSession.shared.active = false
+        recorder.cancel()
+        CallCoordinator.shared.session = UUID()
+        await recorder.start(context: context)
+        precondition(!recorder.isRecording && !AVAudioSession.shared.active, "通话中不能启动录音或抢占音频")
+        CallCoordinator.shared.session = nil
+        AVAudioSession.shared.delayPermission = true
+        let callDuringPermission = Task { await recorder.start(context: context) }
+        while AVAudioSession.shared.pending == nil { await Task.yield() }
+        CallCoordinator.shared.session = UUID()
+        AVAudioSession.shared.pending?(true); AVAudioSession.shared.pending = nil
+        await callDuringPermission.value
+        precondition(!recorder.isRecording && !AVAudioSession.shared.active, "授权等待期间来电后不能迟到录音")
+        CallCoordinator.shared.session = nil
         print("Voice recorder checks: passed")
     }
 }

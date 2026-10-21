@@ -15,7 +15,7 @@ def method(marker):
   if s[i]=='}': depth-=1
   i+=1
  return s[start:i]
-parts=[method('    func validate('),method('    func read('),method('    private func flushReadTransitions('),method('    private func clearManualReadTag('),method('    func stop(')]
+parts=[method('    func validate('),method('    func clearConversationUnread('),method('    func read('),method('    private func flushReadTransitions('),method('    private func clearManualReadTag('),method('    func stop(')]
 production='''import Foundation
 import ObjectiveC
 @MainActor final class ProductionReadClient {
@@ -27,7 +27,7 @@ import ObjectiveC
  private var waiting: [UUID: () -> Void] = [:]; private var delegate: NSObject?
  private var groupDetail: [String: Any]?; private var groupMute: [String: Any]?; private var eventHandler: ((ChatEvent) -> Void)?
  init(context: ChatContext,sdk: ReadCountSDK,validSession: @escaping @MainActor (ChatContext)->Bool) { self.context=context;self.sdk=sdk;self.validSession=validSession }
-'''+ '\n'.join(parts)+'\n}'
+'''+ '\n'.join(parts)+'\n func checkOpenUnread() throws { try clearConversationUnread(context: context!, onFailure: { _ in }) }\n}'
 (tmp/'Production.swift').write_text(production)
 stubs=(root/'Tests/Chat/RuntimeDepartureChecks.swift').read_text()
 (tmp/'Dependencies.swift').write_text(stubs[:stubs.index('@main struct RuntimeDepartureChecks')])

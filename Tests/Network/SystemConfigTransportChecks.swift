@@ -1,6 +1,12 @@
 import Foundation
 import ObjectMapper
 
+@MainActor final class CallConfigurationStore {
+    static let shared = CallConfigurationStore()
+    var tenants: [String] = []
+    func update(json: String, tenantID: String) { tenants.append(tenantID) }
+}
+
 // 这里只替代传输和磁盘边界，生产配置服务及 ObjectMapper 映射原样执行。
 struct OSSConnectionPlan { let apiHost: URL?; let lastLiceseId: String }
 @MainActor final class OSSConnectionBootstrap {
@@ -63,6 +69,7 @@ enum SystemConfigCrypto {
         do { _ = try await SystemConfigService.shared.fetchAndCache(for: plan) }
         catch { fatalError("ECDH后的系统配置应复用可用SDK通道，不应被独立HTTP超时阻断") }
         precondition(SDKSessionMaintenanceClient.calls == 1 && SDKSessionMaintenanceClient.loggedIn == false && SystemConfigStore.shared.saved.count == 1)
+        precondition(CallConfigurationStore.shared.tenants == ["club"])
         SDKSessionMaintenanceClient.suspendNext = true
         let old = Task { try await SystemConfigService.shared.fetchAndCache(for: plan) }
         while SDKSessionMaintenanceClient.pending == nil { await Task.yield() }
@@ -71,6 +78,7 @@ enum SystemConfigCrypto {
         SDKSessionMaintenanceClient.pending?.resume(returning: SDKSessionMaintenanceClient.json); SDKSessionMaintenanceClient.pending = nil
         do { _ = try await old.value; fatalError("相同入口的新请求已完成，旧响应不能再写缓存") }
         catch { precondition(SystemConfigStore.shared.saved.count == prior) }
+        precondition(CallConfigurationStore.shared.tenants.count == prior, "旧请求不能替换通话配置")
         SDKSessionMaintenanceClient.suspendNext = true
         let cancelled = Task { try await SystemConfigService.shared.fetchAndCache(for: plan) }
         while SDKSessionMaintenanceClient.pending == nil { await Task.yield() }
@@ -78,10 +86,12 @@ enum SystemConfigCrypto {
         SDKSessionMaintenanceClient.pending?.resume(returning: SDKSessionMaintenanceClient.json); SDKSessionMaintenanceClient.pending = nil
         do { _ = try await cancelled.value; fatalError("取消的配置请求不能成功") }
         catch { precondition(SystemConfigStore.shared.saved.count == prior) }
+        precondition(CallConfigurationStore.shared.tenants.count == prior, "取消的配置不能改变通话供应商")
         let tcpOnly = OSSConnectionPlan(apiHost: nil, lastLiceseId: "native")
         OSSConnectionBootstrap.shared.current = tcpOnly
         _ = try await SystemConfigService.shared.fetchAndCache(for: tcpOnly)
         precondition(SystemConfigStore.shared.saved.count == prior + 1, "TCP-only 系统配置不能被空 HTTP 拦住")
+        precondition(CallConfigurationStore.shared.tenants.last == "native")
         print("System config transport checks: 4 passed")
     }
 }

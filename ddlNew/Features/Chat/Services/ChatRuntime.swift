@@ -129,6 +129,13 @@ import Combine
         return store
     }
 
+    /// 来电/呼出接管音频前关闭播放器与未发送录音，不取消附件上传。
+    func prepareForCall() {
+        for reference in cleanupOwners {
+            if reference.owner is ChatVoiceRecorder || reference.owner is ChatMediaPreviewStore { reference.action() }
+        }
+    }
+
     /// 消息清空版本用来阻止在清空前发起的旧补页回写SDK数据库。
     func contentRevision(_ context: ChatContext) -> UUID? { contentRevisions[context.route.id] }
 

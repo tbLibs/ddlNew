@@ -14,6 +14,8 @@ struct ChatRoomView: View {
     let route: ChatRoute
     @StateObject private var store: ChatStore
     @ObservedObject private var runtime = ChatRuntime.shared
+    @ObservedObject private var calls = CallCoordinator.shared
+    @ObservedObject private var callConfiguration = CallConfigurationStore.shared
     @ObservedObject private var contacts = LoginSessionService.shared.contacts
     private let conversations = LoginSessionService.shared.conversations
     @State private var liveGroupTitle: String?
@@ -69,6 +71,16 @@ struct ChatRoomView: View {
         return ScrollViewReader { proxy in
             VStack(spacing: 0.zoom()) {
                 if route.kind == .group && composerMode.panel != .selection { groupNavigation }
+                if let room = calls.groupRooms[route.id], route.kind == .group,
+                   !room.participants.isEmpty, calls.session?.context.route.id != route.id,
+                   let context = store.context, calls.canOfferCall(context: context),
+                   !room.participants.contains(where: { $0.id == context.userUID }) {
+                    CallGroupBanner(room: room) {
+                        guard let context = store.context else { return }
+                        composerFocused = false; voicePlayback.stop()
+                        Task { await calls.joinGroupRoom(context: context) }
+                    }
+                }
                 if let notice = pinnedNotice { Button { showNotices = true } label: { Label("群公告：" + notice.content, systemImage: "megaphone").lineLimit(2).padding(10.zoom()) }.accessibilityLabel("查看置顶群公告 " + notice.content) }
                 if let pinned = pinnedMessages.first {
                     HStack(spacing: 0) {
@@ -96,14 +108,14 @@ struct ChatRoomView: View {
                     }.padding(.horizontal, 16.zoom()).padding(.bottom, 14.zoom())
                 }
                 .refreshable {
-                    guard store.hasMore, !store.isLoading, let context = store.context else { return }
+                    guard !store.isLoading, let context = store.context else { return }
                     followsInitialLatest = false
                     resizeFollowTask?.cancel(); resizeFollowTask = nil
                     store.isAtBottom = false
                     let anchor = displayedMessages.first?.id
-                    await store.loadMore()
+                    await store.refreshHistory()
                     // 补页仅恢复本次会话原来的首条，失败、无新增或离开聊天时不强制滚动。
-                    guard !Task.isCancelled, store.context == context,
+                    guard store.isVisible, store.context == context,
                           let anchor, displayedMessages.first?.id != anchor,
                           displayedMessages.contains(where: { $0.id == anchor }) else { return }
                     proxy.scrollTo(anchor, anchor: .top)
@@ -213,6 +225,7 @@ struct ChatRoomView: View {
                     latestLayout = ChatLatestPreference.Value(); messageFrames.removeAll(); visibleMessageIDs.removeAll()
                 }
                 openedContext = context; await store.open(context)
+                if route.kind == .group { await calls.refreshGroupRoom(context: context) }
             }
             else { store.close() }
         }
@@ -222,7 +235,10 @@ struct ChatRoomView: View {
             conversationClosed = true; detailDestination = nil; showCamera = false; mediaGallery = nil; mentionTask?.cancel(); mentionRequest = nil; showMentionPicker = false; store.close()
             DispatchQueue.main.async { dismiss() }
         }
-        .onDisappear { voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
+        .onChange(of: calls.session?.id) { id in
+            if id != nil { composerFocused = false; voicePlayback.stop() }
+        }
+        .onDisappear { voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker && !calls.isPresented && calls.selection == nil { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
     }
 
     /// 弹层仍使用原状态和上下文，不重新创建聊天Store。
@@ -643,6 +659,9 @@ struct ChatRoomView: View {
     /// 点击和辅助功能共用操作，避免可访问用户无法打开媒体正文。
     private func activateMessage(_ message: ChatMessageRecord) {
         guard !message.isMediaUploading else { return }
+        if calls.session != nil && [2, 4].contains(message.type) {
+            store.errorMessage = "通话中暂不能播放语音或视频"; return
+        }
         if message.type != 4 { voicePlayback.stop() }
         if composerMode.panel == .selection { store.toggleSelection(message.id) }
         else if message.status == .normal {

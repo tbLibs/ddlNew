@@ -27,6 +27,7 @@
 		AF019ABC305D30000000000F /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D30000000000E /* SwiftUIIntrospect */; };
 		AF019ABC305D300000000010 /* WCDBSwiftDynamic in Embed Frameworks */ = {isa = PBXBuildFile; productRef = AF019ABC305D300000000002 /* WCDBSwiftDynamic */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C0D3A0010000000000000003 /* Localize_Swift in Frameworks */ = {isa = PBXBuildFile; productRef = C0D3A0010000000000000004 /* Localize_Swift */; };
+		C41120261020000000000003 /* Promises in Frameworks */ = {isa = PBXBuildFile; productRef = C41120261020000000000002 /* Promises */; };
 		DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */ = {isa = PBXBuildFile; productRef = DD4B2D4E306274680031D035 /* ObjectMapper */; };
 		DDA7937D3064B6D9002421B4 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = DDA7937C3064B6D9002421B4 /* SwiftProtobuf */; };
 		DDADAC4430652BF600F0B6ED /* NoaChatCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; };
@@ -113,6 +114,7 @@
 			files = (
 				0928A0010000000000000007 /* MJExtension in Frameworks */,
 				0928A0010000000000000008 /* LiveKit in Frameworks */,
+				C41120261020000000000003 /* Promises in Frameworks */,
 				0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */,
 				FA5B1E000000000000000003 /* FSPlayer in Frameworks */,
 				FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */,
@@ -242,6 +244,7 @@
 			packageProductDependencies = (
 				0928A0010000000000000004 /* MJExtension */,
 				0928A0010000000000000005 /* LiveKit */,
+				C41120261020000000000002 /* Promises */,
 				0928A0010000000000000006 /* ZegoExpressEngine */,
 				FA5B1E000000000000000002 /* FSPlayer */,
 				FA5B1E000000000000000005 /* Player_SwiftPM */,
@@ -294,6 +297,7 @@
 			mainGroup = DD12A8C3305CD63A005799BD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C41120261020000000000001 /* XCRemoteSwiftPackageReference "promises" */,
 				0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */,
 				0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
@@ -612,8 +616,8 @@
 				);
 				INFOPLIST_FILE = ddlNew/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "叮咚聊";
-				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描好友和群聊二维码及拍摄聊天照片";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制并发送语音消息";
+				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描二维码、拍摄聊天照片和进行视频通话";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制语音消息及进行语音和视频通话";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将聊天图片、视频和二维码保存到相册";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -679,8 +683,8 @@
 				);
 				INFOPLIST_FILE = ddlNew/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "叮咚聊";
-				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描好友和群聊二维码及拍摄聊天照片";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制并发送语音消息";
+				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描二维码、拍摄聊天照片和进行视频通话";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制语音消息及进行语音和视频通话";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将聊天图片、视频和二维码保存到相册";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -885,6 +889,14 @@
 				minimumVersion = 3.2.0;
 			};
 		};
+		C41120261020000000000001 /* XCRemoteSwiftPackageReference "promises" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/promises.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.4.1;
+			};
+		};
 		DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tbLibs/TBBasicLib";
@@ -1010,6 +1022,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */;
 			productName = Localize_Swift;
+		};
+		C41120261020000000000002 /* Promises */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C41120261020000000000001 /* XCRemoteSwiftPackageReference "promises" */;
+			productName = Promises;
 		};
 		DD4B2D4E306274680031D035 /* ObjectMapper */ = {
 			isa = XCSwiftPackageProductDependency;

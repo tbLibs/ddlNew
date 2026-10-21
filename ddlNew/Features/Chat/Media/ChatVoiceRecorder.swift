@@ -26,10 +26,12 @@ import Combine
     /// 麦克风授权返回后再次校验认证轮次，取消授权等待不会启动录音。
     func start(context: ChatContext, onLimitReached: (() -> Void)? = nil) async {
         cancel(); errorMessage = nil; self.context = context; let run = generation
+        guard CallCoordinator.shared.session == nil else { errorMessage = "通话中暂不能录制语音"; return }
         self.onLimitReached = onLimitReached
         let session = AVAudioSession.sharedInstance()
         let permitted = await withCheckedContinuation { continuation in session.requestRecordPermission { continuation.resume(returning: $0) } }
         guard generation == run, !Task.isCancelled, ChatRuntime.shared.isCurrent(context) else { return }
+        guard CallCoordinator.shared.session == nil else { errorMessage = "通话中暂不能录制语音"; return }
         guard permitted else { errorMessage = "麦克风权限未开启，请在系统设置中允许录音"; return }
         do {
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP]); try session.setActive(true)

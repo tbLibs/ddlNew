@@ -1,5 +1,10 @@
 import Foundation
 
+@MainActor final class CallCoordinator {
+    static let shared = CallCoordinator()
+    var session: UUID?
+}
+
 let AVAudioSessionInterruptionTypeKey = "type"
 enum ChatClientError: Error { case unavailable(String) }
 @MainActor final class AVAudioPlayer {
@@ -38,6 +43,9 @@ enum ChatClientError: Error { case unavailable(String) }
                                         userInfo: [AVAudioSessionInterruptionTypeKey: NSNumber(value: 1)])
         while voice.playing { await Task.yield() }
         precondition(!AVAudioSession.shared.active, "系统中断停止播放后须归还会话")
+        CallCoordinator.shared.session = UUID()
+        do { _ = try voice.playVoice(); fatalError("通话中不能播放语音") } catch {}
+        precondition(!voice.playing && !AVAudioSession.shared.active, "语音不能接管通话的音频会话")
         print("Voice audio failure and interruption checks: passed")
     }
 }
