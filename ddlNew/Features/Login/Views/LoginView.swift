@@ -37,7 +37,6 @@ struct LoginView: View {
                 brandHeader
                 loginForm
                 auxiliaryActions
-                legalEntries
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
@@ -65,6 +64,17 @@ struct LoginView: View {
             .onDisappear { verification.cancel(requestID: request.id) }
         }
         .sheet(isPresented: $showingRegistration) { AccountRegistrationView() }
+        .alert("请先同意协议", isPresented: $viewModel.showsLegalConsentAlert) {
+            Button("取消勾选", role: .cancel) {
+                viewModel.hasAcceptedLegalDocuments = false
+            }
+            Button("确认勾选") {
+                viewModel.hasAcceptedLegalDocuments = true
+                login()
+            }
+        } message: {
+            Text("请阅读《隐私政策》和《用户手册》。点击“确认勾选”将表示同意并继续登录。")
+        }
         .onChange(of: verification.request?.id) { _ in dismissKeyboard() }
         .onAppear(perform: restoreRememberedLogin)
         .onChange(of: rememberPassword) { enabled in
@@ -110,10 +120,6 @@ struct LoginView: View {
             )
             .disabled(viewModel.loginPhase.isBusy)
 
-            Text("例如 YS20260018，会员卡号区分字母和数字")
-                .font(.system(size: 11))
-                .foregroundColor(LoginPalette.secondary)
-
             LoginField(
                 title: "密码",
                 placeholder: "请输入密码",
@@ -124,11 +130,6 @@ struct LoginView: View {
             )
             .disabled(viewModel.loginPhase.isBusy)
             .padding(.top, 12)
-
-            Text("密码由俱乐部创建会员账户时提供")
-                .font(.system(size: 11))
-                .foregroundColor(LoginPalette.secondary)
-                .accessibilityIdentifier("loginHint")
 
             Toggle("记住密码", isOn: $rememberPassword)
                 .font(.system(size: 14))
@@ -144,11 +145,12 @@ struct LoginView: View {
                     .accessibilityIdentifier("rememberPasswordError")
             }
 
-            // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
+            legalConsent
+
+            // 未同意时仍可点击，由 ViewModel 弹窗提示并阻止请求。
             Button(viewModel.loginPhase.buttonTitle, action: login)
                 .buttonStyle(LoginButtonStyle())
-                .disabled(card.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
-                          || viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
+                .disabled(viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
                 .padding(.top, 10)
                 .accessibilityIdentifier("login")
 
@@ -203,16 +205,14 @@ struct LoginView: View {
 
     private var auxiliaryActions: some View {
         HStack(spacing: 32) {
-            if AccountRegistrationService.currentContext()?.allowsAccountRegistration == true {
-                Button("注册账号") {
-                    dismissKeyboard()
-                    viewModel.cancelLogin()
-                    password = ""
-                    showingRegistration = true
-                }
-                .disabled(viewModel.loginPhase.isBusy || verification.request != nil)
-                .accessibilityIdentifier("openAccountRegistration")
+            Button("注册账号") {
+                dismissKeyboard()
+                viewModel.cancelLogin()
+                password = ""
+                showingRegistration = true
             }
+            .disabled(viewModel.loginPhase.isBusy || verification.request != nil)
+            .accessibilityIdentifier("openAccountRegistration")
             Button("更换俱乐部", action: changeClub)
                 .accessibilityIdentifier("changeClub")
         }
@@ -221,18 +221,39 @@ struct LoginView: View {
         .padding(.top, 5)
     }
 
-    /// 使用 Safari 内嵌浏览器打开在线网页，不引用旧版法律页面或资源文件。
-    private var legalEntries: some View {
-        HStack(spacing: 24) {
-            Button("隐私政策") { openWebPage(privacyPolicyURLString) }
-                .accessibilityIdentifier("openPrivacyPolicy")
-            Button("使用支持") { openWebPage(usageSupportURLString) }
-                .accessibilityIdentifier("openSupport")
+    /// 勾选与阅读链接分开，打开文档不会自动视为同意。
+    private var legalConsent: some View {
+        HStack(alignment: .top, spacing: 4) {
+            Button {
+                viewModel.hasAcceptedLegalDocuments.toggle()
+            } label: {
+                Image(systemName: viewModel.hasAcceptedLegalDocuments ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 22))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("同意隐私政策和用户手册")
+            .accessibilityValue(viewModel.hasAcceptedLegalDocuments ? "已勾选" : "未勾选")
+            .accessibilityIdentifier("loginLegalConsent")
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text("我已阅读并同意")
+                    .foregroundColor(LoginPalette.secondary)
+                HStack(spacing: 4) {
+                    Button("《隐私政策》") { openWebPage(privacyPolicyURLString) }
+                        .accessibilityIdentifier("openPrivacyPolicy")
+                    Text("和").foregroundColor(LoginPalette.secondary)
+                    Button("《用户手册》") { openWebPage(usageSupportURLString) }
+                        .accessibilityIdentifier("openSupport")
+                }
+                .frame(minHeight: 44)
+            }
+            .padding(.top, 12)
         }
         .font(.footnote)
         .foregroundColor(LoginPalette.darkTeal)
-        .frame(minHeight: 44)
-        .disabled(viewModel.loginPhase.isBusy)
+        .disabled(viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
     }
 
     private var keyboardDismissBar: some View {

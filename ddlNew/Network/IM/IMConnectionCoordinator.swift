@@ -13,17 +13,13 @@ import Foundation
 final class IMConnectionCoordinator: ObservableObject {
     static let shared = IMConnectionCoordinator(
         driver: IMSDKConnectionAdapter(),
-        fetchConfiguration: { try await SystemConfigService.shared.fetchAndCache(for: $0) },
         markUsable: { try OSSNavigationStore.shared.markLastUsableEntry(lastLiceseId: $0) }
     )
 
     @Published private(set) var phase: IMConnectionPhase = .idle
-    /// 仅持有本次连接完成后获取的配置，不用启动时的历史配置冒充就绪。
-    @Published private(set) var configuration: SystemConfigRecord?
     @Published private(set) var selectedTCPNode: OSSIMTCPNode?
 
     private let driver: any IMSDKConnectionDriving
-    private let fetchConfiguration: @MainActor (OSSConnectionPlan) async throws -> SystemConfigRecord
     private let markUsable: @MainActor (String) throws -> Void
     /// 所有 await 后都核对本轮标识，防止更换俱乐部后旧请求覆盖新连接。
     private var generation = UUID()
@@ -33,16 +29,14 @@ final class IMConnectionCoordinator: ObservableObject {
     private var userOwnsConnection = false
 
     init(driver: any IMSDKConnectionDriving,
-         fetchConfiguration: @escaping @MainActor (OSSConnectionPlan) async throws -> SystemConfigRecord,
          markUsable: @escaping @MainActor (String) throws -> Void) {
         self.driver = driver
-        self.fetchConfiguration = fetchConfiguration
         self.markUsable = markUsable
     }
 
     /// 登录请求发送前应再次查询；页面显示或旧缓存存在均不代表可以发送请求。
     var isLoginReady: Bool {
-        !userOwnsConnection && phase == .ready && driver.isConnected && configuration?.isValidForLogin == true
+        !userOwnsConnection && phase == .ready && driver.isConnected
     }
 
     /// 每个登录异步步骤核对此轮标识，重连后不能提交旧连接领取的密钥。
@@ -75,18 +69,16 @@ final class IMConnectionCoordinator: ObservableObject {
         monitorTask = nil
         driver.reset()
         phase = .idle
-        configuration = nil
         selectedTCPNode = nil
     }
 
-    /// 首次加入必须按 TCP/ECDH → 系统配置 → SDK 租户配置 → 保存可用入口的顺序完成。
-    func connectForLogin(plan: OSSConnectionPlan) async throws -> SystemConfigRecord {
+    /// TCP/ECDH 成功后将本地固定 tenantCode 写入 SDK，不请求系统配置。
+    func connectForLogin(plan: OSSConnectionPlan) async throws {
         reset()
         let runID = generation
         do {
-            let result = try await completeConnection(plan: plan, runID: runID)
+            try await completeConnection(plan: plan, runID: runID)
             startMonitoring(runID: runID)
-            return result
         } catch {
             if generation == runID {
                 driver.reset()
@@ -110,7 +102,7 @@ final class IMConnectionCoordinator: ObservableObject {
             while !Task.isCancelled, self.generation == runID {
                 do {
                     let plan = try await self.reconnectPlan(lastLiceseId: lastLiceseId, refresh: attempt > 0, runID: runID)
-                    _ = try await self.completeConnection(plan: plan, runID: runID)
+                    try await self.completeConnection(plan: plan, runID: runID)
                     self.startMonitoring(runID: runID)
                     return
                 } catch is CancellationError {
@@ -118,7 +110,6 @@ final class IMConnectionCoordinator: ObservableObject {
                 } catch {
                     guard !Task.isCancelled, self.generation == runID else { return }
                     self.driver.reset()
-                    self.configuration = nil
                     self.selectedTCPNode = nil
                     self.phase = .failed("连接失败，正在自动重试…")
                     debugPrint("[IM重连] 第 \(attempt + 1) 次初始化失败：\(error)")
@@ -146,26 +137,20 @@ final class IMConnectionCoordinator: ObservableObject {
         try Task<Never, Never>.checkCancellation()
     }
 
-    private func completeConnection(plan: OSSConnectionPlan, runID: UUID) async throws -> SystemConfigRecord {
+    private func completeConnection(plan: OSSConnectionPlan, runID: UUID) async throws {
         try check(runID)
-        configuration = nil
         phase = .connecting
         let node = try await driver.connect(plan)
         try check(runID)
         selectedTCPNode = node
-        phase = .fetchingConfiguration
-        debugPrint("[IM连接] 正式 TCP/ECDH 成功，开始获取系统配置")
-
-        let result = try await fetchConfiguration(plan)
-        try check(runID)
-        guard result.isValidForLogin, driver.isConnected else { throw IMConnectionError.connectionLost }
-        driver.apply(result)
-        // 整条初始化链路成功后才保存 lastLiceseId，不能由单次握手或历史配置提前确认。
+        guard driver.isConnected else { throw IMConnectionError.connectionLost }
+        driver.applyTenantCode(LocalSDKSettings.tenantCode)
+        #if DEBUG
+        debugPrint("[SDK租户] tenantCode=\(LocalSDKSettings.tenantCode)")
+        #endif
         try markUsable(plan.lastLiceseId)
-        configuration = result
         phase = .ready
-        debugPrint("[IM连接] 登录链路已就绪，验证码渠道：\(result.captchaChannel)")
-        return result
+        debugPrint("[IM连接] 正式 TCP/ECDH 就绪，租户参数与功能规则使用本地固定值")
     }
 
     private func reconnectPlan(lastLiceseId: String, refresh: Bool, runID: UUID) async throws -> OSSConnectionPlan {

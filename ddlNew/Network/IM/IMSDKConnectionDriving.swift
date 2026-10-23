@@ -11,7 +11,7 @@ import Foundation
 @MainActor
 protocol IMSDKConnectionDriving: AnyObject {
     var isConnected: Bool { get }
+    func applyTenantCode(_ tenantCode: String)
     func reset()
     func connect(_ plan: OSSConnectionPlan) async throws -> OSSIMTCPNode
-    func apply(_ configuration: SystemConfigRecord)
 }

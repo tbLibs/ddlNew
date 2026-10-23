@@ -1,3 +1,5 @@
+// 已停用：tenantCode 和功能规则均使用本地固定值。原接口实现仅留作历史参考，不参与编译。
+/*
 //
 //  SystemConfigService.swift
 //  ddlNew
@@ -19,20 +21,20 @@ enum SystemConfigServiceError: Error {
     case businessFailure(code: Int, message: String)
     /// 响应中缺少 data，或 data 为 null。
     case missingData
-    /// 解密后的配置无法映射，或缺少登录所需的有效字段。
-    case invalidConfiguration
-    /// 请求期间邀请码或 HTTP 节点已切换，不能保存这次响应。
+    /// 解密后的响应缺少业务验签所需的 tenantCode。
+    case invalidTenantCode
+    /// 请求期间邀请码或 HTTP 节点已切换，不能应用这次响应。
     case staleNavigation
 }
 
-/// 正式 ECDH 完成后，使用 OSS 选中的 Host 获取未登录业务配置，再由协调器配置 SDK。
+/// 保留原接口与解密协议，只提取 tenantCode；不映射、不缓存任何远程功能配置。
 @MainActor
 final class SystemConfigService {
     static let shared = SystemConfigService()
 
     private init() {}
 
-    func fetchAndCache(for plan: OSSConnectionPlan) async throws -> SystemConfigRecord {
+    func fetchTenantCredentials(for plan: OSSConnectionPlan) async throws -> TenantCredentials {
         try _Concurrency.Task<Never, Never>.checkCancellation()
         let timestamp = Int64(Date().timeIntervalSince1970)
         let signature = try SystemConfigCrypto.signature(timestamp: timestamp)
@@ -60,24 +62,23 @@ final class SystemConfigService {
         }
         let dictionary = try SystemConfigCrypto.configurationDictionary(from: payload)
         
-        guard let configuration = Mapper<SystemConfigRecord>().map(JSON: dictionary),
-              configuration.isValidForLogin else {
-            throw SystemConfigServiceError.invalidConfiguration
+        let credentials: TenantCredentials
+        do {
+            credentials = try TenantCredentials(dictionary: dictionary)
+        } catch {
+            throw SystemConfigServiceError.invalidTenantCode
         }
 
-        // await 后重新检查任务与导航，避免切换邀请码时保存过期响应。
+        // await 后重新检查任务与导航，避免切换邀请码时应用过期租户参数。
         try _Concurrency.Task<Never, Never>.checkCancellation()
         guard let current = OSSConnectionBootstrap.shared.current,
               current.lastLiceseId == plan.lastLiceseId,
               current.apiHost == plan.apiHost else {
             throw SystemConfigServiceError.staleNavigation
         }
-        try SystemConfigStore.shared.save(
-            configuration,
-            lastLiceseId: plan.lastLiceseId,
-            apiHost: plan.apiHost
-        )
-        return configuration
+        return credentials
     }
 
 }
+
+*/

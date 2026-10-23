@@ -25,19 +25,11 @@ struct InvitationCodeView: View {
                 VStack(spacing: 10.zoom()) {
                     Text("连接你的俱乐部")
                         .font(.system(size: 25.zoom(), weight: .bold))
-
-                    Text("输入邀请码后进入专属会员空间")
-                        .font(.system(size: 12.zoom()))
-                        .foregroundStyle(InvitationCodePalette.secondary)
                 }
 
                 // 邀请码输入卡片
                 VStack(alignment: .leading, spacing: 10.zoom()) {
                     InvitationCodeField(text: $viewModel.invitationCode)
-
-                    Text("请输入俱乐部提供的邀请码")
-                        .font(.system(size: 11.zoom()))
-                        .foregroundStyle(InvitationCodePalette.secondary)
 
                     Button("连接俱乐部") {
                         viewModel.clickClub()
@@ -63,15 +55,6 @@ struct InvitationCodeView: View {
                         .stroke(InvitationCodePalette.border, lineWidth: 1.zoom())
                 }
                 .padding(.top, 4.zoom())
-
-                // 辅助提示
-                Text("没有邀请码？请联系俱乐部工作人员获取。")
-                    .font(.system(size: 11.zoom()))
-                    .foregroundStyle(InvitationCodePalette.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14.zoom())
-                    .background(InvitationCodePalette.card.opacity(0.7))
-                    .clipShape(RoundedRectangle(cornerRadius: 15.zoom(), style: .continuous))
 
                 LegalEntryLinks()
                 .font(.footnote)

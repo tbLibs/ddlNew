@@ -11,7 +11,6 @@ import Foundation
 enum IMConnectionPhase: Equatable {
     case idle
     case connecting
-    case fetchingConfiguration
     case ready
     case failed(String)
 
@@ -19,13 +18,12 @@ enum IMConnectionPhase: Equatable {
         switch self {
         case .idle: return "连接尚未准备"
         case .connecting: return "正在恢复 TCP/ECDH 连接…"
-        case .fetchingConfiguration: return "连接已建立，正在获取系统配置…"
         case .ready: return "连接已就绪"
         case .failed(let message): return message
         }
     }
 
     var isBusy: Bool {
-        self == .connecting || self == .fetchingConfiguration
+        self == .connecting
     }
 }

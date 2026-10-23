@@ -22,7 +22,6 @@ final class InvitationCodeViewModel: ObservableObject {
             raceWinner = nil
             navigationSnapshot = nil
             connectionPlan = nil
-            systemConfig = nil
             IMConnectionCoordinator.shared.reset()
             OSSConnectionBootstrap.shared.clearCurrent()
             raceRunID = UUID()
@@ -31,9 +30,9 @@ final class InvitationCodeViewModel: ObservableObject {
         }
     }
 
-    /// 正在导航或初始化 TCP/ECDH 和系统配置，避免重复点击。
+    /// 正在导航或初始化 TCP/ECDH，避免重复点击。
     @Published private(set) var isRacing = false
-    /// 展示导航、握手与系统配置进度或失败原因。
+    /// 展示导航、握手进度或失败原因。
     @Published private(set) var statusMessage: String?
     /// 本次竞速的原始首胜结果；后续连接应使用已保存的 navigationSnapshot。
     @Published private(set) var raceWinner: OSSRaceWinner?
@@ -41,8 +40,6 @@ final class InvitationCodeViewModel: ObservableObject {
     @Published private(set) var navigationSnapshot: OSSNavigationSnapshot?
     /// 已选的 HTTP API Host 与 TCP 候选；实际就绪状态由连接协调器管理。
     @Published private(set) var connectionPlan: OSSConnectionPlan?
-    /// 当前邀请码的系统配置；获取失败时不会误认为登录已就绪。
-    @Published private(set) var systemConfig: SystemConfigRecord?
 
     /// 保留当前竞速任务，以便邀请码变更时取消旧请求。
     private var raceTask: Task<Void, Never>?
@@ -51,7 +48,7 @@ final class InvitationCodeViewModel: ObservableObject {
     
     /// 点击连接俱乐部
     func clickClub() {
-        // 本次请求始终使用当前输入；持久化的 lastLiceseId 仅在配置获取成功后更新。
+        // 本次请求始终使用当前输入；持久化的 lastLiceseId 仅在正式握手与本地租户参数设置成功后更新。
         let lastLiceseId = invitationCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !lastLiceseId.isEmpty else {
             statusMessage = "请输入邀请码"
@@ -66,7 +63,6 @@ final class InvitationCodeViewModel: ObservableObject {
         raceWinner = nil
         navigationSnapshot = nil
         connectionPlan = nil
-        systemConfig = nil
         IMConnectionCoordinator.shared.reset()
         OSSConnectionBootstrap.shared.clearCurrent()
         let runID = UUID()
@@ -98,26 +94,20 @@ final class InvitationCodeViewModel: ObservableObject {
                 debugPrint("[OSS竞速] 获胜来源：\(winner.source.rawValue)，地址：\(winner.node.urlString)")
                 debugPrint("[OSS连接] HTTP：\(plan.apiHost.absoluteString)，TCP 候选：\(plan.tcpCandidates.count) 个")
 
-                statusMessage = "正在建立 TCP/ECDH 连接，成功后获取系统配置…"
+                statusMessage = "正在准备连接…"
                 do {
-                    let configuration = try await IMConnectionCoordinator.shared.connectForLogin(plan: plan)
+                    try await IMConnectionCoordinator.shared.connectForLogin(plan: plan)
                     try Task<Never, Never>.checkCancellation()
                     guard self.raceRunID == runID else { return }
-                    systemConfig = configuration
-                    debugPrint("[系统配置] 获取成功：登录方式=\(configuration.loginMethod)，验证码渠道=\(configuration.captchaChannel)")
-                    // 正式 ECDH 与最新系统配置都成功后才进入登录页。
+                    // 正式 ECDH 成功并设置本地租户参数后进入登录页，功能规则固定在本地。
                     RouterTool.shared.showAppPage = .login
                     return
                 } catch is CancellationError {
                     return
                 } catch {
                     guard !Task.isCancelled, self.raceRunID == runID else { return }
-                    if case SystemConfigCryptoError.unavailableOnSimulator = error {
-                        statusMessage = "导航已保存；系统配置签名需要真机运行"
-                    } else {
-                        statusMessage = "TCP/ECDH 或系统配置初始化失败，请重试"
-                    }
-                    debugPrint("[IM初始化] 连接或系统配置失败：\(error)")
+                    statusMessage = "连接初始化失败，请重试"
+                    debugPrint("[IM初始化] 连接失败：\(error)")
                 }
             } catch is CancellationError {
                 return

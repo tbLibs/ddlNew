@@ -55,7 +55,7 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         sdk.configSDKLiceseId(plan.lastLiceseId)
         sdk.configSDKSsoInfo(plan.lastLiceseId)
         sdk.configSDKTenantCode("")
-        sdk.configSDKCaptchaChannel(1)
+        sdk.configSDKCaptchaChannel(LocalAccountPolicy.captchaChannel)
         // 这里只建立未登录连接，不装载演示账号，也不初始化用户数据库。
         sdk.clearMyUserInfo()
         socket.clearUserInfo()
@@ -80,9 +80,9 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         return node
     }
 
-    func apply(_ configuration: SystemConfigRecord) {
-        sdk.configSDKTenantCode(configuration.tenantCode)
-        sdk.configSDKCaptchaChannel(configuration.captchaChannel)
+    /// 写入本地固定协议参数；验证码渠道由 LocalAccountPolicy 决定。
+    func applyTenantCode(_ tenantCode: String) {
+        sdk.configSDKTenantCode(tenantCode)
     }
 
     private func check(_ runID: UUID) throws {

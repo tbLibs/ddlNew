@@ -20,7 +20,7 @@ struct AccountRegistrationView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("创建俱乐部账号").font(.title2.bold())
+                    Text("创建账号").font(.title2.bold())
                     field("账号", text: $account, focus: .account)
                     Text("6～16位，前两位为英文字母，只支持英文和数字")
                         .font(.footnote).foregroundStyle(LoginPalette.secondary)
