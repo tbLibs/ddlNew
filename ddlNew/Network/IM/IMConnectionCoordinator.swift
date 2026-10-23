@@ -175,25 +175,22 @@ final class IMConnectionCoordinator: ObservableObject {
 
     private func reconnectPlan(lastLiceseId: String, refresh: Bool, runID: UUID) async throws -> OSSConnectionPlan {
         try check(runID)
-        if dns1NavigationEnabled {
-            let winner = try await DNS1NodeRaceCoordinator.race(license: lastLiceseId, useCache: !refresh)
-            try check(runID)
-            try OSSNavigationStore.shared.save(winner, lastLiceseId: lastLiceseId)
-            return try OSSConnectionBootstrap.shared.prepare(requireFresh: false, probedTCPAddress: winner.node.urlString)
-        }
-        if !refresh, let cached = try? OSSConnectionBootstrap.shared.prepare(requireFresh: false) {
+        if !dns1NavigationEnabled, !refresh, let cached = try? OSSConnectionBootstrap.shared.prepare(requireFresh: false) {
             return cached
         }
-        let clientIP = await PublicIPResolver.resolve()
+        let clientIP = dns1NavigationEnabled ? "" : await PublicIPResolver.resolve()
         try check(runID)
         let winner = try await OSSNodeRaceCoordinator.race(
             lastLiceseId: lastLiceseId,
             credentials: OSSAuthCredentials(signingKeyID: DirectDecodeKeyId, signingKeySecret: DirectDecodeKeySecret),
-            clientIP: clientIP
+            clientIP: clientIP,
+            useDNS1Cache: !refresh
         )
         try check(runID)
         try OSSNavigationStore.shared.save(winner, lastLiceseId: lastLiceseId)
-        return try OSSConnectionBootstrap.shared.prepare(requireFresh: false)
+        return try OSSConnectionBootstrap.shared.prepare(
+            requireFresh: false, probedTCPAddress: winner.source == .dns1 ? winner.node.urlString : nil
+        )
     }
 
     /// SDK 仍拥有长连接的断线通知；定期核对实际状态，让 UI 的就绪标志及时失效。

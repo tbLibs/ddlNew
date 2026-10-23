@@ -69,7 +69,7 @@ final class OSSConnectionBootstrap: ObservableObject {
         }
 
         // DNS1 不要求 HTTP；先验证版本及载荷，旧连接逻辑保留在下方。
-        if dns1NavigationEnabled {
+        if navigation.source == .dns1 {
             let payload = try DNS1NodeRaceCoordinator.payload(from: navigation.body)
             let apiHost = payload.http.first
             var plan = OSSConnectionPlan(lastLiceseId: navigation.lastLiceseId, apiHost: apiHost,
@@ -129,11 +129,18 @@ final class OSSConnectionBootstrap: ObservableObject {
         guard let plan = current else { return }
         let resolved: URL?
         if dns1NavigationEnabled {
-            // 旧 SDK 的迟到 HTTP 回调只能选择当前新载荷明确包含的地址。
-            guard let snapshot = try? OSSNavigationStore.shared.load(), snapshot.lastLiceseId == plan.lastLiceseId,
-                  let payload = try? DNS1NodeRaceCoordinator.payload(from: snapshot.body),
-                  let candidate = DNS1Payload.httpURL(address), payload.http.contains(candidate) else { return }
-            resolved = candidate
+            // 只接受当前企业、当前导航明确提供的地址，隔离前一轮的 SDK HTTP 回调。
+            guard let record = try? OSSNavigationStore.shared.loadSSOInfo(),
+                  let snapshot = try? record.snapshot(), snapshot.lastLiceseId == plan.lastLiceseId else { return }
+            if snapshot.source == .dns1 {
+                guard let payload = try? DNS1NodeRaceCoordinator.payload(from: snapshot.body),
+                      let candidate = DNS1Payload.httpURL(address), payload.http.contains(candidate) else { return }
+                resolved = candidate
+            } else {
+                guard let candidate = Self.httpsURL(from: address),
+                      record.ossRacingModel.httpArr.contains(where: { Self.httpsURL(from: $0.ip) == candidate }) else { return }
+                resolved = candidate
+            }
         } else { resolved = Self.httpsURL(from: address) }
         guard let apiHost = resolved else { return }
         guard plan.apiHost != apiHost else { return }

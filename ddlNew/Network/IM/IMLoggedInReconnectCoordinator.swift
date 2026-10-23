@@ -24,10 +24,13 @@ final class IMLoggedInReconnectCoordinator {
         let session = IMReconnectSession(userUID: userUID, lastLiceseId: lastLiceseId)
         let installID = installation
         foregroundGate = IMForegroundSessionGate(isInBackground: UIApplication.shared.applicationState == .background)
-        engine = IMLoggedInReconnectEngine(session: session, refreshedNodesAreProbed: dns1NavigationEnabled,
+        engine = IMLoggedInReconnectEngine(session: session,
+            // 缓存4秒 + 主/备/BIN各至多9秒 + 旧导航30秒 + TCP探测4秒，早于SDK的90秒截止。
+            timeout: dns1NavigationEnabled ? 85 : 55,
             isCurrentSession: { [weak self] in self?.owns($0, installation: installID) == true },
             cachedNodes: {
-                guard let cache = try? OSSNavigationStore.shared.load(), cache.lastLiceseId == lastLiceseId else { return [] }
+                guard let cache = try? OSSNavigationStore.shared.load(), cache.lastLiceseId == lastLiceseId,
+                      !dns1NavigationEnabled || cache.source == .dns1 else { return [] }
                 return cache.tcpEndpoints.map { OSSLegacyEndpoint(host: $0.ip, port: UInt16($0.port)) }
             },
             refreshNodes: { [weak self] in
@@ -84,7 +87,7 @@ final class IMLoggedInReconnectCoordinator {
             },
             refresh: { [weak self] in
                 guard let self else { throw CancellationError() }
-                return try await self.refreshNodes(session, installation: installID, qualityOnly: true)
+                return try await self.refreshNodes(session, installation: installID, qualityOnly: true).nodes
             },
             probe: { [weak self] node in
                 guard let self, self.qualityEligible(session, installation: installID) else { throw CancellationError() }
@@ -194,7 +197,7 @@ final class IMLoggedInReconnectCoordinator {
     }
 
     private func refreshNodes(_ session: IMReconnectSession, installation: UUID,
-                              qualityOnly: Bool) async throws -> [OSSLegacyEndpoint] {
+                              qualityOnly: Bool) async throws -> IMReconnectNodes {
         func check() throws {
             try Task<Never, Never>.checkCancellation()
             guard owns(session, installation: installation),
@@ -205,12 +208,17 @@ final class IMLoggedInReconnectCoordinator {
             credentials: OSSAuthCredentials(signingKeyID: DirectDecodeKeyId, signingKeySecret: DirectDecodeKeySecret))
         try check()
         try OSSNavigationStore.shared.save(winner, lastLiceseId: session.lastLiceseId)
-        let plan = try OSSConnectionBootstrap.shared.prepare(requireFresh: false)
+        let plan = try OSSConnectionBootstrap.shared.prepare(
+            requireFresh: false, probedTCPAddress: winner.source == .dns1 ? winner.node.urlString : nil
+        )
         guard plan.lastLiceseId == session.lastLiceseId else { throw CancellationError() }
         // 更新导航沿用重连已有行为；不调用访客连接或重新配置用户、Token、数据库。
         sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
         SessionMaintenanceCoordinator.shared.refreshConfigurationAfterNodeChange()
-        return plan.tcpCandidates.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) }
+        return IMReconnectNodes(
+            nodes: plan.tcpCandidates.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) },
+            probedNode: plan.probedTCPNode.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) }
+        )
     }
 
     private func owns(_ session: IMReconnectSession, installation: UUID) -> Bool {

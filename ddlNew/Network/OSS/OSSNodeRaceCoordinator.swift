@@ -42,10 +42,21 @@ enum OSSNodeRaceCoordinator {
     static func race(
         lastLiceseId: String,
         credentials: OSSAuthCredentials,
-        clientIP: String = ""
+        clientIP: String = "",
+        useDNS1Cache: Bool = false
     ) async throws -> OSSRaceWinner {
-        // 新入口优先：旧五路代码保留，但不会作为 DNS1 失败后的降级路径。
-        if dns1NavigationEnabled { return try await DNS1NodeRaceCoordinator.race(license: lastLiceseId) }
+        try Task<Never, Never>.checkCancellation()
+        if dns1NavigationEnabled {
+            do {
+                let winner = try await DNS1NodeRaceCoordinator.race(license: lastLiceseId, useCache: useDNS1Cache)
+                try Task<Never, Never>.checkCancellation()
+                return winner
+            } catch DNS1Error.unavailable {
+                // 仅来源耗尽交接旧五路；取消、非法邀请码不能触发兜底或递归新入口。
+                try Task<Never, Never>.checkCancellation()
+                debugPrint("[DNS1-FALLBACK] 主域/备域/BIN均不可用，开始旧五路导航")
+            }
+        }
         guard !lastLiceseId.isEmpty else { throw OSSNodeRaceError.missingLastLiceseId }
         guard !credentials.signingKeyID.isEmpty, !credentials.signingKeySecret.isEmpty else {
             throw OSSNodeRaceError.missingCredentials

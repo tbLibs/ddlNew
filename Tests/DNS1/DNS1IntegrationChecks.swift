@@ -100,6 +100,31 @@ struct DNSResolverScheme { let rawValue: Int }
         check(httpPlan.uploadFileHost?.absoluteString == "http://files.example/base/oss", "上传基础路径")
         var oldBody = snapshot.body; oldBody.meta.navVersion = "old-nav"
         do { _ = try OSSAuthResponseDecoder.navigation(from: oldBody); fatalError("旧协议仍需HTTP") } catch { count += 1 }
+        // DNS1 耗尽后，五路首胜仍保存真实旧协议，不能按 DNS1 载荷重新解码。
+        var legacyBody = IMServerListResponseBody()
+        var tcp = IMServerEndpoint(); tcp.ip = "legacy-tcp.example"; tcp.port = 9000; tcp.protocols = ["tcp"]
+        var http = IMServerEndpoint(); http.ip = "legacy-http.example"; http.port = 8443; http.protocols = ["http"]
+        var http2 = http; http2.ip = "legacy-backup.example"
+        legacyBody.imEndpoints = [tcp, http, http2]
+        legacyBody.meta.navVersion = "legacy-nav"
+        legacyBody.meta.config.enableNetworkDetect = true
+        let legacyWinner = OSSRaceWinner(source: .aliTXT, node: DNSResolvedHost(urlString: "oss.example:80", type: "5"),
+            navigation: try OSSAuthResponseDecoder.navigation(from: legacyBody))
+        try OSSNavigationStore.shared.save(legacyWinner, lastLiceseId: "Ab1000")
+        let legacyRestored = try OSSNavigationStore.shared.load()!
+        check(legacyRestored.source == .aliTXT && legacyRestored.configuration?.enableNetworkDetect == true, "旧导航来源和检测开关往返保留")
+        let legacyPlan = try OSSConnectionBootstrap.shared.prepare(requireFresh: false, probedTCPAddress: "legacy-tcp.example:9000")
+        check(legacyPlan.apiHost?.absoluteString == "https://legacy-http.example:8443" && legacyPlan.tcpCandidates.first?.host == "legacy-tcp.example", "旧导航走原HTTP和TCP准备")
+        check(legacyPlan.probedTCPNode == nil, "OSS首胜不是业务TCP握手成功")
+        try OSSNavigationStore.shared.markLastUsableEntry(lastLiceseId: "Ab1000")
+        check(OSSNavigationStore.shared.lastUsableLiceseId() == "Ab1000", "五路兜底成功后可恢复入口")
+        DNSResolver.queried = []
+        _ = try await DNS1NodeRaceCoordinator.race(license: "Ab1000", useCache: true)
+        check(DNSResolver.queried == ["tab1000.main.example"], "旧导航缓存不能冒充DNS1缓存，恢复仍先查询DNS1")
+        OSSConnectionBootstrap.shared.updateHTTPHost("legacy-backup.example:8443")
+        check(OSSConnectionBootstrap.shared.current?.apiHost?.host == "legacy-backup.example", "五路结果允许切换当前导航HTTP")
+        OSSConnectionBootstrap.shared.updateHTTPHost("https://stale.example")
+        check(OSSConnectionBootstrap.shared.current?.apiHost?.host == "legacy-backup.example", "五路结果拒绝非当前导航的迟到HTTP")
         var staleBody = snapshot.body; staleBody.meta.navVersion = "DNS1:v2:old-config"
         let staleWinner = OSSRaceWinner(source: .dns1, node: winner.node,
             navigation: OSSNavigationResult(body: staleBody, tcpEndpoints: snapshot.tcpEndpoints, httpEndpoints: []))

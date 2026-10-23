@@ -168,7 +168,12 @@ final class OSSNavigationStore {
             throw OSSNavigationStoreError.invalidStoredNavigation
         }
         let snapshot = try record.snapshot()
-        if dns1NavigationEnabled { _ = try DNS1NodeRaceCoordinator.payload(from: snapshot.body) }
+        // 按实际来源验证：新命名空间也允许保存本轮五路兜底的真实旧导航。
+        if snapshot.source == .dns1 {
+            _ = try DNS1NodeRaceCoordinator.payload(from: snapshot.body)
+        } else if snapshot.body.meta.navVersion.hasPrefix("DNS1:") {
+            throw OSSNavigationStoreError.invalidStoredNavigation
+        }
         return record
     }
 

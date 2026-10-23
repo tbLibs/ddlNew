@@ -51,7 +51,7 @@
 
 `NoaChatSDKCore`、`NetWorkStatus`、Pods 和静态库不属于本次应用目录整理范围。`ddlNew/Basic/LXChatEncrypt` 保持原位，以保留静态库链接和头文件路径。
 
-启动连接当前使用 APP DNS1：t 域主备/BIN 给出原生 TCP，ECDH 竞速后建立正式连接，再经 TCP 获取系统配置；HTTP 为可选文件地址。旧五路/OSS 导航实现保留但不执行，细节见 `Docs/PROJECT_HANDOFF.md` 的 2026-10-17 章节。账号密码请求成功还不代表 IM 登录就绪：必须收到 SDK 的用户 AUTH ACK 成功回调，才完成登录并允许后续业务流程。目录整理不改变该判定。
+启动连接当前使用 APP DNS1：t 域主备/BIN 给出原生 TCP，ECDH 竞速后建立正式连接，再经 TCP 获取系统配置；HTTP 为可选文件地址。DNS1来源全部耗尽后继续旧五路/OSS导航兜底，冷启动与已登录重连共用该顺序；两种导航按实际来源准备连接，细节见 `Docs/PROJECT_HANDOFF.md` 的 2026-10-22 章节。账号密码请求成功还不代表 IM 登录就绪：必须收到 SDK 的用户 AUTH ACK 成功回调，才完成登录并允许后续业务流程。目录整理不改变该判定。
 
 ## 通讯录验证
 

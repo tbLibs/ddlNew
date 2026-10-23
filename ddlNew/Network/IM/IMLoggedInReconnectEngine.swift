@@ -5,6 +5,12 @@ nonisolated struct IMReconnectSession: Equatable, Sendable {
     let lastLiceseId: String
 }
 
+/// 刷新结果携带本轮探测凭据；旧五路返回的地址仍必须完成业务 TCP/ECDH。
+nonisolated struct IMReconnectNodes: Sendable {
+    let nodes: [OSSLegacyEndpoint]
+    var probedNode: OSSLegacyEndpoint? = nil
+}
+
 /// 登录后的竞速只探测临时 ECDH Socket，正式连接和 AUTH 仍由 SDK 执行。
 @MainActor
 final class IMLoggedInReconnectEngine {
@@ -12,26 +18,24 @@ final class IMLoggedInReconnectEngine {
     private let session: IMReconnectSession
     private let isCurrentSession: @MainActor (IMReconnectSession) -> Bool
     private let cachedNodes: @MainActor () -> [OSSLegacyEndpoint]
-    private let refreshNodes: @MainActor () async throws -> [OSSLegacyEndpoint]
+    private let refreshNodes: @MainActor () async throws -> IMReconnectNodes
     private let probe: @MainActor (OSSLegacyEndpoint) async throws -> Bool
     private let clock: @MainActor () -> TimeInterval
-    /// 业务层 55 秒收尾，早于 SDK 的 60 秒兜底。
+    /// 由调用方给出完整链路时限，必须早于 SDK 的兜底截止。
     private let timeout: TimeInterval
     private let cooldown: TimeInterval
-    private let refreshedNodesAreProbed: Bool
     private var lastRefresh: TimeInterval?
     private var generation = UUID()
     private var work: Task<Void, Never>?
     private var timer: Task<Void, Never>?
     private var completion: Completion?
 
-    init(session: IMReconnectSession, refreshedNodesAreProbed: Bool = false, timeout: TimeInterval = 55, cooldown: TimeInterval = 60,
+    init(session: IMReconnectSession, timeout: TimeInterval = 55, cooldown: TimeInterval = 60,
          clock: @escaping @MainActor () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          isCurrentSession: @escaping @MainActor (IMReconnectSession) -> Bool,
          cachedNodes: @escaping @MainActor () -> [OSSLegacyEndpoint],
-         refreshNodes: @escaping @MainActor () async throws -> [OSSLegacyEndpoint],
+         refreshNodes: @escaping @MainActor () async throws -> IMReconnectNodes,
          probe: @escaping @MainActor (OSSLegacyEndpoint) async throws -> Bool) {
-        self.refreshedNodesAreProbed = refreshedNodesAreProbed
         self.session = session; self.timeout = timeout; self.cooldown = cooldown
         self.clock = clock; self.isCurrentSession = isCurrentSession
         self.cachedNodes = cachedNodes; self.refreshNodes = refreshNodes; self.probe = probe
@@ -64,10 +68,10 @@ final class IMLoggedInReconnectEngine {
                 lastRefresh = now
                 let refreshed = try await refreshNodes()
                 try check(runID)
-                // DNS1 刷新已在每个来源完成竞速，第一项就是成功节点；不再重复临时握手。
+                // 只复用本轮已探测且仍属于返回列表的节点；不能按全局DNS1开关跳过旧源探测。
                 let winner: OSSLegacyEndpoint?
-                if refreshedNodesAreProbed { winner = refreshed.first }
-                else { winner = try await firstReachable(refreshed, runID: runID) }
+                if let probed = refreshed.probedNode, refreshed.nodes.contains(probed) { winner = probed }
+                else { winner = try await firstReachable(refreshed.nodes, runID: runID) }
                 finish(runID, node: winner, failure: winner == nil ? "tcp_nodes_unreachable" : nil)
             } catch is CancellationError { }
             catch { finish(runID, node: nil, failure: "navigation_refresh_failed") }

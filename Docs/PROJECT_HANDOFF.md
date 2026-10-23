@@ -1,5 +1,19 @@
 # ddlNew 项目交接文档
 
+## 2026-10-22 DNS1 耗尽后使用旧五路导航兜底
+
+按用户要求只读对照 xgd `NoaUrlHostManager.startDNS1WithNetworkQualityTrigger`、`raceDNS1ReconnectWithCompletion` 与 `docs/dns1-navigation.md`：DNS1 主域、备域和 BIN 的获取/解析/全部 TCP 探测都失败后，进入独立的旧五路入口；取消或非法邀请码不触发兜底，DNS1 成功不请求旧来源。本节取代10月17日“开启DNS1时旧五路不参与”的边界。
+
+`OSSNodeRaceCoordinator.race` 统一承接邀请码、冷启动/访客恢复和已登录导航刷新。DNS1 抛出来源耗尽后继续原 ALIDNS、腾讯AAAA、Cloudflare TXT/AAAA、阿里DoH TXT 五路并发 OSS Auth；保留既有 Resolver、缓存/内置导航地址、加密OSS HTTP文件的后续降级及旧导航30秒总截止。冷启动/重连只将同企业、当前配置版本、来源为DNS1的缓存作为原生TCP候选；上次五路结果不抢在DNS1之前使用。保留现有轮次、身份和取消守卫。新端目前没有旧端的独立网络诊断页面；已有网络质量刷新共用统一导航入口，是否运行继续由实际导航开关决定。
+
+最新导航仍保存到现有固定缓存key，不新增第二份企业数据源。`OSSNavigationStore`、`OSSConnectionBootstrap`按实际获胜来源验证/准备：DNS1允许TCP-only且校验版本，旧五路沿原HTTP+TCP合同，保留其服务端检测开关与HTTP优选配置。旧节点不冒充DNS1缓存；HTTP回调只接受当前企业/导航提供的地址。升级仍只从旧key迁移成功邀请码，不直接恢复旧key中的节点。
+
+已登录重连使用`IMReconnectNodes`携带本轮实际已探测节点，只有DNS1本轮首胜可省略重复临时ECDH；五路拿到的是导航结果，必须继续业务TCP/ECDH探测，不能仅按全局DNS1开关选第一项。正式Socket、systemConfig及AUTH仍沿原所有权。重连业务截止在DNS1启用时为85秒，SDK竞速兜底为90秒，覆盖缓存、主/备/BIN、旧导航和TCP探测；旧导航关闭DNS1时业务截止仍55秒。底层正式Socket连接超时未改。
+
+验证：新增统一入口五路兜底检查先复现DNS1耗尽直接抛错（`/tmp/ddlNew-dns1-fallback-red.log`），终版10项通过（`/tmp/ddlNew-dns1-fallback-final-checks.log`）；真实Protobuf/ObjectMapper缓存与连接准备集成32项通过，包含旧来源往返、原HTTP/TCP准备、旧缓存不冒充DNS1及HTTP回调归属。重连专项覆盖旧五路首个TCP不可达/后续节点胜出、全不可达与非法探测凭据、取消/超时/旧会话隔离。DNS1协议39项及上述专项、系统配置运输、网络质量、会话恢复和维护共8组离线入口均exit0，汇总`/tmp/ddlNew-dns1-fallback-qa/summary.json`（统一轮的兜底检查8项，追加缓存参数/预先取消后终版单独复验10项）。无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-dns1-fallback-build.log`）；`git diff --check`通过。
+
+旧项目只读，Mobile MCP继续暂停；本轮不安装/操作设备、不提交或推送。真实DNS1故障环境下五路连接、冷启动及已登录断线恢复需重新Run验收；离线替身与构建不代表真实服务器链路已通过。
+
 ## 2026-10-21 离线好友呼叫与旧端错误提示对齐
 
 按用户确认对齐 xgd `NoaMediaCallManager.callRequestWith`、`NoaCallManager.requestSingleCallWith` 和 `NoaNetResultCode.plist`：好友在线标识不作为本地拦截依据，由服务端决定是否受理。新端单聊语音/视频现仅在创建请求成功后建立可展示通话、打开呼叫页和响铃；请求等待期间停留原聊天，busy阻止重复创建。失败保留原页并由既有全局Toast提示；群创建失败继续保留选人页。
@@ -190,7 +204,7 @@ SwiftUI 页面和快照改名为 `ChatPhotoBrowserView`、`ChatPhotoBrowserReque
 
 ## 2026-10-17 APP DNS1 原生 TCP 连接流程迁移
 
-本轮按 xgd 已确认的新流程迁移：APP 仅查询 `t{小写邀请码}.{mainDomain/backupDomain}`，不查询 Web 的 w 前缀。首次连接依次尝试主域、备域（配置非空时）、BIN；启动恢复和已登录重连先探测同企业的新缓存，再进入这三个来源。每个来源拿到原生 TCP 后并发进行真实 ECDH 探测，全部失败才进入下一来源；首胜交现有 SDK 建立正式 Socket，正式 ECDH 后通过 TCP 获取 systemConfig，配置有效才保存可恢复入口，用户 AUTH 成功才进主界面。旧五路 DNS、OSS Auth 和旧降级实现保留，开启 `dns1NavigationEnabled` 时均不参与新链路。
+本轮按 xgd 已确认的新流程迁移：APP 仅查询 `t{小写邀请码}.{mainDomain/backupDomain}`，不查询 Web 的 w 前缀。首次连接依次尝试主域、备域（配置非空时）、BIN；启动恢复和已登录重连先探测同企业的新缓存，再进入这三个来源。每个来源拿到原生 TCP 后并发进行真实 ECDH 探测，全部失败才进入下一来源；首胜交现有 SDK 建立正式 Socket，正式 ECDH 后通过 TCP 获取 systemConfig，配置有效才保存可恢复入口，用户 AUTH 成功才进主界面。旧五路 DNS、OSS Auth 和旧降级实现当时保留且未参与新链路；此边界已由2026-10-22章节更新为DNS1耗尽后自动兜底。
 
 新增 `Network/DNS1`：AAAA 两字节大端索引 + 十四字节内容，首索引仅允许0/1，排序、重复冲突和缺片校验；接受 TCP CSV 或含 tcp 的 JSON。BIN 使用原大小写邀请码的 MD5 十六进制字符串，经既有 SHA1/AES-128-ECB/PKCS7 解密，支持原始密文和 Base64 包装。DNS 请求及 BIN 下载最多5秒，单来源 TCP 探测最多4秒；取消结束业务等待，忽略无取消句柄的 SDK 迟到回调。新流程不调用旧导航服务，也不调用 getTcpConnectionList。
 
@@ -490,7 +504,7 @@ Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现�
 ```text
 邀请码
 → APP t 域 DNS1（主域 → 备域 → BIN）
-→ 解出原生 TCP，逐来源 ECDH 竞速
+→ 解出原生 TCP，逐来源 ECDH 竞速；全部失败进入旧五路导航/OSS兜底
 → 保存新版本节点缓存（HTTP 可选）
 → SDK 配置与正式 TCP/ECDH 连接
 → 获取 systemConfig
@@ -541,7 +555,7 @@ Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现�
 - `ddlNew/Protocols/Nav/nav.proto`
 - `ddlNew/Protocols/Nav/Nav.pb.swift`
 
-以下为保留的旧实现说明；当前启用 DNS1 后不执行这些来源，现行流程见本页 2026-10-17 章节。
+以下旧实现现作为 DNS1 来源全部耗尽后的兜底；入口与缓存边界见本页 2026-10-22 章节。
 
 旧五路 DNS 来源同时启动：
 
@@ -616,7 +630,7 @@ Mobile MCP继续暂停，未操作设备或真实测试数据；只读查询现�
 
 固定 key 定义在 `ddlNew/Configuration/Const.swift`，当前策略是每类数据只有一份，不按邀请码拼接 key：
 
-- `ddlNew.dns1Navigation.v2`：当前 DNS1 节点与成功入口；校验企业及配置版本。
+- `ddlNew.dns1Navigation.v2`：当前导航与成功入口，允许DNS1及本轮五路兜底结果；按来源验证，DNS1另校验企业及配置版本。
 - `ddlNew.ossNavigation.v1`：保留的旧导航缓存，升级仅迁移成功入口的邀请码，不使用其节点。
 - `ddlNew.selectedHTTPHost.v1`：当前选中的 HTTP Host。
 - `ddlNew.systemConfig.v1`：最新系统配置 ObjectMapper JSON。

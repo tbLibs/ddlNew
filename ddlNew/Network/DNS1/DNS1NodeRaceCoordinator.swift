@@ -21,7 +21,7 @@ import NoaChatCore
         let sources = try DNS1SourceRace.sources(license: license, main: dns1MainDomain,
             backup: dns1BackupDomain, binTemplate: dns1BinURLTemplate)
         var cached: DNS1Payload?
-        if useCache, let snapshot = try? OSSNavigationStore.shared.load(), snapshot.lastLiceseId == license {
+        if useCache, let snapshot = try? OSSNavigationStore.shared.load(), snapshot.lastLiceseId == license, snapshot.source == .dns1 {
             cached = try? payload(from: snapshot.body)
         }
         let selection = try await DNS1SourceRace.run(sources: sources, cached: cached,

@@ -629,7 +629,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     if (self.raceTcpNodeBlock) {
         self.isTcpRacing = YES;
         NSUInteger sequence = ++self.tcpRaceSequence;
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=RACE_DISPATCH sdkRound=%lu oldHost=%@ oldPort=%ld timeout=60", (unsigned long)sequence, self.socketHost, (long)self.socketPort]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=RACE_DISPATCH sdkRound=%lu oldHost=%@ oldPort=%ld timeout=90", (unsigned long)sequence, self.socketHost, (long)self.socketPort]];
         NoaTcpRaceCompletion completion = ^(NSString *host, NSInteger port, NSString *failureReason) {
             __strong typeof(weakSelf) self = weakSelf;
             if (!self) return;
@@ -667,11 +667,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
             });
         };
         self.raceTcpNodeBlock(completion);
-        // SDK 兜底：业务层未回调也不能一直卡在竞速状态。
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC), self.internalQueue, ^{
+        // DNS1耗尽后还需旧五路导航与ECDH，90秒覆盖业务层85秒截止。
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 90 * NSEC_PER_SEC), self.internalQueue, ^{
             __strong typeof(weakSelf) self = weakSelf;
             if (!self || !self.isTcpRacing || sequence != self.tcpRaceSequence) return;
-            [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SDK_RACE_TIMEOUT sdkRound=%lu seconds=60", (unsigned long)sequence]];
+            [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SDK_RACE_TIMEOUT sdkRound=%lu seconds=90", (unsigned long)sequence]];
             completion(nil, 0, @"tcp_probe_timeout");
         });
         return;
