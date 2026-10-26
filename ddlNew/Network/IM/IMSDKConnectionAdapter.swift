@@ -49,9 +49,11 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         try check(runID)
 
         let options = NoaIMSDKApiOptions()
-        options.imApi = plan.apiHost.absoluteString
+        options.imApi = plan.apiHost?.absoluteString ?? ""
         options.imOrgName = businessOrgName
         sdk.configSDKApi(with: options)
+        // TCP-only 导航显式清除上一企业的 HTTP Host。
+        sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
         sdk.configSDKLiceseId(plan.lastLiceseId)
         sdk.configSDKSsoInfo(plan.lastLiceseId)
         sdk.configSDKTenantCode("")
@@ -60,7 +62,9 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         sdk.clearMyUserInfo()
         socket.clearUserInfo()
 
-        let node = try await firstReachableNode(in: plan.tcpCandidates)
+        let node: OSSIMTCPNode
+        if let probed = plan.probedTCPNode, plan.tcpCandidates.contains(probed) { node = probed }
+        else { node = try await firstReachableNode(in: plan.tcpCandidates) }
         try check(runID)
         selectedNode = node
         debugPrint("[IM连接] ECDH 探测首胜：\(node.host):\(node.port)，开始正式连接")

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 
 /// 登录按钮的纯视觉样式，禁用状态随输入是否为空更新。
 struct LoginButtonStyle: ButtonStyle {

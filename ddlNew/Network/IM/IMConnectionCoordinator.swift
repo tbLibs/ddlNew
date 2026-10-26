@@ -155,19 +155,12 @@ final class IMConnectionCoordinator: ObservableObject {
 
     private func reconnectPlan(lastLiceseId: String, refresh: Bool, runID: UUID) async throws -> OSSConnectionPlan {
         try check(runID)
-        if !refresh, let cached = try? OSSConnectionBootstrap.shared.prepare(requireFresh: false) {
-            return cached
-        }
-        let clientIP = await PublicIPResolver.resolve()
-        try check(runID)
         let winner = try await OSSNodeRaceCoordinator.race(
-            lastLiceseId: lastLiceseId,
-            credentials: OSSAuthCredentials(signingKeyID: DirectDecodeKeyId, signingKeySecret: DirectDecodeKeySecret),
-            clientIP: clientIP
+            lastLiceseId: lastLiceseId, useDNS1Cache: !refresh
         )
         try check(runID)
         try OSSNavigationStore.shared.save(winner, lastLiceseId: lastLiceseId)
-        return try OSSConnectionBootstrap.shared.prepare(requireFresh: false)
+        return try OSSConnectionBootstrap.shared.prepare(requireFresh: false, probedTCPAddress: winner.node.urlString)
     }
 
     /// SDK 仍拥有长连接的断线通知；定期核对实际状态，让 UI 的就绪标志及时失效。

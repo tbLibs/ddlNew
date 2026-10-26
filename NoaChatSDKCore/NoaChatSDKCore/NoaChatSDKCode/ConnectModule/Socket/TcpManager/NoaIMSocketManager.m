@@ -914,7 +914,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     authMessage.token = _socketUserToken;//用户token
     authMessage.orgName = _socketOrgName;//用户租户标识
     authMessage.msgId = [[NoaIMManagerTool sharedManager] getMessageID];//变化的UUID
-    authMessage.loginIp = [[NoaIMManagerTool sharedManager] getDevicePublicNetworkIP];//ip地址
+    // 不采集或上报客户端 IP；鉴权消息保留可选字段的缺省值。
     authMessage.deviceType = @"IOS";//设备平台
     authMessage.deviceUuid = [FCUUID uuidForDevice];//固定不变的UUID
     authMessage.platform = @"iOS";
@@ -1647,7 +1647,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
                 if (isGuestBootstrapConnection) {
                     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=AUTH_SKIP reason=guest_bootstrap"]];
-                    // 邀请码和登录前初始化没有用户凭证，只需要 ECDH 传输层发送未登录 systemConfig。
+                    // 邀请码和登录前初始化没有用户凭证，只建立 ECDH 传输层，供后续登录使用。
                     // 此分支不能标记 isAuth，也不能触发用户登录成功及首页数据同步。
                     self.authRequestPending = NO;
                     self.isAuthPhaseActive = NO;

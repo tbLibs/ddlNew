@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 import UIAdapter
 
 /// 顶部俱乐部标志。

@@ -4,32 +4,8 @@ import Foundation
 struct NetworkRecoveryChecks {
     @MainActor
     static func main() async throws {
-        let fixture = Data(#"{"version":"v2","endpoints":{"http":{"ipList":[{"ip":"https://api.example.com:8443","sort":1}],"dnsList":[{"ip":"backup.example.com"}]},"tcp":{"ipList":[{"ip":"[2001:db8::1]:9000","sort":7}],"dnsList":[{"ip":"tcp.example.com","sort":"9001"}]}}}"#.utf8)
-        let fallback = DNSHostSource.fallbackCandidates(
-            cached: (0..<24).map { "cache\($0).example.com:8087" },
-            builtIn: ["builtin.example.com:18087"])
-        precondition(fallback.count == 9 && fallback.last?.source == .builtInFallback)
-        precondition(fallback.last?.address == "builtin.example.com:18087")
-        let config = try OSSLegacyConfigurationParser.parse(fixture)
-        precondition(config.http.count == 2 && config.http[0].port == 8443)
-        precondition(config.http[1].port == 443)
-        precondition(config.tcp[0].host == "2001:db8::1" && config.tcp[0].port == 9000)
-        precondition(config.tcp[1].port == 9001)
-        for malformed in [#"{}"#, #"{"endpoints":{"http":[],"tcp":{}}}"#, #"{"endpoints":{"http":{"ipList":[{"ip":"api.example.com"}]},"tcp":{"ipList":[{"ip":"host:0","sort":9000},{"ip":"https://evil/path","sort":9000}]}}}"#] {
-            do { _ = try OSSLegacyConfigurationParser.parse(Data(malformed.utf8)); preconditionFailure("Malformed navigation won") }
-            catch { }
-        }
-        precondition(OSSLegacyConfigurationParser.endpoint("host:65536", defaultPort: 9000) == nil)
-        precondition(OSSLegacyConfigurationParser.endpoint("host:2/path", defaultPort: 9000) == nil)
-        precondition(OSSLegacyConfigurationParser.endpoint("https://u:p@host", defaultPort: 443, http: true) == nil)
-        // 使用独立 OpenSSL 生成的 AES-128-ECB 测试密文，密钥为小写 MD5(邀请码)。
-        let encrypted = "90i8osyVB5GCOGpXNyCwK7ylek28Ee64GxLYdYV0HXLPlRLr5Aqb7grREtofQdse0t44UYP6iN98CuEh5x4Szc2IkgWjrYM0T+Lyw6i5F5Lrk49YxWSgytqtEVTVJGC5GiGvPake2kR+vsP7lgdnnihk/p8+CAfnmK30hD/9r3I="
-        let decrypted = try OSSLegacyConfigurationParser.decodeEncrypted(Data(("\n" + encrypted + "\n").utf8), lastLiceseId: "fixture-license")
-        precondition(decrypted.http[0].port == 8443 && decrypted.tcp[0].port == 9000)
-        do { _ = try OSSLegacyConfigurationParser.decodeEncrypted(Data(encrypted.utf8), lastLiceseId: "another-license"); preconditionFailure("Wrong license decrypted") } catch { }
-        do { _ = try OSSLegacyConfigurationParser.decodeEncrypted(Data("invalid".utf8), lastLiceseId: "fixture-license"); preconditionFailure("Malformed Base64 won") } catch { }
         await reconnectChecks()
-        print("Network configuration and reconnect checks passed")
+        print("Network reconnect checks passed")
     }
     @MainActor
     static func reconnectChecks() async {

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 
 /// 登录页渐变背景和圆形装饰，与其他页面没有代码依赖。
 struct LoginBackground: View {

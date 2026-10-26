@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 
 /// 独立的登录页面，支持更换俱乐部和打开网页，不依赖旧版页面或会员状态。
 struct LoginView: View {
@@ -25,7 +24,7 @@ struct LoginView: View {
     /// 一个页面生命周期内只回填一次，避免弹窗关闭后覆盖正在编辑的输入。
     @State private var didRestoreRememberedLogin = false
     /// 两个网页入口共用一个 Safari 弹窗，避免同时呈现多个浏览器。
-    @State private var webLink: TBBasicLib.WebLink?
+    @State private var webLink: WebLink?
     @State private var showingRegistration = false
     /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
     @FocusState private var cardFocused: Bool
@@ -52,7 +51,7 @@ struct LoginView: View {
             }
         }
         .sheet(item: $webLink) { link in
-            TBBasicLib.SafariView(url: link.url)
+            SafariView(url: link.url)
                 .ignoresSafeArea()
         }
         .sheet(item: $verification.request) { request in
@@ -304,7 +303,7 @@ struct LoginView: View {
         // Safari 只接受 HTTP/HTTPS；配置中统一使用 HTTPS，不加载本地旧版文档。
         guard let url = URL(string: address), url.scheme == "https",
               let host = url.host, !host.isEmpty else { return }
-        webLink = TBBasicLib.WebLink(url: url)
+        webLink = WebLink(url: url)
     }
 }
 

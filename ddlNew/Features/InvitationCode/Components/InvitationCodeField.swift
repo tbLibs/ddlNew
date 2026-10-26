@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 import UIAdapter
 
 /// 邀请码标题与数字输入框。

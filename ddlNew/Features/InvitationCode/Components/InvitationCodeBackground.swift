@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 import UIAdapter
 
 /// 复刻旧页面的渐变背景与圆形装饰。

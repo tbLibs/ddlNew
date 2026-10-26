@@ -18,8 +18,6 @@
 #define Push_DeleteDevice_Url           @"/biz/server/delDevice"
 //获取角色配置
 #define App_GetRoleConfig_Url           @"/biz/system/getRoleConfig"
-//DNS上报信息
-#define App_DNS_Info_Upload_Url         @"/biz/dns/report"
 
 
 #import "NoaIMHttpManager.h"
@@ -29,13 +27,6 @@ NS_ASSUME_NONNULL_BEGIN
 @interface NoaIMHttpManager (AppInfo)
 
 #pragma mark - 竞速
-/// 获取App系统设置接口
-- (void)AppGetSystemConfigInfoWithBaseUrl:(NSString *)baseUrl
-                                     Path:(NSString *)path
-                                  IsLogin:(BOOL)isLogin
-                                onSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                onFailure:(nullable LingIMFailureCallback)onFailure;
-
 /// ip/域名直连时获取Tcp的域名或者ip
 - (void)AppNetworkGetConnectListWithBaseUrl:(NSString *)baseUrl Path:(NSString *)path onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure;
 
@@ -64,8 +55,7 @@ NS_ASSUME_NONNULL_BEGIN
 //获取角色配置
 - (void)GetRoleConfigInfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-//上报DNS信息
-- (void)UploadDNSinfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
+
 
 @end
 

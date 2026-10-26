@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 
 /// 登录页专属配色，使用新项目的颜色转换能力。
 enum LoginPalette {

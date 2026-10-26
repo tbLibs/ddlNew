@@ -143,19 +143,14 @@ static NoaIMHttpManager *manager = nil;
     //接口名
     NSString *uri = @"";
     NSString *method = @"";
-    if ([url containsString:@"system/v2/getSystemConfig"]) {
-        uri = @"system/v2/getSystemConfig";
-        method = @"getSystemConfig";
-    } else {
-        if ([url hasPrefix:@"http"]) {
-            url = [url stringByReplacingOccurrencesOfString:IMSDKManager.apiHost withString:@""];
-        }
-        uri = [url stringByReplacingOccurrencesOfString:@"/biz/" withString:@""];
-        uri = [uri stringByReplacingOccurrencesOfString:@"/auth/" withString:@""];
-        uri = [uri stringByReplacingOccurrencesOfString:@"/zim-file/" withString:@""];
-        uri = [uri stringByReplacingOccurrencesOfString:@"/file/" withString:@""];
-        method = [IMSDKManager tenantCode];
+    if ([url hasPrefix:@"http"]) {
+        url = [url stringByReplacingOccurrencesOfString:IMSDKManager.apiHost withString:@""];
     }
+    uri = [url stringByReplacingOccurrencesOfString:@"/biz/" withString:@""];
+    uri = [uri stringByReplacingOccurrencesOfString:@"/auth/" withString:@""];
+    uri = [uri stringByReplacingOccurrencesOfString:@"/zim-file/" withString:@""];
+    uri = [uri stringByReplacingOccurrencesOfString:@"/file/" withString:@""];
+    method = [IMSDKManager tenantCode];
     
     NSString *signature = [LXChatEncrypt method5:method uri:uri timestamp:timestamp];
     return signature;
@@ -1043,11 +1038,6 @@ static NoaIMHttpManager *manager = nil;
                         [networkOpeatrion addDependency:weakSelf.refreshTokenOpeartion];
                         [weakSelf.netWorkingQueue addOperation:networkOpeatrion];
                     }
-                    if([path containsString:@"/biz/system/v2/getSystemConfig"]){
-                        if (onFailure) {
-                            onFailure(resp.code, resp.message, ztid);
-                        }
-                    }
                 } else if (resp.code == LingIMHttpResponseCodeTokenDestroy && IMSDKManager.myUserToken.length > 0) {
                     //执行用户 强制下线 代理回调
                     if ([weakSelf.userDelegate respondsToSelector:@selector(noaSdkUserForceLogout:message:)]) {
@@ -1080,7 +1070,7 @@ static NoaIMHttpManager *manager = nil;
         NSString * ztid = [hearder objectForKey:@"ZTID"];
         NSLog(@"接口：%@ 报错，code：%ld，des：%@", fullPath, (long)error.code, error.description);
         if (onFailure) {
-            if ([path containsString:@"/biz/system/v2/getSystemConfig"] || [path containsString:@"/biz/sso/connect"] || [path containsString:@"/health"]) {
+            if ([path containsString:@"/biz/sso/connect"] || [path containsString:@"/health"]) {
                 onFailure(error.code, error.description, ztid);
             } else {
                 if (error.code == NSURLErrorTimedOut || error.code == NSURLErrorCannotConnectToHost || error.code == NSURLErrorNetworkConnectionLost) {
@@ -1510,12 +1500,7 @@ static NoaIMHttpManager *manager = nil;
             return jsonObj;
         }else{
             //对 dataString 尝试解密
-            NSString *descryptDataStr;
-            if ([url containsString:@"system/v2/getSystemConfig"]) {
-                descryptDataStr = [LXChatEncrypt method6:dataString];
-            } else {
-                descryptDataStr = [LXChatEncrypt method7:[IMSDKManager tenantCode] encryptData:dataString];
-            }
+            NSString *descryptDataStr = [LXChatEncrypt method7:[IMSDKManager tenantCode] encryptData:dataString];
             //            NSLog(@"解密-- 解密字符串：%@",descryptDataStr);
             
             if(descryptDataStr == nil){

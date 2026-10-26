@@ -1,5 +1,4 @@
 import SwiftUI
-import TBBasicLib
 
 struct AccountRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
@@ -10,7 +9,7 @@ struct AccountRegistrationView: View {
     @State private var confirmation = ""
     @State private var inviteCode = ""
     @State private var acceptedPolicy = false
-    @State private var webLink: TBBasicLib.WebLink?
+    @State private var webLink: WebLink?
     @FocusState private var focusedField: Field?
     private enum Field: Hashable { case account, password, confirmation, invite }
 
@@ -71,7 +70,7 @@ struct AccountRegistrationView: View {
                 }
                 ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成") { focusedField = nil } }
             }
-            .sheet(item: $webLink) { TBBasicLib.SafariView(url: $0.url).ignoresSafeArea() }
+            .sheet(item: $webLink) { SafariView(url: $0.url).ignoresSafeArea() }
             .onDisappear {
                 viewModel.cancel()
                 password = ""
@@ -107,6 +106,6 @@ struct AccountRegistrationView: View {
     private func open(_ address: String) {
         focusedField = nil
         guard let url = URL(string: address), url.scheme == "https", url.host != nil else { return }
-        webLink = TBBasicLib.WebLink(url: url)
+        webLink = WebLink(url: url)
     }
 }

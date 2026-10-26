@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 
 struct TabbarView: View {
     

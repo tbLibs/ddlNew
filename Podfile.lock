@@ -14,7 +14,6 @@ PODS:
   - AFNetworking/Serialization (4.0.1)
   - AFNetworking/UIKit (4.0.1):
     - AFNetworking/NSURLSession
-  - AlicloudPDNS (2.1.9)
   - MMKV (1.2.16):
     - MMKVCore (~> 1.2.16)
   - MMKVCore (1.2.16)
@@ -26,7 +25,6 @@ PODS:
 
 DEPENDENCIES:
   - AFNetworking (= 4.0.1)
-  - AlicloudPDNS (= 2.1.9)
   - MMKV (= 1.2.16)
   - NetworkStatus (from `./NetWorkStatus/NetWorkStatus.podspec`)
   - Protobuf (= 3.21.5)
@@ -35,8 +33,6 @@ DEPENDENCIES:
   - WoodPeckeriOS
 
 SPEC REPOS:
-  https://github.com/aliyun/aliyun-specs.git:
-    - AlicloudPDNS
   https://github.com/CocoaPods/Specs:
     - AFNetworking
     - MMKV
@@ -52,7 +48,6 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   AFNetworking: 3bd23d814e976cd148d7d44c3ab78017b744cd58
-  AlicloudPDNS: 6eda4d8af312b1e0824a58d97a2f5edf71531186
   MMKV: 784471ce430a2e2d16afef9053d63fab1b357d9e
   MMKVCore: 9cfef4c48c6c46f66226fc2e4634d78490206a48
   NetworkStatus: f54a8da5de43b6aca03f3c4c4565b3bda1a37c32
@@ -61,6 +56,6 @@ SPEC CHECKSUMS:
   SAMKeychain: 483e1c9f32984d50ca961e26818a534283b4cd5c
   WoodPeckeriOS: d76940519d27513155959a659f0d1142b5ccc081
 
-PODFILE CHECKSUM: 4d6d66ee6b5cf99f8bf8fc42ee17e3428b35e3e3
+PODFILE CHECKSUM: f11246846dd04a10912d4312b269c38693505ce6
 
 COCOAPODS: 1.17.0

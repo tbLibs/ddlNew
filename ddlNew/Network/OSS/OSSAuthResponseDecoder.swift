@@ -5,23 +5,11 @@
 //  Created by taobo on 2026/9/24.
 //
 
-import CryptoKit
 import Foundation
 import SwiftProtobuf
 
-/// 导航响应在类型、状态、解密或端点筛选阶段的失败原因。
+/// 本地 DNS1 导航容器中没有有效业务 TCP 节点。
 enum OSSAuthResponseError: Error {
-    /// 缺少用于派生解密密钥的 lastLiceseId。
-    case invalidLastLiceseId
-    /// 不是 IM 服务器列表响应消息。
-    case unexpectedMessageType
-    /// 服务端返回非成功状态，保留原错误码和消息。
-    case serverRejected(code: Int32, message: String)
-    /// 服务端未提供加密响应体。
-    case emptyResponseBody
-    /// AES 解密失败或得到空数据。
-    case decryptionFailed
-    /// 解密成功，但没有同时可用的 TCP 与 HTTP 节点。
     case missingUsableEndpoints
 }
 
@@ -35,51 +23,18 @@ struct OSSNavigationResult: Sendable {
     let httpEndpoints: [IMServerEndpoint]
 }
 
-/// 按旧协议校验并解密 OSS Auth 的 Protobuf 响应。
+/// 校验 DNS1 映射到本地 Protobuf 容器的节点，不发起旧 OSS 请求。
 enum OSSAuthResponseDecoder {
-    /// 旧导航协议的成功状态码。
-    private static let successCode: Int32 = 200_000
-
-    static func decode(_ message: NavMessage, lastLiceseId: String) throws -> OSSNavigationResult {
-        guard !lastLiceseId.isEmpty else { throw OSSAuthResponseError.invalidLastLiceseId }
-        guard message.dataType == .imServerListResp,
-              case .imServerListResponse(let response)? = message.dataBody else {
-            throw OSSAuthResponseError.unexpectedMessageType
-        }
-        guard response.statusCode == successCode else {
-            throw OSSAuthResponseError.serverRejected(
-                code: response.statusCode,
-                message: response.message
-            )
-        }
-        guard !response.responseBody.isEmpty else {
-            throw OSSAuthResponseError.emptyResponseBody
-        }
-
-        // 旧协议使用小写 MD5(lastLiceseId) 作为响应 AES-128-ECB 的 secret。
-        let secret = Insecure.MD5.hash(data: Data(lastLiceseId.utf8))
-            .map { String(format: "%02x", $0) }
-            .joined()
-        guard let plaintext = AesEncryptUtils.decryptBytes(response.responseBody, secret: secret),
-              !plaintext.isEmpty else {
-            throw OSSAuthResponseError.decryptionFailed
-        }
-
-        let body = try IMServerListResponseBody(serializedBytes: plaintext)
-        return try navigation(from: body)
-    }
-
     /// 新响应与本地缓存共用同一套端点校验，避免恢复出不可连接的导航状态。
     nonisolated static func navigation(from body: IMServerListResponseBody) throws -> OSSNavigationResult {
         let usable = body.imEndpoints.filter { endpoint in
             endpoint.status != "INACTIVE" &&
-                OSSLegacyConfigurationParser.validHost(endpoint.ip) &&
-                endpoint.port > 0 && endpoint.port <= Int32(UInt16.max)
+                DNS1TCPNode(endpoint.ip.contains(":") ? "[\(endpoint.ip)]:\(endpoint.port)" : "\(endpoint.ip):\(endpoint.port)") != nil
         }
         // 同一节点可能同时支持 TCP 和 HTTP，因此两类筛选不能互斥。
         let tcp = usable.filter { $0.protocols.contains("tcp") }
         let http = usable.filter { $0.protocols.contains("http") }
-        guard !tcp.isEmpty, !http.isEmpty else {
+        guard !tcp.isEmpty, body.meta.navVersion.hasPrefix("DNS1:v2:") else {
             throw OSSAuthResponseError.missingUsableEndpoints
         }
         return OSSNavigationResult(body: body, tcpEndpoints: tcp, httpEndpoints: http)

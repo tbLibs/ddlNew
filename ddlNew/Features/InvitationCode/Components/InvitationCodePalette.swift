@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import TBBasicLib
 import UIAdapter
 
-/// 页面专属配色，颜色转换统一使用 TBBasicLib 提供的 Color(hex:)。
+/// 页面专属配色，颜色转换统一使用 本地 Color(hex:)。
 enum InvitationCodePalette {
     static let background = Color(hex: "FAF8F4")
     static let card = Color(hex: "FFFDF9")

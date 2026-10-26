@@ -26,7 +26,7 @@ nonisolated struct OSSNavigationRecord: Mappable {
          previous: OSSNavigationRecord? = nil) throws {
         let result = try OSSAuthResponseDecoder.navigation(from: body)
         liceseId = lastLiceseId
-        // 新导航成功不等于入口准备完成，先保留原值，待系统配置成功后再确认。
+        // 新导航成功不等于入口准备完成，先保留原值，待正式握手与本地租户参数设置成功后再确认。
         self.lastLiceseId = previous?.lastLiceseId ?? ""
         ipDomainPortStr = previous?.ipDomainPortStr ?? ""
         lastIPDomainPortStr = previous?.lastIPDomainPortStr ?? ""

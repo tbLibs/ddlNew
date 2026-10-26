@@ -23,12 +23,7 @@
             return jsonObj;
         }else{
             //对 dataString 尝试解密
-            NSString *descryptDataStr;
-            if ([url containsString:@"system/v2/getSystemConfig"]) {
-                descryptDataStr = [LXChatEncrypt method6:dataString];
-            } else {
-                descryptDataStr = [LXChatEncrypt method7:[IMSDKManager tenantCode] encryptData:dataString];
-            }
+            NSString *descryptDataStr = [LXChatEncrypt method7:[IMSDKManager tenantCode] encryptData:dataString];
 //            NSLog(@"解密-- 解密字符串：%@",descryptDataStr);
             
             if(descryptDataStr == nil){

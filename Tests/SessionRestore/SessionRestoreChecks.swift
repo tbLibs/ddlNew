@@ -84,10 +84,7 @@ struct Plan { let apiHost = URL(string: "https://example.invalid")!; let tcpCand
     func clearCurrent() {}
     func prepare(requireFresh: Bool) throws -> Plan { Plan() }
 }
-@MainActor final class SystemConfigStore {
-    static let shared = SystemConfigStore()
-    func load(apiHost: URL) -> Int? { 1 }
-}
+
 
 @main struct Checks {
     @MainActor static func main() async throws {

@@ -31,7 +31,6 @@
 		DDA7937D3064B6D9002421B4 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = DDA7937C3064B6D9002421B4 /* SwiftProtobuf */; };
 		DDADAC4430652BF600F0B6ED /* NoaChatCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; };
 		DDADAC4530652BF600F0B6ED /* NoaChatCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */ = {isa = PBXBuildFile; productRef = DDC481FA306101510097F2C3 /* TBBasicLib */; };
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -115,7 +114,6 @@
 				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
 				DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */,
 				4F605F5B45FF0DA04D58B367 /* Pods_ddlNew.framework in Frameworks */,
-				DDC481FB306101510097F2C3 /* TBBasicLib in Frameworks */,
 				C0D3A0010000000000000003 /* Localize_Swift in Frameworks */,
 				AF019ABC305D300000000003 /* WCDBSwiftDynamic in Frameworks */,
 				AF019ABC305D300000000006 /* UIAdapter in Frameworks */,
@@ -245,7 +243,6 @@
 				AF019ABC305D30000000000B /* SwiftUIX */,
 				AF019ABC305D300000000008 /* AlertToast */,
 				E70490D2949F485DB50D1748 /* Sentry */,
-				DDC481FA306101510097F2C3 /* TBBasicLib */,
 				C0D3A0010000000000000004 /* Localize_Swift */,
 				DD4B2D4E306274680031D035 /* ObjectMapper */,
 				A71B2C3D4E5F60718293A401 /* Moya */,
@@ -290,7 +287,6 @@
 				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
 				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
-				DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */,
 				C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */,
 				AF019ABC305D300000000001 /* XCRemoteSwiftPackageReference "wcdb" */,
 				AF019ABC305D300000000004 /* XCRemoteSwiftPackageReference "UIAdapter" */,
@@ -858,14 +854,6 @@
 				minimumVersion = 3.2.0;
 			};
 		};
-		DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tbLibs/TBBasicLib";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.3.8;
-			};
-		};
 		DD4B2D4D306274680031D035 /* XCRemoteSwiftPackageReference "ObjectMapper" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tristanhimmelman/ObjectMapper.git";
@@ -969,11 +957,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DDA7937B3064B6D8002421B4 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobuf;
-		};
-		DDC481FA306101510097F2C3 /* TBBasicLib */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DD107D83305D254A0022CB3C /* XCRemoteSwiftPackageReference "TBBasicLib" */;
-			productName = TBBasicLib;
 		};
 		E70490D2949F485DB50D1748 /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;

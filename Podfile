@@ -15,8 +15,6 @@ target 'ddlNew' do
 
   # Pods for ddlNew
   
-  #aliyun云解析DNS
-  pod 'AlicloudPDNS', '2.1.9'
   pod 'WoodPeckeriOS', :configurations => ['Debug']
   pod 'MMKV', '1.2.16'
   pod 'Protobuf', '3.21.5'
