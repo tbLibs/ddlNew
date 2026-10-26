@@ -11,7 +11,7 @@
 #import "NoaIMSDKManager+Group.h"
 #import "NoaIMSDKManager+GroupMember.h"
 #import "NoaIMSDKManager+Friend.h"
-#import "NoaIMSDKManager+Call.h"
+#import "NoaIMSDKManager+CallRecords.h"
 #import "NoaIMSDKManager+AppInfo.h"
 #import "NoaIMSDKManager+Translate.h"
 
@@ -1224,11 +1224,6 @@
         case 101://音视频通话(单人)
         {
             [self imSdkDealReceiveServiceMessageForCall:message];
-        }
-            break;
-        case 102://音视频通话(多人) 仅发给通话成员
-        {
-            [self imSdkDealReceiveServiceMessageForGroupCall:message];
         }
             break;
         case 103://音视频通话状态信息(成员加入，退出，通话结束)给群里所有人发

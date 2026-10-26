@@ -26,8 +26,6 @@ NS_ASSUME_NONNULL_BEGIN
 //socket重连成功后，重新同步会话列表
 - (void)reconnectSyncSessionsFromServer;
 
-/// 用户翻译配置信息和每个会话的翻译培训信息
-- (void)syncAppUserAndSessionTranslateInfoServer;
 
 /// 服务端同步消息提醒方式
 - (void)syncMessageRemindFromServer;

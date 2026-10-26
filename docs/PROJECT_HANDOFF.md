@@ -6,6 +6,22 @@
 
 用户原有的 `ddlNew.xcodeproj/project.pbxproj` 和 `ddlNew.xcworkspace/xcshareddata/swiftpm/Package.resolved` 修改必须保留。
 
+## 2026-10-26：裁剪未使用的通话 SDK 与配置请求
+
+本节覆盖下方历史记录中关于系统配置残留、翻译同步和通话依赖的旧描述。本次起点为 `feature-IMSDK-2` 的 `2ebfd50`；保留用户原有 Sentry package 的空 `traits` 设置。
+
+- App 和 NoaChatCore 两个 target 移除 LiveKit、ZegoExpressEngine，依赖锁同步移除 WebRTC、Promises、swift-log；其余 17 个 SPM pin 的版本与 revision 不变。
+- 删除通话引擎封装、22 个呼叫/房间/心跳请求、SDK 转发入口、通话 delegate、循环铃声与震动控制。旧 `NoaIMSDKManager+Call` 拆除，只留下 `+CallRecords`：接收其他设备/历史消息中的通话记录并写入原会话和消息存储，不发起/接听通话、不创建引擎、不请求房间凭据。
+- 保留 Protobuf 字段编号及现有消息/会话数据库字段。记录兼容处理保留原有单聊结束、其他设备接听、群聊开始/结束记录的筛选规则；不处理通话中的参与者通知。
+- 删除角色配置、角色功能权限列表、群活跃等级配置、签到规则、翻译通道、用户翻译配置读取/上传和远程登录方式，共 8 个请求的路径、HTTP/TCP 实现和 SDK 声明/转发。
+- 会话同步完成后原本会自动请求用户翻译配置；已删除两个自动调用点、同步实现及专用队列。普通联系人/群组/会话同步、未读统计和同步时间持久化保留。
+- 登录/注册、密钥交换、验证码/安全码验证、用户 AUTH、账号会话恢复、租户签名、TCP 收发与重连、DNS1 节点发现保留。服务端授权校验未绕过。
+- 已重新 `pod install --no-repo-update`，解决切分支后本地 Pods 与 lock 不一致；Pod 版本不变，仅 Podfile 注释对应 checksum 更新。
+
+验证：9 组现有离线回归（Connection、Login、AccountLifecycle、SessionRestore、Network、NetworkQuality、Verification、LoginConsent、DNS1）及真实 AUTH Protobuf 字节检查全部通过。新增 `python3 Tests/AppReview/check-call-records.py` 编译生产记录筛选方法，112 个消息事件组合通过。依赖/配置移除检查扩展到两个工程、依赖锁及 Release Mach-O。
+
+全新目录无签名 Release 构建成功：`/tmp/ddlNew-sdk-trim-release/Build/Products/Release-iphoneos/ddlNew.app`，日志 `/tmp/ddlNew-sdk-trim-release.log`；整理后的最终构建也通过，日志 `/tmp/ddlNew-sdk-trim-release-final.log`。二进制扫描结果和限制见 `Docs/AppReview-2.5.19-remediation.md`。尚未进行真机登录/消息收发/断网恢复、签名归档或上传；本地构建不能代表审核通过。
+
 ## 2026-10-23：固定 tenantCode，停用系统配置接口
 
 当前要求：用户已提供 tenantCode，固定在 `ddlNew/Configuration/LocalSDKSettings.swift`，不再调用 `/biz/system/v2/getSystemConfig`，不读取历史系统配置。此前“接口只提供 tenantCode”的方案已替换。

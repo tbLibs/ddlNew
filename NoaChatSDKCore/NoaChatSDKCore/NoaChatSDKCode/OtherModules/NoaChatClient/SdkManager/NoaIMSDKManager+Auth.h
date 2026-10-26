@@ -146,11 +146,6 @@ NS_ASSUME_NONNULL_BEGIN
                            onSuccess:(nullable LingIMSuccessCallback)onSuccess
                            onFailure:(nullable LingIMFailureCallback)onFailure;
 
-/**
- @brief  获取登录注册方式
- */
-- (void)authGetLoginAndRegisterTypeOnSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                   onFailure:(nullable LingIMFailureCallback)onFailure;
 
 
 /**

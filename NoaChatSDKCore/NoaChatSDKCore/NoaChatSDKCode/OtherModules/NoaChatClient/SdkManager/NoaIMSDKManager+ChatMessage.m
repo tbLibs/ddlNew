@@ -12,7 +12,7 @@
 #import "NoaIMSDKManager+Friend.h"//好友
 #import "NoaIMSDKManager+Group.h"//群组
 #import "NoaIMSDKManager+MessageRemind.h"//消息提醒
-#import "NoaIMSDKManager+Call.h"//音视频通话
+#import "NoaIMSDKManager+CallRecords.h"//音视频通话
 #import "NoaIMSDKManager+GroupMember.h"
 #import "NoaIMSDKManager+Translate.h"
 #import "NoaIMSDKManager+AppInfo.h"

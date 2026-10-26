@@ -259,7 +259,7 @@ typedef NS_ENUM(NSUInteger, CIMChatMessageType) {
 //群聊通话状态，1:发起，3:超时未应答，4:拒绝，5:挂断，6:接受，7:通话中断,8:其他设备已接听，9:邀请加入，10：主动加入，11:结束
 @property (nonatomic, assign) NSInteger netCallStatus;
 
-//音视频通话操作提示消息 LiveKit 采用的是 IMServerMessage -> CustomEvent(content字段json);
+//历史通话操作提示消息采用 IMServerMessage -> CustomEvent(content字段json);
 //CustomEvent type字段 101单聊音视频 102群聊音视频(处理通话逻辑) 103群聊音视频(处理消息展示和通话信息(当前多少人正在通话)展示)
 
 //表情消息StickersMessage

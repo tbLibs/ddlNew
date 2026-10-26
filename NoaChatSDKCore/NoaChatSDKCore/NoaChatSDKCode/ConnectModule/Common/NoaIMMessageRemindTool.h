@@ -49,17 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// 是否开启了震动提醒
 - (BOOL)messageRemindVibrationOpend;
 
-#pragma mark - 音视频通话提醒
-/// 音视频通话提醒铃声
-- (void)messageRemindForMediaCall;
 
-/// 音视频通话自定义提醒铃声
-/// @param voiceSource 铃声资源
-/// @param voiceExtension 铃声类型
-- (void)messageRemindVoiceConfigForMediaCallWith:(NSString * _Nullable)voiceSource extension:(NSString * _Nullable)voiceExtension;
-
-/// 音视频通话提醒铃声结束
-- (void)messageRemindEndForMediaCall;
 
 @end
 

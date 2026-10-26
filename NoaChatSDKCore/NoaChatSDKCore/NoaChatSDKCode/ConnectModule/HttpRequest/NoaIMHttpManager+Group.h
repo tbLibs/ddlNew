@@ -94,8 +94,6 @@ NS_ASSUME_NONNULL_BEGIN
 #define Group_Update_Is_ShowQrCode_Url       @"/biz/group/groupQrcodeShow"
 //新人查看群聊天历史
 #define Group_isShowHistory_Url    @"/biz/group/isShowHistory"
-//获取群活跃配置
-#define Group_Get_Activity_Config_Url    @"/biz/group/activity/config/get"
 //修改群活跃展示开关
 #define Group_Update_Activity_Enable_Status_Url         @"/biz/group/groupActivityShow"
 //群成员活跃积分分页列表-增量
@@ -369,7 +367,6 @@ NS_ASSUME_NONNULL_BEGIN
 * 获取群活跃配置
 * @param params 请求参数:{gId:群组ID}
 */
-- (void)groupGetActivityLevelConfigWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 /*
 * 修改群活跃展示开关

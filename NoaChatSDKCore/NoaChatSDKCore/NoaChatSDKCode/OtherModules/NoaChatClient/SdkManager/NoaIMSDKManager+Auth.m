@@ -124,12 +124,6 @@
     [[NoaIMHttpManager sharedManager] AuthScanQrCodeForPCLoginWith:params onSuccess:onSuccess onFailure:onFailure];
 }
 
-#pragma mark - 获取登录注册方式
-- (void)authGetLoginAndRegisterTypeOnSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                   onFailure:(nullable LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] AuthGetLoginAndRegisterTypeOnSuccess:onSuccess onFailure:onFailure];
-}
 
 #pragma mark - 申请解禁
 - (void)authApplyUnBandWith:(NSMutableDictionary * _Nullable)params

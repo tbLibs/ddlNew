@@ -167,22 +167,6 @@
     [[NoaIMHttpManager sharedManager] translateYuueeContent:params onSuccess:onSuccess onFailure:onFailure];
 }
 
-#pragma mark - 获取所有翻译通道和通道下的语种
-- (void)imSdkTranslateGetChannelLanguage:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] translateGetChannelLanguage:params onSuccess:onSuccess onFailure:onFailure];
-}
 
-#pragma mark - 获取当前登录用户所有翻译配置
-- (void)imSdkTranslateGetUserAllTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] translateGetUserAllTranslateConfig:params onSuccess:onSuccess onFailure:onFailure];
-}
-
-#pragma mark - 上传用户翻译配置
-- (void)imSdkTranslateUploadNewTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] translateUploadNewTranslateConfig:params onSuccess:onSuccess onFailure:onFailure];
-}
 
 @end

@@ -101,15 +101,4 @@ FOUNDATION_EXPORT BOOL cim_function_messageRemindVoiceOpend (void);
 /// 消息震动提醒状态
 FOUNDATION_EXPORT BOOL cim_function_messageRemindVibrationOpend (void);
 
-/// 音视频通话提醒铃声
-FOUNDATION_EXPORT void cim_function_messageRemindForMediaCall (void);
-
-/// 音视频通话自定义提醒铃声
-/// @param voiceSource 铃声资源
-/// @param voiceExtension 铃声类型
-FOUNDATION_EXPORT void cim_function_messageRemindVoiceConfigForMediaCall (NSString * _Nullable voiceSource, NSString * _Nullable voiceExtension);
-
-/// 音视频通话提醒铃声结束
-FOUNDATION_EXPORT void cim_function_messageRemindEndForMediaCall (void);
-
 NS_ASSUME_NONNULL_END

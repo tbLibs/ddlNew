@@ -10,7 +10,6 @@
 #import "LingIMSessionModel.h"
 #import "LingIMGroupModel.h"
 #import "LingIMFriendModel.h"
-#import "LIMMediaCallModel.h"
 #import "LingIMTranslateConfigModel.h"
 #import "LingIMProtocol.h"
 
@@ -241,87 +240,5 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-#pragma mark - 音视频相关代理
-@protocol NoaIMMediaCallDelegate <NSObject>
-@optional
-
-#pragma mark - 单人音视频回调
-/// 单人音视频 被邀请者 接收到 邀请者 发来的音视频通话请求
-- (void)imSdkMediaCallSingleInviteeReceiveRequestWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 单人音视频 邀请者 等待 被邀请者 处理 发来的音视频通话请求
-/// 告知 邀请者 请等待 被邀请者 处理 音视频通话的请求
-- (void)imSdkMediaCallSingleInviterWaitingInviteeDealWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 单人音视频 被邀请者 同意 邀请者 发来的音视频通话请求
-/// 告知 邀请者 被邀请者 同意 音视频通话的请求，邀请者此时可以去确认音视频通话房间了
-- (void)imSdkMediaCallSingleInviteeAcceptRequestWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 单人音视频 邀请者 确认了 音视频通话的房间
-/// 告知 被邀请者 邀请者 确认了音视频通话房间信息，被邀请者可以加入房间了
-- (void)imSdkMediaCallSingleInviterConfirmRoomWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 单人音视频 断开通话房间连接
-/// 告知 邀请者 和 被邀请者 通话断开连接
-/// 需根据 discard_reason 来处理逻辑
-/*
-"": 空字符串, 通话建立之后正常挂断
-//告知 邀请者 展示 如：10:00通话
-//告知 被邀请者 展示 如：10:00通话
-
-disconnect: 通话中断, 服务器强制挂断
-//告知 邀请者 展示 如：通话中断
-//告知 被邀请者 展示 如：通话中断
-
-missed: 对方无应答, 客户端主叫方呼叫超时挂断
-//告知 邀请者 展示 如：对方无应答
-//告知 被邀请者 展示 如：超时未应答
-
-cancel: 通话已取消, 主叫方取消通话
-//告知 邀请者 展示 如：通话已取消
-//告知 被邀请者 展示 如：对方已取消
-
-refused: 对方已拒绝
-//告知 邀请者 展示 如：对方已拒绝
-//告知 被邀请者 展示 如：已拒绝
-
-accept: 已在其他设备接听
-//告知 被邀请者 展示 如：已在其他设备接听
-*/
-- (void)imSdkMediaCallSingleDiscardWith:(LIMMediaCallModel *)mediaCallModel;
-
-#pragma mark - 多人音视频回调
-/// 多人音视频 发起申请音视频通话(被邀请者响应)
-- (void)imSdkMediaCallGroupRequestWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 多人音视频 邀请成员加入音视频通话
-- (void)imSdkMediaCallGroupInviteWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 多人音视频 某成员加入音视频通话
-- (void)imSdkMediaCallGroupJoinWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 多人音视频 某成员离开音视频通话
-- (void)imSdkMediaCallGroupLeaveWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 多人音视频 挂断音视频通话(根据挂断原因处理)
-- (void)imSdkMediaCallGroupDiscardWith:(LIMMediaCallModel *)mediaCallModel;
-
-/// 多人音视频 参与者发生变化
-- (void)imSdkMediaCallGroupParticipantActionWith:(LIMMediaCallModel *)mediaCallModel;
-
-#pragma mark - <<<<<<音视频代理回调>>>>>>
-/// 被邀请者 接收到 邀请者 发来的音视频通话请求(单聊触发 群聊触发)
-- (void)imSdkCallInviteeReceiveRequestWith:(IMChatMessage *)chatMessageCall;
-
-/// 通话结束，需要判断通话结束的具体状态原因(单聊触发 群聊触发)
-- (void)imSdkCallDiscardWith:(IMChatMessage *)chatMessageCall;
-
-/// 被邀请者 同意了 邀请者 发来的音视频通话请求(单聊触发)
-- (void)imSdkCallInviteeAcceptRequestWith:(IMChatMessage *)chatMessageCall;
-
-/// 群聊 房间内 成员状态变化
-- (void)imSdkCallGroupMemberStateChangeWith:(IMChatMessage *)chatMessageCall;
-
-@end
 
 NS_ASSUME_NONNULL_END

@@ -8,7 +8,6 @@
 // 音视频通话 - 单人模式
 
 #import <Foundation/Foundation.h>
-#import "LIMMediaCallRoomInfoModel.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -19,7 +18,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSString *hashKey;//音视频通话唯一标识id
 @property (nonatomic, copy) NSString *from_id;//音视频通话发起者(邀请者)
 @property (nonatomic, copy) NSString *to_id;//音视频通话对方接收者(被邀请者)
-@property (nonatomic, strong) LIMMediaCallRoomInfoModel *connection;//音视频通房间地址和token
 @property (nonatomic, copy) NSString *discard_reason;//音视频通结束原因
 /*
  "": 空字符串, 通话建立之后正常挂断

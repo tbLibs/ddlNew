@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0928A0010000000000000007 /* MJExtension in Frameworks */ = {isa = PBXBuildFile; productRef = 0928A0010000000000000004 /* MJExtension */; };
-		0928A0010000000000000008 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0928A0010000000000000005 /* LiveKit */; };
-		0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0928A0010000000000000006 /* ZegoExpressEngine */; };
 		0928A0030000000000000002 /* WCDBObjc.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0928A0030000000000000001 /* WCDBObjc.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		28A1C0010000000000000001 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 28A1C0010000000000000003 /* Kingfisher */; };
 		28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */ = {isa = PBXBuildFile; productRef = 28A1C0010000000000000004 /* CocoaAsyncSocket */; };
@@ -108,8 +106,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0928A0010000000000000007 /* MJExtension in Frameworks */,
-				0928A0010000000000000008 /* LiveKit in Frameworks */,
-				0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */,
 				28A1C0010000000000000001 /* Kingfisher in Frameworks */,
 				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
 				DD4B2D4F306274680031D035 /* ObjectMapper in Frameworks */,
@@ -233,8 +229,6 @@
 			name = ddlNew;
 			packageProductDependencies = (
 				0928A0010000000000000004 /* MJExtension */,
-				0928A0010000000000000005 /* LiveKit */,
-				0928A0010000000000000006 /* ZegoExpressEngine */,
 				28A1C0010000000000000003 /* Kingfisher */,
 				28A1C0010000000000000004 /* CocoaAsyncSocket */,
 				AF019ABC305D300000000002 /* WCDBSwiftDynamic */,
@@ -283,8 +277,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */,
-				0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
-				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
 				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 				C0D3A0010000000000000006 /* XCRemoteSwiftPackageReference "Localize-Swift" */,
@@ -336,13 +328,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ddlNew/Pods-ddlNew-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -750,22 +738,6 @@
 				version = 3.4.0;
 			};
 		};
-		0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/livekit/client-sdk-swift.git";
-			requirement = {
-				kind = exactVersion;
-				version = 1.0.8;
-			};
-		};
-		0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/zegolibrary/express-video-ios.git";
-			requirement = {
-				kind = exactVersion;
-				version = 3.5.0;
-			};
-		};
 		28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
@@ -789,6 +761,8 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
+			traits = (
+			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -877,16 +851,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0928A0010000000000000001 /* XCRemoteSwiftPackageReference "MJExtension" */;
 			productName = MJExtension;
-		};
-		0928A0010000000000000005 /* LiveKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
-			productName = LiveKit;
-		};
-		0928A0010000000000000006 /* ZegoExpressEngine */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */;
-			productName = ZegoExpressEngine;
 		};
 		28A1C0010000000000000003 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;

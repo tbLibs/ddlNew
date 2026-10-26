@@ -263,7 +263,6 @@ NS_ASSUME_NONNULL_BEGIN
 * 获取群活跃配置
 * @param params 请求参数:{gId:群组ID}
 */
-- (void)groupGetActivityLevelConfigWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 
 /// 获取我的群组列表数据

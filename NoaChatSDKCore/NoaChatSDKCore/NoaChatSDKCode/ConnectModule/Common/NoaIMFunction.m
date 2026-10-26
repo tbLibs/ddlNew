@@ -154,19 +154,4 @@ BOOL cim_function_messageRemindVibrationOpend (void) {
     return [[NoaIMMessageRemindTool sharedManager] messageRemindVibrationOpend];
 }
 
-#pragma mark - 音视频通话提醒铃声
-void cim_function_messageRemindForMediaCall (void) {
-    [[NoaIMMessageRemindTool sharedManager] messageRemindForMediaCall];
-}
-
-#pragma mark - 音视频通话自定义提醒铃声
-void cim_function_messageRemindVoiceConfigForMediaCall (NSString * _Nullable voiceSource, NSString * _Nullable voiceExtension) {
-    [[NoaIMMessageRemindTool sharedManager] messageRemindVoiceConfigForMediaCallWith:voiceSource extension:voiceExtension];
-}
-
-#pragma mark - 音视频通话提醒铃声结束
-void cim_function_messageRemindEndForMediaCall (void) {
-    [[NoaIMMessageRemindTool sharedManager] messageRemindEndForMediaCall];
-}
-
 @end

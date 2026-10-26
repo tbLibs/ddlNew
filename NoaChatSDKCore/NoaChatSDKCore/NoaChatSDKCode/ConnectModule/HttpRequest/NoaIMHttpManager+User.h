@@ -39,8 +39,6 @@
 #define User_Feedback_Url                       @"/biz/feedback/addFeedBack"
 //投诉与支持-邀请码投诉
 #define Sso_Feedback_Url                       @"/biz/feedback/addCompanyFeedBack"
-//获取用户角色权限
-#define User_Role_AuthorityList_Url             @"/biz/user/getUserRoleAuthorityList"
 //设置离线时长
 #define User_setShowOffLineStatus_Url           @"/biz/user/setShowOffLineStatus"
 //获取当前用户默认设置
@@ -151,7 +149,6 @@ NS_ASSUME_NONNULL_BEGIN
  @brief 获取用户角色权限
  userUid 用户ID
 */
-- (void)getRoleAuthorityListWith:(NSMutableDictionary *)params onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure;
 
 #pragma mark - 设置离线时长
 /**

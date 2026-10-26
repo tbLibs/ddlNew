@@ -47,17 +47,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// 消息震动提醒状态
 - (BOOL)toolMessageReceiveRemindVibrationOpend;
 
-// ******音视频通话提醒******
-/// 音视频通话提醒铃声
-- (void)toolMessageReceiveRemindForMediaCall;
 
-/// 音视频通话自定义提醒铃声
-/// @param voiceSource 铃声资源
-/// @param voiceExtension 铃声类型
-- (void)toolMessageReceiveRemindVoiceConfigForMediaCallWith:(NSString * _Nullable)voiceSource extension:(NSString * _Nullable)voiceExtension;
-
-/// 音视频通话提醒铃声结束
-- (void)toolMessageReceiveRemindEndForMediaCall;
 @end
 
 NS_ASSUME_NONNULL_END

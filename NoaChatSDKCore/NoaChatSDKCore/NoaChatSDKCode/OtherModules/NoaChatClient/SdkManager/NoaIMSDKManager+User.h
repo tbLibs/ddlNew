@@ -101,11 +101,6 @@ NS_ASSUME_NONNULL_BEGIN
 ///   - onFailure: 失败回调
 - (void)ssoFeedBackWith:(NSMutableDictionary *)params onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure;
 
-/// 获取用户角色权限
-///  userUid 用户账号
-- (void)userGetRoleAuthorityListWith:(NSMutableDictionary * _Nullable)params
-             onSuccess:(LingIMSuccessCallback)onSuccess
-             onFailure:(LingIMFailureCallback)onFailure;
 
 /// 设置离线时长
 ///  userUid 用户账号

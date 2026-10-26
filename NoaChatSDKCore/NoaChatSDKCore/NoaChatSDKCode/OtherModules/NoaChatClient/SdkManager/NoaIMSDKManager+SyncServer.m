@@ -15,14 +15,12 @@
 #import "NoaIMSDKManager+Session.h"
 #import "NoaIMSDKManager+MessageRemind.h"
 #import "NoaIMSDKManager+AppInfo.h"
-#import "NoaIMSDKManager+Translate.h"
 
 #import "LIMSessionModel.h"
 #import "LIMServerMessageModel.h"
 #import "NoaChatMessageModel.h"
 #import <NoaChatCore/LingIMGroupMemberModel.h>
 #import "LingIMSensitivePageModel.h"
-#import "LingIMTranslateConfigModel.h"
 #import <MMKV/MMKV.h>
 #import <objc/runtime.h>
 
@@ -87,57 +85,6 @@ static const void *kDBQueueKey = &kDBQueueKey;
     }
 }
 
-#pragma mark - ******用户翻译配置信息和每个会话的翻译配置信息******
-- (void)syncAppUserAndSessionTranslateInfoServer {
-    NSString *lastSyncTime = @"";
-    NSString *sessionTranslateKey = [NSString stringWithFormat:@"SessionTranslateInfoSyncStatus_%@", self.myUserID];
-    BOOL sessionTranslateSync = [[MMKV defaultMMKV] getBoolForKey:sessionTranslateKey];
-    if (sessionTranslateSync) {
-        lastSyncTime = [NSDate UTCDateTimeStr];
-    } else {
-        [[MMKV defaultMMKV] setBool:YES forKey:sessionTranslateKey];
-    }
-    
-    NSMutableDictionary *params = [NSMutableDictionary dictionary];
-    [params setValue:[self myUserID] forKey:@"userUid"];
-    [params setValue:lastSyncTime forKey:@"lastSyncTime"];
-    
-    __weak typeof(self) weakSelf = self;
-    [self imSdkTranslateGetUserAllTranslateConfig:params onSuccess:^(id _Nullable data, NSString * _Nullable traceId) {
-        if ([data isKindOfClass:[NSArray class]]) {
-            NSArray *dataArr = (NSArray *)data;
-            NSArray *dataList = [LingIMTranslateConfigModel mj_objectArrayWithKeyValuesArray:dataArr];
-            if (dataList.count > 0) {
-                dispatch_async(self.appUserAndSessionTranslateInfoServerQueue, ^{
-                    for (LingIMTranslateConfigModel *configModel in dataList) {
-                        if (configModel.level == 1) {
-                            //会话级别
-                            //更新到sessionModel
-                            LingIMSessionModel *sessionModel = [weakSelf toolCheckMySessionWith:configModel.dialogId];
-                            if (sessionModel) {
-                                sessionModel.isSendAutoTranslate = configModel.translateSwitch;
-                                sessionModel.sendTranslateChannel = configModel.channel;
-                                sessionModel.sendTranslateChannelName = configModel.channelName;
-                                sessionModel.sendTranslateLanguage = configModel.targetLang;
-                                sessionModel.sendTranslateLanguageName = configModel.targetLangName;
-                                sessionModel.receiveTranslateChannel = configModel.receiveChannel;
-                                sessionModel.receiveTranslateChannelName = configModel.receiveChannelName;
-                                sessionModel.receiveTranslateLanguage = configModel.receiveTargetLang;
-                                sessionModel.receiveTranslateLanguageName = configModel.receiveTargetLangName;
-                                sessionModel.isReceiveAutoTranslate = configModel.receiveTranslateSwitch;
-                                sessionModel.translateConfigId = configModel.configId;
-                                //更新到本地
-                                [weakSelf toolUpdateSessionWith:sessionModel];
-                            }
-                        }
-                    }
-                    [weakSelf.userDelegate imsdkSynUserAllTranslateConfig:dataList];
-                });
-            }
-        }
-    } onFailure:^(NSInteger code, NSString * _Nullable msg, NSString * _Nullable traceId) {
-    }];
-}
 
 #pragma mark - ******服务端同步消息提醒方式******
 - (void)syncMessageRemindFromServer {
@@ -544,8 +491,7 @@ static const void *kDBQueueKey = &kDBQueueKey;
                                 NSInteger totalUnread = [IMSDKManager toolGetAllSessionUnreadCount];
                                 [strongSelf.sessionDelegate cimToolSessionTotalUnreadCountChange:totalUnread];
                             });
-                            // 同步配置及持久化 lastSyncTime
-                            [strongSelf syncAppUserAndSessionTranslateInfoServer];
+                            // 持久化 lastSyncTime
                             NSString *key = [NSString stringWithFormat:@"%@_%@", LAST_SYNC_SESSION_TIME_KEY, strongSelf.myUserID];
                             [[MMKV defaultMMKV] setInt64:[NSDate getCurrentServerMillisecondTime] forKey:key];
                             // 清理内存数据（在业务队列或主线程都行，保持一致）
@@ -637,8 +583,6 @@ static const void *kDBQueueKey = &kDBQueueKey;
                         [strongSelf.sessionDelegate cimToolSessionTotalUnreadCountChange:totalUnread];
                     });
                     
-                    //同步用户和会话的翻译配置信息
-                    [strongSelf syncAppUserAndSessionTranslateInfoServer];
                     //更新lastSessionUpdateTime
                     NSString *key = [NSString  stringWithFormat:@"%@_%@", LAST_SYNC_SESSION_TIME_KEY, strongSelf.myUserID];
                     [[MMKV defaultMMKV] setInt64:[NSDate getCurrentServerMillisecondTime] forKey:key];

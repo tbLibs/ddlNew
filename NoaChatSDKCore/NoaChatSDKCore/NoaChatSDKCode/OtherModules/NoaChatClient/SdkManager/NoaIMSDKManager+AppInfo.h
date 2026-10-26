@@ -48,8 +48,6 @@ NS_ASSUME_NONNULL_BEGIN
 //删除设备数据
 - (void)imSdkdeleteDeviceTokenWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-//获取角色配置
-- (void)imGetRoleConfigInfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 
 

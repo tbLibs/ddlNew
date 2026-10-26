@@ -332,11 +332,6 @@
     [[NoaIMHttpManager sharedManager] groupNewMemberCheckHistoryStatusWith:params onSuccess:onSuccess onFailure:onFailure];
 }
 
-#pragma mark - 获取群活跃配置
-- (void)groupGetActivityLevelConfigWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] groupGetActivityLevelConfigWith:params onSuccess:onSuccess onFailure:onFailure];
-}
 
 #pragma mark - 修改群活跃展示开关
 - (void)groupUpdateActivityLevelEnableStatusWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {

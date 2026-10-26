@@ -211,15 +211,6 @@
     }
 }
 
-#pragma mark - 获取登录注册方式
-- (void)AuthGetLoginAndRegisterTypeOnSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                   onFailure:(nullable LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:@{} Url:Auth_Login_Register_Type_Url Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:Auth_Login_Register_Type_Url parameters:@{} onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
 #pragma mark - 申请解禁
 - (void)AuthUserApplyUnBandWith:(NSMutableDictionary * _Nullable)params

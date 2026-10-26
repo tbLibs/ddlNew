@@ -173,10 +173,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// 移除群聊代理
 - (void)removeGroupDelegate:(id <CIMToolGroupDelegate> )delegate;
 
-/// 添加多媒体会话代理(音视频通话)
-- (void)addMediaCallDelegate:(id <NoaIMMediaCallDelegate> )delegate;
-/// 移除多媒体会话代理(音视频通话)
-- (void)removeMediaCallDelegate:(id <NoaIMMediaCallDelegate> )delegate;
 
 //注意此处的代理仅作为响应回调使用，服从代理需要调用 业务addFriendDelegate等方法
 /// 连接代理
@@ -190,7 +186,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// 群聊代理
 @property (nonatomic, strong) OIMGCDMulticastDelegate <CIMToolGroupDelegate> *groupDelegate;
 /// 多媒体代理(音视频通话)
-@property (nonatomic, strong) OIMGCDMulticastDelegate <NoaIMMediaCallDelegate> *mediaCallDelegate;
 @property (nonatomic, strong) dispatch_queue_t sessionListUpdateQueue;
 @property (nonatomic, strong) dispatch_queue_t friendGroupListUpdateQueue;
 @property (nonatomic, strong) dispatch_queue_t contactsListUpdateQueue;
@@ -201,7 +196,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) dispatch_queue_t imSdkUpdateAppSensitiveQueue;
 
 @property (nonatomic, strong) dispatch_queue_t unreadCountQueue;
-@property (nonatomic, strong) dispatch_queue_t appUserAndSessionTranslateInfoServerQueue;
 
 @property (nonatomic, strong) NSMutableArray *allSessionList;
 @property (nonatomic, strong) NSDictionary * _Nullable clearReadNumSMsgIdDict;

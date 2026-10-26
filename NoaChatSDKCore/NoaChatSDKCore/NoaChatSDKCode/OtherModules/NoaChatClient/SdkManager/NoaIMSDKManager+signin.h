@@ -23,8 +23,6 @@ NS_ASSUME_NONNULL_BEGIN
 //积分明细
 - (void)imSignInWithIntergralDetail:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-//签到规则
-- (void)imSignInWithRule:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 @end
 

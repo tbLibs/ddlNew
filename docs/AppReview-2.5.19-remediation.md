@@ -47,13 +47,25 @@
 
 最初构建发现本地 Pods 与锁文件不同步，仍引用已不在当前分支中的 EncryptLib；重新安装当前锁定依赖后解决。最终依赖变化是删除上述两项库及 TBBasicLib 独有传递依赖，没有升级其余版本。
 
+## 2026-10-26 后续裁剪：未接入的通话能力和配置请求
+
+基于 `feature-IMSDK-2` / `2ebfd50` 实施。此节覆盖之前关于保留通话依赖的结论。
+
+- 两个 target 均移除 LiveKit、ZegoExpressEngine；WebRTC、Promises、swift-log 随依赖图退出，其余 17 个 SPM pin 未升级。
+- 删除引擎封装、22 个通话请求、SDK 转发和通话回调代理、通话铃声循环。`NoaIMSDKManager+CallRecords` 仅保留被动历史记录入库，不调用房间或媒体引擎。原消息协议与数据库字段保留兼容。
+- 删除 8 个未使用配置请求：`/biz/system/getRoleConfig`、`/biz/user/getUserRoleAuthorityList`、`/biz/group/activity/config/get`、`/biz/signInRecord/signConfig`、`/biz/translate/channelConfig`、`/biz/userTranslate/all`、`/biz/userTranslate/uploadConfig`、`/auth/account/getLoginTypes`。路径、声明、HTTP/TCP 实现及 SDK 转发均删除。
+- 翻译配置之前还会在 SDK 会话同步结束后自动拉取；两个调用点、同步方法、专用队列也已删除。联系人、群组、会话、消息收发与未读计数保持原流程。
+- 认证相关的密钥、注册/登录、验证码、安全码、用户 AUTH 与服务端鉴权保留；本地固定账号策略和 DNS1 连接发现保留。角色功能配置列表不是登录 AUTH，删除该接口不绕过服务端权限校验。
+
+本次验证：9 组现有离线回归及 AUTH Protobuf 字节检查通过；新增历史记录筛选检查 112 个事件组合通过。`pod install --no-repo-update` 后 Manifest 与 lock 一致，Pod 版本不变。全新目录无签名 Release 构建成功，产物 `/tmp/ddlNew-sdk-trim-release/Build/Products/Release-iphoneos/ddlNew.app`，构建日志 `/tmp/ddlNew-sdk-trim-release.log`；最终复核构建日志 `/tmp/ddlNew-sdk-trim-release-final.log` 也为 `BUILD SUCCEEDED`。Release 中 15 个 Mach-O 全量扫描未发现已移除通话依赖、信令请求或上述配置入口；扫描日志 `/tmp/ddlNew-sdk-trim-binary-scan.log`。构建没有上传 Sentry 符号。
+
 ## 二进制中仍有的必要网络能力
 
-扫描仍在 CocoaAsyncSocket、LiveKit、WebRTC、ZegoExpressEngine 四个通信 framework 中发现 `_getifaddrs`。
+本次 Release 扫描只在 CocoaAsyncSocket 中发现 `_getifaddrs`；其用途是指定网络接口时选择 Socket 地址。LiveKit、WebRTC、Zego 已不在本次构建包内。不能向审核声明“整个安装包完全不存在 IP 相关代码”。
 
-已核对开源实现：CocoaAsyncSocket 用于指定接口的 Socket 地址选择，LiveKit 用于监听网络接口/地址变化。WebRTC、Zego 的预编译实现本次只确认符号存在，未完成内部所有调用与数据用途的核查。不能据此向审核声明“整个安装包完全不存在 IP 相关代码”。这些依赖仍为现有通信功能保留；必要时向供应商获取用途说明，或另行评估替换。
+DNS1 仍通过远程 AAAA/BIN 获取连接服务器的 TCP/HTTP 节点，并做 ECDH 可用性探测；它不是客户端 IP 查询，也不解析页面开关或登录功能规则，但仍应向审核说明服务器发现用途。
 
-本次检查证明特定废弃实现已从本地 Release 产物移除，不代替审核结论、网络抓包或服务端验证。未执行带真实账号的设备登录、断网恢复及音视频通话；尚未核验服务端在所有场景下对缺省 IP 字段的处理。未生成已签名提交包，也未上传 App Store Connect。
+本次检查证明特定废弃实现已从本地 Release 产物移除，不代替审核结论、网络抓包或服务端验证。未执行带真实账号的设备登录、断网恢复及消息收发；尚未核验服务端在所有场景下对缺省 IP 字段的处理。未生成已签名提交包，也未上传 App Store Connect。
 
 ## 复查方式
 
@@ -68,10 +80,11 @@ python3 Tests/AppReview/check-removal.py /path/to/ddlNew.app
 
 ```sh
 bash Tests/AppReview/run-protocol-checks.sh
+python3 Tests/AppReview/check-call-records.py
 bash Tests/DNS1/run-checks.sh
 bash Tests/DNS1/run-integration-checks.sh
 # 可选的真实只读检查，需传测试邀请码：
 bash Tests/DNS1/run-live-checks.sh TEST_INVITATION
 ```
 
-DNS1 最终编译、二进制与回归日志使用 `dns1-` 前缀；本次日志位于 `build/AppReviewCheck/verification/`；本地未签名产物位于 `build/AppReviewCheck/Build/Products/Release-iphoneos/ddlNew.app`。实际重新归档、导出 IPA 后应对该提交包再次扫描，并完成设备登录和重连验收。
+前一轮 DNS1 编译、二进制与回归日志使用 `dns1-` 前缀；本次日志位于 `build/AppReviewCheck/verification/`；本地未签名产物位于 `build/AppReviewCheck/Build/Products/Release-iphoneos/ddlNew.app`。实际重新归档、导出 IPA 后应对该提交包再次扫描，并完成设备登录和重连验收。

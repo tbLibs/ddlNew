@@ -416,14 +416,6 @@ NoaGroupDelegate
     [self.groupDelegate removeDelegate:delegate];
 }
 
-/// 添加多媒体会话代理(音视频通话)
-- (void)addMediaCallDelegate:(id <NoaIMMediaCallDelegate> )delegate {
-    [self.mediaCallDelegate addDelegate:delegate delegateQueue:dispatch_get_main_queue()];
-}
-/// 移除多媒体会话代理(音视频通话)
-- (void)removeMediaCallDelegate:(id <NoaIMMediaCallDelegate> )delegate {
-    [self.mediaCallDelegate removeDelegate:delegate];
-}
 
 #pragma mark - CIMMessageDelegate
 - (void)noaMessageSendSuccess:(IMChatMessageACK *)messageACK {
@@ -764,12 +756,8 @@ NoaGroupDelegate
     }
     return _groupDelegate;
 }
-- (OIMGCDMulticastDelegate<NoaIMMediaCallDelegate> *)mediaCallDelegate {
-    if (!_mediaCallDelegate) {
-        _mediaCallDelegate = [(OIMGCDMulticastDelegate <NoaIMMediaCallDelegate> *) [OIMGCDMulticastDelegate alloc] init];
-    }
-    return _mediaCallDelegate;
-}
+
+
 - (dispatch_queue_t)sessionListUpdateQueue {
     if (!_sessionListUpdateQueue) {
         _sessionListUpdateQueue = dispatch_queue_create("com.CIMSDKCode.sessionListUpdateQueue", DISPATCH_QUEUE_CONCURRENT);
@@ -817,12 +805,6 @@ NoaGroupDelegate
         _unreadCountQueue = dispatch_queue_create("com.CIMSDKCode.unreadCountQueue", DISPATCH_QUEUE_CONCURRENT);
     }
     return _unreadCountQueue;
-}
-- (dispatch_queue_t)appUserAndSessionTranslateInfoServerQueue {
-    if (!_appUserAndSessionTranslateInfoServerQueue) {
-        _appUserAndSessionTranslateInfoServerQueue = dispatch_queue_create("com.CIMSDKCode.appUserAndSessionTranslateInfoServerQueue", DISPATCH_QUEUE_CONCURRENT);
-    }
-    return _appUserAndSessionTranslateInfoServerQueue;
 }
 
 - (NSMutableArray *)allSessionList {

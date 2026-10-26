@@ -392,14 +392,6 @@
     }
 }
 
-#pragma mark -  获取群活跃配置
-- (void)groupGetActivityLevelConfigWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:Group_Get_Activity_Config_Url Method:LingRequestGet SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypeGET path:Group_Get_Activity_Config_Url parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
 #pragma mark -  修改群活跃展示开关
 - (void)groupUpdateActivityLevelEnableStatusWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {

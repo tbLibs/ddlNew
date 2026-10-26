@@ -122,24 +122,7 @@ static const void *lastMessageKey = &lastMessageKey;
     return cim_function_messageRemindVibrationOpend();
 }
 
-#pragma mark - ******音视频通话提醒******
-#pragma mark -音视频通话提醒铃声
-- (void)toolMessageReceiveRemindForMediaCall {
-    //设置为不息屏
-    [[UIApplication sharedApplication] setIdleTimerDisabled:YES];
-    
-    cim_function_messageRemindForMediaCall();
-}
 
-#pragma mark -音视频通话自定义提醒铃声
-- (void)toolMessageReceiveRemindVoiceConfigForMediaCallWith:(NSString * _Nullable)voiceSource extension:(NSString * _Nullable)voiceExtension {
-    cim_function_messageRemindVoiceConfigForMediaCall(voiceSource, voiceExtension);
-}
-
-#pragma mark -音视频通话提醒铃声结束
-- (void)toolMessageReceiveRemindEndForMediaCall {
-    cim_function_messageRemindEndForMediaCall();
-}
 
 
 #pragma mark - runtime设置属性

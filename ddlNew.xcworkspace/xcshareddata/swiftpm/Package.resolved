@@ -1,5 +1,5 @@
 {
-  "originHash" : "cfab91ad4fbe4d557d47fe530a7f6bd3ff29c688bf93e8aa78b47e66ea3f215f",
+  "originHash" : "e2ad35c3bb2a6f95241d3a43a1c4a40861884d82f169b4d66058ee49e047bd63",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -20,30 +20,12 @@
       }
     },
     {
-      "identity" : "client-sdk-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/livekit/client-sdk-swift.git",
-      "state" : {
-        "revision" : "606ee3b65a0b0e1fa9286c54ac39c97b458d9142",
-        "version" : "1.0.8"
-      }
-    },
-    {
       "identity" : "cocoaasyncsocket",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/robbiehanson/CocoaAsyncSocket.git",
       "state" : {
         "revision" : "dbdc00669c1ced63b27c3c5f052ee4d28f10150c",
         "version" : "7.6.5"
-      }
-    },
-    {
-      "identity" : "express-video-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zegolibrary/express-video-ios.git",
-      "state" : {
-        "revision" : "a5475d0ff1adc204d5a3573c712541488250c7d9",
-        "version" : "3.5.0"
       }
     },
     {
@@ -92,15 +74,6 @@
       }
     },
     {
-      "identity" : "promises",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/google/promises.git",
-      "state" : {
-        "revision" : "f4a19a3c313dc2616c70bb49d29a799fb16be837",
-        "version" : "2.4.1"
-      }
-    },
-    {
       "identity" : "reactiveswift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ReactiveCocoa/ReactiveSwift.git",
@@ -128,30 +101,12 @@
       }
     },
     {
-      "identity" : "specs",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/webrtc-sdk/Specs.git",
-      "state" : {
-        "revision" : "2915620754b1d5b3d6570246b6c2f084b488589d",
-        "version" : "104.5112.7"
-      }
-    },
-    {
       "identity" : "sqlcipher",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Tencent/sqlcipher",
       "state" : {
         "revision" : "5d8825c22feedb421ad6f9ecfc1399460e10d299",
         "version" : "1.4.7"
-      }
-    },
-    {
-      "identity" : "swift-log",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-log.git",
-      "state" : {
-        "revision" : "c9c6bb9d275ec0d95c3ad16391f3f045dc623104",
-        "version" : "1.16.2"
       }
     },
     {

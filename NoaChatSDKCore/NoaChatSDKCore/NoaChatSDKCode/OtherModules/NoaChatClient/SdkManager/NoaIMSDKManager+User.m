@@ -117,12 +117,6 @@
     [[NoaIMHttpManager sharedManager] ssoAddFeedBackWith:params onSuccess:onSuccess onFailure:onFailure];
 }
 
-/// 获取用户角色权限
-///  userUid 用户账号
-- (void)userGetRoleAuthorityListWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] getRoleAuthorityListWith:params onSuccess:onSuccess onFailure:onFailure];
-}
 
 #pragma mark - 设置离线时长
 - (void)userSetShowOffLineStatusWith:(NSMutableDictionary * _Nullable)params

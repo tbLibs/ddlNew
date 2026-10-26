@@ -38,8 +38,6 @@
 #define Auth_Account_Remove_Url         @"/auth/account/accountClose"
 //扫码授权PC端登录
 #define Auth_Scan_QRcode_Login_Url      @"/auth/web/login/scanEwmLogin"
-//获取登录注册方式
-#define Auth_Login_Register_Type_Url    @"/auth/account/getLoginTypes"
 //申请解除封禁
 #define Auth_User_Apply_Unban_Url       @"/auth/account/applyUnban"
 //设置用户安全码
@@ -254,11 +252,6 @@ NS_ASSUME_NONNULL_BEGIN
                            onSuccess:(nullable LingIMSuccessCallback)onSuccess
                            onFailure:(nullable LingIMFailureCallback)onFailure;
 
-/**
- @brief  获取登录注册方式
- */
-- (void)AuthGetLoginAndRegisterTypeOnSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                   onFailure:(nullable LingIMFailureCallback)onFailure;
 
 /**
  @brief  申请解禁

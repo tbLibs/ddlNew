@@ -166,14 +166,6 @@
     }
 }
 
-#pragma mark - 获取用户角色权限
-- (void)getRoleAuthorityListWith:(NSMutableDictionary *)params onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:User_Role_AuthorityList_Url Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:User_Role_AuthorityList_Url parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
 #pragma mark - 设置离线时长
 - (void)setShowOffLineStatusWith:(NSMutableDictionary *)params onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure {

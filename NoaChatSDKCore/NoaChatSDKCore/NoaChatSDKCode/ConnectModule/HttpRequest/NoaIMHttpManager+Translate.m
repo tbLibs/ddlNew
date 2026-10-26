@@ -55,31 +55,6 @@
     }
 }
 
-#pragma mark - 获取所有翻译通道和通道下的语种
-- (void)translateGetChannelLanguage:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:Translate_Get_Channel_Language Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:Translate_Get_Channel_Language parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
-#pragma mark - 获取当前登录用户所有翻译配置
-- (void)translateGetUserAllTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:Translate_Get_All_Config Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:Translate_Get_All_Config parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
-
-#pragma mark - 上传用户翻译配置
-- (void)translateUploadNewTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:Translate_Uplaod_New_Config Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:Translate_Uplaod_New_Config parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
 @end

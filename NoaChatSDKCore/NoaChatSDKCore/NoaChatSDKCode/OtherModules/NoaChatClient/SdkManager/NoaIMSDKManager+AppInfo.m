@@ -70,11 +70,6 @@
     [[NoaIMHttpManager sharedManager] DeleteDeviceTokenWith:params onSuccess:onSuccess onFailure:onFailure];
 }
 
-#pragma mark - 获取角色配置
-- (void)imGetRoleConfigInfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] GetRoleConfigInfoWith:params onSuccess:onSuccess onFailure:onFailure];
-}
 
 
 #pragma mark - 全局翻译开关（默认开启）

@@ -20,7 +20,7 @@
 #import "NoaIMSDKManager+Session.h"//会话工具类
 #import "NoaIMSDKManager+Connect.h"//连接工具类
 #import "NoaIMSDKManager+MessageRemind.h"//消息提醒工具类
-#import "NoaIMSDKManager+Call.h"//音视频通话工具类
+#import "NoaIMSDKManager+CallRecords.h"//历史通话记录兼容
 #import "NoaIMSDKManager+AppInfo.h"  //App基本信息类
 #import "NoaIMSDKManager+MiniApp.h"//小程序模块
 #import "NoaIMSDKManager+Team.h"//团队

@@ -16,8 +16,6 @@
 #define Push_ReportDevice_Url           @"/biz/server/reportDevice"
 //删除设备数据
 #define Push_DeleteDevice_Url           @"/biz/server/delDevice"
-//获取角色配置
-#define App_GetRoleConfig_Url           @"/biz/system/getRoleConfig"
 
 
 #import "NoaIMHttpManager.h"
@@ -52,8 +50,6 @@ NS_ASSUME_NONNULL_BEGIN
 //删除设备数据
 - (void)DeleteDeviceTokenWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-//获取角色配置
-- (void)GetRoleConfigInfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 
 

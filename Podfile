@@ -29,7 +29,7 @@ target 'ddlNew' do
   pod 'NetworkStatus', :path => './NetWorkStatus/NetWorkStatus.podspec'
 
   
-  # MJExtension、LiveKit、ZegoExpressEngine 已迁移到 SPM。
+  # MJExtension 由 SPM 提供。
 
 end
 
@@ -44,7 +44,7 @@ target 'CandyTalkPro' do
 #  pod 'CocoaAsyncSocket', '7.6.5'
   pod 'SAMKeychain', '1.5.3'
 
-  # 音视频 SDK 与 MJExtension 由两个项目共用的 SPM 依赖提供。
+  # MJExtension 由两个项目共用的 SPM 依赖提供。
 
   # 错误监控
 #  pod 'Sentry', '8.58.3'

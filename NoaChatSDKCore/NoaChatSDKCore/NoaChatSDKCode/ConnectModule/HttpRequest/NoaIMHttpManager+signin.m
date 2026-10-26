@@ -46,14 +46,6 @@
     }
 }
 
-#pragma mark - 签到规则
-- (void)signInWithRule:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:Sign_Rule_Info_Url Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:Sign_Rule_Info_Url parameters:params onSuccess:onSuccess onFailure:onFailure];        
-    }
-}
 
 
 @end

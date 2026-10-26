@@ -16,12 +16,6 @@
 #define Translate_account_info               @"/biz/translate/account/info"
 //调用阅译系统去翻译
 #define Translate_yuuee_content              @"/biz/translate/translate"
-//获取所有翻译通道和通道下的语种
-#define Translate_Get_Channel_Language       @"/biz/translate/channelConfig"
-//获取当前登录用户所有翻译配置
-#define Translate_Get_All_Config             @"/biz/userTranslate/all"
-//上传用户翻译配置
-#define Translate_Uplaod_New_Config          @"/biz/userTranslate/uploadConfig"
 
 
 #import "NoaIMHttpManager.h"
@@ -50,17 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param params {channelCode:翻译通道编码, content:翻译内容, to:目标语种, userUid:用户的userUid}
 - (void)translateYuueeContent:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-/// 获取所有翻译通道和通道下的语种
-/// @param params {userUid:操作用户ID}
-- (void)translateGetChannelLanguage:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-/// 获取当前登录用户所有翻译配置
-/// @param params {userUid:操作用户ID}
-- (void)translateGetUserAllTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
-
-/// 上传用户翻译配置
-/// @param params {channel:翻译通道, dialogId:会话ID, id:用户翻译配置ID, level:级别：0：用户全局配置；1:会话级别, targetLang:目标语种, translateSwitch:翻译开关：0:关闭；1:打开, userUid:操作用户ID}
-- (void)translateUploadNewTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 
 @end

@@ -19,12 +19,23 @@ REMOVED = re.compile(
     r"PublicIPResolver|publicIPLookupURLs|getDevicePublicNetworkIP|"
     r"getIPAddresses|getIPAddress:|DNSGetLocalIP|getCurentLocalIP|AlicloudPDNS|pdns-sdk-ios|TBBasicLib|"
     r"(?:imSdk)?UploadDNSinfoWith|/biz/dns/report|"
-    r"ipinfo\.io|checkip\.amazonaws\.com|api\.ipify\.org"
+    r"ipinfo\.io|checkip\.amazonaws\.com|api\.ipify\.org|"
+    r"LiveKit|WebRTC|ZegoExpressEngine|NoaIMCallManager|NoaIMZGCall|LingIMCallOptionsManager|"
+    r"NoaIMMediaCallDelegate|imSdkCallRoom|/biz/call/|/phone/(?:group/|\w+Call)|"
+    r"client-sdk-swift|express-video-ios|webrtc-sdk|"
+    r"/biz/system/getRoleConfig|/biz/user/getUserRoleAuthorityList|"
+    r"/biz/group/activity/config/get|/biz/signInRecord/signConfig|"
+    r"/biz/translate/channelConfig|/biz/userTranslate/(?:all|uploadConfig)|"
+    r"/auth/account/getLoginTypes|syncAppUserAndSessionTranslateInfoServer"
 )
 REPORTING = re.compile(r"\.(?:loginIp|clientIp)\s*=(?!=)|\bset(?:LoginIp|ClientIp):")
 INTERFACE_COLLECTION = re.compile(r"\bgetifaddrs\s*\(")
 failures = []
-for name in ("Podfile", "Podfile.lock"):
+for name in (
+    "Podfile", "Podfile.lock", "ddlNew.xcodeproj/project.pbxproj",
+    "NoaChatSDKCore/CandyTalkPro.xcodeproj/project.pbxproj",
+    "ddlNew.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+):
     if REMOVED.search((ROOT / name).read_text()):
         failures.append(f"{name}: removed dependency is still configured")
 for directory in (ROOT / "ddlNew", ROOT / "NoaChatSDKCore"):
@@ -65,4 +76,4 @@ if len(sys.argv) > 1:
 if failures:
     print("FAIL: removed functionality remains\n" + "\n".join(failures))
     sys.exit(1)
-print("PASS: no removed IP collection/reporting or system-config entry points")
+print("PASS: no removed IP collection/reporting, calling SDKs or configuration entry points")

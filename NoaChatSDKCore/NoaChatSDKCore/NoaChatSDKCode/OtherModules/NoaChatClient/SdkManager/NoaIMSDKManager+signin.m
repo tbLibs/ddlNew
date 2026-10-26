@@ -35,11 +35,6 @@
 }
 
 
-//签到规则
-- (void)imSignInWithRule:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] signInWithRule:params onSuccess:onSuccess onFailure:onFailure];
-}
 
 
 

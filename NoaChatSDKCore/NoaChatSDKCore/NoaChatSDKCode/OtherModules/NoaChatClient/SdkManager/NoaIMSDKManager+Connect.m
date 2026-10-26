@@ -27,7 +27,6 @@
 //    [self.userDelegate removeAllDelegates];
 //    [self.sessionDelegate removeAllDelegates];
 //    [self.groupDelegate removeAllDelegates];
-//    [self.mediaCallDelegate removeAllDelegates];
     
     // 清理socket用户信息
     cim_function_clearUserInfo();

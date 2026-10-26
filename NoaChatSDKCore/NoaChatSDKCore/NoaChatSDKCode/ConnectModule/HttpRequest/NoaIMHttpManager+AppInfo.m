@@ -76,14 +76,6 @@
     }
 }
 
-//获取角色配置
-- (void)GetRoleConfigInfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:App_GetRoleConfig_Url Method:LingRequestGet SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypeGET path:App_GetRoleConfig_Url parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
 
 @end

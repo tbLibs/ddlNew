@@ -47,17 +47,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param params {channelCode:翻译通道编码, content:翻译内容, to:目标语种, userUid:用户的userUid}
 - (void)imSdkTranslateYuueeContent:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-/// 获取所有翻译通道和通道下的语种
-/// @param params {userUid:操作用户ID}
-- (void)imSdkTranslateGetChannelLanguage:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-/// 获取当前登录用户所有翻译配置
-/// @param params {userUid:操作用户ID}
-- (void)imSdkTranslateGetUserAllTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
-
-/// 上传用户翻译配置
-/// @param params {channel:翻译通道, dialogId:会话ID, id:用户翻译配置ID, level:级别：0：用户全局配置；1:会话级别, targetLang:目标语种, translateSwitch:翻译开关：0:关闭；1:打开, userUid:操作用户ID}
-- (void)imSdkTranslateUploadNewTranslateConfig:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 @end
 
