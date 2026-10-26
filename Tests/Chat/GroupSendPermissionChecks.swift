@@ -11,6 +11,7 @@ import Foundation
         let detail: [String: Any] = ["userInGroup": true, "isGroupChat": false]
         let missingPersonal: [String: Any] = ["isGroupChat": false]
         let group = LingIMGroupModel()
+        precondition(productionGroupPermission(group: group, detail: detail, mute: missingPersonal).sendInterval == 1, "本地1000毫秒策略应转为1秒发送间隔")
         precondition(productionGroupPermission(group: group, detail: detail, mute: missingPersonal).canSend, "缺省个人禁言的合法当前响应应恢复输入")
         var stale = group; stale.isGroupChat = true
         precondition(productionGroupPermission(group: stale, detail: ["userInGroup": true, "isGroupChat": true], mute: ["isGroupForbid": false, "isGroupChat": false]).canSend, "最新禁言接口已解除时旧群缓存不能继续阻断")
@@ -25,6 +26,6 @@ import Foundation
         precondition(!productionGroupPermission(group: group, detail: nil, mute: nil).canSend)
         precondition(!productionGroupPermission(group: group, detail: ["userInGroup": false], mute: missingPersonal).canSend)
         precondition(!productionGroupPermission(group: group, detail: detail, mute: ["isGroupForbid": NSNull(), "isGroupChat": false]).canSend)
-        print("Group send permission checks: 11 passed")
+        print("Group send permission checks: 12 passed")
     }
 }

@@ -10,13 +10,12 @@ import SwiftUI
 /// 根页面承载安全流程；强制修改不能通过滑动关闭或返回导航绕过。
 struct PasswordChangeView: View {
     let request: PasswordSecurityRequest
-    @ObservedObject private var connection = IMConnectionCoordinator.shared
     @ObservedObject var coordinator: LoginSecurityCoordinator
     @State private var oldPassword = ""
     @State private var newPassword = ""
     @State private var confirmation = ""
 
-    private var requiresSymbol: Bool { connection.configuration?.checkEnglishSymbol ?? false }
+    private var requiresSymbol: Bool { LocalAccountPolicy.requiresPasswordSymbol }
 
     var body: some View {
         NavigationStack {

@@ -26,10 +26,10 @@ final class AccountRegistrationService: AccountRegistrationServicing {
 
     static func currentContext() -> AccountRegistrationContext? {
         let connection = IMConnectionCoordinator.shared
-        guard let id = connection.loginConnectionID, let configuration = connection.configuration else { return nil }
-        return AccountRegistrationContext(connectionID: id, registerMethod: configuration.registerMethod,
-                                          requiresInviteCode: configuration.isMustInviteCode != "0",
-                                          requiresPasswordSymbol: configuration.checkEnglishSymbol)
+        guard let id = connection.loginConnectionID else { return nil }
+        return AccountRegistrationContext(connectionID: id, registerMethod: LocalAccountPolicy.registerMethod,
+                                          requiresInviteCode: LocalAccountPolicy.requiresInviteCode,
+                                          requiresPasswordSymbol: LocalAccountPolicy.requiresPasswordSymbol)
     }
 
     private let driver: any AccountRegistrationSDKDriving

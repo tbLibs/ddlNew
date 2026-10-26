@@ -16,7 +16,7 @@ enum AppStartupCoordinator {
         if let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() {
             restoreConnectionPlan(lastLiceseId: lastLiceseId)
             IMConnectionCoordinator.shared.startCachedReconnect()
-            // 缓存仅用于恢复节点，必须完成正式握手和配置刷新后才显示登录页。
+            // 缓存仅用于恢复节点，必须完成正式握手并设置本地租户验签参数后才显示登录页。
             do {
                 try await IMConnectionCoordinator.shared.waitForLoginReadiness()
             } catch is CancellationError {
@@ -50,8 +50,7 @@ enum AppStartupCoordinator {
     private static func restoreConnectionPlan(lastLiceseId: String) {
         do {
             let plan = try OSSConnectionBootstrap.shared.prepare(requireFresh: false)
-            let hasConfiguration = SystemConfigStore.shared.load(apiHost: plan.apiHost, lastLiceseId: plan.lastLiceseId) != nil
-            debugPrint("[启动恢复] 邀请码：\(lastLiceseId)，TCP 候选：\(plan.tcpCandidates.count) 个，配置缓存：\(hasConfiguration)")
+            debugPrint("[启动恢复] 邀请码：\(lastLiceseId)，TCP 候选：\(plan.tcpCandidates.count) 个")
         } catch {
             // 缓存不可用不等于入口丢失：由后台恢复重新导航，等待页继续显示。
             OSSConnectionBootstrap.shared.clearCurrent()

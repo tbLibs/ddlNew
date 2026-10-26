@@ -52,17 +52,16 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         options.imApi = plan.apiHost?.absoluteString ?? ""
         options.imOrgName = businessOrgName
         sdk.configSDKApi(with: options)
-        // SDK 的 options 会忽略空字符串；显式清除旧企业 HTTP Host，防止 TCP-only 沿用旧地址。
+        // TCP-only 导航显式清除上一企业的 HTTP Host。
         sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
         sdk.configSDKLiceseId(plan.lastLiceseId)
         sdk.configSDKSsoInfo(plan.lastLiceseId)
         sdk.configSDKTenantCode("")
-        sdk.configSDKCaptchaChannel(1)
+        sdk.configSDKCaptchaChannel(LocalAccountPolicy.captchaChannel)
         // 这里只建立未登录连接，不装载演示账号，也不初始化用户数据库。
         sdk.clearMyUserInfo()
         socket.clearUserInfo()
 
-        // 新流程已逐来源完成真实 ECDH 竞速，直接正式连接；缓存/旧流程仍走原探测。
         let node: OSSIMTCPNode
         if let probed = plan.probedTCPNode, plan.tcpCandidates.contains(probed) { node = probed }
         else { node = try await firstReachableNode(in: plan.tcpCandidates) }
@@ -85,9 +84,9 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         return node
     }
 
-    func apply(_ configuration: SystemConfigRecord) {
-        sdk.configSDKTenantCode(configuration.tenantCode)
-        sdk.configSDKCaptchaChannel(configuration.captchaChannel)
+    /// 写入本地固定协议参数；验证码渠道由 LocalAccountPolicy 决定。
+    func applyTenantCode(_ tenantCode: String) {
+        sdk.configSDKTenantCode(tenantCode)
     }
 
     private func check(_ runID: UUID) throws {

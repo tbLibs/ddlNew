@@ -25,12 +25,12 @@ final class IMLoggedInReconnectCoordinator {
         let installID = installation
         foregroundGate = IMForegroundSessionGate(isInBackground: UIApplication.shared.applicationState == .background)
         engine = IMLoggedInReconnectEngine(session: session,
-            // 缓存4秒 + 主/备/BIN各至多9秒 + 旧导航30秒 + TCP探测4秒，早于SDK的90秒截止。
-            timeout: dns1NavigationEnabled ? 85 : 55,
+            // 缓存探测与DNS1主/备/BIN共享业务截止，早于SDK的40秒兜底。
+            timeout: 35,
             isCurrentSession: { [weak self] in self?.owns($0, installation: installID) == true },
             cachedNodes: {
                 guard let cache = try? OSSNavigationStore.shared.load(), cache.lastLiceseId == lastLiceseId,
-                      !dns1NavigationEnabled || cache.source == .dns1 else { return [] }
+                      cache.source == .dns1 else { return [] }
                 return cache.tcpEndpoints.map { OSSLegacyEndpoint(host: $0.ip, port: UInt16($0.port)) }
             },
             refreshNodes: { [weak self] in
@@ -40,8 +40,8 @@ final class IMLoggedInReconnectCoordinator {
             probe: { [weak self] node in
                 guard let self, self.owns(session, installation: installID) else { throw CancellationError() }
                 let waiter = IMHandshakeWaiter()
-                return try await waiter.run(timeout: dns1NavigationEnabled ? 4 : 12) {
-                    self.sdk.probeECDHConnectivity(withHost: node.host, port: node.port, timeout: dns1NavigationEnabled ? 4 : 10, type: 0) { success, _ in
+                return try await waiter.run(timeout: 4) {
+                    self.sdk.probeECDHConnectivity(withHost: node.host, port: node.port, timeout: 4, type: 0) { success, _ in
                         Task { @MainActor in waiter.finish(.success(success)) }
                     }
                 }
@@ -128,7 +128,7 @@ final class IMLoggedInReconnectCoordinator {
                 self.sdk.configApiHost(node.absoluteString)
                 self.sdk.configSDKSsoInfo(session.lastLiceseId)
                 OSSConnectionBootstrap.shared.updateHTTPHost(node.absoluteString)
-                SessionMaintenanceCoordinator.shared.refreshConfigurationAfterNodeChange()
+                SessionMaintenanceCoordinator.shared.refreshAfterNodeChange()
                 return true
             })
         observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification,
@@ -204,17 +204,16 @@ final class IMLoggedInReconnectCoordinator {
                   !qualityOnly || qualityEligible(session, installation: installation) else { throw CancellationError() }
         }
         try check()
-        let winner = try await OSSNodeRaceCoordinator.race(lastLiceseId: session.lastLiceseId,
-            credentials: OSSAuthCredentials(signingKeyID: DirectDecodeKeyId, signingKeySecret: DirectDecodeKeySecret))
+        let winner = try await OSSNodeRaceCoordinator.race(lastLiceseId: session.lastLiceseId)
         try check()
         try OSSNavigationStore.shared.save(winner, lastLiceseId: session.lastLiceseId)
         let plan = try OSSConnectionBootstrap.shared.prepare(
-            requireFresh: false, probedTCPAddress: winner.source == .dns1 ? winner.node.urlString : nil
+            requireFresh: false, probedTCPAddress: winner.node.urlString
         )
         guard plan.lastLiceseId == session.lastLiceseId else { throw CancellationError() }
         // 更新导航沿用重连已有行为；不调用访客连接或重新配置用户、Token、数据库。
         sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
-        SessionMaintenanceCoordinator.shared.refreshConfigurationAfterNodeChange()
+        SessionMaintenanceCoordinator.shared.refreshAfterNodeChange()
         return IMReconnectNodes(
             nodes: plan.tcpCandidates.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) },
             probedNode: plan.probedTCPNode.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) }

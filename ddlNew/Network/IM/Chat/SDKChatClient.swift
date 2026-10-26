@@ -306,14 +306,13 @@ import ObjectiveC
     func permissions(context: ChatContext) throws -> ChatPermission {
         try validate(context)
         let authority = UserRoleAuthorityStore.shared.current
-        let config = OSSConnectionBootstrap.shared.current.flatMap { SystemConfigStore.shared.load(apiHost: $0.apiHost, lastLiceseId: $0.lastLiceseId) }
-        let recallMinutes = Double(config?.messageRecallTime ?? "0") ?? 0
+        let recallMinutes = LocalMessagingSettings.messageRecallMinutes
         let editMinutes = authority?.positiveMinutes("edited_message_sent") ?? 0
         var value = ChatPermission(canUpload: authority?.allows("upImageVideoFile") == true, canUploadFile: authority?.allows("upFile") == true,
             // 旧端任一删除权限都会开放“从我的设备删除”；remoteDeleteMessage 另外控制双方删除。
             canDelete: authority?.allows("deleteMessage") == true || authority?.allows("remoteDeleteMessage") == true,
             canDeleteBoth: authority?.allows("remoteDeleteMessage") == true,
-            canRecallOthers: config?.groupMangerMessageRecallTime == "1",
+            canRecallOthers: LocalMessagingSettings.managersCanRecallOthers,
             canRecall: recallMinutes > 0, canEdit: editMinutes > 0,
             canPin: authority?.allows(context.route.kind == .group ? "group_msg_pinning" : "user_dialog_msg_pinning") == true,
             isGroup: context.route.kind == .group,
@@ -340,7 +339,7 @@ import ObjectiveC
             guard let group = (sdk.toolCheckMyGroup(with: context.route.id) as LingIMGroupModel?) else { value.canSend = false; value.isActive = false; value.reason = "群资料尚不可用"; return value }
             value.role = [0, 1, 2].contains(group.userGroupRole) ? group.userGroupRole : 0; value.isPrivateChat = group.isPrivateChat
             value.isActive = group.groupStatus == 1 && group.leaveGroupStatus == 0
-            value.sendInterval = Double((config?.groupMessageInterval ?? 0) > 0 ? config!.groupMessageInterval : 2000) / 1000
+            value.sendInterval = Double(LocalMessagingSettings.groupMessageIntervalMilliseconds) / 1000
             let verified = groupDetail != nil && groupMute != nil
             let inGroup = ChatGroupPermissionPayload.boolean(groupDetail?["userInGroup"]) ?? false
             let personalMuted = groupMute.flatMap { ChatGroupPermissionPayload.personalMuted($0) } ?? true

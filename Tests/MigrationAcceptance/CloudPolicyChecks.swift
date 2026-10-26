@@ -15,6 +15,8 @@ struct CloudPolicyRole {
     /// 原样提取生产URL/配额/目录逻辑，替代身份形状不连接云供应商。
     @MainActor static func main() throws {
         let policy = ProductionCloudPolicy()
+        let (localUpload, localDownload) = try policy.configuredURLs(key: "chat/test/image/a.jpg")
+        check(localUpload.absoluteString == "https://u260711-2.oss-accelerate.aliyuncs.com/chat/test/image/a.jpg" && localDownload == localUpload, "本地阿里路由使用实际桶与加速域名，忽略OBS备用值")
         let avatar = ChatAttachment(file: URL(fileURLWithPath: "/tmp/qa-avatar.jpg"), type: 101, name: "../匿名群头像.jpg", bytes: 1024)
         UserRoleAuthorityStore.shared.current = nil
         try policy.checkPermission(avatar)

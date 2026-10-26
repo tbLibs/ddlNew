@@ -1,5 +1,19 @@
 # ddlNew 项目交接文档
 
+## 2026-10-26 消息分支移植本地配置与DNS1单一路径
+
+将 `feature-IMSDK-2` 的 `bcbf948`、`2ebfd50` 语义移植到 `feature-message-4`，保留消息分支的群聊、附件上传、音视频通话、资料/角色维护、HTTP Host发布和身份/取消隔离。以本节取代10月22日五路兜底与历史系统配置刷新说明。
+
+用户提供的guest两次及authenticated一次日志15字段一致。已写入 `Configuration/LocalMessagingSettings.swift`：群发送间隔1000ms、本人撤回5分钟、群管理员撤回他人关闭、普通成员查看人数受限（角色showGroupPersonNum豁免保留）、通话开启、供应商Zego、AppID40878197；存储选阿里云，桶u260711-2，Endpoint为https://oss-accelerate.aliyuncs.com，区域cn-hongkong。华为OBS四项原值也保留供本地切换使用，当前不参与阿里路由；既有上传实现会将HTTP上传域名升级HTTPS。没有写入appSign、secret、Token或临时STS凭据。上传临时资格与通话房间Token仍由原服务端业务流程获取。
+
+`LocalAccountPolicy` 和 `LocalSDKSettings` 沿用源提交固定值，登录/注册/改密均使用本地规则；正式TCP/ECDH成功后应用本地tenantCode才宣布登录就绪。登录协议UI与ViewModel共用一个同意状态，确认继续与消息分支Toast保持。系统配置请求/模型/缓存依赖、SDK相关入口和临时 `[LocalConfigExport]` 日志删除。登录后会话维护继续刷新真实用户资料、角色权限及密码安全，不再刷新配置；AUTH成功且轮次核验后先配置本地通话再订阅来电，退出清除通话所属身份。
+
+导航只保留DNS1缓存、t主域、备域及BIN；阿里DNS SDK改为源提交的签名DoH请求，移除五路、旧OSS Auth/HTTP降级、业务IP采集与DNS报告，以及TBBasicLib/AlicloudPDNS依赖。已登录业务重连截止35秒，SDK兜底40秒。保留当前分支的本轮已探测节点交接、HTTP Host观察和回调归属验证；TCP-only不推算HTTP。旧缓存不复用节点，但保存新导航时独立保留已成功的邀请码入口，避免升级后的正式握手失败导致入口丢失。
+
+验证：最终无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-local-config-final-build.log`），仍有既有SDK桥接头missing submodule警告。离线全套101组首轮98组通过，3组因已删除配置接口/解析器的测试依赖失败；适配后针对失败项与新增覆盖复测，最终101/101通过，保留首轮与复测证据（`/tmp/ddlNew-local-config-qa/final-summary.json`）。DNS1真实Protobuf/ObjectMapper集成26项、通话状态54项、群发送策略12项、云路由/权限16项通过；覆盖升级旧source只保留成功入口、未归属HTTP回调拒绝、固定Zego初始化/清理、1秒间隔与实际阿里桶路由。静态移除扫描及App/NoaChatCore产物入口扫描通过，`git diff --check`通过。完整Debug包扫描在既有仅Debug使用的WoodPeckeriOS中命中getIPAddresses，不能据此宣称全包或Release扫描已通过；未改动该调试工具。未操作设备、未真实发消息/上传/通话，未提交或推送。下一步由用户重新Run验收冷启动/换企业/登录恢复、断线重连、撤回/群人数、阿里上传及Zego通话。
+
+用户另外要求给桌面 `getSystemConfig.md` 加注释：原15字段和值保留，已改为带JSONC代码块的说明文档，并另存 `getSystemConfig.jsonc`；这些是仓库外文档。
+
 ## 2026-10-23 我的入口精简与设置页重设计
 
 用户要求删除“我的”主页面的“隐私与安全”功能：已移除入口、分隔线、回调、页面状态与说明弹层接线，并同步HTML设计稿；账户与支持分组保留黑名单、投诉与支持。

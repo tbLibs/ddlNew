@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 import UIAdapter
 
 /// 邀请码入口页，仅负责界面展示，不包含校验、网络请求或页面跳转逻辑。

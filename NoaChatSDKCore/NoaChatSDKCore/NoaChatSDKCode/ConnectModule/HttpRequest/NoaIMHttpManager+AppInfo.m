@@ -11,28 +11,6 @@
 
 @implementation NoaIMHttpManager (AppInfo)
 
-#pragma mark - 获取App系统设置接口
-- (void)AppGetSystemConfigInfoWithBaseUrl:(NSString *)baseUrl
-                                     Path:(NSString *)path
-                                  IsLogin:(BOOL)isLogin
-                                onSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                onFailure:(nullable LingIMFailureCallback)onFailure {
-    
-    NSMutableDictionary *params = [NSMutableDictionary dictionary];
-    [params setObject:@"" forKey:@"projectId"];
-    
-    NSString *hostIp = SOCKETMANAGER.socketHostValue;
-    NSInteger part = SOCKETMANAGER.socketPortValue;
-    
-    BOOL isParamAvailable = hostIp != nil && hostIp.length > 0 && part > 0;
-    
-    if (isParamAvailable) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:path Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWorkCommonBaseUrl:baseUrl Path:path medth:LingIMHttpRequestTypePOST parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
-
 #pragma mark - ip/域名直连时获取Tcp的域名或者ip
 - (void)AppNetworkGetConnectListWithBaseUrl:(NSString *)baseUrl Path:(NSString *)path onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure {
 
@@ -107,13 +85,5 @@
     }
 }
 
-//上报DNS信息
-- (void)UploadDNSinfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    if (kAllHttpRequestUseTcp) {
-        [LingIMTcpRequestModel sendTcpRequestWithParam:params Url:App_DNS_Info_Upload_Url Method:LingRequestPost SuccessFunc:onSuccess FailureFunc:onFailure];
-    }else {
-        [self netRequestWithType:LingIMHttpRequestTypePOST path:App_DNS_Info_Upload_Url parameters:params onSuccess:onSuccess onFailure:onFailure];
-    }
-}
 
 @end

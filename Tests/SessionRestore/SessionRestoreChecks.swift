@@ -136,10 +136,6 @@ struct SDKConversationsClient {}
     func clearCurrent() {}
     func prepare(requireFresh: Bool) throws -> Plan { Plan() }
 }
-@MainActor final class SystemConfigStore {
-    static let shared = SystemConfigStore()
-    func load(apiHost: URL?, lastLiceseId: String? = nil) -> Int? { 1 }
-}
 
 @main struct Checks {
     @MainActor static func main() async throws {

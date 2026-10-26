@@ -23,13 +23,12 @@
 | `ddlNew/Common/Database` | 用户数据库生命周期管理和俱乐部本地快照数据库 |
 | `ddlNew/Common/Crypto` | 通用加解密工具 |
 | `ddlNew/Common/Media` | 旧媒体格式编解码、云上传及共用网络图片处理 |
-| `ddlNew/Network/Core` | Moya 请求封装、公共请求头、ObjectMapper 扩展 |
+| `ddlNew/Network/Core` | 公共请求头、图片下载与 ObjectMapper 扩展 |
 | `ddlNew/Network/DNS1` | 当前 APP t 域解析、BIN 降级、原生 TCP/ECDH 竞速 |
-| `ddlNew/Network/DNS` | 保留的旧五路 DNS 查询、数据解码、域名规范化 |
-| `ddlNew/Network/OSS` | OSS 节点竞速、导航响应、导航缓存和连接准备 |
+| `ddlNew/Network/DNS` | DNS1 来源与地址类型 |
+| `ddlNew/Network/OSS` | DNS1 导航入口、响应、缓存和连接准备 |
 | `ddlNew/Network/IM` | SDK 连接、TCP/ECDH、用户 AUTH 与 SDK 适配 |
-| `ddlNew/Network/SystemConfig` | 系统配置请求、解析和存储 |
-| `ddlNew/Configuration` | 常量、固定缓存 key、服务地址 |
+| `ddlNew/Configuration` | 本地账号/消息/通话/存储规则、SDK 参数、缓存 key 与服务地址 |
 | `ddlNew/Protocols/Nav` | Nav 协议定义与生成的 Swift Protobuf 代码 |
 | `ddlNew/Resources` | 图片、启动屏和隐私清单 |
 
@@ -51,7 +50,7 @@
 
 `NoaChatSDKCore`、`NetWorkStatus`、Pods 和静态库不属于本次应用目录整理范围。`ddlNew/Basic/LXChatEncrypt` 保持原位，以保留静态库链接和头文件路径。
 
-启动连接当前使用 APP DNS1：t 域主备/BIN 给出原生 TCP，ECDH 竞速后建立正式连接，再经 TCP 获取系统配置；HTTP 为可选文件地址。DNS1来源全部耗尽后继续旧五路/OSS导航兜底，冷启动与已登录重连共用该顺序；两种导航按实际来源准备连接，细节见 `Docs/PROJECT_HANDOFF.md` 的 2026-10-22 章节。账号密码请求成功还不代表 IM 登录就绪：必须收到 SDK 的用户 AUTH ACK 成功回调，才完成登录并允许后续业务流程。目录整理不改变该判定。
+启动连接使用 APP DNS1：t 域主备/BIN 给出原生 TCP，ECDH 竞速后建立正式连接并应用本地 SDK 参数；HTTP 为可选文件地址。DNS1 来源耗尽即返回失败，不再调用旧五路/OSS导航或系统配置接口。消息、撤回、群人数、通话和存储路由使用用户于2026-10-26提供的固定值；上传临时凭据、用户资料和角色权限仍按原认证业务接口获取。冷启动与已登录重连共用DNS1，详见 `Docs/PROJECT_HANDOFF.md` 的2026-10-26章节。账号密码请求成功仍需收到 SDK 用户 AUTH ACK，才完成登录并开放业务。
 
 ## 通讯录验证
 

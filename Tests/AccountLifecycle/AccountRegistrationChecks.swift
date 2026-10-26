@@ -85,6 +85,15 @@ typealias LoginSessionService = RegistrationSession
 
 @main struct AccountRegistrationChecks {
     @MainActor static func main() async throws {
+        IMConnectionCoordinator.shared.configuration = nil
+        guard let local = AccountRegistrationService.currentContext() else {
+            throw NSError(domain: "RegistrationChecks", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing system config must not block registration"])
+        }
+        try require(local.allowsAccountRegistration && !local.requiresInviteCode && !local.requiresPasswordSymbol,
+                    "Registration must use fixed local rules")
+        IMConnectionCoordinator.shared.configuration = RegistrationConfiguration(registerMethod: "2", isMustInviteCode: "1", checkEnglishSymbol: true)
+        try require(AccountRegistrationService.currentContext() == local, "Server switches must not change local registration rules")
+        IMConnectionCoordinator.shared.configuration = RegistrationConfiguration()
         try validateRules()
         try await parametersAndSequence()
         try await existingAccountStops()

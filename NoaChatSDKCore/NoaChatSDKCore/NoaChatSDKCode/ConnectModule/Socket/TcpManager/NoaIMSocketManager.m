@@ -629,7 +629,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     if (self.raceTcpNodeBlock) {
         self.isTcpRacing = YES;
         NSUInteger sequence = ++self.tcpRaceSequence;
-        [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=RACE_DISPATCH sdkRound=%lu oldHost=%@ oldPort=%ld timeout=90", (unsigned long)sequence, self.socketHost, (long)self.socketPort]];
+        [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=RACE_DISPATCH sdkRound=%lu oldHost=%@ oldPort=%ld timeout=40", (unsigned long)sequence, self.socketHost, (long)self.socketPort]];
         NoaTcpRaceCompletion completion = ^(NSString *host, NSInteger port, NSString *failureReason) {
             __strong typeof(weakSelf) self = weakSelf;
             if (!self) return;
@@ -667,11 +667,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
             });
         };
         self.raceTcpNodeBlock(completion);
-        // DNS1耗尽后还需旧五路导航与ECDH，90秒覆盖业务层85秒截止。
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 90 * NSEC_PER_SEC), self.internalQueue, ^{
+        // DNS1导航与ECDH探测使用业务层35秒截止，40秒作为SDK兜底。
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 40 * NSEC_PER_SEC), self.internalQueue, ^{
             __strong typeof(weakSelf) self = weakSelf;
             if (!self || !self.isTcpRacing || sequence != self.tcpRaceSequence) return;
-            [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SDK_RACE_TIMEOUT sdkRound=%lu seconds=90", (unsigned long)sequence]];
+            [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SDK_RACE_TIMEOUT sdkRound=%lu seconds=40", (unsigned long)sequence]];
             completion(nil, 0, @"tcp_probe_timeout");
         });
         return;
@@ -916,7 +916,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     authMessage.token = _socketUserToken;//用户token
     authMessage.orgName = _socketOrgName;//用户租户标识
     authMessage.msgId = [[NoaIMManagerTool sharedManager] getMessageID];//变化的UUID
-    authMessage.loginIp = [[NoaIMManagerTool sharedManager] getDevicePublicNetworkIP];//ip地址
+    // 不采集或上报客户端 IP；鉴权消息保留可选字段的缺省值。
     authMessage.deviceType = @"IOS";//设备平台
     authMessage.deviceUuid = [FCUUID uuidForDevice];//固定不变的UUID
     authMessage.platform = @"iOS";
@@ -1660,7 +1660,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
                 if (isGuestBootstrapConnection) {
                     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=AUTH_SKIP reason=guest_bootstrap"]];
-                    // 邀请码和登录前初始化没有用户凭证，只需要 ECDH 传输层发送未登录 systemConfig。
+                    // 邀请码和登录前初始化没有用户凭证，只建立 ECDH 传输层，供后续登录使用。
                     // 此分支不能标记 isAuth，也不能触发用户登录成功及首页数据同步。
                     self.authRequestPending = NO;
                     self.isAuthPhaseActive = NO;

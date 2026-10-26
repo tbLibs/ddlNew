@@ -5,7 +5,6 @@
 //  Created by taobo on 2026/9/23.
 //
 
-#import <pdns-sdk-ios/DNSResolver.h>
 #import "../Basic/LXChatEncrypt/LXChatEncrypt.h"
 // 历史接口需要 SDK 现有的历史模型转换器，显式导入而不修改 SDK 伞头。
 #import <NoaChatCore/NoaChatMessageModel.h>

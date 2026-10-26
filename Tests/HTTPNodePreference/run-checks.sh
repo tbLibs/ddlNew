@@ -6,7 +6,5 @@ trap 'rm -rf "$test_dir"' EXIT
 xcrun swiftc -swift-version 5 -default-isolation MainActor -parse-as-library \
  "$repo_root/ddlNew/Network/IM/IMHTTPNodePreferenceEngine.swift" \
  "$repo_root/ddlNew/Network/IM/IMHTTPNodePreferenceProbe.swift" \
- "$repo_root/ddlNew/Common/Crypto/AesEncryptUtils.swift" \
- "$repo_root/ddlNew/Network/OSS/OSSLegacyConfigurationParser.swift" \
  "$repo_root/Tests/HTTPNodePreference/HTTPNodePreferenceChecks.swift" -o "$test_dir/checks"
 "$test_dir/checks"

@@ -9,6 +9,8 @@ import Foundation
 }
 @MainActor final class CallConfigurationStore {
     static let shared = CallConfigurationStore()
+    var tenantID: String?
+    func configure(tenantID: String) { self.tenantID = tenantID }
     var clearCount = 0
     func clear() { clearCount += 1 }
 }

@@ -21,13 +21,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - ******接口逻辑处理******
 //******* 竞速 **********
-/// 获取App系统设置接口
-- (void)appGetSystemConfigInfoWithBaseUrl:(NSString *)baseUrl
-                                     Path:(NSString *)path
-                                  IsLogin:(BOOL)isLogin
-                                onSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                onFailure:(nullable LingIMFailureCallback)onFailure;
-
 /// ip/域名直连时获取Tcp的域名或者ip
 - (void)appNetworkGetConnectListWithBaseUrl:(NSString *)baseUrl Path:(NSString *)path onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure;
 
@@ -58,8 +51,7 @@ NS_ASSUME_NONNULL_BEGIN
 //获取角色配置
 - (void)imGetRoleConfigInfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
-//上报DNS信息
-- (void)imSdkUploadDNSinfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
+
 
 /// 全局翻译开关（由上层应用注入；默认开启）
 - (BOOL)toolIsTranslateEnabled;

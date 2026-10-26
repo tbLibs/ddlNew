@@ -14,10 +14,9 @@ final class AccountLoginService: AccountLoginServicing {
         driver: SDKAccountLoginClient(),
         context: {
             let connection = IMConnectionCoordinator.shared
-            guard let id = connection.loginConnectionID,
-                  let configuration = connection.configuration else { return nil }
-            return AccountLoginContext(connectionID: id, loginMethod: configuration.loginMethod,
-                                       captchaChannel: configuration.captchaChannel)
+            guard let id = connection.loginConnectionID else { return nil }
+            return AccountLoginContext(connectionID: id, loginMethod: LocalAccountPolicy.loginMethod,
+                                       captchaChannel: LocalAccountPolicy.captchaChannel)
         },
         encrypt: { value in
             #if targetEnvironment(simulator)
@@ -60,7 +59,7 @@ final class AccountLoginService: AccountLoginServicing {
             throw AccountLoginError.unsupportedAccountLogin
         }
         defer {
-            // 本轮结束后恢复验证码渠道；连接变化时保留新俱乐部的配置。
+            // 本轮结束后恢复验证码渠道；连接变化时不修改新连接的渠道。
             if context() == originalContext { driver.restoreCaptchaChannel(originalContext.captchaChannel) }
         }
 
@@ -127,7 +126,7 @@ final class AccountLoginService: AccountLoginServicing {
                                            originalContext: originalContext,
                                            verificationAttempts: &verificationAttempts,
                                            progress: progress)
-                // 与旧项目一致，图文回退请求使用渠道 2，原俱乐部配置仍用于校验连接。
+                // 与旧项目一致，图文回退请求使用渠道 2，连接轮次仍用于隔离旧请求。
                 if kind == .imageCaptcha { captchaChannel = 2 }
                 else if case .aliyunCaptcha = kind { captchaChannel = 4 }
             }

@@ -7,7 +7,6 @@
 
 import Foundation
 import ObjectMapper
-import NoaChatCore
 
 /// 首次 AUTH、回到前台、定时与节点切换共用同一串行刷新入口。
 @MainActor
@@ -20,12 +19,6 @@ final class SessionMaintenanceCoordinator {
         await self?.refresh(current: current)
     }
     private init() {}
-
-    func startGuest(lastLiceseId: String) {
-        userUID = nil
-        license = lastLiceseId
-        engine.start(identity: lastLiceseId, requiresAuthentication: false)
-    }
 
     func start(userUID: String, lastLiceseId: String) {
         self.userUID = userUID
@@ -46,17 +39,16 @@ final class SessionMaintenanceCoordinator {
     func setForegroundActive(_ active: Bool) { engine.setForegroundActive(active) }
     func setAuthenticated(_ value: Bool) { engine.setAuthenticated(value) }
     func refreshNow() { engine.refreshNow() }
-    func refreshConfigurationAfterNodeChange() { engine.refreshNow() }
+    func refreshAfterNodeChange() { engine.refreshNow() }
 
     private func refresh(current: @escaping @MainActor () -> Bool) async {
         guard let license, let plan = OSSConnectionBootstrap.shared.current,
               plan.lastLiceseId == license, let nav = try? OSSNavigationStore.shared.load(),
               nav.lastLiceseId == license else { return }
-        let uid = userUID
-        let guestID = IMConnectionCoordinator.shared.loginConnectionID
+        guard let uid = userUID else { return }
         let sessionID = LoginSessionService.shared.maintenanceSessionID
         let rejected: @MainActor (Int, String) -> Void = { code, message in
-            guard let uid, let sessionID else { return }
+            guard let sessionID else { return }
             LoginSessionService.shared.handleMaintenanceRejection(code: code, message: message,
                 userUID: uid, lastLiceseId: license, sessionID: sessionID)
         }
@@ -67,27 +59,10 @@ final class SessionMaintenanceCoordinator {
                   OSSConnectionBootstrap.shared.current?.lastLiceseId == license,
                   let latest = try? OSSNavigationStore.shared.load(), latest.savedAt == nav.savedAt,
                   latest.lastLiceseId == license else { return false }
-            if let uid {
-                return IMUserAuthenticationService.shared.isAuthenticated
+            return IMUserAuthenticationService.shared.isAuthenticated
                     && UserSessionStore.shared.currentUser?.userUID == uid
-            }
-            return guestID != nil && IMConnectionCoordinator.shared.loginConnectionID == guestID
         }
         guard valid() else { return }
-        do {
-            let json = try await client.configuration(host: plan.apiHost, loggedIn: uid != nil, onRejected: rejected)
-            guard valid() else { return }
-            guard let config = Mapper<SystemConfigRecord>().map(JSONString: json), config.isValidForLogin else {
-                throw AccountLoginError.invalidResponse
-            }
-            try SystemConfigStore.shared.save(config, lastLiceseId: license, apiHost: plan.apiHost)
-            CallConfigurationStore.shared.update(json: json, tenantID: license)
-            // 只更新租户、验证码和业务配置，不重置 SDK 用户、数据库或 Socket。
-            NoaIMSDKManager.sharedTool().configSDKTenantCode(config.tenantCode)
-            NoaIMSDKManager.sharedTool().configSDKCaptchaChannel(config.captchaChannel)
-            IMConnectionCoordinator.shared.applyRefreshedConfiguration(config)
-        } catch { if valid() { debugPrint("[会话维护] 系统配置刷新失败，保留原配置") } }
-        guard let uid, valid() else { return }
         do {
             let json = try await client.profile(userUID: uid, onRejected: rejected)
             guard valid(), let bytes = json.data(using: .utf8),

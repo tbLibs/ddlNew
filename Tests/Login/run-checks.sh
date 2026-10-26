@@ -6,6 +6,7 @@ test_dir="$(mktemp -d "${TMPDIR:-/tmp}/ddlNew-login-checks.XXXXXX")"
 trap 'rm -rf "$test_dir"' EXIT
 
 xcrun swiftc -swift-version 5 -parse-as-library \
+  "$repo_root/ddlNew/Configuration/LocalAccountPolicy.swift" \
   "$repo_root/ddlNew/Features/Login/Models/AccountLoginContext.swift" \
   "$repo_root/ddlNew/Features/Login/Models/LoginVerification.swift" \
   "$repo_root/ddlNew/Features/Login/Models/AccountLoginError.swift" \

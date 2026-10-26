@@ -68,7 +68,7 @@ nonisolated struct DNS1Payload: Sendable, Equatable {
     }
 
     /// BIN 的密钥派生沿用旧协议，但只接受解密后的 JSON TCP 载荷。
-    static func bin(_ data: Data, license: String) throws -> Self {
+    @MainActor static func bin(_ data: Data, license: String) throws -> Self {
         _ = try Self.license(license)
         let secret = Insecure.MD5.hash(data: Data(license.utf8)).map { String(format: "%02x", $0) }.joined()
         var candidates = [data]

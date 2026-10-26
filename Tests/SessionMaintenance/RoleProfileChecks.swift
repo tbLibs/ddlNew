@@ -33,17 +33,6 @@ import ObjectMapper
         let timed = Mapper<UserRoleAuthority>().map(JSON: ["edited_message_sent": ["configValue": "15"]])!
         check(timed.positiveMinutes("edited_message_sent") == 15, "编辑分钟限制不能当作布尔开关")
         check(empty.positiveMinutes("edited_message_sent") == 0, "缺少编辑权限默认关闭")
-        let config = Mapper<SystemConfigRecord>().map(JSON: ["groupMessageInterval": "2500", "messageRecallTime": 2,
-            "groupMangerMessageRecallTime": "1", "onlyAllowAdminViewGroupPersonCount": "0"])!
-        check(config.groupMessageInterval == 2500 && config.messageRecallTime == "2", "系统聊天配置兼容数字和字符串")
-        check(config.groupMangerMessageRecallTime == "1" && config.onlyAllowAdminViewGroupPersonCount == "0", "保留群管理策略")
-        let cachedConfig = Mapper<SystemConfigRecord>().map(JSONString: config.toJSONString()!)!
-        check(cachedConfig.groupMessageInterval == 2500 && cachedConfig.messageRecallTime == "2", "聊天配置缓存往返")
-        let upload = Mapper<SystemConfigRecord>().map(JSON: ["oss_config_type": 0, "oss_config_bucket_name": "test-bucket",
-            "oss_obs_custom_domain_put": "https://upload.example.invalid"])!
-        check(upload.ossConfigType == "0" && upload.ossConfigBucketName == "test-bucket", "存储供应商数字兼容")
-        let uploadCached = Mapper<SystemConfigRecord>().map(JSONString: upload.toJSONString()!)!
-        check(uploadCached.ossOBSUploadDomain == "https://upload.example.invalid", "存储路由缓存保持")
         let old = Mapper<UserInfo>().map(JSON: ["userUID":"u1", "nickname":"old", "avatar":"old-avatar", "roleId":3, "hasSecurityCode":true])!
         let updated = old.applyingProfile(["nickname":"new"], expectedUID:"u1")!
         check(updated.nickname == "new" && updated.avatar == "old-avatar", "部分资料合并不删除头像")

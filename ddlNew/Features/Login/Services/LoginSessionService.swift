@@ -149,6 +149,7 @@ final class LoginSessionService: LoginSessionServicing {
             throw AccountLoginError.connectionChanged
         }
         // AUTH 成功即监听来电，联系人/会话缓存的异步读取不能留下漏接窗口。
+        CallConfigurationStore.shared.configure(tenantID: credentials.lastLiceseId)
         CallCoordinator.shared.activate(userUID: user.userUID, tenantID: credentials.lastLiceseId, sessionID: runID)
         // 认证和用户建库完成后再读缓存，SDK 后续同步回调会触发增量重读。
         await contacts.reload()

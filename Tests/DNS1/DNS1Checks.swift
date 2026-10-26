@@ -81,6 +81,23 @@ import Darwin
         cancelled.cancel()
         do { _ = try await cancelled.value; fatalError("来源取消必须失败") } catch is CancellationError { count += 1 }
         check(calls == [.main], "取消不能启动备域或BIN")
+        let mainOnly = try DNS1SourceRace.sources(license: "Ab1000", main: "main.example", backup: "", binTemplate: "https://bin.example/%s")
+        check(mainOnly.map(\.kind) == [.main, .bin], "未配置备域直接进入BIN")
+        calls = []
+        let backupWinner = try await DNS1SourceRace.run(sources: sources, load: { source in
+            calls.append(source.kind)
+            if source.kind == .main { throw DNS1Error.unavailable }
+            return parsed
+        }, probe: { _ in true })
+        check(backupWinner.source.kind == .backup && calls == [.main, .backup], "备域成功不请求BIN")
+        calls = []
+        do {
+            _ = try await DNS1SourceRace.run(sources: sources, load: { source in
+                calls.append(source.kind); throw DNS1Error.unavailable
+            }, probe: { _ in fatalError("没有节点不能探测") })
+            fatalError("来源耗尽必须失败")
+        } catch DNS1Error.unavailable { count += 1 }
+        check(calls == [.main, .backup, .bin], "来源耗尽后结束，不调用旧导航")
         print("DNS1 checks: \(count) passed")
     }
 }

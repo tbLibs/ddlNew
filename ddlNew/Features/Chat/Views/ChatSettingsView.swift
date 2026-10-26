@@ -169,8 +169,7 @@ struct ChatSettingsView: View {
     /// 人数角色开关独立于群成员资料访问权限。
     private func canShowCount(_ group: ChatGroupDetail) -> Bool {
         let authority = UserRoleAuthorityStore.shared.current
-        let config = OSSConnectionBootstrap.shared.current.flatMap { SystemConfigStore.shared.load(apiHost: $0.apiHost, lastLiceseId: $0.lastLiceseId) }
-        return authority?.allows("showGroupPersonNum") == true || [1, 2].contains(group.role) || config?.onlyAllowAdminViewGroupPersonCount == "0"
+        return authority?.allows("showGroupPersonNum") == true || [1, 2].contains(group.role) || !LocalMessagingSettings.onlyAdminsViewGroupPersonCount
     }
 }
 

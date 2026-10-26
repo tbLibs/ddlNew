@@ -26,20 +26,6 @@
 
 #pragma mark - ******接口逻辑处理******
 // ****** 竞速 相关接口******
-/// 获取App系统设置接口
-- (void)appGetSystemConfigInfoWithBaseUrl:(NSString *)baseUrl
-                                     Path:(NSString *)path
-                                  IsLogin:(BOOL)isLogin
-                                onSuccess:(nullable LingIMSuccessCallback)onSuccess
-                                onFailure:(nullable LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] AppGetSystemConfigInfoWithBaseUrl:baseUrl
-                                                                    Path:path
-                                                                 IsLogin:isLogin
-                                                               onSuccess:onSuccess
-                                                               onFailure:onFailure];
-}
-
 /// ip/域名直连时获取Tcp的域名或者ip
 - (void)appNetworkGetConnectListWithBaseUrl:(NSString *)baseUrl Path:(NSString *)path onSuccess:(nullable LingIMSuccessCallback)onSuccess onFailure:(nullable LingIMFailureCallback)onFailure {
     
@@ -90,11 +76,6 @@
     [[NoaIMHttpManager sharedManager] GetRoleConfigInfoWith:params onSuccess:onSuccess onFailure:onFailure];
 }
 
-#pragma mark - 上报DNS信息
-- (void)imSdkUploadDNSinfoWith:(NSMutableDictionary * _Nullable)params onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
-    
-    [[NoaIMHttpManager sharedManager] UploadDNSinfoWith:params onSuccess:onSuccess onFailure:onFailure];
-}
 
 #pragma mark - 全局翻译开关（默认开启）
 - (BOOL)toolIsTranslateEnabled {

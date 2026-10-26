@@ -20,10 +20,19 @@ struct CallConfiguration: Equatable, Sendable {
     static let shared = CallConfigurationStore()
     @Published private(set) var current: CallConfiguration?
 
-    func update(json: String, tenantID: String) {
-        guard let data = json.data(using: .utf8), let object = try? JSONSerialization.jsonObject(with: data), let values = object as? [String: Any] else { return }
-        func text(_ key: String) -> String { (values[key] as? String) ?? (values[key] as? NSNumber)?.stringValue ?? "" }
-        current = CallConfiguration(tenantID: tenantID, enabled: text("enableAudioAndVideoCalls") == "1", provider: Int(text("video_source_config")).flatMap(CallProvider.init(rawValue:)), zegoAppID: UInt32(text("video_source_config_zg_appId")) ?? 0)
+    private let makeConfiguration: (String) -> CallConfiguration
+
+    init(makeConfiguration: @escaping (String) -> CallConfiguration = { tenantID in
+        CallConfiguration(tenantID: tenantID,
+            enabled: LocalMessagingSettings.audioVideoCallsEnabled,
+            provider: CallProvider(rawValue: LocalMessagingSettings.callProvider),
+            zegoAppID: LocalMessagingSettings.zegoAppID)
+    }) {
+        self.makeConfiguration = makeConfiguration
+    }
+
+    func configure(tenantID: String) {
+        current = makeConfiguration(tenantID)
     }
     func clear() { current = nil }
 }

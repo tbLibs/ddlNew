@@ -1,5 +1,5 @@
 {
-  "originHash" : "ef41e2d568284d3ac7570a46e8582292d5c709960eeff7eb26dc14c077e6d148",
+  "originHash" : "30146a0ec3915e4e30fb74011e8ca9f9e83447cd89c5e01f793a5702a871af0a",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -206,24 +206,6 @@
       "state" : {
         "revision" : "3a99044b7045fb5907a7df18c7fe323e5656c6ab",
         "version" : "0.3.2"
-      }
-    },
-    {
-      "identity" : "tbbasiclib",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tbLibs/TBBasicLib",
-      "state" : {
-        "revision" : "16eef2b2491771285229cfcf87033e8f7c3298b1",
-        "version" : "0.3.8"
-      }
-    },
-    {
-      "identity" : "toast-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/scalessec/Toast-Swift.git",
-      "state" : {
-        "revision" : "ddccd20d6fb718448d9b179c454c561653fda7d5",
-        "version" : "5.1.1"
       }
     },
     {

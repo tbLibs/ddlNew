@@ -34,9 +34,8 @@ import UniformTypeIdentifiers
     private func uploadSingle(_ attachment: ChatAttachment, context: ChatContext, progress: @escaping @MainActor (Double) -> Void) async throws -> ChatUploadedAttachment {
         cancel(); let run = generation
         guard ChatRuntime.shared.isCurrent(context), let plan = OSSConnectionBootstrap.shared.current,
-              plan.lastLiceseId == context.tenantID,
-              let config = SystemConfigStore.shared.load(apiHost: plan.apiHost, lastLiceseId: plan.lastLiceseId) else { throw ChatClientError.sessionExpired }
-        if config.ossConfigType != "0" {
+              plan.lastLiceseId == context.tenantID else { throw ChatClientError.sessionExpired }
+        if LocalMediaSettings.ossConfigType != "0" {
             let cloud = SDKCloudChatMediaClient(); cloudClient = cloud
             defer { cloudClient = nil }
             let result = try await cloud.upload(attachment, context: context, progress: progress)
@@ -55,23 +54,23 @@ import UniformTypeIdentifiers
         self.session = session
         defer { if generation == run { self.session = nil; session.finishTasksAndInvalidate() } }
         let fileName = UUID().uuidString + "-" + attachment.name.replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\"", with: "")
-        let keyRequest = try request(path: NetworkPath.chatUploadPublicKey, plan: plan, tenantCode: config.tenantCode, context: context)
+        let keyRequest = try request(path: NetworkPath.chatUploadPublicKey, plan: plan, tenantCode: LocalSDKSettings.tenantCode, context: context)
         let (keyData, keyResponse) = try await session.data(for: keyRequest)
         try validate(run, context: context)
-        guard let publicKey = try decode(keyData, response: keyResponse, tenantCode: config.tenantCode) as? String, !publicKey.isEmpty else { throw ChatClientError.invalidResponse }
+        guard let publicKey = try decode(keyData, response: keyResponse, tenantCode: LocalSDKSettings.tenantCode) as? String, !publicKey.isEmpty else { throw ChatClientError.invalidResponse }
         let bucket = bucketName(type: attachment.type)
         let result: Any
         if uploadAttachment.bytes > 100 * 1024 * 1024 {
-            result = try await multipart(uploadAttachment, name: fileName, key: publicKey, bucket: bucket, plan: plan, config: config, context: context, run: run, session: session, progress: progress)
+            result = try await multipart(uploadAttachment, name: fileName, key: publicKey, bucket: bucket, plan: plan, context: context, run: run, session: session, progress: progress)
         } else {
             let boundary = UUID().uuidString
             let spool = try await Task.detached { try Self.spool(file: encodedFile, name: fileName, boundary: boundary) }.value
             defer { try? FileManager.default.removeItem(at: spool) }
-            var req = try request(path: NetworkPath.chatUploadFile, query: ["bucketName": bucket], plan: plan, tenantCode: config.tenantCode, context: context, fileName: fileName, publicKey: publicKey)
+            var req = try request(path: NetworkPath.chatUploadFile, query: ["bucketName": bucket], plan: plan, tenantCode: LocalSDKSettings.tenantCode, context: context, fileName: fileName, publicKey: publicKey)
             req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
             let (data, response) = try await session.upload(for: req, fromFile: spool, delegate: ChatUploadProgressDelegate(progress: progress))
             try validate(run, context: context)
-            result = try decode(data, response: response, tenantCode: config.tenantCode)
+            result = try decode(data, response: response, tenantCode: LocalSDKSettings.tenantCode)
         }
         try validate(run, context: context); try checkPermission(attachment)
         guard let json = result as? [String: Any], let uri = json["uri"] as? String, !uri.isEmpty else { throw ChatClientError.invalidResponse }
@@ -80,11 +79,11 @@ import UniformTypeIdentifiers
     }
 
     /// 分片顺序上送50MiB且最终合并确认，失败不伪造最终资源地址。
-    private func multipart(_ attachment: ChatAttachment, name: String, key: String, bucket: String, plan: OSSConnectionPlan, config: SystemConfigRecord, context: ChatContext, run: UUID, session: URLSession, progress: @escaping @MainActor (Double) -> Void) async throws -> Any {
-        let initRequest = try request(path: NetworkPath.chatUploadMultipartID, query: ["bucketName": bucket, "fileUri": name], plan: plan, tenantCode: config.tenantCode, context: context, fileName: name, publicKey: key)
+    private func multipart(_ attachment: ChatAttachment, name: String, key: String, bucket: String, plan: OSSConnectionPlan, context: ChatContext, run: UUID, session: URLSession, progress: @escaping @MainActor (Double) -> Void) async throws -> Any {
+        let initRequest = try request(path: NetworkPath.chatUploadMultipartID, query: ["bucketName": bucket, "fileUri": name], plan: plan, tenantCode: LocalSDKSettings.tenantCode, context: context, fileName: name, publicKey: key)
         let (idData, idResponse) = try await session.data(for: initRequest)
         try validate(run, context: context)
-        guard let uploadID = try decode(idData, response: idResponse, tenantCode: config.tenantCode) as? String, !uploadID.isEmpty else { throw ChatClientError.invalidResponse }
+        guard let uploadID = try decode(idData, response: idResponse, tenantCode: LocalSDKSettings.tenantCode) as? String, !uploadID.isEmpty else { throw ChatClientError.invalidResponse }
         let handle = try FileHandle(forReadingFrom: attachment.file); defer { try? handle.close() }
         var sent: Int64 = 0; var part = 1; var tags: [[String: Any]] = []
         while sent < attachment.bytes {
@@ -95,20 +94,20 @@ import UniformTypeIdentifiers
             let boundary = UUID().uuidString
             let spool = try await Task.detached { try Self.spool(file: chunk, name: name, boundary: boundary) }.value
             defer { try? FileManager.default.removeItem(at: spool) }
-            var req = try request(path: NetworkPath.chatUploadMultipartPart, query: ["bucketName": bucket, "key": name, "partNumber": String(part), "uploadId": uploadID], plan: plan, tenantCode: config.tenantCode, context: context, fileName: name, publicKey: key)
+            var req = try request(path: NetworkPath.chatUploadMultipartPart, query: ["bucketName": bucket, "key": name, "partNumber": String(part), "uploadId": uploadID], plan: plan, tenantCode: LocalSDKSettings.tenantCode, context: context, fileName: name, publicKey: key)
             req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
             let (data, response) = try await session.upload(for: req, fromFile: spool)
             try validate(run, context: context)
-            guard let result = try decode(data, response: response, tenantCode: config.tenantCode) as? [String: Any], let tag = result["etag"] as? String else { throw ChatClientError.invalidResponse }
+            guard let result = try decode(data, response: response, tenantCode: LocalSDKSettings.tenantCode) as? [String: Any], let tag = result["etag"] as? String else { throw ChatClientError.invalidResponse }
             tags.append(["partNumber": part, "tag": tag]); sent += Int64(bytes.count); part += 1
             progress(Double(sent) / Double(attachment.bytes) * 0.99)
         }
-        var complete = try request(path: NetworkPath.chatUploadMultipartComplete, plan: plan, tenantCode: config.tenantCode, context: context, fileName: name, publicKey: key)
+        var complete = try request(path: NetworkPath.chatUploadMultipartComplete, plan: plan, tenantCode: LocalSDKSettings.tenantCode, context: context, fileName: name, publicKey: key)
         complete.setValue("application/json", forHTTPHeaderField: "Content-Type")
         complete.httpBody = try JSONSerialization.data(withJSONObject: ["bucketName": bucket, "eTagList": tags, "fileUri": name, "uploadId": uploadID])
         let (data, response) = try await session.data(for: complete)
         try validate(run, context: context)
-        return try decode(data, response: response, tenantCode: config.tenantCode)
+        return try decode(data, response: response, tenantCode: LocalSDKSettings.tenantCode)
     }
 
     /// 保存multipart到临时文件并以1MiB读取，避免整个附件留在内存。
@@ -150,16 +149,16 @@ import UniformTypeIdentifiers
         let timestamp = Int64(Date().timeIntervalSince1970)
         let signature: String
         #if targetEnvironment(simulator)
-        throw SystemConfigCryptoError.unavailableOnSimulator
+        throw ChatMediaCryptoError.unavailableOnSimulator
         #else
         let uri = path.replacingOccurrences(of: "/biz/", with: "").replacingOccurrences(of: "/auth/", with: "").replacingOccurrences(of: "/zim-file/", with: "").replacingOccurrences(of: "/file/", with: "")
-        guard let signed = LXChatEncrypt.method5(tenantCode, uri: uri, timestamp: timestamp) else { throw SystemConfigCryptoError.signatureFailed }; signature = signed
+        guard let signed = LXChatEncrypt.method5(tenantCode, uri: uri, timestamp: timestamp) else { throw ChatMediaCryptoError.signatureFailed }; signature = signed
         #endif
         var headers = BusinessRequestHeaders.make(timestamp: timestamp, signature: signature)
         headers["token"] = context.userUID
         if let fileName, let publicKey {
             #if !targetEnvironment(simulator)
-            guard let token = LXChatEncrypt.method4(publicKey + fileName) else { throw SystemConfigCryptoError.signatureFailed }
+            guard let token = LXChatEncrypt.method4(publicKey + fileName) else { throw ChatMediaCryptoError.signatureFailed }
             headers["osToken"] = token; headers["osFileName"] = fileName
             #endif
         }
@@ -175,9 +174,9 @@ import UniformTypeIdentifiers
         guard let string = payload as? String else { return payload }
         if let plain = string.data(using: .utf8), let decoded = try? JSONSerialization.jsonObject(with: plain) { return decoded }
         #if targetEnvironment(simulator)
-        throw SystemConfigCryptoError.unavailableOnSimulator
+        throw ChatMediaCryptoError.unavailableOnSimulator
         #else
-        guard let decrypted = LXChatEncrypt.method7(tenantCode, encryptData: string), !decrypted.isEmpty else { throw SystemConfigCryptoError.decryptionFailed }
+        guard let decrypted = LXChatEncrypt.method7(tenantCode, encryptData: string), !decrypted.isEmpty else { throw ChatMediaCryptoError.decryptionFailed }
         if let bytes = decrypted.data(using: .utf8), let decoded = try? JSONSerialization.jsonObject(with: bytes) { return decoded }
         return decrypted
         #endif
@@ -201,4 +200,8 @@ import UniformTypeIdentifiers
 
     /// 用户取消同时终止HTTP任务，旧回执不再交给消息队列。
     func cancel() { generation = UUID(); session?.invalidateAndCancel(); session = nil; cloudClient?.cancel(); cloudClient = nil; previewTransfer?.cancel(); previewTransfer = nil }
+}
+
+private enum ChatMediaCryptoError: Error {
+    case unavailableOnSimulator, signatureFailed, decryptionFailed
 }

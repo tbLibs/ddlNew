@@ -23,17 +23,14 @@ nonisolated struct OSSNavigationRecord: Mappable {
 
     init(lastLiceseId: String, source: DNSHostSource, ossNode: DNSResolvedHost,
          savedAt: Date, body: IMServerListResponseBody,
-         httpNodePreference: OSSLegacyHTTPNodePreference? = nil,
          previous: OSSNavigationRecord? = nil) throws {
         let result = try OSSAuthResponseDecoder.navigation(from: body)
         liceseId = lastLiceseId
-        // 新导航成功不等于入口准备完成，先保留原值，待系统配置成功后再确认。
+        // 新导航成功不等于入口准备完成，先保留原值，待正式握手与本地租户参数设置成功后再确认。
         self.lastLiceseId = previous?.lastLiceseId ?? ""
         ipDomainPortStr = previous?.ipDomainPortStr ?? ""
         lastIPDomainPortStr = previous?.lastIPDomainPortStr ?? ""
         ossRacingModel = OSSNetRacingRecord(lastLiceseId: lastLiceseId, body: body, result: result)
-        ossRacingModel.isMergeVersion = httpNodePreference?.enabled ?? false
-        ossRacingModel.pingIntervalSecond = httpNodePreference?.intervalSeconds ?? 0
         navigation = OSSNavigationPayloadRecord(
             source: source,
             ossNode: ossNode,

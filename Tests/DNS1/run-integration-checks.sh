@@ -15,12 +15,11 @@ xcrun swiftc -swift-version 5 -default-isolation MainActor -parse-as-library \
  "$root/ddlNew/Network/DNS1/DNS1Payload.swift" \
  "$root/ddlNew/Network/DNS1/DNS1SourceRace.swift" \
  "$root/ddlNew/Network/DNS1/DNS1CallbackWaiter.swift" "$tmp/DNS1NodeRaceCoordinator.swift" \
- "$root/ddlNew/Network/OSS/OSSLegacyConfigurationParser.swift" \
+ "$root/ddlNew/Network/OSS/OSSNodeRaceCoordinator.swift" \
+ "$root/ddlNew/Network/IM/IMNetworkNode.swift" \
  "$root/ddlNew/Network/OSS/OSSAuthResponseDecoder.swift" \
  "$root/ddlNew/Network/OSS/OSSNavigationRecord.swift" \
  "$root/ddlNew/Network/OSS/OSSNavigationStore.swift" \
  "$root/ddlNew/Network/OSS/OSSConnectionBootstrap.swift" \
- "$root/ddlNew/Network/SystemConfig/SystemConfigRecord.swift" \
- "$root/ddlNew/Network/SystemConfig/SystemConfigStore.swift" \
  "$root/Tests/DNS1/DNS1IntegrationChecks.swift" -o "$tmp/checks"
 "$tmp/checks"

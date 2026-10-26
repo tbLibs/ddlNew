@@ -34,13 +34,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// 获取当前SDK的版本号
 - (NSString *)getCurrentSdkVersion;
 
-/// 获得IP地址
-/// @param preferIPV4 ipv4
-- (NSString *)getIPAddress:(BOOL)preferIPV4;
-
-#pragma mark - 获取当前设备的公网IP
-- (NSString *)getDevicePublicNetworkIP;
-
 //IDFV
 - (NSString *)appIDFV;
 

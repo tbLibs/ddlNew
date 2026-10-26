@@ -17,8 +17,6 @@ enum NetworkPath {
     static let chatUploadMultipartComplete = "/file/multi/complete"
     /// 旧导航 HTTP 节点择优使用真实 GET 请求测量 RTT。
     static let httpNodePreference = "/zlcpig"
-    /// 获取未登录系统配置。
-    static let systemConfig = "/biz/system/v2/getSystemConfig"
     /// 获取本次密码登录使用的加密密钥，不提交账号信息。
     static let generateEncryptKey = "/auth/account/v2/generateEncryptKey"
     /// 老项目对获取密钥接口验签时使用去掉 /auth/ 的 URI。

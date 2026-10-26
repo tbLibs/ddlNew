@@ -12,6 +12,9 @@ import Combine
 @MainActor
 final class LoginViewModel: ObservableObject {
     @Published private(set) var loginPhase: AccountLoginPhase = .idle
+    /// 仅属于当前登录页面，默认不勾选；记住密码不代表同意文档。
+    @Published var hasAcceptedLegalDocuments = false
+    @Published var showsLegalConsentAlert = false
     /// 页面只保留用户资料，不长期持有 token 或设备凭据。
     @Published private(set) var userInfo: UserInfo?
     /// 记住密码失败不改变 AUTH 结果，独立显示本地存储提示。
@@ -54,6 +57,11 @@ final class LoginViewModel: ObservableObject {
 
     func login(account: String, password: String, rememberPassword: Bool = true) {
         guard !loginPhase.isBusy, loginPhase != .succeeded else { return }
+        guard hasAcceptedLegalDocuments else {
+            showsLegalConsentAlert = true
+            return
+        }
+        showsLegalConsentAlert = false
         cancelLogin()
         let runID = loginRunID
         loginPhase = .checkingAccount
@@ -153,8 +161,10 @@ final class LoginViewModel: ObservableObject {
         loginPhase = .idle
     }
 
-    /// 退出当前俱乐部入口，重新选择邀请码；最新导航及配置缓存仍保留。
+    /// 退出当前俱乐部入口，重新选择邀请码；最新导航缓存仍保留。
     func changeClub() {
+        hasAcceptedLegalDocuments = false
+        showsLegalConsentAlert = false
         cancelLogin()
         do {
             try sessionService.clearSession()

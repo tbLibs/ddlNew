@@ -5,7 +5,7 @@ nonisolated struct IMReconnectSession: Equatable, Sendable {
     let lastLiceseId: String
 }
 
-/// 刷新结果携带本轮探测凭据；旧五路返回的地址仍必须完成业务 TCP/ECDH。
+/// 刷新结果携带本轮探测凭据；缺少本轮凭据的缓存地址仍必须完成 TCP/ECDH。
 nonisolated struct IMReconnectNodes: Sendable {
     let nodes: [OSSLegacyEndpoint]
     var probedNode: OSSLegacyEndpoint? = nil
@@ -30,7 +30,7 @@ final class IMLoggedInReconnectEngine {
     private var timer: Task<Void, Never>?
     private var completion: Completion?
 
-    init(session: IMReconnectSession, timeout: TimeInterval = 55, cooldown: TimeInterval = 60,
+    init(session: IMReconnectSession, timeout: TimeInterval = 35, cooldown: TimeInterval = 60,
          clock: @escaping @MainActor () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          isCurrentSession: @escaping @MainActor (IMReconnectSession) -> Bool,
          cachedNodes: @escaping @MainActor () -> [OSSLegacyEndpoint],
@@ -47,7 +47,7 @@ final class IMLoggedInReconnectEngine {
         self.completion = completion
         let runID = generation
         timer = Task { [weak self] in
-            do { try await Task<Never, Never>.sleep(nanoseconds: UInt64((self?.timeout ?? 55) * 1_000_000_000)) }
+            do { try await Task<Never, Never>.sleep(nanoseconds: UInt64((self?.timeout ?? 35) * 1_000_000_000)) }
             catch { return }
             self?.finish(runID, node: nil, failure: "tcp_probe_timeout")
         }

@@ -529,19 +529,14 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
     //接口名
     NSString *uri = @"";
     NSString *method = @"";
-    if ([url containsString:@"system/v2/getSystemConfig"]) {
-        uri = @"system/v2/getSystemConfig";
-        method = @"getSystemConfig";
-    } else {
-        if ([url hasPrefix:@"http"]) {
-            url = [url stringByReplacingOccurrencesOfString:IMSDKManager.apiHost withString:@""];
-        }
-        uri = [url stringByReplacingOccurrencesOfString:@"/biz/" withString:@""];
-        uri = [uri stringByReplacingOccurrencesOfString:@"/auth/" withString:@""];
-        uri = [uri stringByReplacingOccurrencesOfString:@"/zim-file/" withString:@""];
-        uri = [uri stringByReplacingOccurrencesOfString:@"/file/" withString:@""];
-        method = [IMSDKManager tenantCode];
+    if ([url hasPrefix:@"http"]) {
+        url = [url stringByReplacingOccurrencesOfString:IMSDKManager.apiHost withString:@""];
     }
+    uri = [url stringByReplacingOccurrencesOfString:@"/biz/" withString:@""];
+    uri = [uri stringByReplacingOccurrencesOfString:@"/auth/" withString:@""];
+    uri = [uri stringByReplacingOccurrencesOfString:@"/zim-file/" withString:@""];
+    uri = [uri stringByReplacingOccurrencesOfString:@"/file/" withString:@""];
+    method = [IMSDKManager tenantCode];
     
     NSString *signature = [LXChatEncrypt method5:method uri:uri timestamp:timestamp];
     return signature;

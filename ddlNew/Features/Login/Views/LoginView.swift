@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TBBasicLib
 
 /// 独立的登录页面，支持更换俱乐部和打开网页，不依赖旧版页面或会员状态。
 struct LoginView: View {
@@ -26,11 +25,8 @@ struct LoginView: View {
     /// 一个页面生命周期内只回填一次，避免弹窗关闭后覆盖正在编辑的输入。
     @State private var didRestoreRememberedLogin = false
     /// 两个网页入口共用一个 Safari 弹窗，避免同时呈现多个浏览器。
-    @State private var webLink: TBBasicLib.WebLink?
+    @State private var webLink: WebLink?
     @State private var showingRegistration = false
-    /// 沿用旧端：本次登录页默认未勾选，阅读网页不会自动同意。
-    @State private var acceptedPolicy = false
-    @State private var showingPolicyConfirmation = false
     /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
     @FocusState private var cardFocused: Bool
     @FocusState private var passwordFocused: Bool
@@ -59,7 +55,7 @@ struct LoginView: View {
             }
         }
         .sheet(item: $webLink) { link in
-            TBBasicLib.SafariView(url: link.url)
+            SafariView(url: link.url)
                 .ignoresSafeArea()
         }
         .sheet(item: $verification.request) { request in
@@ -71,10 +67,10 @@ struct LoginView: View {
             .onDisappear { verification.cancel(requestID: request.id) }
         }
         .sheet(isPresented: $showingRegistration) { AccountRegistrationView() }
-        .alert("提示", isPresented: $showingPolicyConfirmation) {
+        .alert("提示", isPresented: $viewModel.showsLegalConsentAlert) {
             Button("取消", role: .cancel) {}
             Button("同意并继续") {
-                acceptedPolicy = true
+                viewModel.hasAcceptedLegalDocuments = true
                 login()
             }
         } message: {
@@ -205,15 +201,15 @@ struct LoginView: View {
     /// 勾选与阅读入口独立；打开在线网页不改变用户的同意状态。
     private var legalEntries: some View {
         HStack(alignment: .top, spacing: 8) {
-            Button { acceptedPolicy.toggle() } label: {
-                Image(systemName: acceptedPolicy ? "checkmark.square.fill" : "square")
+            Button { viewModel.hasAcceptedLegalDocuments.toggle() } label: {
+                Image(systemName: viewModel.hasAcceptedLegalDocuments ? "checkmark.square.fill" : "square")
                     .font(.system(size: 22))
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("同意隐私政策和使用支持")
-            .accessibilityValue(acceptedPolicy ? "已勾选" : "未勾选")
-            .accessibilityAddTraits(acceptedPolicy ? .isSelected : [])
+            .accessibilityValue(viewModel.hasAcceptedLegalDocuments ? "已勾选" : "未勾选")
+            .accessibilityAddTraits(viewModel.hasAcceptedLegalDocuments ? .isSelected : [])
             .accessibilityIdentifier("acceptLegalDocuments")
 
             VStack(alignment: .leading, spacing: 0) {
@@ -254,8 +250,8 @@ struct LoginView: View {
 
     private func login() {
         dismissKeyboard()
-        guard acceptedPolicy else {
-            showingPolicyConfirmation = true
+        guard viewModel.hasAcceptedLegalDocuments else {
+            viewModel.showsLegalConsentAlert = true
             return
         }
         securityNotice.clear()
@@ -287,7 +283,7 @@ struct LoginView: View {
         // Safari 只接受 HTTP/HTTPS；配置中统一使用 HTTPS，不加载本地旧版文档。
         guard let url = URL(string: address), url.scheme == "https",
               let host = url.host, !host.isEmpty else { return }
-        webLink = TBBasicLib.WebLink(url: url)
+        webLink = WebLink(url: url)
     }
 }
 

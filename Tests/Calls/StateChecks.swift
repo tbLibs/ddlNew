@@ -62,7 +62,16 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
  @MainActor static func main() async {
   var checked = 0
   func check(_ value: @autoclosure () -> Bool, _ label: String) { precondition(value(), label); checked += 1 }
-  let config = CallConfigurationStore(); config.update(json: #"{"enableAudioAndVideoCalls":"1","video_source_config":"0"}"#, tenantID: "t")
+  let localConfig = CallConfigurationStore()
+  localConfig.configure(tenantID: "first")
+  check(localConfig.current?.enabled == true && localConfig.current?.provider == .zego && localConfig.current?.zegoAppID == 40878197, "local call config preserves enabled Zego and appID")
+  localConfig.configure(tenantID: "second")
+  check(localConfig.current?.tenantID == "second", "local call config binds new tenant")
+  localConfig.clear()
+  check(localConfig.current == nil, "logout clears call config identity")
+  var fixture = CallConfiguration(tenantID: "t", enabled: true, provider: .liveKit, zegoAppID: 0)
+  let config = CallConfigurationStore(makeConfiguration: { _ in fixture })
+  config.configure(tenantID: "t")
   let auth = UUID(); let context = ChatContext(userUID: "a", tenantID: "t", sessionID: auth, route: ChatRoute(id: "b", kind: .single, title: "B", avatarURL: ""))
   let client = FakeClient(); var media = FakeMedia(); let resources = CallSystemResources()
   let coordinator = CallCoordinator(client: client, configuration: config, resources: resources, permission: { _ in }, prepareAudio: {}, mediaFactory: { _ in media })
@@ -114,7 +123,7 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
   client.suspendCreate = false
   // 创建失败不曾出现通话页面或铃声；音频、视频及两供应商共用此边界。
   for provider in ["0", "1"] {
-   config.update(json: "{\"enableAudioAndVideoCalls\":\"1\",\"video_source_config\":\"\(provider)\",\"video_source_config_zg_appId\":\"1\"}", tenantID: "t")
+   fixture = CallConfiguration(tenantID: "t", enabled: true, provider: CallProvider(rawValue: Int(provider)!), zegoAppID: 1); config.configure(tenantID: "t")
    for kind in [CallKind.audio, .video] {
     client.suspendCreate = true
     let pending = Task { await coordinator.start(context: context, kind: kind) }
@@ -128,7 +137,7 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
     check(coordinator.errorMessage == "用户不在线" && coordinator.session == nil && !coordinator.isPresented && !resources.ringing && !coordinator.busy, "offline failure stays in chat and releases busy state")
    }
   }
-  config.update(json: #"{"enableAudioAndVideoCalls":"1","video_source_config":"0"}"#, tenantID: "t")
+  fixture = CallConfiguration(tenantID: "t", enabled: true, provider: .liveKit, zegoAppID: 1); config.configure(tenantID: "t")
   // 对方接听先于建房回执时，仍需在受理后完成确认并连接。
   let acceptedEarly = Task { await coordinator.start(context: context, kind: .video) }
   while client.createWaiter == nil { await Task.yield() }
@@ -216,7 +225,7 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
   check(coordinator.session?.phase == .incoming, "queued old media failure cannot hang up new incoming")
   await coordinator.hangUp()
   // Zego 使用独立accept/token/confirmJoin合同，忙线不发送拒绝。
-  config.update(json: #"{"enableAudioAndVideoCalls":"1","video_source_config":"1","video_source_config_zg_appId":"1"}"#, tenantID: "t")
+  fixture = CallConfiguration(tenantID: "t", enabled: true, provider: .zego, zegoAppID: 1); config.configure(tenantID: "t")
   client.createID = "zego-outgoing"; media = FakeMedia()
   await coordinator.start(context: context, kind: .audio)
   var zegoRoom = CallRoomDescriptor(provider: .zego, id: "zego-outgoing", kind: .audio, callerID: "a", recipientID: "b", roomName: "zr")
@@ -237,8 +246,8 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
   let acceptActions = Array(client.actions.dropFirst(beforeIncomingAccept).map { $0.0 })
   check(acceptActions == [.token, .accept] && media.connects == 1, "Zego incoming fetches own token before accept")
   await coordinator.hangUp()
-  config.update(json: #"{"enableAudioAndVideoCalls":"0","video_source_config":"1"}"#, tenantID: "t")
-  check(!coordinator.canOfferCall(context: context), "disabled system configuration blocks entry")
+  fixture = CallConfiguration(tenantID: "t", enabled: false, provider: .zego, zegoAppID: 1); config.configure(tenantID: "t")
+  check(!coordinator.canOfferCall(context: context), "disabled injected call configuration blocks entry")
   print("Calls: \(checked) coordinator lifecycle checks passed")
  }
 }

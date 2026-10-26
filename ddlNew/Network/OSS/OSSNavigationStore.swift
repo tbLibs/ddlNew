@@ -55,34 +55,27 @@ final class OSSNavigationStore {
 
     private init() {}
 
-    /// 保存竞速首胜结果，并保留旧项目的“非空兜底地址才覆盖”规则。
+    /// 保存已通过 ECDH 探测的 DNS1 节点。
     @discardableResult
     func save(_ winner: OSSRaceWinner, lastLiceseId: String) throws -> OSSNavigationSnapshot {
         let lastLiceseId = lastLiceseId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !lastLiceseId.isEmpty else { throw OSSNavigationStoreError.invalidLastLiceseId }
 
         let previousRecord = try? storedRecord()
-        var body = winner.navigation.body
-        if let previous = try? previousRecord?.snapshot() {
-            var fallback = body.fallbackEndpoints
-            let oldFallback = previous.fallbackEndpoints
-            if fallback.domestic.isEmpty { fallback.domestic = oldFallback.domestic }
-            if fallback.overseas.isEmpty { fallback.overseas = oldFallback.overseas }
-            if !fallback.domestic.isEmpty || !fallback.overseas.isEmpty {
-                body.fallbackEndpoints = fallback
-            }
-        }
+        let body = winner.navigation.body
+        _ = try DNS1NodeRaceCoordinator.payload(from: body)
 
         let savedAt = Date()
-        let record = try OSSNavigationRecord(
+        var record = try OSSNavigationRecord(
             lastLiceseId: lastLiceseId,
             source: winner.source,
             ossNode: winner.node,
             savedAt: savedAt,
             body: body,
-            httpNodePreference: winner.navigation.httpNodePreference,
             previous: previousRecord
         )
+        // 升级可能拒绝旧节点格式，但不能在新正式握手前丢掉已成功的入口。
+        if previousRecord == nil { record.lastLiceseId = lastUsableLiceseId() ?? "" }
         let mapper = Mapper<OSSNavigationRecord>()
         guard let json = mapper.toJSONString(record),
               let restored = mapper.map(JSONString: json),
@@ -124,11 +117,10 @@ final class OSSNavigationStore {
         OSSNavigationEntryStorage().json = json
     }
 
-    /// 主动更换俱乐部只清除启动入口，保留最新导航及已保存的配置。
+    /// 主动更换俱乐部只清除启动入口，保留最新 DNS1 导航。
     func clearLastUsableEntry() throws {
+        LegacyNavigationEntryStorage().json = ""
         let storage = OSSNavigationEntryStorage()
-        // 主动更换企业同时撤销旧版本入口，避免升级恢复再次带回旧邀请码。
-        if dns1NavigationEnabled { LegacyDNS1EntryStorage().json = "" }
         guard !storage.json.isEmpty else { return }
         let mapper = Mapper<OSSNavigationRecord>()
         guard var record = mapper.map(JSONString: storage.json) else {
@@ -146,10 +138,12 @@ final class OSSNavigationStore {
 
     /// 本地入口只用于决定页面，不表示缓存未过期、账号已登录或 IM 已连接。
     func lastUsableLiceseId() -> String? {
-        // 升级只迁移上次成功的邀请码；旧节点不参与新流程。新缓存存在后不再读旧入口。
-        if dns1NavigationEnabled, OSSNavigationEntryStorage().json.isEmpty {
-            let old = LegacyDNS1EntryStorage()
-            return Mapper<OSSNavigationRecord>().map(JSONString: old.json)?.lastLiceseId.nilIfDNS1Empty
+        if OSSNavigationEntryStorage().json.isEmpty,
+           let data = LegacyNavigationEntryStorage().json.data(using: .utf8),
+           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let value = object["lastLiceseId"] as? String {
+            let license = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return license.isEmpty ? nil : license
         }
         // 页面恢复只读取入口字段，节点有效性留给连接准备流程检查。
         guard let record = Mapper<OSSNavigationRecord>().map(JSONString: OSSNavigationEntryStorage().json) else {
@@ -168,12 +162,7 @@ final class OSSNavigationStore {
             throw OSSNavigationStoreError.invalidStoredNavigation
         }
         let snapshot = try record.snapshot()
-        // 按实际来源验证：新命名空间也允许保存本轮五路兜底的真实旧导航。
-        if snapshot.source == .dns1 {
-            _ = try DNS1NodeRaceCoordinator.payload(from: snapshot.body)
-        } else if snapshot.body.meta.navVersion.hasPrefix("DNS1:") {
-            throw OSSNavigationStoreError.invalidStoredNavigation
-        }
+        _ = try DNS1NodeRaceCoordinator.payload(from: snapshot.body)
         return record
     }
 
@@ -187,15 +176,9 @@ final class OSSNavigationStore {
 /// 固定 key 保存唯一一份导航的 ObjectMapper JSON，读取时只校验导航内容。
 @MainActor
 private struct OSSNavigationEntryStorage {
-    @AppStorage(dns1NavigationEnabled ? dns1NavigationCacheKey : ossNavigationAppStorageKey) var json = ""
+    @AppStorage(dns1NavigationCacheKey) var json = ""
 }
 
-@MainActor private struct LegacyDNS1EntryStorage {
+@MainActor private struct LegacyNavigationEntryStorage {
     @AppStorage(ossNavigationAppStorageKey) var json = ""
-}
-private extension String {
-    var nilIfDNS1Empty: String? {
-        let value = trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
-    }
 }

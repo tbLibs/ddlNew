@@ -46,19 +46,7 @@ import NoaChatCore
             guard (response as? HTTPURLResponse)?.statusCode == 200, data.count <= 1_048_576 else { throw DNS1Error.unavailable }
             return try DNS1Payload.bin(data, license: license)
         }
-        let waiter = DNS1CallbackWaiter<[String]>()
-        let records = try await waiter.run(seconds: 5) {
-            guard let resolver = DNSResolver.share() else { waiter.finish(.failure(DNS1Error.unavailable)); return }
-            // Web accessKeyId 实际是 UID；accessKey 对应 SDK 的 AK。凭据、DNS 原文不写日志。
-            resolver.setAccountId(dns1AccountId, andAccessKeyId: dns1AccessKey, andAccesskeySecret: dns1AccessKeySecret)
-            resolver.cacheEnable = false
-            resolver.scheme = DNSResolverScheme(rawValue: 1)
-            resolver.timeout = 5
-            resolver.getIpv6Data(withDomain: source.address) { records in
-                let snapshot = records ?? []
-                Task { @MainActor in waiter.finish(.success(snapshot)) }
-            }
-        }
+        let records = try await DNS1DoHClient.records(domain: source.address)
         try Task.checkCancellation()
         return try DNS1Payload.records(records)
     }
@@ -83,7 +71,7 @@ import NoaChatCore
         body.meta.navVersion = version
         // traceID 在该本地版本中专门保存可选 HTTP 元数据，保留 scheme/path，不从 TCP 猜端口。
         body.meta.traceID = String(decoding: try JSONSerialization.data(withJSONObject: payload.http.map(\.absoluteString)), as: UTF8.self)
-        body.cacheTtl = 0 // 服务端未给 TTL；恢复缓存只作为候选，必须重新探测和获取系统配置。
+        body.cacheTtl = 0 // 服务端未给 TTL；恢复缓存只作为候选，必须重新探测并完成正式握手。
         return body
     }
 

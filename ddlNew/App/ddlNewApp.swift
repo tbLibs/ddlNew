@@ -45,7 +45,7 @@ struct ddlNewApp: App {
                             .accessibilityIdentifier("authenticatedMain")
                     }
                 } else {
-                    // 复用系统启动页外观，缓存连接和最新配置都就绪后才退出。
+                    // 复用系统启动页外观，缓存连接就绪后才退出。
                     LaunchWaitingView()
                         .ignoresSafeArea()
                         .overlay(alignment: .bottom) {

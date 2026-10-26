@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// DNS SDK/临时探测没有取消句柄，取消和超时必须立即结束 Swift 等待并忽略迟到回调。
+/// 临时 ECDH 探测没有取消句柄，取消和超时必须立即结束 Swift 等待并忽略迟到回调。
 @MainActor final class DNS1CallbackWaiter<Value: Sendable> {
     private var continuation: CheckedContinuation<Value, Error>?
     private var timer: Task<Void, Never>?

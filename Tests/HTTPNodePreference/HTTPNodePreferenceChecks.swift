@@ -13,7 +13,7 @@ struct HTTPNodePreferenceChecks {
         await isolationAndReentryChecks()
         await externalHostUpdateInvalidatesRound()
         await hostChangedAwayAndBackInvalidatesRound()
-        print("HTTP node preference checks passed: legacy flags, real HTTP success, RTT ranking, deduplication, cooldown, lifecycle and session isolation")
+        print("HTTP node preference checks passed: real HTTP success, RTT ranking, deduplication, cooldown, lifecycle and session isolation")
     }
 
     static func context(uid: String = "A", license: String = "club", nav: String = "1", enabled: Bool = true,
@@ -26,18 +26,6 @@ struct HTTPNodePreferenceChecks {
         precondition(context().pollingInterval == 300)
         precondition(context(interval: 10).pollingInterval == 10)
         precondition(context(interval: -.infinity).pollingInterval == 300)
-        let payload = Data("""
-        {"is_merge_version":"1","ping_interval_second":"27", "endpoints":{
-            "http":{"ipList":[{"ip":"one.example.com"}]},
-            "tcp":{"ipList":[{"ip":"one.example.com:9000"}]}}}
-        """.utf8)
-        let legacy = try OSSLegacyConfigurationParser.parse(payload)
-        precondition(legacy.httpNodePreference.enabled && legacy.httpNodePreference.intervalSeconds == 27)
-        var json = try JSONSerialization.jsonObject(with: payload) as! [String: Any]
-        json.removeValue(forKey: "is_merge_version")
-        json.removeValue(forKey: "ping_interval_second")
-        let absent = try OSSLegacyConfigurationParser.parse(JSONSerialization.data(withJSONObject: json))
-        precondition(!absent.httpNodePreference.enabled && absent.httpNodePreference.intervalSeconds == 0)
         precondition(IMHTTPNodePreferenceURL.base("HTTP://FAST.EXAMPLE.COM:443/") == fast)
         precondition(IMHTTPNodePreferenceURL.base("https://user:pass@fast.example.com") == nil)
         precondition(IMHTTPNodePreferenceURL.base("https://fast.example.com/path") == nil)

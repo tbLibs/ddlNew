@@ -6,7 +6,7 @@ struct TestConfiguration { let loginMethod = "1"; let captchaChannel = 2 }
 @MainActor final class IMConnectionCoordinator {
     static let shared = IMConnectionCoordinator()
     let loginConnectionID: UUID? = UUID()
-    let configuration: TestConfiguration? = TestConfiguration()
+    var configuration: TestConfiguration? = TestConfiguration()
 }
 enum LXChatEncrypt { static func method4(_ value: String) -> String? { "fixture-cipher" } }
 typealias SDKAccountLoginClient = FakeLoginSDK
@@ -113,6 +113,12 @@ enum CheckFailure: Error { case assertion(String) }
     @MainActor static func main() async {
         var failures = 0
         let checks: [(String, @MainActor () async throws -> Void)] = [
+            ("production login works without system configuration", {
+                IMConnectionCoordinator.shared.configuration = nil
+                defer { IMConnectionCoordinator.shared.configuration = TestConfiguration() }
+                let response = try await AccountLoginService.shared.login(account: "Ab1234", password: "Ab1234") { _ in }
+                try require(response.isValid, "Missing system config must not block account login")
+            }),
             ("image challenge retries with new key and account image code", {
                 let f = LoginFixture()
                 f.driver.submitFailures = [.businessFailure(code: 40064, message: "")]
