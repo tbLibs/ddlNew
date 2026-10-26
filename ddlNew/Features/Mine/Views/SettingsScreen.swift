@@ -9,37 +9,40 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @EnvironmentObject private var store: ClubStore
+    @ObservedObject private var userSession = UserSessionStore.shared
     @Environment(\.dismiss) private var dismiss
     @State private var confirmLogout = false
     @State private var legalDocument: LegalDocument?
     var body: some View {
         NavigationView {
-            Form {
-                Section("会员账户") {
-                    if let account = store.snapshot.activeAccount {
-                        LabeledContentCompat(title: "账号", value: account)
-                    } else {
-                        LabeledContentCompat(title: "昵称", value: "林夏")
-                        LabeledContentCompat(title: "会员卡号", value: "YS****18")
-                    }
-                }
-                Section("隐私与支持") {
-                    Button("隐私政策") { legalDocument = .privacy }
-                    Button("使用支持") { legalDocument = .support }
-                }
-                Section {
-                    Button("退出登录", role: .destructive) { confirmLogout = true }
-                    NavigationLink(destination: DeleteAccountScreen()) {
-                        Text("注销账号").foregroundColor(ClubTheme.error)
-                    }.accessibilityIdentifier("deleteAccountEntry")
-                } footer: { Text("活动空间") }
-            }.navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
+            ScrollView {
+                SettingsPageContent(
+                    displayName: displayName,
+                    account: userSession.currentUser?.userName ?? "",
+                    deleteDestination: DeleteAccountScreen(),
+                    openPrivacyPolicy: { legalDocument = .privacy },
+                    openSupport: { legalDocument = .support },
+                    logout: { confirmLogout = true }
+                )
+                .frame(maxWidth: HomeTheme.contentWidth)
+                .frame(maxWidth: .infinity)
+            }
+                .background(HomeTheme.background.ignoresSafeArea())
+                .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(HomeTheme.surface, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
                 .alert("退出会员空间？", isPresented: $confirmLogout) {
                     Button("取消", role: .cancel) { }
                     Button("退出登录", role: .destructive) { dismiss(); Task { await store.signOut() } }
                 } message: { Text("退出登录后，活动记录会保留。") }
                 .sheet(item: $legalDocument) { LegalDocumentScreen(document: $0) }
-        }.navigationViewStyle(.stack).tint(ClubTheme.darkTeal)
+        }.navigationViewStyle(.stack).tint(HomeTheme.forest)
+    }
+
+    private var displayName: String {
+        guard let user = userSession.currentUser else { return "未登录" }
+        if !user.nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return user.nickname }
+        return user.userName.isEmpty ? "未设置昵称" : user.userName
     }
 }

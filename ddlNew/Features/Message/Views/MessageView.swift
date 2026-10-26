@@ -136,6 +136,9 @@ struct MessageView: View {
                 NavigationLink("添加好友", value: ContactsPageRoute.addFriend)
             }
             if permissions.current?.allows("createGroup") == true { Button("创建群聊") { selectingMembers = true } }
+            if permissions.current?.allows("groupHairAssistant") == true {
+                NavigationLink("群发助手", value: MassMessageRoute(id: "100001"))
+            }
             NavigationLink("扫一扫", value: ContactsPageRoute.scanner)
         } label: {
             Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
@@ -190,6 +193,8 @@ struct MessageView: View {
                     title: conversation.title, avatarURL: conversation.avatarURL))
             } label: { conversationRow(conversation) }
                 .buttonStyle(MessagingRowStyle())
+        case .massMessage:
+            NavigationLink(value: MassMessageRoute(id: conversation.id)) { conversationRow(conversation) }.buttonStyle(MessagingRowStyle())
         case .systemMessage:
             NavigationLink(value: ContactsPageRoute.groupAssistant) { conversationRow(conversation) }.buttonStyle(MessagingRowStyle())
         default: conversationRow(conversation)

@@ -1,5 +1,45 @@
 # ddlNew 项目交接文档
 
+## 2026-10-23 我的入口精简与设置页重设计
+
+用户要求删除“我的”主页面的“隐私与安全”功能：已移除入口、分隔线、回调、页面状态与说明弹层接线，并同步HTML设计稿；账户与支持分组保留黑名单、投诉与支持。
+
+用户随后明确要求设置页直接按已确认森林绿风格实施。`SettingsScreen` 改为可滚动卡片布局，新 `SettingsPageContent` 仅负责展示：薄荷绿当前账户卡、隐私与支持、账户管理及独立退出按钮。顶部直接观察 `UserSessionStore.currentUser` 的真实昵称/账号，清除演示昵称、会员卡号及旧活动账号来源；缺昵称回退真实账号，退出不保留旧身份。使用 HomeTheme 浅深色、语义字体及 UIAdapter 几何适配，辅助字号账户卡纵向，长文本可换行增高。
+
+设置中的“隐私政策”和“使用支持”继续打开原 `LegalDocumentScreen`；注销进入原 `DeleteAccountScreen`，退出仍先确认再调用既有 `store.signOut()`，完成按钮继续关闭设置。未新增接口、未修改注销/退出业务流程，也未执行真实退出或注销。
+
+验证：最终无签名 generic iOS workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-settings-redesign-build.log`），`git diff --check`通过。生产展示组件经macOS宿主适配渲染浅深色、375pt长文本、辅助布局及宽屏（`/tmp/ddlNew-settings-native-preview/`）；此证据不等同iOS真实Dynamic Type、VoiceOver、导航/弹层或触控验收。Mobile MCP继续暂停，未操作设备、未提交或推送，保留所有同期改动。重新Run后需验收设置打开/关闭、资料刷新、政策/支持弹层、注销入口返回及退出取消行为。
+
+## 2026-10-23 群发助手接线与完整流程
+
+按用户要求只读对照 xgd `Modules/Session/Controllers/MassMessage` 下的历史、新建、选人和收件人页面，补齐消息列表系统会话 `100001` 的导航，并在消息页加号菜单提供受角色权限控制的群发入口。本节更新此前群发助手尚未接入的功能边界。Agency Agents 的 UI Designer 按用户指定的 `ui-ux-pro-max` 完成历史、新建、好友/群聊混选、收件人/失败名单四个原生 SwiftUI 页面，沿用项目森林绿与现有导航、头像、媒体预览组件。
+
+新增 `Features/MassMessage` 的模型与三个状态层，以及 `Network/IM/MassMessage` 的 SDK 适配。支持15条分页历史、文本/图片/视频/文件、16个UTF-16单位的备注标签、好友与群聊混选、附件预览、查看收件人和失败原因、再次发送及删除记录。再次发送复用旧任务的 labelId；新建先创建收件人标签再发送，发送失败保留草稿及已创建标签，重试不重复创建。沿用 SDK 六个现有群发接口、旧端 mtype/body 字段和媒体上传链路；服务端受理后请求既有会话同步。没有修改 xgd 或 SDK Objective-C 源码。
+
+历史可查看，新建和再次发送按 `groupHairAssistant` 权限校验，发送前各阶段复核当前 AUTH、用户及权限；退出、切账号、取消与迟到回调均有隔离。分页失败不推进页码，列表按任务ID去重，删除成功才移除并避免在途旧页复活；好友和群聊使用带类型的复合ID。附件准备和上传支持取消及临时文件清理，关闭页面不会承诺撤回服务端已受理的群发。会话摘要复用 SDK 已有 `<uid>-MassMessage` MMKV 缓存，不新增第二份持久化来源；删除最后可见记录且仍有分页时重新查询最新任务。
+
+验证：`Tests/MassMessage/run-checks.sh` 26项、`run-sdk-checks.sh` 10项通过，涵盖字段解析、分页重试、去重、删除、失败保稿、标签复用、防重复提交、权限撤销、切账号、取消及迟到回调；日志 `/tmp/ddlNew-mass-message-checks.log`、`/tmp/ddlNew-mass-message-sdk-checks.log`。会话状态回归、会话在线/摘要11项及聊天媒体回归通过，日志 `/tmp/ddlNew-mass-conversations.log`、`/tmp/ddlNew-mass-online.log`、`/tmp/ddlNew-mass-media.log`。最终 workspace 无签名 generic iOS 构建 exit0、`BUILD SUCCEEDED`，日志 `/tmp/ddlNew-mass-message-final-build.log`；`git diff --check`通过。
+
+Mobile MCP继续暂停，未安装或操作设备、未进行真实群发或上传。界面完成源码和构建检查，尚未做设备渲染或 VoiceOver 验收；重新Run后需用测试账号验证入口、好友/群聊混选、四种消息发送、失败原因、再次发送/删除、附件预览及切账号表现。保留同期“我的”页、设计稿和工程/SPM改动，未提交或推送。
+
+## 2026-10-23 我的整页重设计落地
+
+用户审阅 Agency Agents UI Designer 的 [可浏览设计稿](design/mine-redesign-2026-10-23.html) 与 [方案和实施规格](design/mine-redesign-2026-10-23.md) 后明确要求实施。已按自然留白方向重做整个“我的”页：72pt圆角头像与真实昵称/账号、账号复制和我的二维码、四类活动两列入口、薄荷绿俱乐部卡、账户与支持分组。沿用首页 HomeTheme 浅深色；长文本可换行，辅助字号身份纵向、活动单列，主要触点至少44pt。移除活动演示计数，俱乐部仍沿用现有“远山户外”内容，不将其当作登录资料。
+
+`MineView` 保持会话、文件Host与弹层状态所有权，新增 `MinePageContent` 只负责展示和已有值路由。保留下节真实资料接线与UID头像隔离，不新增请求或缓存；复制读取当前会话账号并给出居中提示，二维码复用 `ContactsPageRoute` 和既有共享业务Store。活动、俱乐部、切换确认、隐私、黑名单、投诉、设置及原生导航/底栏路由继续原流程。设置子页不在本次重设计范围内。
+
+验证：workspace 无签名 generic iOS 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-mine-redesign-build.log`）；会话维护17项、角色/资料26项、SDK会话隔离7项通过（`/tmp/ddlNew-mine-redesign-maintenance.log`）；`git diff --check`通过。真实展示组件经 macOS ImageRenderer 与主题/几何适配渲染浅色、深色、375pt长文本、辅助布局分支及宽屏五张静态图（`/tmp/ddlNew-mine-native-preview/`），原设计师复核未发现裁切、重叠或阻断性拥挤。该宿主渲染不等同真实iOS字号、导航栏/底栏安全区或交互验收。
+
+Mobile MCP继续暂停，未操作设备、未提交或推送，保留同期群发、消息、工程/SPM改动。重新Run后仍需验收真实头像加载、资料刷新/切账号、复制/二维码和各入口返回、最大辅助字号与VoiceOver。
+
+## 2026-10-23 我的顶部接入登录用户资料
+
+按用户要求只读对照 xgd `CandyTallkMineViewController.updateUI` 与 `NoaMineInfoView.setMineModel`：顶部昵称、账号和头像分别读取登录资料 `nickname`、`userName`、`avatar`。`MineView` 原先使用 `ClubStore` 的演示会员名称、俱乐部账号描述和 `MemberAvatar` 账号缩写；现直接观察 `UserSessionStore.currentUser`，复用既有登录保存、缓存恢复和会话维护资料刷新，不新增请求或第二份用户缓存。缺昵称回退真实账号，资料清空时显示未登录；不再回退演示会员信息。
+
+头像复用 Kingfisher、`RemoteAvatarURL`、项目下载器和旧格式图片处理器，支持完整地址及当前文件 Host 下的相对路径；观察文件节点变化，缺失或加载失败显示默认头像。头像视图按当前 UID 隔离，切换账号或退出时重建。首次接线保留原顶部卡片，随后整页样式由上节重设计替换；本节记录资料来源与头像处理边界。
+
+验证：会话维护17项、角色/资料26项、SDK请求会话隔离7项，以及通讯录44项、SDK分页19项及字段合并检查通过，日志 `/tmp/ddlNew-mine-profile-maintenance.log`、`/tmp/ddlNew-mine-profile-contacts.log`。workspace 无签名 generic iOS 构建 exit0、`BUILD SUCCEEDED`，日志 `/tmp/ddlNew-mine-profile-build.log`；`git diff --check`通过。Mobile MCP继续暂停；真实账号头像下载、资料刷新及切账号后的画面待重新Run验收。保留既有工程/SPM修改，未修改旧项目、未提交或推送。
+
 ## 2026-10-22 DNS1 耗尽后使用旧五路导航兜底
 
 按用户要求只读对照 xgd `NoaUrlHostManager.startDNS1WithNetworkQualityTrigger`、`raceDNS1ReconnectWithCompletion` 与 `docs/dns1-navigation.md`：DNS1 主域、备域和 BIN 的获取/解析/全部 TCP 探测都失败后，进入独立的旧五路入口；取消或非法邀请码不触发兜底，DNS1 成功不请求旧来源。本节取代10月17日“开启DNS1时旧五路不参与”的边界。

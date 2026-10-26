@@ -822,8 +822,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
-			traits = (
-			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;

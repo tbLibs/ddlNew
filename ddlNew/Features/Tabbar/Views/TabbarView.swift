@@ -54,6 +54,7 @@ struct TabbarView: View {
                     ContactsPageDestination(route: route, businessStore: contactBusiness,
                         fileHost: connection.current?.getFileHost)
                 }
+                .navigationDestination(for: MassMessageRoute.self) { route in MassMessageView(route: route) }
                 .navigationDestination(for: SafetyRoute.self) { _ in BlacklistView(businessStore: contactBusiness) }
         }
         .tabItem {

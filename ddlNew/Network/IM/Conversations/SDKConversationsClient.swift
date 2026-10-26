@@ -53,6 +53,7 @@ final class SDKConversationsClient: ConversationsClient {
             guard let models = sdk.toolGetMySessionListExcept("") as? [LingIMSessionModel] else {
                 throw ConversationsClientError.cacheReadFailed
             }
+            let massMessage = SDKMassMessagePreview.latest(userUID: userUID)
             return models.compactMap { model -> ConversationRecord? in
                 // SDK 查询没有过滤展示状态，未知类型也不应进入当前只读列表。
                 guard model.sessionStatus == 1, let id = model.sessionID, !id.isEmpty,
@@ -61,7 +62,8 @@ final class SDKConversationsClient: ConversationsClient {
                 let isDraft = !draft.isEmpty
                 // 最新消息不随会话模型入库；同步预览写入消息表后从该表补读。
                 let message = model.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: id)
-                let preview = isDraft ? draft : ConversationPreview.text(for: message, kind: kind, userUID: userUID, sdk: sdk)
+                let preview = kind == .massMessage ? (massMessage?.summary ?? "暂无群发记录")
+                    : isDraft ? draft : ConversationPreview.text(for: message, kind: kind, userUID: userUID, sdk: sdk)
                 let millis = model.sessionLatestTime
                 // 旧项目单聊优先读好友库最新头像；会话头像只在好友记录缺失时兜底。
                 let avatar: String
