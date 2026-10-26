@@ -1,5 +1,13 @@
 # ddlNew 项目交接文档
 
+## 2026-10-26 清理未使用的腾讯播放器依赖
+
+按用户要求移除 `Player_SwiftPM`：删除应用 target 的 Frameworks 链接项、package product、远程包引用，并由 Xcode 重新解析 `Package.resolved`。仅移除腾讯播放器，剩余24个包的版本及revision保持不变。应用与自有SDK未发现腾讯播放器导入、初始化、播放或动态调用；聊天视频仍使用 `ChatPhotoBrowserPlayback` 的系统 `AVPlayer` 和 `ChatPhotoBrowserVideoCell` 的 `AVPlayerViewController`。
+
+验证：依赖解析、工程格式检查、视频播放专项11/11及 `git diff --check` 通过。独立目录的无签名generic iOS Release构建exit0、`BUILD SUCCEEDED`，日志 `/tmp/ddlNew-tencent-removal-release.log`；产物 `/tmp/ddlNew-tencent-removal-release/Build/Products/Release-iphoneos/ddlNew.app` 全包文件名、23个Mach-O的动态链接和字符串扫描均无腾讯播放器相关命中，确认没有 `TXLiteAVSDK_Player`、`TXFFmpeg`、`TXSoundTouch`，结果 `/tmp/ddlNew-tencent-removal-scan.json`。Release包也未包含仅Debug使用的WoodPecker；既有SDK桥接头警告保留。构建环境排除sentry-cli，未上传符号或源码。此证据为本地Release build，不是签名Archive/提交IPA或真机播放验收，也不代表其他SDK的IP检测/远程配置问题或整项2.5.19审核已通过。保留用户已有 `Info.plist` 修改及期间出现的Sentry空traits工程配置，未操作设备、未提交或推送。
+
+收尾时HEAD已前进到 `b0974d8`，腾讯播放器移除及同期工程/Info.plist改动已包含在该提交；本助手未执行commit/push。当前仅最终验证结果的交接文档补充待提交。
+
 ## 2026-10-26 消息分支移植本地配置与DNS1单一路径
 
 将 `feature-IMSDK-2` 的 `bcbf948`、`2ebfd50` 语义移植到 `feature-message-4`，保留消息分支的群聊、附件上传、音视频通话、资料/角色维护、HTTP Host发布和身份/取消隔离。以本节取代10月22日五路兜底与历史系统配置刷新说明。

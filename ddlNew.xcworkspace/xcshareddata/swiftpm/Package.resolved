@@ -1,5 +1,5 @@
 {
-  "originHash" : "30146a0ec3915e4e30fb74011e8ca9f9e83447cd89c5e01f793a5702a871af0a",
+  "originHash" : "cc2a9d4a45bbcc48d100155d6da22855a673802b9ced3fecc6ac640cbca81ebe",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -107,15 +107,6 @@
       "state" : {
         "revision" : "0a09aa30ffddfbae30195e3d8c2814a5a5f321f3",
         "version" : "4.2.0"
-      }
-    },
-    {
-      "identity" : "player_swiftpm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Tencent-RTC/Player_SwiftPM.git",
-      "state" : {
-        "revision" : "f8c0db7e0fbe7e517a27d3fc2ce5e1c68a572d89",
-        "version" : "13.4.21062"
       }
     },
     {

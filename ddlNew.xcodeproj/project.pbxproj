@@ -34,7 +34,6 @@
 		DDADAC4530652BF600F0B6ED /* NoaChatCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DDADAC4330652BF600F0B6ED /* NoaChatCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F479ADD160251E41405D2E8A /* MemberJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4F7CF770A67687AD9F9CBC /* MemberJourneyTests.swift */; };
 		FA5B1E000000000000000003 /* FSPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000002 /* FSPlayer */; };
-		FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000005 /* Player_SwiftPM */; };
 		FA5B1E000000000000000009 /* JXPhotoBrowser in Frameworks */ = {isa = PBXBuildFile; productRef = FA5B1E000000000000000008 /* JXPhotoBrowser */; };
 /* End PBXBuildFile section */
 
@@ -116,7 +115,6 @@
 				C41120261020000000000003 /* Promises in Frameworks */,
 				0928A0010000000000000009 /* ZegoExpressEngine in Frameworks */,
 				FA5B1E000000000000000003 /* FSPlayer in Frameworks */,
-				FA5B1E000000000000000006 /* Player_SwiftPM in Frameworks */,
 				FA5B1E000000000000000009 /* JXPhotoBrowser in Frameworks */,
 				28A1C0010000000000000001 /* Kingfisher in Frameworks */,
 				28A1C0010000000000000002 /* CocoaAsyncSocket in Frameworks */,
@@ -245,7 +243,6 @@
 				C41120261020000000000002 /* Promises */,
 				0928A0010000000000000006 /* ZegoExpressEngine */,
 				FA5B1E000000000000000002 /* FSPlayer */,
-				FA5B1E000000000000000005 /* Player_SwiftPM */,
 				FA5B1E000000000000000008 /* JXPhotoBrowser */,
 				28A1C0010000000000000003 /* Kingfisher */,
 				28A1C0010000000000000004 /* CocoaAsyncSocket */,
@@ -299,7 +296,6 @@
 				0928A0010000000000000002 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 				0928A0010000000000000003 /* XCRemoteSwiftPackageReference "express-video-ios" */,
 				FA5B1E000000000000000001 /* XCRemoteSwiftPackageReference "FSPlayer-SPM" */,
-				FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */,
 				FA5B1E000000000000000007 /* XCRemoteSwiftPackageReference "PhotoBrowser" */,
 				28A1C0010000000000000005 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				28A1C0010000000000000006 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
@@ -818,6 +814,8 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
+			traits = (
+			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -913,14 +911,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.1.1;
-			};
-		};
-		FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Tencent-RTC/Player_SwiftPM.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 13.4.21062;
 			};
 		};
 		FA5B1E000000000000000007 /* XCRemoteSwiftPackageReference "PhotoBrowser" */ = {
@@ -1033,11 +1023,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA5B1E000000000000000001 /* XCRemoteSwiftPackageReference "FSPlayer-SPM" */;
 			productName = FSPlayer;
-		};
-		FA5B1E000000000000000005 /* Player_SwiftPM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA5B1E000000000000000004 /* XCRemoteSwiftPackageReference "Player_SwiftPM" */;
-			productName = Player_SwiftPM;
 		};
 		FA5B1E000000000000000008 /* JXPhotoBrowser */ = {
 			isa = XCSwiftPackageProductDependency;
