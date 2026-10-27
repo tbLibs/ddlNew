@@ -1,0 +1,6 @@
+LIVE CAPTURE COMPLETED
+The actual sanitized results are in 05-DNS1-Sanitized-Live-Response.json and DNS1-Live-Response-Evidence.pdf.
+No raw response bodies, lookup credentials or invitation code are included.
+Re-run locally using: bash Tests/DNS1/capture-review-response.sh /absolute/path/to/new-capture.json
+The helper prompts for the invitation code without echoing it. Do not supply a user account or password.
+Each successful run creates a new file and refuses to overwrite an existing capture. Do not reuse old source hashes for a new run.

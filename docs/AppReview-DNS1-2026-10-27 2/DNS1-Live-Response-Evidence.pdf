@@ -1,0 +1,1156 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/PageMode /UseNone
+/Pages 2 0 R
+/Type /Catalog
+>>
+endobj
+2 0 obj
+<<
+/Count 3
+/Kids [ 3 0 R 9 0 R 11 0 R ]
+/Type /Pages
+>>
+endobj
+3 0 obj
+<<
+/Contents 4 0 R
+/MediaBox [ 0 0 595.2756 841.8898 ]
+/Parent 2 0 R
+/Resources <<
+/Font 5 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+>>
+endobj
+4 0 obj
+<<
+/Length 5380
+>>
+stream
+1 0 0 1 0 0 cm
+BT
+/F1 12 Tf
+14.4 TL
+ET
+0.85098 0.882353 0.909804 RG
+n
+44 42 m
+551.2756 42 l
+S
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.32549 0.384314 0.45098 rg
+BT
+1 0 0 1 44 29 Tm
+(DNS1 technical evidence \174 Version 1\0561\0560 \0506\051 \174 27 Oct 2026) Tj
+T*
+ET
+BT
+1 0 0 1 546.8276 29 Tm
+(1) Tj
+T*
+ET
+q
+1 0 0 1 50 764.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 5 Tm
+/F2 24 Tf
+29 TL
+(DNS1 live\055response evidence) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 740.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Supporting material for App Review Guideline 2\0565\05619) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 706.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 18 Tm
+/F1 10 Tf
+14 TL
+-0.080339 Tw
+(Submitted version\072 1\0561\0560\054 build 6 \050developer\055confirmed\051\056 Review invitation code and test credentials are provided) Tj
+T*
+0 Tw
+(in App Review Information\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 687.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Live capture\072 2026\05510\05527T09\07224\07218\05308\07200 to 2026\05510\05527T09\07224\07220\05308\07200 \050UTC\05308\07200 \057 Asia\057Shanghai\051\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 658.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(Observed results) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 536.8898 cm
+q
+0.898039 0.929412 0.952941 rg
+n
+0 115 507 -23 re
+f*
+0 0 0 rg
+BT
+/F1 10 Tf
+12 TL
+ET
+q
+1 0 0 1 9 96 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Measurement) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 141 96 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Main DNS source) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 283 96 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Independent BIN request) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 9 73 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Transport\057result) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 141 73 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(7 AAAA records) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 283 73 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(HTTP 200\073 280 bytes) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 9 50 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Decoded format) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 141 50 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Comma\055separated TCP list) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 283 50 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(JSON object) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 9 27 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(TCP nodes) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 141 27 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(4) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 283 27 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(4) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 9 4 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(HTTP service URLs) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 141 4 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(0) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 283 4 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(4 \050HTTPS\051) Tj
+T*
+ET
+Q
+Q
+q
+1 J
+1 j
+0.85098 0.882353 0.909804 RG
+0.4 w
+n
+0 92 m
+507 92 l
+S
+n
+0 69 m
+507 69 l
+S
+n
+0 46 m
+507 46 l
+S
+n
+0 23 m
+507 23 l
+S
+n
+0 0 m
+507 0 l
+S
+Q
+Q
+Q
+q
+1 0 0 1 50 528.8898 cm
+Q
+q
+1 0 0 1 50 486.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 32 Tm
+/F1 10 Tf
+14 TL
+(The TCP node sets matched exactly before redaction\056 The decrypted BIN contained tcp and http fields\054 with no) Tj
+T*
+(additional top\055level fields in this capture\056 All four input entries in each relevant array\057list remained in the) Tj
+T*
+(normalized output\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 457.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(How this relates to the review findings) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 422.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 18 Tm
+/F1 10 Tf
+14 TL
+(Remote lookup\072 DNS1 obtains backend endpoints associated with the invitation code\056 The remote values can) Tj
+T*
+(change which server the app connects to\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 373.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 32 Tm
+/F1 10 Tf
+14 TL
+(Decoding\072 AAAA records carry fragments of a custom endpoint\055list protocol\056 The fallback BIN carries encrypted) Tj
+T*
+(endpoint JSON\056 This is more than ordinary hostname resolution\056 The parsed values supply TCP connections) Tj
+T*
+(and optional API\057file\055transfer URLs\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 324.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 32 Tm
+/F1 10 Tf
+14 TL
+(Lookup credentials\072 DNS1DoHClient uses an account identifier\054 access key and a locally calculated signature to) Tj
+T*
+(authenticate the DNS\055service request\056 The secret value is not sent as a plaintext query parameter\056 It is distinct) Tj
+T*
+(from the test user password\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 295.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(Evidence boundary) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 252.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 27.5 Tm
+/F1 8.5 Tf
+12 TL
+(This was a macOS command\055line capture using current project functions\054 not a capture from the submitted IPA\056 It does not verify) Tj
+T*
+(user login\054 messaging\054 ECDH reachability or device reconnection\056 The next pages contain actual normalized results with explicitly) Tj
+T*
+(substituted addresses and ports\056) Tj
+T*
+ET
+Q
+Q
+
+endstream
+endobj
+5 0 obj
+<<
+/F1 6 0 R
+/F2 7 0 R
+/F3 8 0 R
+>>
+endobj
+6 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Courier
+/Encoding /WinAnsiEncoding
+/Name /F3
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+/Contents 10 0 R
+/MediaBox [ 0 0 595.2756 841.8898 ]
+/Parent 2 0 R
+/Resources <<
+/Font 5 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+>>
+endobj
+10 0 obj
+<<
+/Length 3636
+>>
+stream
+1 0 0 1 0 0 cm
+BT
+/F1 12 Tf
+14.4 TL
+ET
+0.85098 0.882353 0.909804 RG
+n
+44 42 m
+551.2756 42 l
+S
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.32549 0.384314 0.45098 rg
+BT
+1 0 0 1 44 29 Tm
+(DNS1 technical evidence \174 Version 1\0561\0560 \0506\051 \174 27 Oct 2026) Tj
+T*
+ET
+BT
+1 0 0 1 546.8276 29 Tm
+(2) Tj
+T*
+ET
+q
+1 0 0 1 50 764.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 5 Tm
+/F2 24 Tf
+29 TL
+(Decoded results\054 redacted) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 728.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 15.5 Tm
+/F1 8.5 Tf
+12 TL
+(These are normalized outputs from the live responses\054 not raw wire JSON\056 Placeholder values were substituted after successful) Tj
+T*
+(parsing\073 they are not invented network results\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 699.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(A\056 Main DNS source) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 668.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 15.5 Tm
+/F1 8.5 Tf
+12 TL
+(Completed\072 2026\05510\05527T09\07224\07218\05308\07200\056 Seven AAAA records reconstructed a comma\055separated list of four TCP nodes\056 The http) Tj
+T*
+(array below is an empty normalization field\073 it was not present in the original DNS text\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 555.6898 cm
+0 0 0 rg
+BT
+1 0 0 1 0 97.9 Tm
+/F3 8.3 Tf
+11.8 TL
+(\173) Tj
+T*
+(  \042http\042\072 \133\135\054) Tj
+T*
+(  \042tcp\042\072 \133) Tj
+T*
+(    \042host\0551\056example\056invalid\07240001\042\054) Tj
+T*
+(    \042host\0552\056example\056invalid\07240002\042\054) Tj
+T*
+(    \042host\0553\056example\056invalid\07240002\042\054) Tj
+T*
+(    \042host\0554\056example\056invalid\07240001\042) Tj
+T*
+(  \135) Tj
+T*
+(\175) Tj
+T*
+ET
+Q
+q
+1 0 0 1 50 526.6898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(B\056 Fallback BIN source \055 independently requested) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 495.6898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 15.5 Tm
+/F1 8.5 Tf
+12 TL
+-0.074244 Tw
+(Completed\072 2026\05510\05527T09\07224\07220\05308\07200\056 HTTPS download returned HTTP 200 and 280 bytes\056 Decryption produced a JSON object) Tj
+T*
+0 Tw
+(with four tcp entries and four http entries\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 323.4898 cm
+0 0 0 rg
+BT
+1 0 0 1 0 156.9 Tm
+/F3 8.3 Tf
+11.8 TL
+(\173) Tj
+T*
+(  \042http\042\072 \133) Tj
+T*
+(    \042https\072\057\057host\0551\056example\056invalid\07240003\042\054) Tj
+T*
+(    \042https\072\057\057host\0552\056example\056invalid\07240004\042\054) Tj
+T*
+(    \042https\072\057\057host\0553\056example\056invalid\07240004\042\054) Tj
+T*
+(    \042https\072\057\057host\0554\056example\056invalid\07240003\042) Tj
+T*
+(  \135\054) Tj
+T*
+(  \042tcp\042\072 \133) Tj
+T*
+(    \042host\0551\056example\056invalid\07240001\042\054) Tj
+T*
+(    \042host\0552\056example\056invalid\07240002\042\054) Tj
+T*
+(    \042host\0553\056example\056invalid\07240002\042\054) Tj
+T*
+(    \042host\0554\056example\056invalid\07240001\042) Tj
+T*
+(  \135) Tj
+T*
+(\175) Tj
+T*
+ET
+Q
+q
+1 0 0 1 50 294.4898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(Redaction key) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 251.4898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 27.5 Tm
+/F1 8.5 Tf
+12 TL
+(Each original host maps consistently to host\055N\056example\056invalid across both results\056 Each explicit port maps consistently to a) Tj
+T*
+(synthetic number from 40001\056 Schemes\054 normalized entry order\057counts and host\057port equality relationships are retained\056 No HTTP) Tj
+T*
+-0.066785 Tw
+(path was present in these accepted URLs\056 Actual hosts\054 ports\054 the invitation code\054 credentials and signed request URLs are omitted\056) Tj
+T*
+0 Tw
+ET
+Q
+Q
+
+endstream
+endobj
+11 0 obj
+<<
+/Contents 12 0 R
+/MediaBox [ 0 0 595.2756 841.8898 ]
+/Parent 2 0 R
+/Resources <<
+/Font 5 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+>>
+endobj
+12 0 obj
+<<
+/Length 5346
+>>
+stream
+1 0 0 1 0 0 cm
+BT
+/F1 12 Tf
+14.4 TL
+ET
+0.85098 0.882353 0.909804 RG
+n
+44 42 m
+551.2756 42 l
+S
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.32549 0.384314 0.45098 rg
+BT
+1 0 0 1 44 29 Tm
+(DNS1 technical evidence \174 Version 1\0561\0560 \0506\051 \174 27 Oct 2026) Tj
+T*
+ET
+BT
+1 0 0 1 546.8276 29 Tm
+(3) Tj
+T*
+ET
+q
+1 0 0 1 50 764.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 5 Tm
+/F2 24 Tf
+29 TL
+(Method and provenance) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 735.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(Capture procedure) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 700.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 18 Tm
+/F1 10 Tf
+14 TL
+(1\056 Read the user\055supplied review invitation code without saving it to a source file\056 Use DNS1DoHClient\056records) Tj
+T*
+(for the live main\055domain query and DNS1Payload\056records for production parsing\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 665.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 18 Tm
+/F1 10 Tf
+14 TL
+(2\056 Request the configured BIN separately over HTTPS and pass its bytes to DNS1Payload\056bin and) Tj
+T*
+(AesEncryptUtils\056 Compare the two unredacted TCP node sets in memory\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 616.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 32 Tm
+/F1 10 Tf
+14 TL
+(3\056 Inspect the original decoded formats in memory and cross\055check the inspection output against the production) Tj
+T*
+(parser\056 Apply deterministic per\055capture redaction\054 then save normalized JSON\056 Raw payloads and the mapping) Tj
+T*
+(are not retained\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 581.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 18 Tm
+/F1 10 Tf
+14 TL
+-0.138401 Tw
+(The independent BIN request demonstrates the backup data source can return parseable data at capture time\056 It) Tj
+T*
+0 Tw
+(does not demonstrate that the app automatically fell back from DNS during this run\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 552.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(Source identification) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 533.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Local revision\072 53cdc4bc34215fd9a466995c2b444f6ab1d770c8) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 503.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 15.5 Tm
+/F1 8.5 Tf
+12 TL
+(The local project reports version 1\0560 \057 build 1\056 The developer identifies the rejected submission as 1\0561\0560 \057 build 6\056 Archive\055to\055source) Tj
+T*
+(correspondence has not been independently verified\073 this report does not equate the two builds\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 485.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(ddlNew\057Network\057DNS1\057DNS1Payload\056swift) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 469.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 2.8 Tm
+/F3 7.2 Tf
+10 TL
+(9badd776a27de5b44782af69dcb438e3e7c3c15f560aa3c9a4685168736cc1c9) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 449.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(ddlNew\057Network\057DNS1\057DNS1DoHClient\056swift) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 433.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 2.8 Tm
+/F3 7.2 Tf
+10 TL
+(75dbff669ebf9d8d9a63b83de11a25dc714284db52d14cc1151bce3c7ddb3dda) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 413.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(ddlNew\057Common\057Crypto\057AesEncryptUtils\056swift) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 397.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 2.8 Tm
+/F3 7.2 Tf
+10 TL
+(09166ce85ba1fc8825e4b39ecd7810ad8d5ff0ba835e8885cf2c30c94131c8eb) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 377.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Tests\057DNS1\057DNS1ReviewCapture\056swift) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 361.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 2.8 Tm
+/F3 7.2 Tf
+10 TL
+(9ad401529241120585d15f612cea2edaec62b6a599d6b2ed9cf7abbc77e28461) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 341.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 3.5 Tm
+/F1 8.5 Tf
+12 TL
+(Tests\057DNS1\057capture\055review\055response\056sh) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 325.8898 cm
+q
+0 0 0 rg
+BT
+1 0 0 1 0 2.8 Tm
+/F3 7.2 Tf
+10 TL
+(c6351a709cacb9806b10cf4c1e4bbe765da89e33f06ddbbd34a723e11174d9f5) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 296.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(Supporting files) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 253.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 27.5 Tm
+/F1 8.5 Tf
+12 TL
+-0.104773 Tw
+(05\055DNS1\055Sanitized\055Live\055Response\056json provides machine\055readable results\054 timestamps and hashes\056 02\055DNS1\055Source\055Appendix\056txt) Tj
+T*
+0 Tw
+(provides the six selected production source files with line numbers and original\055file hashes\056 The capture helper is developer tooling) Tj
+T*
+(outside the app source folder\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 224.8898 cm
+q
+0.090196 0.172549 0.262745 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 13 Tf
+17 TL
+(What these results do and do not establish) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 50 169.8898 cm
+q
+0.270588 0.333333 0.411765 rg
+BT
+1 0 0 1 0 39.5 Tm
+/F1 8.5 Tf
+12 TL
+(This capture confirms that the selected live DNS\057BIN responses decode to endpoint data\056 The current DNS1 parser consumes) Tj
+T*
+(tcp\057http endpoint fields and ignores unknown JSON fields\056 An absence of other fields in one sample is not a guarantee about future) Tj
+T*
+(responses or all app components\056 No app\055account login\054 message transmission\054 node probing\054 device reconnection or App Store) Tj
+T*
+(submission was performed\056) Tj
+T*
+ET
+Q
+Q
+
+endstream
+endobj
+13 0 obj
+<<
+/Author (Developer technical evidence)
+/CreationDate (D\07220261027092530\05308\04700\047)
+/Creator (\050unspecified\051)
+/Keywords ()
+/ModDate (D\07220261027092530\05308\04700\047)
+/Producer (ReportLab PDF Library \055 \050opensource\051)
+/Subject (\050unspecified\051)
+/Title (DNS1 Live Response Evidence)
+/Trapped /False
+>>
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000015 00000 n 
+0000000083 00000 n 
+0000000155 00000 n 
+0000000354 00000 n 
+0000005786 00000 n 
+0000005837 00000 n 
+0000005944 00000 n 
+0000006056 00000 n 
+0000006161 00000 n 
+0000006361 00000 n 
+0000010050 00000 n 
+0000010251 00000 n 
+0000015650 00000 n 
+trailer
+<<
+/Size 14
+/Root 1 0 R
+/Info 13 0 R
+/ID [ <48f651f5a39b8ba72315b5663fa9ad41> <48f651f5a39b8ba72315b5663fa9ad41> ]
+>>
+startxref
+15996
+%%EOF

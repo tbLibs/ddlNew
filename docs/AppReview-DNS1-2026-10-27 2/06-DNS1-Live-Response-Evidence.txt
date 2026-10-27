@@ -1,0 +1,116 @@
+DNS1 technical evidence | Version 1.1.0 (6) | 27 Oct 2026
+1
+DNS1 live-response evidence
+Supporting material for App Review Guideline 2.5.19
+Submitted version: 1.1.0, build 6 (developer-confirmed). Review invitation code and test credentials are provided
+in App Review Information.
+Live capture: 2026-10-27T09:24:18+08:00 to 2026-10-27T09:24:20+08:00 (UTC+08:00 / Asia/Shanghai).
+Observed results
+Measurement
+Main DNS source
+Independent BIN request
+Transport/result
+7 AAAA records
+HTTP 200; 280 bytes
+Decoded format
+Comma-separated TCP list
+JSON object
+TCP nodes
+4
+4
+HTTP service URLs
+0
+4 (HTTPS)
+The TCP node sets matched exactly before redaction. The decrypted BIN contained tcp and http fields, with no
+additional top-level fields in this capture. All four input entries in each relevant array/list remained in the
+normalized output.
+How this relates to the review findings
+Remote lookup: DNS1 obtains backend endpoints associated with the invitation code. The remote values can
+change which server the app connects to.
+Decoding: AAAA records carry fragments of a custom endpoint-list protocol. The fallback BIN carries encrypted
+endpoint JSON. This is more than ordinary hostname resolution. The parsed values supply TCP connections
+and optional API/file-transfer URLs.
+Lookup credentials: DNS1DoHClient uses an account identifier, access key and a locally calculated signature to
+authenticate the DNS-service request. The secret value is not sent as a plaintext query parameter. It is distinct
+from the test user password.
+Evidence boundary
+This was a macOS command-line capture using current project functions, not a capture from the submitted IPA. It does not verify
+user login, messaging, ECDH reachability or device reconnection. The next pages contain actual normalized results with explicitly
+substituted addresses and ports.
+
+DNS1 technical evidence | Version 1.1.0 (6) | 27 Oct 2026
+2
+Decoded results, redacted
+These are normalized outputs from the live responses, not raw wire JSON. Placeholder values were substituted after successful
+parsing; they are not invented network results.
+A. Main DNS source
+Completed: 2026-10-27T09:24:18+08:00. Seven AAAA records reconstructed a comma-separated list of four TCP nodes. The http
+array below is an empty normalization field; it was not present in the original DNS text.
+{
+  "http": [],
+  "tcp": [
+    "host-1.example.invalid:40001",
+    "host-2.example.invalid:40002",
+    "host-3.example.invalid:40002",
+    "host-4.example.invalid:40001"
+  ]
+}
+B. Fallback BIN source - independently requested
+Completed: 2026-10-27T09:24:20+08:00. HTTPS download returned HTTP 200 and 280 bytes. Decryption produced a JSON object
+with four tcp entries and four http entries.
+{
+  "http": [
+    "https://host-1.example.invalid:40003",
+    "https://host-2.example.invalid:40004",
+    "https://host-3.example.invalid:40004",
+    "https://host-4.example.invalid:40003"
+  ],
+  "tcp": [
+    "host-1.example.invalid:40001",
+    "host-2.example.invalid:40002",
+    "host-3.example.invalid:40002",
+    "host-4.example.invalid:40001"
+  ]
+}
+Redaction key
+Each original host maps consistently to host-N.example.invalid across both results. Each explicit port maps consistently to a
+synthetic number from 40001. Schemes, normalized entry order/counts and host/port equality relationships are retained. No HTTP
+path was present in these accepted URLs. Actual hosts, ports, the invitation code, credentials and signed request URLs are omitted.
+
+DNS1 technical evidence | Version 1.1.0 (6) | 27 Oct 2026
+3
+Method and provenance
+Capture procedure
+1. Read the user-supplied review invitation code without saving it to a source file. Use DNS1DoHClient.records
+for the live main-domain query and DNS1Payload.records for production parsing.
+2. Request the configured BIN separately over HTTPS and pass its bytes to DNS1Payload.bin and
+AesEncryptUtils. Compare the two unredacted TCP node sets in memory.
+3. Inspect the original decoded formats in memory and cross-check the inspection output against the production
+parser. Apply deterministic per-capture redaction, then save normalized JSON. Raw payloads and the mapping
+are not retained.
+The independent BIN request demonstrates the backup data source can return parseable data at capture time. It
+does not demonstrate that the app automatically fell back from DNS during this run.
+Source identification
+Local revision: 53cdc4bc34215fd9a466995c2b444f6ab1d770c8
+The local project reports version 1.0 / build 1. The developer identifies the rejected submission as 1.1.0 / build 6. Archive-to-source
+correspondence has not been independently verified; this report does not equate the two builds.
+ddlNew/Network/DNS1/DNS1Payload.swift
+9badd776a27de5b44782af69dcb438e3e7c3c15f560aa3c9a4685168736cc1c9
+ddlNew/Network/DNS1/DNS1DoHClient.swift
+75dbff669ebf9d8d9a63b83de11a25dc714284db52d14cc1151bce3c7ddb3dda
+ddlNew/Common/Crypto/AesEncryptUtils.swift
+09166ce85ba1fc8825e4b39ecd7810ad8d5ff0ba835e8885cf2c30c94131c8eb
+Tests/DNS1/DNS1ReviewCapture.swift
+9ad401529241120585d15f612cea2edaec62b6a599d6b2ed9cf7abbc77e28461
+Tests/DNS1/capture-review-response.sh
+c6351a709cacb9806b10cf4c1e4bbe765da89e33f06ddbbd34a723e11174d9f5
+Supporting files
+05-DNS1-Sanitized-Live-Response.json provides machine-readable results, timestamps and hashes. 02-DNS1-Source-Appendix.txt
+provides the six selected production source files with line numbers and original-file hashes. The capture helper is developer tooling
+outside the app source folder.
+What these results do and do not establish
+This capture confirms that the selected live DNS/BIN responses decode to endpoint data. The current DNS1 parser consumes
+tcp/http endpoint fields and ignores unknown JSON fields. An absence of other fields in one sample is not a guarantee about future
+responses or all app components. No app-account login, message transmission, node probing, device reconnection or App Store
+submission was performed.
+

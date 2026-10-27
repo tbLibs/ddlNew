@@ -1,0 +1,546 @@
+DNS1 SOURCE APPENDIX
+Prepared: 2026-10-27 (Asia/Shanghai)
+Local source revision: 53cdc4bc34215fd9a466995c2b444f6ab1d770c8
+
+These are complete, numbered source listings of six selected files, not a complete buildable project. File contents are unchanged; line numbers are added for reference. The developer has identified the rejected submission as version 1.1.0, build 6. The correspondence between this local source revision and that binary has not yet been confirmed.
+
+Credential definitions in Configuration/Const.swift are intentionally not included. Symbol names and signature construction are retained. No credentials have been replaced inside these selected listings because they refer to credential symbols rather than containing their literal values.
+
+
+FILE: ddlNew/Network/DNS1/DNS1DoHClient.swift
+SHA256 (original bytes): 75dbff669ebf9d8d9a63b83de11a25dc714284db52d14cc1151bce3c7ddb3dda
+0001 | import Foundation
+0002 | import CryptoKit
+0003 | 
+0004 | /// 只查询服务器 AAAA 记录，不查询或附带设备公网/网卡地址。
+0005 | nonisolated enum DNS1DoHClient {
+0006 |     static func request(domain: String, timestamp: String, endpoint: String, timeout: TimeInterval) throws -> URLRequest {
+0007 |         let input = dns1AccountId + dns1AccessKeySecret + timestamp + domain + dns1AccessKey
+0008 |         let signature = SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+0009 |         guard var url = URLComponents(string: endpoint) else { throw DNS1Error.unavailable }
+0010 |         url.queryItems = ["name": domain, "type": "AAAA", "uid": dns1AccountId,
+0011 |                           "ak": dns1AccessKey, "ts": timestamp, "key": signature]
+0012 |             .map { URLQueryItem(name: $0.key, value: $0.value) }
+0013 |         guard let address = url.url else { throw DNS1Error.unavailable }
+0014 |         var request = URLRequest(url: address, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
+0015 |         request.setValue("application/dns-json", forHTTPHeaderField: "Accept")
+0016 |         return request
+0017 |     }
+0018 | 
+0019 |     static func decode(_ data: Data, response: URLResponse) throws -> [String] {
+0020 |         guard (response as? HTTPURLResponse)?.statusCode == 200, data.count <= 1_048_576 else {
+0021 |             throw DNS1Error.unavailable
+0022 |         }
+0023 |         let result = try JSONDecoder().decode(Response.self, from: data)
+0024 |         guard result.Status == 0 else { throw DNS1Error.unavailable }
+0025 |         let records = (result.Answer ?? []).filter { $0.type == 28 }.map(\.data)
+0026 |         guard !records.isEmpty else { throw DNS1Error.unavailable }
+0027 |         return records
+0028 |     }
+0029 | 
+0030 |     static func records(domain: String) async throws -> [String] {
+0031 |         let configuration = URLSessionConfiguration.ephemeral
+0032 |         configuration.urlCache = nil
+0033 |         configuration.httpCookieStorage = nil
+0034 |         configuration.urlCredentialStorage = nil
+0035 |         configuration.timeoutIntervalForResource = 5
+0036 |         let session = URLSession(configuration: configuration)
+0037 |         defer { session.invalidateAndCancel() }
+0038 |         let deadline = ProcessInfo.processInfo.systemUptime + 5
+0039 |         for endpoint in ["https://223.5.5.5/resolve", "https://223.6.6.6/resolve"] {
+0040 |             try Task.checkCancellation()
+0041 |             let remaining = deadline - ProcessInfo.processInfo.systemUptime
+0042 |             guard remaining > 0 else { break }
+0043 |             do {
+0044 |                 let request = try request(domain: domain, timestamp: String(Int(Date().timeIntervalSince1970)),
+0045 |                                           endpoint: endpoint, timeout: remaining)
+0046 |                 let (data, response) = try await session.data(for: request)
+0047 |                 try Task.checkCancellation()
+0048 |                 return try decode(data, response: response)
+0049 |             } catch {
+0050 |                 try Task.checkCancellation()
+0051 |             }
+0052 |         }
+0053 |         throw DNS1Error.unavailable
+0054 |     }
+0055 | 
+0056 |     private struct Response: Decodable {
+0057 |         let Status: Int
+0058 |         let Answer: [AnswerRecord]?
+0059 |     }
+0060 |     private struct AnswerRecord: Decodable {
+0061 |         let type: Int
+0062 |         let data: String
+0063 |     }
+0064 | }
+
+
+FILE: ddlNew/Network/DNS1/DNS1Payload.swift
+SHA256 (original bytes): 9badd776a27de5b44782af69dcb438e3e7c3c15f560aa3c9a4685168736cc1c9
+0001 | //
+0002 | //  DNS1Payload.swift
+0003 | //  ddlNew
+0004 | //
+0005 | //  Created by taobo on 2026/10/17.
+0006 | //
+0007 | 
+0008 | import Foundation
+0009 | import CryptoKit
+0010 | import Darwin
+0011 | 
+0012 | nonisolated enum DNS1Error: Error { case invalidLicense, invalidPayload, unavailable }
+0013 | 
+0014 | /// APP 专用载荷：TCP 必须有效，HTTP 只是服务端明确给出的可选文件地址。
+0015 | nonisolated struct DNS1Payload: Sendable, Equatable {
+0016 |     let tcp: [DNS1TCPNode]
+0017 |     let http: [URL]
+0018 | 
+0019 |     static func license(_ value: String) throws -> String {
+0020 |         guard (1...62).contains(value.utf8.count), value.utf8.allSatisfy({
+0021 |             (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 || $0 == 95
+0022 |         }) else { throw DNS1Error.invalidLicense }
+0023 |         return value
+0024 |     }
+0025 | 
+0026 |     /// IPv6 的前两个字节是大端序号，后十四字节是内容；乱序、重复、缺片统一校验。
+0027 |     static func records(_ records: [String]) throws -> Self {
+0028 |         guard !records.isEmpty, records.count <= 4096 else { throw DNS1Error.invalidPayload }
+0029 |         var chunks: [Int: [UInt8]] = [:]
+0030 |         for record in records {
+0031 |             var bytes = [UInt8](repeating: 0, count: 16)
+0032 |             guard inet_pton(AF_INET6, record, &bytes) == 1 else { throw DNS1Error.invalidPayload }
+0033 |             let index = Int(bytes[0]) * 256 + Int(bytes[1])
+0034 |             let chunk = Array(bytes.dropFirst(2))
+0035 |             if let old = chunks[index], old != chunk { throw DNS1Error.invalidPayload }
+0036 |             chunks[index] = chunk
+0037 |         }
+0038 |         let indices = chunks.keys.sorted()
+0039 |         guard let first = indices.first, first == 0 || first == 1,
+0040 |               indices == Array(first..<(first + indices.count)) else { throw DNS1Error.invalidPayload }
+0041 |         let bytes = indices.flatMap { chunks[$0]! }.prefix { $0 != 0 }
+0042 |         guard let text = String(bytes: bytes, encoding: .utf8) else { throw DNS1Error.invalidPayload }
+0043 |         return try decode(text, requireJSON: false)
+0044 |     }
+0045 | 
+0046 |     static func decode(_ text: String, requireJSON: Bool) throws -> Self {
+0047 |         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+0048 |         var tcpValues: [String]
+0049 |         var httpValues: [String] = []
+0050 |         if let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] {
+0051 |             guard let nodes = object["tcp"] as? [String] else { throw DNS1Error.invalidPayload }
+0052 |             tcpValues = nodes
+0053 |             httpValues = object["http"] as? [String] ?? []
+0054 |         } else {
+0055 |             guard !requireJSON, !text.hasPrefix("{"), !text.hasPrefix("[") else { throw DNS1Error.invalidPayload }
+0056 |             tcpValues = text.components(separatedBy: ",")
+0057 |         }
+0058 |         var tcp: [DNS1TCPNode] = []
+0059 |         for value in tcpValues {
+0060 |             if let node = DNS1TCPNode(value), !tcp.contains(node) { tcp.append(node) }
+0061 |         }
+0062 |         guard !tcp.isEmpty, tcp.count <= 64 else { throw DNS1Error.invalidPayload }
+0063 |         var http: [URL] = []
+0064 |         for value in httpValues {
+0065 |             if let url = httpURL(value), !http.contains(url) { http.append(url) }
+0066 |         }
+0067 |         return Self(tcp: tcp, http: http)
+0068 |     }
+0069 | 
+0070 |     /// BIN 的密钥派生沿用旧协议，但只接受解密后的 JSON TCP 载荷。
+0071 |     @MainActor static func bin(_ data: Data, license: String) throws -> Self {
+0072 |         _ = try Self.license(license)
+0073 |         let secret = Insecure.MD5.hash(data: Data(license.utf8)).map { String(format: "%02x", $0) }.joined()
+0074 |         var candidates = [data]
+0075 |         if let text = String(data: data, encoding: .utf8),
+0076 |            let decoded = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines)) { candidates.append(decoded) }
+0077 |         for candidate in candidates {
+0078 |             if let plain = AesEncryptUtils.decryptBytes(candidate, secret: secret),
+0079 |                let text = String(data: plain, encoding: .utf8),
+0080 |                let payload = try? decode(text, requireJSON: true) { return payload }
+0081 |         }
+0082 |         throw DNS1Error.invalidPayload
+0083 |     }
+0084 | 
+0085 |     static func httpURL(_ value: String) -> URL? {
+0086 |         let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+0087 |         guard !value.isEmpty, !value.contains(where: { $0.isWhitespace }) else { return nil }
+0088 |         let raw = value.contains("://") ? value : "https://" + value
+0089 |         guard let parts = URLComponents(string: raw), ["http", "https"].contains(parts.scheme?.lowercased() ?? ""),
+0090 |               let host = parts.host, !host.isEmpty, parts.user == nil, parts.password == nil,
+0091 |               parts.query == nil, parts.fragment == nil,
+0092 |               parts.port == nil || (1...65535).contains(parts.port!) else { return nil }
+0093 |         return parts.url
+0094 |     }
+0095 | }
+0096 | 
+0097 | nonisolated struct DNS1TCPNode: Sendable, Equatable {
+0098 |     let host: String
+0099 |     let port: UInt16
+0100 | 
+0101 |     /// 不接受 URL、WebSocket 或推算端口；IPv6 必须带方括号和显式端口。
+0102 |     init?(_ address: String) {
+0103 |         let value = address.trimmingCharacters(in: .whitespacesAndNewlines)
+0104 |         guard !value.isEmpty, !value.contains(where: { $0.isWhitespace }),
+0105 |               !value.contains("/"), !value.contains("@"), !value.contains("?"), !value.contains("#") else { return nil }
+0106 |         let host: String
+0107 |         let portText: String
+0108 |         if value.hasPrefix("["), let end = value.firstIndex(of: "]") {
+0109 |             host = String(value[value.index(after: value.startIndex)..<end])
+0110 |             let tail = value[value.index(after: end)...]
+0111 |             guard tail.hasPrefix(":"), !host.contains("%") else { return nil }
+0112 |             portText = String(tail.dropFirst())
+0113 |             var bytes = [UInt8](repeating: 0, count: 16)
+0114 |             guard inet_pton(AF_INET6, host, &bytes) == 1 else { return nil }
+0115 |         } else {
+0116 |             let parts = value.split(separator: ":", omittingEmptySubsequences: false)
+0117 |             guard parts.count == 2 else { return nil }
+0118 |             host = String(parts[0]); portText = String(parts[1])
+0119 |             guard !host.isEmpty, host.utf8.count <= 253,
+0120 |                   host.split(separator: ".", omittingEmptySubsequences: false).allSatisfy({ label in
+0121 |                       !label.isEmpty && label.count <= 63 && label.first != "-" && label.last != "-" &&
+0122 |                       label.utf8.allSatisfy { (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 }
+0123 |                   }) else { return nil }
+0124 |         }
+0125 |         guard !portText.isEmpty, portText.utf8.allSatisfy({ (48...57).contains($0) }),
+0126 |               let port = UInt16(portText), port > 0 else { return nil }
+0127 |         self.host = host; self.port = port
+0128 |     }
+0129 | 
+0130 |     var address: String { host.contains(":") ? "[\(host)]:\(port)" : "\(host):\(port)" }
+0131 | }
+
+
+FILE: ddlNew/Network/DNS1/DNS1NodeRaceCoordinator.swift
+SHA256 (original bytes): fea8fb8f851a7add478c9ac72603e4a7526374a6148a159731f0136e9e29d6af
+0001 | //
+0002 | //  DNS1NodeRaceCoordinator.swift
+0003 | //  ddlNew
+0004 | //
+0005 | //  Created by taobo on 2026/10/17.
+0006 | //
+0007 | 
+0008 | import Foundation
+0009 | import CryptoKit
+0010 | import NoaChatCore
+0011 | 
+0012 | /// 仅在内存中转为现有连接模型，不向旧 OSS 导航发送请求，也不查询 Web 的 w 域名。
+0013 | @MainActor enum DNS1NodeRaceCoordinator {
+0014 |     static var version: String {
+0015 |         let input = [dns1MainDomain, dns1BackupDomain, dns1BinURLTemplate].joined(separator: "|")
+0016 |         let hash = SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+0017 |         return "DNS1:v2:" + hash
+0018 |     }
+0019 | 
+0020 |     static func race(license: String, useCache: Bool = false) async throws -> OSSRaceWinner {
+0021 |         let sources = try DNS1SourceRace.sources(license: license, main: dns1MainDomain,
+0022 |             backup: dns1BackupDomain, binTemplate: dns1BinURLTemplate)
+0023 |         var cached: DNS1Payload?
+0024 |         if useCache, let snapshot = try? OSSNavigationStore.shared.load(), snapshot.lastLiceseId == license, snapshot.source == .dns1 {
+0025 |             cached = try? payload(from: snapshot.body)
+0026 |         }
+0027 |         let selection = try await DNS1SourceRace.run(sources: sources, cached: cached,
+0028 |             load: { try await load($0, license: license) }, probe: probe)
+0029 |         try Task.checkCancellation()
+0030 |         let body = try body(selection.payload, selected: selection.node)
+0031 |         let navigation = try OSSAuthResponseDecoder.navigation(from: body)
+0032 |         return OSSRaceWinner(source: .dns1, node: DNSResolvedHost(urlString: selection.node.address, type: "DNS1"), navigation: navigation)
+0033 |     }
+0034 | 
+0035 |     private static func load(_ source: DNS1Source, license: String) async throws -> DNS1Payload {
+0036 |         if source.kind == .bin {
+0037 |             guard let url = URL(string: source.address), url.scheme == "https" else { throw DNS1Error.invalidPayload }
+0038 |             let configuration = URLSessionConfiguration.ephemeral
+0039 |             configuration.timeoutIntervalForRequest = 5
+0040 |             configuration.timeoutIntervalForResource = 5
+0041 |             configuration.urlCache = nil; configuration.httpCookieStorage = nil; configuration.urlCredentialStorage = nil
+0042 |             let session = URLSession(configuration: configuration)
+0043 |             defer { session.invalidateAndCancel() }
+0044 |             let (data, response) = try await session.data(for: URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5))
+0045 |             try Task.checkCancellation()
+0046 |             guard (response as? HTTPURLResponse)?.statusCode == 200, data.count <= 1_048_576 else { throw DNS1Error.unavailable }
+0047 |             return try DNS1Payload.bin(data, license: license)
+0048 |         }
+0049 |         let records = try await DNS1DoHClient.records(domain: source.address)
+0050 |         try Task.checkCancellation()
+0051 |         return try DNS1Payload.records(records)
+0052 |     }
+0053 | 
+0054 |     private static func probe(_ node: DNS1TCPNode) async throws -> Bool {
+0055 |         let waiter = DNS1CallbackWaiter<Bool>()
+0056 |         return try await waiter.run(seconds: 4) {
+0057 |             NoaIMSDKManager.sharedTool().probeECDHConnectivity(withHost: node.host, port: node.port, timeout: 4, type: 0) { success, _ in
+0058 |                 Task { @MainActor in waiter.finish(.success(success)) }
+0059 |             }
+0060 |         }
+0061 |     }
+0062 | 
+0063 |     /// 原生载荷作为独立版本写入现有持久化容器；不伪造旧导航的探测开关或 HTTP 节点。
+0064 |     private static func body(_ payload: DNS1Payload, selected: DNS1TCPNode) throws -> IMServerListResponseBody {
+0065 |         var body = IMServerListResponseBody()
+0066 |         body.imEndpoints = ([selected] + payload.tcp.filter { $0 != selected }).map { node in
+0067 |             var endpoint = IMServerEndpoint()
+0068 |             endpoint.ip = node.host; endpoint.port = Int32(node.port); endpoint.protocols = ["tcp"]
+0069 |             return endpoint
+0070 |         }
+0071 |         body.meta.navVersion = version
+0072 |         // traceID 在该本地版本中专门保存可选 HTTP 元数据，保留 scheme/path，不从 TCP 猜端口。
+0073 |         body.meta.traceID = String(decoding: try JSONSerialization.data(withJSONObject: payload.http.map(\.absoluteString)), as: UTF8.self)
+0074 |         body.cacheTtl = 0 // 服务端未给 TTL；恢复缓存只作为候选，必须重新探测并完成正式握手。
+0075 |         return body
+0076 |     }
+0077 | 
+0078 |     static func payload(from body: IMServerListResponseBody) throws -> DNS1Payload {
+0079 |         guard body.meta.navVersion == version,
+0080 |               let urls = try JSONSerialization.jsonObject(with: Data(body.meta.traceID.utf8)) as? [String] else { throw DNS1Error.invalidPayload }
+0081 |         let tcp = body.imEndpoints.filter { $0.protocols == ["tcp"] }.map {
+0082 |             $0.ip.contains(":") ? "[\($0.ip)]:\($0.port)" : "\($0.ip):\($0.port)"
+0083 |         }
+0084 |         let json = try JSONSerialization.data(withJSONObject: ["tcp": tcp, "http": urls])
+0085 |         return try DNS1Payload.decode(String(decoding: json, as: UTF8.self), requireJSON: true)
+0086 |     }
+0087 | }
+
+
+FILE: ddlNew/Network/DNS1/DNS1SourceRace.swift
+SHA256 (original bytes): ff5fe7b3a96f706230957a477fe638517c6a02003beb418af8c44b5ee84d13c4
+0001 | //
+0002 | //  DNS1SourceRace.swift
+0003 | //  ddlNew
+0004 | //
+0005 | //  Created by taobo on 2026/10/17.
+0006 | //
+0007 | 
+0008 | import Foundation
+0009 | 
+0010 | nonisolated struct DNS1Source: Sendable, Equatable {
+0011 |     enum Kind: String, Sendable { case cache, main, backup, bin }
+0012 |     let kind: Kind
+0013 |     let address: String
+0014 | }
+0015 | 
+0016 | nonisolated struct DNS1Selection: Sendable {
+0017 |     let source: DNS1Source
+0018 |     let payload: DNS1Payload
+0019 |     let node: DNS1TCPNode
+0020 | }
+0021 | 
+0022 | /// 来源按顺序推进；某来源的数据虽合法但全部 ECDH 失败时仍需继续备域/BIN。
+0023 | @MainActor enum DNS1SourceRace {
+0024 |     static func sources(license: String, main: String, backup: String, binTemplate: String) throws -> [DNS1Source] {
+0025 |         _ = try DNS1Payload.license(license)
+0026 |         var sources: [DNS1Source] = []
+0027 |         for (kind, domain) in [(DNS1Source.Kind.main, main), (.backup, backup)] where !domain.isEmpty {
+0028 |             let name = "t" + license.lowercased() + "." + domain
+0029 |             if !sources.contains(where: { $0.address == name }) { sources.append(DNS1Source(kind: kind, address: name)) }
+0030 |         }
+0031 |         // BIN 大小写沿用输入，只有 DNS 企业号转小写。
+0032 |         sources.append(DNS1Source(kind: .bin, address: binTemplate.replacingOccurrences(of: "%s", with: license)))
+0033 |         return sources
+0034 |     }
+0035 | 
+0036 |     static func run(sources: [DNS1Source], cached: DNS1Payload? = nil,
+0037 |                     load: @escaping @MainActor (DNS1Source) async throws -> DNS1Payload,
+0038 |                     probe: @escaping @MainActor (DNS1TCPNode) async throws -> Bool) async throws -> DNS1Selection {
+0039 |         var all = sources
+0040 |         if cached != nil { all.insert(DNS1Source(kind: .cache, address: "cache"), at: 0) }
+0041 |         for source in all {
+0042 |             try Task.checkCancellation()
+0043 |             do {
+0044 |                 let payload: DNS1Payload
+0045 |                 if source.kind == .cache, let cached { payload = cached }
+0046 |                 else { payload = try await load(source) }
+0047 |                 let node = try await withThrowingTaskGroup(of: DNS1TCPNode?.self) { group in
+0048 |                     for node in payload.tcp {
+0049 |                         group.addTask {
+0050 |                             do { return try await probe(node) ? node : nil }
+0051 |                             catch is CancellationError { throw CancellationError() }
+0052 |                             catch { return nil }
+0053 |                         }
+0054 |                     }
+0055 |                     defer { group.cancelAll() }
+0056 |                     for try await result in group { if let result { return result } }
+0057 |                     throw DNS1Error.unavailable
+0058 |                 }
+0059 |                 try Task.checkCancellation()
+0060 |                 return DNS1Selection(source: source, payload: payload, node: node)
+0061 |             } catch is CancellationError { throw CancellationError() }
+0062 |             catch { try Task.checkCancellation() }
+0063 |         }
+0064 |         throw DNS1Error.unavailable
+0065 |     }
+0066 | }
+
+
+FILE: ddlNew/Network/OSS/OSSConnectionBootstrap.swift
+SHA256 (original bytes): ec3dda15a831bac215f2ffa1307489abde2b09ce89b10d16cc4f86ef98e418bb
+0001 | //
+0002 | //  OSSConnectionBootstrap.swift
+0003 | //  ddlNew
+0004 | //
+0005 | //  Created by taobo on 2026/9/24.
+0006 | //
+0007 | 
+0008 | import Foundation
+0009 | import SwiftUI
+0010 | 
+0011 | /// 等待后续 ECDH 探测的 TCP 候选节点。
+0012 | nonisolated struct OSSIMTCPNode: Equatable, Sendable {
+0013 |     let host: String
+0014 |     let port: UInt16
+0015 | }
+0016 | 
+0017 | /// DNS1 连接准备结果；HTTP 可为空，不能从 TCP 推算。
+0018 | nonisolated struct OSSConnectionPlan: Sendable {
+0019 |     /// 所属邀请码，防止连接状态串用其他企业的节点。
+0020 |     let lastLiceseId: String
+0021 |     /// 旧项目的 apiHost。
+0022 |     let apiHost: URL?
+0023 |     /// 旧项目的 getFileHost，与 API Host 相同。
+0024 |     let getFileHost: URL?
+0025 |     /// 旧项目的 uploadfileHost，在 API Host 后追加 /oss。
+0026 |     let uploadFileHost: URL?
+0027 |     /// 尚未执行 ECDH 连通探测的 TCP 节点。
+0028 |     let tcpCandidates: [OSSIMTCPNode]
+0029 |     /// 仅本轮 DNS1 已完成 ECDH 的节点，不持久化。
+0030 |     var probedTCPNode: OSSIMTCPNode? = nil
+0031 | }
+0032 | 
+0033 | /// 导航缓存或节点不满足下一阶段连接准备要求。
+0034 | enum OSSConnectionBootstrapError: Error {
+0035 |     /// 没有已保存的导航缓存。
+0036 |     case missingNavigation
+0037 |     /// 恢复缓存时服务端 TTL 已过期。
+0038 |     case expiredNavigation
+0039 | 
+0040 | }
+0041 | 
+0042 | /// 将已验证的 DNS1 导航转换为正式连接方案。
+0043 | @MainActor
+0044 | final class OSSConnectionBootstrap {
+0045 |     static let shared = OSSConnectionBootstrap()
+0046 | 
+0047 |     /// 当前邀请码的待连接方案；切换邀请码时清空，最新导航缓存仍保留。
+0048 |     private(set) var current: OSSConnectionPlan?
+0049 | 
+0050 |     private init() {}
+0051 | 
+0052 |     /// 新导航成功后立即使用；从磁盘恢复时默认要求服务端缓存尚未过期。
+0053 |     @discardableResult
+0054 |     func prepare(requireFresh: Bool = true, probedTCPAddress: String? = nil) throws -> OSSConnectionPlan {
+0055 |         guard let ssoInfo = try OSSNavigationStore.shared.loadSSOInfo() else {
+0056 |             throw OSSConnectionBootstrapError.missingNavigation
+0057 |         }
+0058 |         let navigation = try ssoInfo.snapshot()
+0059 |         guard !requireFresh || !navigation.isExpired else {
+0060 |             throw OSSConnectionBootstrapError.expiredNavigation
+0061 |         }
+0062 | 
+0063 |         let payload = try DNS1NodeRaceCoordinator.payload(from: navigation.body)
+0064 |         let apiHost = payload.http.first
+0065 |         var plan = OSSConnectionPlan(lastLiceseId: navigation.lastLiceseId, apiHost: apiHost,
+0066 |             getFileHost: apiHost, uploadFileHost: apiHost?.appending(path: "oss"),
+0067 |             tcpCandidates: payload.tcp.map { OSSIMTCPNode(host: $0.host, port: $0.port) })
+0068 |         if let address = probedTCPAddress, let selected = DNS1TCPNode(address), payload.tcp.contains(selected) {
+0069 |             plan.probedTCPNode = OSSIMTCPNode(host: selected.host, port: selected.port)
+0070 |         }
+0071 |         OSSSelectedHTTPHostStorage().value = apiHost?.absoluteString ?? ""
+0072 |         current = plan
+0073 |         return plan
+0074 |     }
+0075 | 
+0076 |     func clearCurrent() {
+0077 |         current = nil
+0078 |     }
+0079 | 
+0080 |     /// 供后续重连链路读取上次选用的 HTTP Host，不代表该地址仍然可达。
+0081 |     func cachedHTTPHost() -> URL? {
+0082 |         DNS1Payload.httpURL(OSSSelectedHTTPHostStorage().value)
+0083 |     }
+0084 | 
+0085 | }
+0086 | 
+0087 | @MainActor
+0088 | private struct OSSSelectedHTTPHostStorage {
+0089 |     @AppStorage(ossSelectedHTTPHostAppStorageKey) var value = ""
+0090 | }
+
+
+FILE: ddlNew/Common/Crypto/AesEncryptUtils.swift
+SHA256 (original bytes): 09166ce85ba1fc8825e4b39ecd7810ad8d5ff0ba835e8885cf2c30c94131c8eb
+0001 | //
+0002 | //  AesEncryptUtils.swift
+0003 | //  ddlNew
+0004 | //
+0005 | //  Created by taobo on 2026/9/23.
+0006 | //
+0007 | 
+0008 | import Foundation
+0009 | import CryptoKit
+0010 | import CommonCrypto
+0011 | 
+0012 | enum AesEncryptUtils {
+0013 |     /// 旧项目 TXT/导航载荷采用 AES-128。
+0014 |     static let keyLengthBits = 128
+0015 | 
+0016 |     /// 将 UTF-8 字符串加密并返回 Base64 字符串。
+0017 |     static func encrypt(_ plainText: String, secret: String) -> String? {
+0018 |         guard !plainText.isEmpty,
+0019 |               let cipher = encryptBytes(Data(plainText.utf8), secret: secret) else {
+0020 |             return nil
+0021 |         }
+0022 |         return cipher.base64EncodedString()
+0023 |     }
+0024 | 
+0025 |     /// 加密原始字节。
+0026 |     static func encryptBytes(_ plainData: Data, secret: String) -> Data? {
+0027 |         guard !plainData.isEmpty else { return nil }
+0028 |         return crypt(plainData, secret: secret, operation: CCOperation(kCCEncrypt))
+0029 |     }
+0030 | 
+0031 |     /// 解密原始字节。
+0032 |     static func decryptBytes(_ cipherData: Data, secret: String) -> Data? {
+0033 |         guard !cipherData.isEmpty else { return nil }
+0034 |         return crypt(cipherData, secret: secret, operation: CCOperation(kCCDecrypt))
+0035 |     }
+0036 | 
+0037 |     /// 将 Base64 密文解密为 UTF-8 字符串。
+0038 |     static func decrypt(_ base64Cipher: String, secret: String) -> String? {
+0039 |         guard let cipher = Data(base64Encoded: base64Cipher),
+0040 |               let plainData = decryptBytes(cipher, secret: secret) else {
+0041 |             return nil
+0042 |         }
+0043 |         return String(data: plainData, encoding: .utf8)
+0044 |     }
+0045 | 
+0046 |     // 与旧项目一致：取 SHA-1(secret) 的前 16 字节作为 AES-128 密钥。
+0047 |     private static func crypt(_ input: Data, secret: String, operation: CCOperation) -> Data? {
+0048 |         let key = Array(Insecure.SHA1.hash(data: Data(secret.utf8)).prefix(kCCKeySizeAES128))
+0049 |         let outputCapacity = input.count + kCCBlockSizeAES128
+0050 |         var output = [UInt8](repeating: 0, count: outputCapacity)
+0051 |         var outputCount: size_t = 0
+0052 | 
+0053 |         // AES/ECB/PKCS5Padding 对应 CommonCrypto 的 PKCS7 填充。
+0054 |         let status = key.withUnsafeBytes { keyBytes in
+0055 |             input.withUnsafeBytes { inputBytes in
+0056 |                 output.withUnsafeMutableBytes { outputBytes in
+0057 |                     CCCrypt(
+0058 |                         operation,
+0059 |                         CCAlgorithm(kCCAlgorithmAES),
+0060 |                         CCOptions(kCCOptionPKCS7Padding | kCCOptionECBMode),
+0061 |                         keyBytes.baseAddress,
+0062 |                         key.count,
+0063 |                         nil,
+0064 |                         inputBytes.baseAddress,
+0065 |                         input.count,
+0066 |                         outputBytes.baseAddress,
+0067 |                         outputCapacity,
+0068 |                         &outputCount
+0069 |                     )
+0070 |                 }
+0071 |             }
+0072 |         }
+0073 | 
+0074 |         guard status == kCCSuccess else { return nil }
+0075 |         return Data(output.prefix(Int(outputCount)))
+0076 |     }
+0077 | }

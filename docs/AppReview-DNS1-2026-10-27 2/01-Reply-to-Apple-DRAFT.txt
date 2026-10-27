@@ -1,0 +1,25 @@
+Hello App Review Team,
+
+Thank you for the detailed findings under Guideline 2.5.19. For version 1.1.0, build 6, we believe the three findings correspond to our custom backend-discovery component, internally named DNS1.
+
+1. Remote server lookup
+The user enters an invitation code on the club connection screen. DNS1 uses that code to locate the corresponding messaging backend. It also supports connection recovery. We acknowledge that endpoint addresses are retrieved remotely and can change.
+
+2. Decoding server addresses
+DNS1 uses a custom protocol: it reconstructs endpoint data carried in AAAA records. If the DNS sources cannot provide a usable node, it can download and decrypt a fallback BIN file. The parser extracts TCP host/port entries and optional HTTP URLs. TCP entries are used to connect to the messaging service; HTTP URLs supply API and file-transfer endpoints. This parser does not interpret feature flags, page definitions, executable code, or commands to enable hidden functionality. Additional JSON fields are not consumed by this parser.
+
+3. Lookup credentials
+The account identifier, access key and request signature authenticate the DNS service request. The secret is used locally to calculate the signature; it is not included as a plaintext query parameter. These are separate from user login credentials and are not used by DNS1 to unlock app features.
+
+4. Supporting source and data flow
+The attached source appendix identifies DNS1DoHClient (lookup/signature), DNS1Payload (AAAA reconstruction and BIN decoding), DNS1NodeRaceCoordinator and DNS1SourceRace (source selection and connectivity probing), OSSConnectionBootstrap (endpoint consumers), and AesEncryptUtils (BIN decryption helper). Actual lookup credential definitions are excluded; the implementation logic remains visible.
+
+The attached technical note describes the accepted fields and connection flow. The attached DNS1-Live-Response-Evidence.pdf documents a live capture on 27 October 2026: 7 AAAA records decoded to 4 TCP nodes, while an independent BIN retrieval decoded to 4 TCP nodes and 4 HTTPS URLs. The TCP node sets matched. Addresses and ports are consistently redacted. The DNS result was originally a comma-separated list; the displayed JSON is normalized output.
+
+5. Review access and reproduction
+The review invitation code, test account and password have been provided in App Review Information. Please use those credentials to access the app.
+On a fresh installation, enter the supplied invitation code and tap "连接俱乐部" (Connect to club). Log in with the supplied review account and complete any documented verification. Test messaging with the supplied test contact. Temporarily interrupt network access and restore it to observe connection recovery. A cached endpoint may be tried before a fresh lookup; every reconnection does not necessarily trigger a DNS/BIN request.
+
+We are documenting this mechanism explicitly for review. Could you please confirm whether it explains the findings? If another component is involved, any identifying details would help us investigate accurately. We can provide further focused evidence as requested.
+
+Thank you.

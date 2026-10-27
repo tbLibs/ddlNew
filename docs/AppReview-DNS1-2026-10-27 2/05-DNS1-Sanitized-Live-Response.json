@@ -1,0 +1,64 @@
+{
+  "bin": {
+    "completed_at": "2026-10-27T09:24:20+08:00",
+    "decoded_shape": {
+      "additional_field_count": 0,
+      "format": "JSON object",
+      "has_http": true,
+      "has_tcp": true,
+      "http_input_entries": 4,
+      "tcp_input_entries": 4
+    },
+    "download_bytes": 280,
+    "http_status": 200,
+    "normalized_redacted": {
+      "http": [
+        "https://host-1.example.invalid:40003",
+        "https://host-2.example.invalid:40004",
+        "https://host-3.example.invalid:40004",
+        "https://host-4.example.invalid:40003"
+      ],
+      "tcp": [
+        "host-1.example.invalid:40001",
+        "host-2.example.invalid:40002",
+        "host-3.example.invalid:40002",
+        "host-4.example.invalid:40001"
+      ]
+    }
+  },
+  "capture_finished_at": "2026-10-27T09:24:20+08:00",
+  "capture_started_at": "2026-10-27T09:24:18+08:00",
+  "dns": {
+    "aaaa_record_count": 7,
+    "completed_at": "2026-10-27T09:24:18+08:00",
+    "decoded_shape": {
+      "format": "Comma-separated TCP list",
+      "has_http": false,
+      "tcp_input_entries": 4
+    },
+    "normalized_redacted": {
+      "http": [],
+      "tcp": [
+        "host-1.example.invalid:40001",
+        "host-2.example.invalid:40002",
+        "host-3.example.invalid:40002",
+        "host-4.example.invalid:40001"
+      ]
+    }
+  },
+  "invitation": "User supplied the App Review invitation code; omitted from output.",
+  "method": "Live main DNS lookup followed by an independent BIN retrieval, using current production request/parser/decryption functions in a macOS command-line harness.",
+  "redaction": "Hosts consistently replaced with host-N.example.invalid across both results. Explicit ports consistently replaced with synthetic numbers starting at 40001. HTTP path segments consistently replaced with segment-N. Schemes, normalized array order/counts, and equality relationships preserved. No invitation, account credentials, signed URLs, raw AAAA records, ciphertext, plaintext response bodies or redaction mapping persisted.",
+  "scope": "Normalized accepted endpoints, not raw wire data. Parser may filter invalid/duplicate entries; decoded_shape records input counts. No user login, ECDH node probing, messaging, device reconnect, or submitted IPA execution performed. Independent BIN retrieval does not prove automatic fallback occurred.",
+  "tcp_node_sets_match": true,
+  "source_revision": "53cdc4bc34215fd9a466995c2b444f6ab1d770c8",
+  "source_sha256": {
+    "ddlNew/Network/DNS1/DNS1Payload.swift": "9badd776a27de5b44782af69dcb438e3e7c3c15f560aa3c9a4685168736cc1c9",
+    "ddlNew/Network/DNS1/DNS1DoHClient.swift": "75dbff669ebf9d8d9a63b83de11a25dc714284db52d14cc1151bce3c7ddb3dda",
+    "ddlNew/Common/Crypto/AesEncryptUtils.swift": "09166ce85ba1fc8825e4b39ecd7810ad8d5ff0ba835e8885cf2c30c94131c8eb",
+    "Tests/DNS1/DNS1ReviewCapture.swift": "9ad401529241120585d15f612cea2edaec62b6a599d6b2ed9cf7abbc77e28461",
+    "Tests/DNS1/capture-review-response.sh": "c6351a709cacb9806b10cf4c1e4bbe765da89e33f06ddbbd34a723e11174d9f5"
+  },
+  "submitted_version_developer_confirmed": "1.1.0 (6)",
+  "binary_mapping": "Not independently verified against the submitted IPA."
+}

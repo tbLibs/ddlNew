@@ -1,0 +1,46 @@
+DNS1 TECHNICAL NOTE — CURRENT SOURCE; ARCHIVE MAPPING UNVERIFIED
+Prepared: 2026-10-27 (Asia/Shanghai)
+
+BUILD IDENTIFICATION
+Local Xcode project: marketing version 1.0; build 1; bundle ID com.sigua.ddlNew.
+Local source revision: 53cdc4bc34215fd9a466995c2b444f6ab1d770c8
+App Store Connect rejected version/build: 1.1.0 / 6, confirmed by the developer on 2026-10-27. The developer confirms the review invitation code, test account and password are already in App Review Information.
+The local project values do not establish which binary Apple reviewed. Confirm the archive/source mapping before submitting this note and its source appendix.
+
+COMPONENT MAP (line numbers refer to the source appendix)
+DNS1DoHClient.swift: 6–16 request signature and query fields; 19–27 response filtering; 30–53 network lookup.
+DNS1Payload.swift: 27–44 AAAA reassembly; 46–68 endpoint extraction; 71–83 BIN decryption; 85–131 URL and TCP validation.
+DNS1NodeRaceCoordinator.swift: 20–32 cached/source selection; 35–51 network acquisition; 54–60 ECDH connectivity probe; 64–85 conversion to/from the local connection model.
+DNS1SourceRace.swift: source construction, ordered fallback and per-source concurrent node probing.
+OSSConnectionBootstrap.swift: 54–73 maps parsed endpoints to TCP candidates, API and file-transfer hosts.
+AesEncryptUtils.swift: decryptBytes and crypt show the BIN cryptographic implementation.
+
+DATA FLOW
+User invitation code -> optional matching cached candidates -> main DNS source -> backup DNS source if configured -> fallback BIN -> endpoint validation -> ECDH connectivity probe -> connection plan -> normal service connection and authentication.
+A source with valid data but no reachable node also falls through to the next source. Source exhaustion returns failure. Cached candidates are probed again.
+
+ENCODING AND PAYLOAD SCOPE
+AAAA records are a custom data carrier. Each 16-byte record contains a two-byte big-endian fragment index and fourteen payload bytes. The implementation validates/reorders fragments and decodes UTF-8 text up to the first null byte. This is not ordinary DNS address resolution alone.
+The decoded DNS text accepts a JSON object containing tcp/http, or a comma-separated TCP node list. BIN decryption accepts a JSON object with a required tcp array and an optional http array. The BIN path supports binary ciphertext or its Base64 representation. Its helper uses the existing AES-128/ECB/padding protocol; see the source appendix for exact derivation and implementation. This note does not claim the encryption hides code or provides a separate integrity guarantee.
+
+tcp: an array of server host:port strings; bracketed IPv6 is supported. At least one valid TCP node is required. It supplies messaging connection candidates.
+http: an optional array of HTTP or HTTPS service URLs. Scheme/path may be preserved. The first valid URL supplies the API/file download host; the upload host appends /oss. It is not solely a TCP discovery protocol.
+Additional JSON fields are ignored by this parser; the implementation does not reject all unknown fields. Parsed values are endpoint data, not executable instructions. This describes the DNS1 path, not an audit certification of every other app component.
+
+LOOKUP AUTHENTICATION
+The query includes name, type=AAAA, uid, ak, ts and key. key is a SHA-256 signature calculated from the account ID, secret, timestamp, domain and access key in the order visible in DNS1DoHClient. The secret is not directly sent as a query parameter. Production credential values and signed request URLs are excluded from this attachment.
+
+REPRODUCTION — PROPOSED STEPS, NOT A DEVICE TEST REPORT
+The developer confirms that the review invitation code, account and password are already in App Review Information. Their usability with the submitted build has not been independently tested here. Confirm any required new-device verification instructions and test messaging contact before testing.
+1. On a fresh installation, open the club connection screen, enter the review invitation code, and tap 连接俱乐部 (Connect to club).
+2. Enter the review account/password, accept the displayed agreements and log in. Complete any documented new-device verification.
+3. Send/receive a test message with the provided test contact.
+4. Temporarily disconnect the device from network access, then restore access. Allow the app to reconnect and test another message.
+Expected: normal messaging connection/recovery using endpoint candidates. Cache use means a fresh discovery request is not guaranteed on every reconnect. Network interruption does not prove the BIN branch ran; a separate labeled developer trace is needed to demonstrate that fallback.
+
+REAL-RESPONSE EVIDENCE STATUS
+Completed a new live capture on 2026-10-27, 09:24:18–09:24:20 (Asia/Shanghai), using the review invitation code supplied by the developer.
+DNS: 7 AAAA records; decoded comma-separated list; 4 TCP nodes; no HTTP values.
+BIN: HTTP 200; 280 bytes; decoded JSON containing tcp and http only; 4 TCP nodes and 4 HTTPS URLs.
+The two TCP sets match. See DNS1-Live-Response-Evidence.pdf and 05-DNS1-Sanitized-Live-Response.json for normalized, redacted evidence and source hashes.
+This is a macOS harness capture using current project functions, not submitted-IPA execution. Login, messaging, ECDH probing and automatic device fallback remain untested in this capture.
