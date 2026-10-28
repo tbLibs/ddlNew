@@ -22,6 +22,8 @@ import ObjectiveC
     private var groupDetail: [String: Any]?
     private var groupMute: [String: Any]?
     private var groupRefreshRevision = UUID()
+    private var groupPermissionTask: Task<Void, Never>?
+    private var groupPermissionRequest: UUID?
     private var muteExpiryRevision = UUID()
     private var muteExpiryTask: Task<Void, Never>?
     private var muteExpiryState = ChatGroupMuteExpiryState()
@@ -88,7 +90,7 @@ import ObjectiveC
     func cached(context: ChatContext, offset: Int) throws -> [ChatMessageRecord] {
         try validate(context)
         if offset == 0 { try flushReadTransitions(context: context); try clearManualReadTag(context: context) }
-        let models = sdk.toolGetChatMessageHistory(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? []
+        let models = sdk.toolGetChatMessageTimeline(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? []
         let records = models.map { SDKChatMessageMapper.record($0, userUID: context.userUID) }
         var recallTargets: [String: String] = [:]
         for (model, record) in zip(models, records) where record.type == 8 {
@@ -112,7 +114,8 @@ import ObjectiveC
                 if case .permissionsChanged = event, context.route.kind == .group {
                     self.groupDetail = nil; self.groupMute = nil
                     self.muteExpiryTask?.cancel(); self.muteExpiryTask = nil; self.muteExpiryRevision = UUID()
-                    Task { try? await self.refreshGroup(context: context); if self.generation == run { onEvent(.permissionsChanged) } }
+                    self.groupPermissionTask?.cancel(); self.groupPermissionTask = nil; self.groupPermissionRequest = nil
+                    self.startGroupPermissionRefresh(context: context)
                 }
                 if case .memberHistoryDeleted(let ids) = event {
                     ChatRuntime.shared.removedMemberMessages(ids, context: context)
@@ -129,6 +132,7 @@ import ObjectiveC
     /// 同步撤销等待、代理和群详情，迟到回调只被丢弃。
     func stop() {
         generation = UUID(); groupRefreshRevision = UUID(); muteExpiryRevision = UUID()
+        groupPermissionTask?.cancel(); groupPermissionTask = nil; groupPermissionRequest = nil
         muteExpiryTask?.cancel(); muteExpiryTask = nil; muteExpiryState = ChatGroupMuteExpiryState()
         for cancel in waiting.values { cancel() }; waiting.removeAll()
         if let delegate { sdk.removeMessageDelegate(delegate); sdk.removeGroupDelegate(delegate); sdk.removeUserDelegate(delegate) }
@@ -138,10 +142,8 @@ import ObjectiveC
     /// 使用真实历史接口并固定pageNumber1游标分页；不调用会在旧账号回调里自行写库的helper。
     func history(context: ChatContext, before: String?, offset: Int) async throws -> ChatPage {
         try validate(context)
-        if context.route.kind == .group && groupDetail == nil {
-            try await refreshGroup(context: context)
-            eventHandler?(.permissionsChanged)
-        }
+        // 与旧端一样，群资料/禁言独立刷新，不能挡住本地或远端历史。
+        startGroupPermissionRefresh(context: context)
         let contentAtStart = ChatRuntime.shared.contentRevision(context)
         let cacheAtStart = try cacheSnapshot(context: context)
         var params: [String: Any] = ["pageSize": 100, "pageNumber": 1, "userUid": context.userUID]
@@ -169,7 +171,6 @@ import ObjectiveC
         var restoredServerIDs: Set<String> = []
         #if DEBUG
         var remoteStatusCounts: [Int: Int] = [:]
-        var localStatusConflicts = 0
         #endif
         // 只有当前轮次持有SDK锁，转换与落库不会污染另一账号数据库。
         objc_sync_enter(sdk)
@@ -180,7 +181,7 @@ import ObjectiveC
             let record = SDKChatMessageMapper.record(model, userUID: context.userUID)
             guard record.conversationID == context.route.id else { continue }
             #if DEBUG
-            remoteStatusCounts[record.status.rawValue, default: 0] += 1
+            remoteStatusCounts[model.messageStatus, default: 0] += 1
             #endif
             // 隐藏控制条也占远端历史位置，不能仅从最终可见正文推算下一次游标。
             if !record.serverID.isEmpty, oldest.map({ record.timestamp < $0.timestamp ||
@@ -190,7 +191,7 @@ import ObjectiveC
             if [8, 9, 15].contains(record.type) {
                 if let target = model.backDelServiceMsgID, let original = (sdk.toolGetOneChatMessage(withServiceMessageID: target, sessionID: context.route.id) as NoaIMChatMessageModel?) {
                     original.messageStatus = record.type == 8 ? 2 : 0
-                    sdk.toolInsertOrUpdateChatMessage(with: original)
+                    _ = sdk.toolInsertOrUpdateChatMessage(with: original)
                     mapped.append(SDKChatMessageMapper.record(original, userUID: context.userUID))
                 }
                 continue
@@ -203,9 +204,6 @@ import ObjectiveC
             if let old, let latest, ChatHistoryCachePolicy.keepCurrent(remote: record, current: latest, atRequest: baseline) { target = old }
             else { target = model }
             if let old {
-                #if DEBUG
-                if old.messageStatus != 1 && old.messageStatus != record.status.rawValue { localStatusConflicts += 1 }
-                #endif
                 // target已按请求开始快照判断是否保护期间变更，不能再无条件覆盖服务器状态。
                 if old.messageStatus == 1 && model.messageStatus != 1 { target.messageStatus = model.messageStatus }
                 if old.messageStatus != 1 && target.messageStatus == 1 && !record.serverID.isEmpty {
@@ -216,7 +214,7 @@ import ObjectiveC
                 target.totalNeedReadCount = max(old.totalNeedReadCount, model.totalNeedReadCount)
                 if old.messageSendType.rawValue == 1 { target.messageSendType = old.messageSendType; target.msgID = old.msgID; target.sendTime = max(old.sendTime, model.sendTime) }
             }
-            sdk.toolInsertOrUpdateChatMessage(with: target)
+            _ = sdk.toolInsertOrUpdateChatMessage(with: target)
             mapped.append(SDKChatMessageMapper.record(target, userUID: context.userUID))
         }
         // 云端可能只保留部分历史或限制实际页长；补拉后仍以SDK库补齐本机分页。
@@ -228,9 +226,11 @@ import ObjectiveC
         let statusCounts = Dictionary(grouping: mapped, by: { $0.status.rawValue }).map { "\($0.key):\($0.value.count)" }.sorted().joined(separator: ",")
         let typeCounts = Dictionary(grouping: mapped, by: \.type).map { "\($0.key):\($0.value.count)" }.sorted().joined(separator: ",")
         let remoteStatuses = remoteStatusCounts.map { "\($0.key):\($0.value)" }.sorted().joined(separator: ",")
-        print("[ChatHistory] remoteStatus=[\(remoteStatuses)] localStatusConflicts=\(localStatusConflicts)")
+        print("[ChatHistory] rawRemoteStatus=[\(remoteStatuses)]")
         print("[ChatHistory] mappedStatus=[\(statusCounts)] mappedType=[\(typeCounts)] visibleCandidates=\(mapped.filter(\.isVisible).count)")
         #endif
+        // 本地100条窗口并不包含所有已收到的有效消息，写库/回读也可能失败。
+        // 保留本轮已通过身份、删除及期间变更校验的远端结果，双ID合并而非按缓存裁剪。
         return ChatPage(messages: ChatMessageMerge.merge(local, with: mapped), hasMore: !rows.isEmpty || local.count == 100,
                         nextCursor: oldest?.serverID, nextOffset: offset + local.count, restoredServerIDs: restoredServerIDs)
     }
@@ -244,6 +244,33 @@ import ObjectiveC
             if rows.count < 100 { break }; offset += rows.count
         }
         return values
+    }
+
+    /// 聊天拥有独立权限任务；历史成功/失败都不等待它，未确认前仍禁止发送。
+    private func startGroupPermissionRefresh(context: ChatContext) {
+        guard context.route.kind == .group, groupDetail == nil, groupPermissionTask == nil else { return }
+        let run = generation, requestID = UUID()
+        groupPermissionRequest = requestID
+        groupPermissionTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                if self.groupPermissionRequest == requestID {
+                    self.groupPermissionTask = nil; self.groupPermissionRequest = nil
+                }
+            }
+            do {
+                guard !Task.isCancelled, self.generation == run, self.context == context,
+                      self.groupPermissionRequest == requestID else { return }
+                try await self.refreshGroup(context: context)
+                guard !Task.isCancelled, self.generation == run, self.context == context,
+                      self.groupPermissionRequest == requestID else { return }
+                self.eventHandler?(.permissionsChanged)
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError), self.generation == run,
+                      self.context == context, self.groupPermissionRequest == requestID else { return }
+                self.eventHandler?(.permissionRefreshFailed(error.localizedDescription))
+            }
+        }
     }
 
     /// 群详情提供本人禁言时间和userInGroup，缓存群表缺失这些字段时不猜可发送。
@@ -270,7 +297,12 @@ import ObjectiveC
     /// 管理与转发只刷新权限接口，避免为发送检查重复补页聊天历史。
     func refreshPermissions(context: ChatContext) async throws {
         try validate(context)
-        if context.route.kind == .group { try await refreshGroup(context: context) }
+        if context.route.kind == .group {
+            // 主动操作的最新核权取代后台初始核权，旧失败不能覆盖已确认的新权限。
+            groupPermissionTask?.cancel(); groupPermissionTask = nil; groupPermissionRequest = nil
+            try await refreshGroup(context: context)
+            eventHandler?(.permissionsChanged)
+        }
     }
 
     /// 真实群详情同步SDK群表和会话标题，让来源群私聊守卫立即读取最新策略。
@@ -341,6 +373,7 @@ import ObjectiveC
             value.isActive = group.groupStatus == 1 && group.leaveGroupStatus == 0
             value.sendInterval = Double(LocalMessagingSettings.groupMessageIntervalMilliseconds) / 1000
             let verified = groupDetail != nil && groupMute != nil
+            value.isChecking = value.isActive && !verified
             let inGroup = ChatGroupPermissionPayload.boolean(groupDetail?["userInGroup"]) ?? false
             let personalMuted = groupMute.flatMap { ChatGroupPermissionPayload.personalMuted($0) } ?? true
             // 禁言接口在详情之后返回，使用这份最新状态，避免旧群缓存阻止已解除禁言的成员。

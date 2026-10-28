@@ -14,6 +14,8 @@ import Combine
     @Published private(set) var messages: [ChatMessageRecord] = []
     @Published private(set) var permission = ChatPermission(canSend: false)
     @Published private(set) var isLoading = false
+    /// 本地首屏和后台补齐各有布局版本；0表示尚无可展示的首屏快照。
+    @Published private(set) var initialHistoryRevision = 0
     @Published private(set) var hasMore = true
     @Published var errorMessage: String?
     @Published var reference: ChatMessageRecord?
@@ -79,12 +81,16 @@ import Combine
         } catch { errorMessage = error.localizedDescription }
         do {
             merge(try client.cached(context: context, offset: 0), history: true)
+            if messages.contains(where: \.isVisible) { initialHistoryRevision += 1 }
             permission = try client.permissions(context: context)
             let draft = try client.draft(context: context)
             input = draft.text; previousInput = input; mentions = draft.mentions
             if !draft.referenceID.isEmpty { reference = messages.first { $0.serverID == draft.referenceID } ?? ChatMessageRecord(localID: "reference:" + draft.referenceID, serverID: draft.referenceID, conversationID: context.route.id, senderID: "", senderName: "", text: "引用原文尚未加载，点击定位", timestamp: 0, state: .sent) }
         } catch { errorMessage = error.localizedDescription }
         await loadPage(before: nil)
+        guard generation == run, self.context == context else { return }
+        // 无缓存或请求失败也结束空白等待；有缓存时早已允许页面定位展示。
+        if initialHistoryRevision == 0 { initialHistoryRevision = 1 }
         if let target = context.route.targetMessageID { await locate(target) }
     }
 
@@ -133,13 +139,21 @@ import Combine
         do {
             let page = try await client.history(context: context, before: before, offset: offset)
             guard !Task.isCancelled, generation == run, self.context == context, clearRevision == clearAtStart else { return }
+            // 沿旧端双ID判重：已知消息的状态更新不重启首屏定位。
+            let knownLocalIDs = Set(messages.map(\.localID).filter { !$0.isEmpty })
+            let knownServerIDs = Set(messages.map(\.serverID).filter { !$0.isEmpty })
             for message in page.messages {
                 let changedAfterRequest = (changedIDs[message.localID] ?? 0) > beganAt || (changedIDs[message.serverID] ?? 0) > beganAt
                 if !changedAfterRequest, message.status == .normal, page.restoredServerIDs.contains(message.serverID) {
                     records.removeAll { $0.status != .normal && $0.serverID == message.serverID }
                 }
-                merge([message], history: changedAfterRequest)
+                merge([message], history: changedAfterRequest, publish: false)
             }
+            publishMessages()
+            let hasNewMessage = messages.contains {
+                !knownLocalIDs.contains($0.localID) && !knownServerIDs.contains($0.serverID)
+            }
+            if before == nil, hasNewMessage || initialHistoryRevision == 0 { initialHistoryRevision += 1 }
             offset = page.nextOffset ?? messages.count
             historyCursor = page.nextCursor ?? before
             hasMore = page.hasMore
@@ -206,7 +220,7 @@ import Combine
     func discardMediaUpload(_ localID: String) {
         guard records.contains(where: { $0.localID == localID && $0.isMediaUploading }) else { return }
         records.removeAll { $0.localID == localID && $0.isMediaUploading }
-        messages = records.filter { $0.status != .deleted }
+        messages = records.filter { $0.status.isDisplayable }
     }
 
     /// 已上传附件再入SDK消息队列，提交时重新校验实时禁言和频控。
@@ -364,6 +378,7 @@ import Combine
         guard !serverID.isEmpty else { return "" }
         guard let original = records.first(where: { $0.serverID == serverID }) else { return "引用原文尚未加载，点击定位" }
         if original.status == .deleted { return "原消息已删除" }
+        if original.status == .unavailable { return "原消息暂不可用" }
         return original.senderName + ": " + original.displayText
     }
 
@@ -469,6 +484,11 @@ import Combine
         case .memberMetadataRefresh: break
         case .permissionsChanged:
             if let context { do { permission = try client.permissions(context: context) } catch { permission.canSend = false } }
+        case .permissionRefreshFailed(let message):
+            permission.canSend = false; permission.canUpload = false; permission.canUploadFile = false
+            permission.isChecking = false
+            permission.reason = "群发送权限暂未确认，请稍后重试"
+            errorMessage = message
         case .pinsChanged: pinRevision += 1
         case .refresh:
             if let context { do { merge(try client.cached(context: context, offset: 0), history: true) } catch { errorMessage = error.localizedDescription } }
@@ -489,7 +509,7 @@ import Combine
             result.senderRole = member.role
             return result
         }
-        messages = records.filter { $0.status != .deleted }
+        messages = records.filter { $0.status.isDisplayable }
         if let reference, let current = records.first(where: { $0.serverID == reference.serverID }) { self.reference = current }
     }
 
@@ -547,9 +567,15 @@ import Combine
     }
 
     /// 隐藏删除消息但保留墓碑，迟到历史不能把原文重新插入。
-    private func merge(_ incoming: [ChatMessageRecord], history: Bool = false, ack: Bool = false, retrying: Bool = false) {
+    private func merge(_ incoming: [ChatMessageRecord], history: Bool = false, ack: Bool = false, retrying: Bool = false, publish: Bool = true) {
         records = ChatMessageMerge.merge(records, with: incoming, history: history, ack: ack, retrying: retrying)
-        messages = records.filter { $0.status != .deleted }
+        if publish { publishMessages() }
+    }
+
+    /// 一页历史全部合并后只发布一次，避免逐条触发界面刷新与媒体失效回调。
+    private func publishMessages() {
+        let snapshot = records.filter { $0.status.isDisplayable }
+        if messages != snapshot { messages = snapshot }
         if let context { for item in records where item.status != .normal { onMessageUnavailable?(item, context) } }
         if let reference, let refreshed = records.first(where: { $0.serverID == reference.serverID }) { self.reference = refreshed }
     }
@@ -608,7 +634,7 @@ import Combine
         generation = UUID(); client.stop(); context = nil
         records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
         readIDs.removeAll(); pendingReadOwners.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
-        isLoading = false; hasMore = true; offset = 0; historyCursor = nil; lastSend = nil; unreadArrivals = 0; pinRevision = 0
+        isLoading = false; initialHistoryRevision = 0; hasMore = true; offset = 0; historyCursor = nil; lastSend = nil; unreadArrivals = 0; pinRevision = 0
         permission = ChatPermission(canSend: false); locatedMessageID = nil; locationRevision = 0; locationRequest = UUID(); errorMessage = nil
     }
 }

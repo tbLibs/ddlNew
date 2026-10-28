@@ -16,6 +16,7 @@ struct MineView: View {
     @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @State private var showSettings = false
+    @State private var profileDestination: MineProfileDestination?
     @State private var showingCopyToast = false
     @State private var showSwitch = false
     @State private var showingComplaint = false
@@ -29,6 +30,7 @@ struct MineView: View {
                 isSignedIn: userSession.currentUser != nil,
                 avatar: profileAvatar,
                 copyAccount: copyAccount,
+                openProfile: openProfile,
                 switchClub: { showSwitch = true },
                 openComplaint: { feedback = nil; showingComplaint = true }
             )
@@ -50,6 +52,9 @@ struct MineView: View {
         }
         .toolbarBackground(HomeTheme.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .sheet(item: $profileDestination) { destination in
+            MineProfileView(context: destination.context, nickname: destination.nickname)
+        }
         .sheet(isPresented: $showSettings) { SettingsScreen() }
         .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = "投诉已提交"; complaintSubmitted = false } }) {
             ComplaintView(target: .general, targetName: "系统投诉") { complaintSubmitted = true }
@@ -65,6 +70,13 @@ struct MineView: View {
             Button("取消", role: .cancel) { }
             Button("更换", role: .destructive) { Task { await store.signOut(changeClub: true) } }
         } message: { Text("将退出当前会员空间，已保存的活动记录会保留。") }
+    }
+
+    /// 点击头像或昵称沿旧端打开个人资料，身份快照绑定本次认证。
+    private func openProfile() {
+        guard let user = userSession.currentUser,
+              let context = ChatRuntime.shared.context(for: ChatRoute(id: user.userUID, kind: .single, title: "", avatarURL: "")) else { return }
+        profileDestination = MineProfileDestination(context: context, nickname: user.nickname)
     }
 
     /// 昵称与账号均来自当前登录资料，缺省时不回退到活动演示账号。
@@ -105,4 +117,10 @@ struct MineView: View {
         UIPasteboard.general.string = account
         showingCopyToast = true
     }
+}
+
+private struct MineProfileDestination: Identifiable {
+    let id = UUID()
+    let context: ChatContext
+    let nickname: String
 }

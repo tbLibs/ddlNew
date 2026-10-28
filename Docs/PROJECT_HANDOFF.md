@@ -1,5 +1,137 @@
 # ddlNew 项目交接文档
 
+## 2026-10-28 我的页面个人头像与昵称编辑
+
+当前分支 `feature-message-4`，开工 HEAD `e52ff45`，保留前序聊天、资料页等未提交改动。按用户要求只读参考 xgd 的 `NoaUserInfoViewController`、`NoaChangeUserInfoViewController`、`NoaFileUploadTools`。我的头像与昵称可点击打开“编辑个人资料”，头像/昵称可改，账号只读；沿用当前森林绿、UIAdapter 和原生导航。未新增修改账号功能。
+
+头像使用原生单图相册/拍照与方形编辑，输出200×200 JPEG、最多50KiB；用户取消选图不上传。上传复用现有媒体运输、STS与XOR包装，新增内部个人头像类型103（非聊天wire类型），云目录 `avatar/`、Minio `/zim/avatar/`，不套用聊天发送配额、不生成聊天消息。工程Debug/Release补充 `NSPhotoLibraryUsageDescription`，相机用途文案包含头像。
+
+昵称编辑以当前资料初始化草稿，过滤英文单引号及右单引号、去首尾空白，空白/未变化/超过30个UTF-16单位/提交中禁用保存；不截断中文输入法组词或Unicode字符。复用SDK `userNicknameChangeWith`、`userAvatarChangeWith` 的真实受理接口。成功后合并进唯一 `UserSessionStore` 并持久化，昵称同时调用 `configNewUserNickName`；我的/设置及本人聊天头像原有观察随之更新。失败保留草稿和旧头像，不立即拉取可能尚未更新的资料覆盖保存结果。
+
+`OwnProfileStore` 与 `SDKOwnProfileClient` 使用本次UID、租户、AUTH轮次，上传和修改接口前后复核；页面关闭、根退出/换号取消等待，迟到回执不写新账号。临时裁剪文件由上传操作接管，完成/失败/取消清理。`UserSessionStore.profileRevision` 与维护请求起点版本比较，拒绝早于主动保存发起的旧资料回包；后续正常维护仍可接受跨端新资料，角色刷新继续执行。
+
+验证：生产Store21项、SDK方法边界16项、生产维护时序3项、Minio目录/配额7项通过；云策略扩展后19项、媒体包装与四供应商签名、既有维护17项/角色资料21项/SDK请求隔离7项回归通过。维护旧实现已用相同夹具复现覆盖新资料（`/tmp/ddlNew-mine-refresh-before.log`），新实现通过。SDK/维护测试仅替换网络与系统边界，不连接真实账号。首轮与终版workspace无签名generic iOS Debug构建均exit0、`BUILD SUCCEEDED`（终版`/tmp/ddlNew-mine-profile-final-build.log`）；终版已修正本轮弱引用警告，实际App Info.plist已核验相册读取与相机头像用途文案。构建环境排除sentry-cli，未上传符号或源码。只读代码复核未发现范围内可确认的阻断问题；`git diff --check`通过。
+
+本轮未操作设备、未上传真实头像或提交真实昵称、未提交/推送。真机仍需重新Run验收：我的头像/昵称入口、相册/相机首次授权与拒绝、方形裁剪取消/确认、头像上传失败、昵称中文/emoji/长度限制、成功返回及我的/设置/本人聊天更新、重启持久化和账号切换。实现计划 `superpowers/plans/2026-10-28-mine-profile.md`，专项入口 `Tests/Mine/run-*.sh`。
+
+## 2026-10-27 用户暂停消息列表返回偏移；移除资料页菜单重复入口
+
+当前分支`feature-message-4`，HEAD `e52ff45`。此前聊天历史/状态3/撤回占位及名片等修正仍在工作区，未提交/推送。
+
+### 消息列表首次返回偏移：用户明确不再修改
+
+用户反馈消息列表滚到最底部露出群发助手，进入任意聊天再返回，群发助手向下偏移；补充确认“只偏移一次，后续位置稳定”。随后用户明确说“**不改这个问题了**”，本问题已停止，后续不要自行继续实施。
+
+已完成只读源码检查和临时匿名模拟器验证。匿名宿主沿用生产列表、行布局、Store与相同的TabView/NavigationStack组合，以无后端假数据替换登录/头像等边界。iOS27模拟器测到第一次返回时内容高度和行高度不变，底部adjustedContentInset由83临时降至34，contentOffset同步减少49；底栏恢复83后offset没有回补，复现末行下移。仅给首页添加`.toolbar(.visible, for: .tabBar)`的临时试验仍有同样偏移，不能作为有效修复。
+
+后续“仅记录离开前已贴底、待底栏恢复后无动画还原”的候选实现只写在`/tmp/ddlNew-message-scroll-host/`，尚未完成运行验证时用户叫停，**没有复制到正式源码**。`MessageView.swift`、`ConversationsStore.swift`、`ActivityNavigationScope.swift`均没有本轮生产改动；没有安装/操作真实账号设备。临时宿主与日志位置`/tmp/ddlNew-message-scroll-host/`（`before.log`、`fixed.log`）；不要将临时方案或匿名测量当作生产修复/真机验收。
+
+### 用户资料右上角菜单：已移除“备注与描述”
+
+用户另行明确要求删除用户资料右上角菜单中的“备注与描述”。已仅移除`ContactRecordDetailView.swift`菜单内对应Button。资料正文“备注”“描述”两行仍使用原编辑sheet，编辑功能保留；其它菜单及用户先前“投诉与支持”的位置改动保留。
+
+此单行UI修改已源码核对并通过`git diff --check`；未为该菜单删除单独重新构建或真机点击验证，不能沿用前面撤回修复的构建当作本次菜单改动的构建证据。本轮只更新交接并保留菜单修改，不继续处理列表偏移，不提交/推送。
+
+2026-10-28 编译修复：当前工作区缺失 `ContactRecordDetailView` 的 `@State private var editing = false`，但正文备注/描述按钮、编辑 sheet 及 Toast 条件仍引用该状态，导致找不到 `editing` / `$editing` 和视图类型检查超时。仅补回状态声明，右上角菜单仍不显示“备注与描述”，原有静默加载及投诉入口调整保留。修复后 workspace 无签名 generic iOS Debug 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-contact-editing-build.log`），通讯录业务离线检查通过（`/tmp/ddlNew-contact-editing-business-checks.log`），`git diff --check`通过。构建环境排除 sentry-cli；未操作设备、未提交/推送，编辑弹窗真机交互未在本轮复验。
+
+## 2026-10-27 撤回占位首屏缺失、补拉后才出现
+
+用户提供`/Users/taobotaobo/Downloads/ScreenRecording_10-27-2026 13-44-05_1.MP4`（7.858秒），反馈已有撤回消息的聊天首次内容少一部分，随后才插入“消息已撤回”。已用AVFoundation抽帧查看进群/单聊过程，当前帧与拼图在`/tmp/ddlNew-recall-recording/`。只读Xcode控制台确认重复进入群聊`rawRemoteStatus=[1:42,2:18,3:3]`、`cached=24`、最终`visible=42`；单聊`cached=19`、最终`visible=22`并有3条原始状态2，差额与撤回原条一致。
+
+根因是SDK原本正常历史查询只读取状态1，排除了已持久化的状态2。已有`ChatRecallCache`只能在本地页包含type8撤回控制条时补回原条；新端历史处理可只保存状态2的原条而不另存控制条，因此不能保证首屏占位完整。这与上节状态3误映射是两个独立问题，不能用恢复状态3展示解决。
+
+新增SDK只读聊天时间线查询`toolGetChatMessageTimelineWith`与DB查询`getChatMessageTimelineWith`，在同一SQL分页窗口读取状态1/2，仍按sendTime及serviceMsgID降序取100条并反转给Swift。`SDKChatClient.cached`统一使用该查询，使首屏、网络后回读、离线及更早分页包含撤回占位，offset仍对应真实查询窗口；原正常历史查询、搜索、媒体和会话摘要路径未扩大范围。已删除0、服务端删除3及其他未知状态仍被排除。已有控制条的去重回填保留，没有增加等待网络、Toast或隐藏列表过程，也没有数据迁移/修改消息状态。
+
+回归新增单聊/群聊连续两次进入时网络返回前显示撤回占位、返回前后ID序列不变、离线仍显示，以及205条正常/撤回交错记录跨100条分页不重不漏。修复前78/94（16项失败，`/tmp/ddlNew-recall-first-page-red.log`），修复后94/94（`/tmp/ddlNew-recall-first-page-green.log`）。测试提取生产cached/history/Store、生产Mapper状态表达式和真实DB查询的状态谓词，避免只测另写的过滤逻辑；SDK数据库/运输仍是夹具，不能等同真机执行。首屏25项、撤回缓存5项、语义13项和聊天基础回归通过。未安装/操控设备、未提交/推送；修复后真机首屏仍待用户重新Run验证。
+
+最终workspace无签名generic iOS Debug构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-recall-first-page-build.log`），真实SDK Objective-C/Objective-C++新增查询和Swift调用均编译通过；git diff --check通过。构建排除sentry-cli，未上传符号或源码。
+
+## 2026-10-27 用户确认进群不再闪现；补充状态3协议线索
+
+用户明确反馈“现在聊天不闪现了”，这是修复后用户侧实际进群反馈；没有据此扩大为全机型/全部聊天场景验收。本轮未再修改生产逻辑。
+
+进一步检索状态定义发现此前只看消息模型字段注释（0删除/1正常/2撤回）不够完整：本仓库和xgd的`NoaIMSDKManager+ChatMessage.h` / `NoaIMHttpManager+Message.h` 的recallMessage接口参数说明、xgd `NoaChatViewController.m` 撤回请求处均注明服务端消息状态“1正常、2撤回、3删除”。这为服务端status3属于删除状态提供了现有接口文档依据，但历史响应模型注释仍写0删除，协议说明存在不一致；未访问服务端实现/操作审计，不能断言这13条由谁、何时、以单向或双向方式删除。此前“状态3没有找到定义”应以本节补充为准。当前展示修复不依赖猜测删除发起者，也没有发删除请求或改写服务器状态。
+
+## 2026-10-27 确认服务端状态3被误映射为正常，并修复重复进群补入闪现
+
+用户再次Run进入测试群001，Xcode实际日志为`rawRemoteStatus=[0:1,1:46,3:13] preservedLocalToRemoteStatus=[]`，回读缺少的13条仍为状态3（11图、2视频），SDK写入/主键诊断均为0。至此排除上节“本地3被较新ACK保护”的假设：本次13条原始状态3来自服务端，新端`ChatMessageStatus(rawValue:) ?? .normal`将它们误当正常，直接合并的远端内容把页面从46条补到59条。xgd的SDK历史查询仅返回`messageStatus == 1`，不存在这个错误的正常状态兜底。
+
+修复：未知SDK状态映射成客户端`.unavailable`，不推断状态3的服务端业务含义；聊天Store各发布路径和气泡可见性统一排除不可用状态，引用不再展示其原媒体正文。SDK仍保留原始状态3，不改成正常或删除，不操作真实聊天数据。正常状态1的图片、写库失败但已有效收到的图片、页外正常历史仍按原规则保留；正常与撤回占位既有行为不变。后续服务端真正恢复状态1时可重新落库/显示，不屏蔽消息ID。
+
+移除临时cacheAudit主键计数与逐条诊断回读，只保留不含身份/正文的DEBUG分页与原始状态分布，避免再次用归一化后的统计误判。没有增加等待、Toast、透明度切换或额外网络请求。
+
+回归使用从生产Mapper抽取的真实状态表达式和生产history/ChatStore方法，SDK边界夹具保留原始整数状态，复现60条的真实分布并连续进入两次。修复前70/78（8项失败，`/tmp/ddlNew-status3-red.log`），修复后78/78；覆盖首屏/补拉均46条、不改写原始3、不可用引用不泄露正文、后续恢复正常仍显示，以及既有正常图片不丢。另有首屏25项、语义13项、预览失效12项、撤回缓存5项、聊天基础与SDK消息协议回归通过。相关日志`/tmp/ddlNew-status3-run-*.log`。这是离线回归，修复版真机视觉尚未再次验收；未安装/操控设备、未提交/推送。
+
+最终DEBUG分支同样78/78通过（`/tmp/ddlNew-status3-debug-checks.log`），日志证明原始分布不变时最终visible保持46。workspace无签名generic iOS Debug构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-status3-fix-build.log`），git diff --check通过；构建排除sentry-cli，未上传符号或源码。
+
+## 2026-10-27 真机诊断定位到SDK原始状态3
+
+用户重新Run并进入测试群001后，Xcode控制台实际输出：`writeFailures=0 emptyPrimaryKeys=0 changedPrimaryKeys=0 duplicatePrimaryKeys=0`，`missingNormal=13 missingImages=11 readbackStatus=[3:13]`，缓存仍46条、Swift显示59条。因此不是此次SDK写库返回失败或空/重复主键；13条消息实际保存在库中，但状态3被SDK的`messageStatus == 1`查询排除。
+
+进一步核对发现上一版`remoteStatus`统计的是Swift映射后的枚举，`SDKChatMessageMapper.record`对0/1/2以外的原始状态全部兜底`.normal`，所以`remoteStatus=[0:1,1:59]`不能证明服务端原始状态是1。尚需区分“服务端返回3而Swift误展示”与“服务端返回1但本地3被保留”。本轮补上DEBUG转换前`rawRemoteStatus`与策略保留的`preservedLocalToRemoteStatus`聚合统计，不输出身份或正文，不改展示/落库规则。
+
+本地另用临时夹具复现一种可能路径：本地3映射成normal且时间比服务端新，会被keepCurrent的较新ACK保护，首次显示但第二次仍从缓存缺图；该夹具有6项失败，保存于`/tmp/ddlNew-raw-status-hypothesis-checks.swift`和`/tmp/ddlNew-raw-status-red.log`。这只是可复现分支，不是该真机13条的确定根因，未据此修改生产逻辑，也未把假设用例留为仓库失败测试。旧端历史回写使用服务器模型，仅保留本地翻译和小幅时间差，没有把未知状态转为正常后参与缓存保护。
+
+新增诊断的DEBUG历史检查60/60通过，日志`/tmp/ddlNew-raw-cache-diagnostic-checks.log`；workspace无签名generic iOS Debug构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-raw-cache-diagnostic-build.log`），git diff --check通过。构建排除sentry-cli，未上传符号或源码。需要用户再Run一次读取原始状态后选择修复；设备操作仍由用户完成，未提交/推送。
+
+## 2026-10-27 录屏确认首屏反复补齐，缓存持久化仍待定位
+
+用户提供 `/Users/taobotaobo/Downloads/ScreenRecording_10-27-2026 11-25-08_1.MP4`，4.355秒。使用本机AVFoundation抽帧检查：约2.5～2.9秒进入页面先出现语音/视频与末尾“T”，约3秒图片补入后把较早语音挤出视口；末尾位置基本稳定。这份录屏主要证明缓存与补拉内容不一致，不能继续笼统归因为首次滚动到顶部。分析帧在 `/tmp/ddlNew-chat-recording/`，未修改原录屏。
+
+通过CUA只读查看Xcode既有控制台并筛选 `[ChatHistory]`，未操作手机或重启App。多次进入重复出现 `rows=60 mapped=60 cached=46`、`remoteStatus=[0:1,1:59]`、`localStatusConflicts=13`、`mappedStatus=[0:1,1:59]`、`mappedType=[0:39,1:14,2:4,4:3]`、`finish received=60 visible=59 offset=46`。真实日志将问题收窄到本机回读与远端正常记录相差13条，且状态校正未稳定保留到下次首屏；目前尚不能区分SDK写入失败、主键问题或回读排除，不能宣称根因已修复。
+
+本轮仅在 `SDKChatClient.history` 增加待诊断完成后移除的DEBUG计数：写入失败数、空/变化/重复主键数、未进入缓存的正常消息/图片数、按服务端ID再次读取的状态分布及缓存类型分布。没有输出UID、群ID、消息ID、聊天正文或媒体地址，没有更改历史返回内容、加载策略或任何消息状态规则。Xcode控制台当前保留 `[ChatHistory]` 筛选，用户重新Run并进群后可直接读取新增 `cacheAudit` 两行，无需用户复制敏感日志。
+
+带DEBUG诊断分支的生产历史离线检查60/60通过（`/tmp/ddlNew-cache-diagnostic-checks.log`），workspace无签名generic iOS Debug构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-recording-cache-diagnostic-build.log`），`git diff --check`通过。构建环境排除sentry-cli，未上传符号或源码。当前需要新包的一次真实进群日志才能选择修复；未安装/运行设备、未提交/推送，不能把诊断构建当作闪现问题已解决。
+
+## 2026-10-27 修复首屏过滤导致图片消息缺失的回归
+
+用户反馈“测试群001”中原先可见的两张本人图片在上轮改动后整条消失。检查确认上一轮新增的 `initialPage/pageUpdates` 过滤有漏消息缺陷：仅保留本地回读页及请求前本地页已知ID的远端结果，导致本地100条窗口之外、或SDK写库/回读未返回的有效远端消息被直接排除。此前分页检查错误地把“丢弃页外有效远端消息”当作正确行为，未覆盖图片缺失场景。本节撤销下节“首屏只按本地最新页裁剪”的实现与验收结论。
+
+已移除这层过滤与额外的首轮缓存读取，恢复本地回读和本轮有效远端结果的双ID去重合并。映射前的账号/会话检查、请求期间删除保护、状态校正及实时消息合并继续生效；保留本地优先展示、群权限独立刷新、整页一次发布、已显示正文不重新隐藏等前述修正。没有针对图片放宽删除规则，也未在真实聊天上执行删除、清库或补写数据。
+
+新增单聊/群聊两张本人图片被本地100条窗口挤出、SDK写库失败回读缺失、资源路径保留和双ID去重检查；修复前生产历史链路50/60通过，图片等10项失败（`/tmp/ddlNew-missing-images-red.log`）。修复后历史60/60通过，首屏25项、首屏定位11项、消息定位Store12项/布局12项及聊天基础回归通过，汇总 `/tmp/ddlNew-missing-images-results.json`。此为匿名夹具对真实SDK适配方法的回归证据；没有读取测试群001两条实际记录，不能据此声称已确认其服务器状态或真机恢复，仍需重新Run复验。设备操作继续暂停，未提交/推送。
+
+最终workspace无签名generic iOS Debug构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-missing-images-build.log`），`git diff --check`通过；构建环境排除sentry-cli，未上传符号或源码。
+
+## 2026-10-27 按 xgd 完整历史加载链路对齐
+
+用户指出前两轮仍未完整对齐，随后明确要求对齐。重新沿 xgd `NoaChatViewController.requestHistoryList` 追到 SDK `messageGetHistoryRecordWith` / `messageRequestHistoryRecordWith`：无游标时先回调本机100条，再独立同步服务端第一页并落库回读，仅发现本地/服务端双ID均未知的消息才再次通知列表；页面增量合并、同步计算行高后无动画对齐，已经展示的正文不重新隐藏。旧端的群资料查询不作为历史请求的前置条件。本节取代前两节关于补齐时重新隐藏和群资料串行等待的实现边界。
+
+新端继续使用当前SwiftUI/Store和带身份校验的SDK请求，不直接调用可能在旧账号回调中写库的旧helper。`SDKChatClient` 将群资料/禁言改为聊天持有的独立任务，历史请求不等待其结果；重复分页共享在途权限查询，权限事件可使旧任务失效，关闭/同群重进隔离迟到回调。主动操作的新核权取消后台旧核权，防止旧失败覆盖新成功。权限未确认仍禁止发送/上传，但不当成已经确认的禁言提示；失败独立反馈，消息正文不受影响。
+
+首轮远端数据落库后回读本机最新页，移除将页外远端旧条额外灌进当前列表的行为；原先已显示消息的撤回/删除/已读等校正仍返回，保留新端已有的状态同步与期间变更保护。`ChatStore` 以本机ID/服务端ID判断新增消息，只有新增才增加首屏定位版本；同ID状态变化仍更新对应消息，不重启首屏定位。`ChatRoomView` 仅首次展示前等待有效布局，后续增量补齐保持正文可见，使用对应批次布局无动画对齐，用户翻阅后停止初始跟随。后续分页合同保持原实现，没有恢复旧HUD或固定延时。
+
+验证：新断言先复现群资料失败阻塞历史、后台补齐隐藏正文、同ID状态更新重启定位以及首屏灌入页外旧记录，红灯日志 `/tmp/ddlNew-xgd-history-client-red.log`、`/tmp/ddlNew-xgd-history-presentation-red.log`、`/tmp/ddlNew-xgd-history-window-red.log`。修复后首屏25项、历史分页52项、首屏定位11项、消息定位Store12项/布局12项、滚动16项、群发送权限14项、已读SDK集成8项及聊天基础回归通过，9个脚本汇总 `/tmp/ddlNew-xgd-alignment-results.json`；独立权限任务追加主动核权覆盖后最终11/11通过（`/tmp/ddlNew-xgd-group-startup-final.log`）。设备操作继续暂停，未提交/推送；这些是生产代码的离线时序与SDK边界检查，实际设备首屏耗时、无动画定位及后台补齐时的视觉稳定性仍需重新Run验收。
+
+最终workspace无签名generic iOS Debug构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-xgd-history-alignment-final-build.log`），`git diff --check`通过；本轮SDKChatClient无新增编译警告，既有SDK桥接头警告保留。构建环境排除sentry-cli，未上传符号或源码。
+
+## 2026-10-27 聊天首屏显示速度修正
+
+用户实测上一轮已不闪历史，但正文出现太慢。原因是上一轮将整个首屏绑定到网络历史请求结束；群聊历史还先等待群详情。此节取代下节“必须等待首轮补拉后显示”的方案。再次对照 xgd 本地先展示、远端增量合并的流程，新端本地可见缓存读出后即生成首屏布局版本，定位到底部就显示，远端请求继续后台执行。无可见缓存时仍等待首轮结果；不新增延迟或loading Toast。
+
+`initialHistoryRevision` 区分本机和远端补齐后的首屏快照；末尾几何携带同一批消息捕获的版本，页面记录已对齐版本。补齐导致内容变化时只等待该批次的布局及无动画底部定位，不允许旧布局放行新正文；内容完全相同不增加版本、不重新遮挡。用户已经开始翻阅时不重启首屏遮挡或强制定位。历史页继续逐条执行既有合并/撤回/迟到回调保护，但整页只发布一次消息数组，减少重复界面更新。关闭重进继续隔离旧请求。
+
+验证：网络请求悬挂时缓存已定位却仍不可见的新增检查先失败（`/tmp/ddlNew-fast-history-red.log`），修复后首屏时序22/22通过（`/tmp/ddlNew-fast-history-green.log`），包含缓存立即显示、旧几何拒绝、后台整页一次发布、无变化回包、在途实时消息、用户翻阅、空缓存与关闭重进。首屏定位11项、历史分页47项、消息定位Store12项/布局12项、滚动16项及聊天基础回归通过，汇总 `/tmp/ddlNew-fast-history-results.json`；workspace无签名generic iOS Debug构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-fast-history-build.log`），`git diff --check`通过。构建环境排除sentry-cli，未上传符号或源码。设备操作继续暂停，未提交或推送，真实设备耗时和后台补齐瞬间的视觉表现待重新Run验收；离线检查证明本机首屏不再等待网络，不代表测得真机毫秒数。
+
+## 2026-10-27 聊天首屏缓存闪现修复
+
+用户反馈进入聊天先闪现少量历史，再显示补齐后的消息。源码时序复现：`ChatStore.open` 先发布本地缓存、随后异步拉取首轮历史；少量缓存的底部已在视口内时，`ChatRoomView` 会提前设置 `didInitialScroll` 并展示正文，后续合并历史时仍保持可见。只检查末条ID也不足以区分补拉前后的布局，因为补齐较早消息时末条ID可能不变。
+
+按用户要求只读对照 xgd `NoaChatViewController` 的 `dealChatMessageHistoryWith:offset:`、`scrollInitialHistoryToBottom` 和 `alignInitialHistoryToBottomIfNeeded`：旧端合并消息、计算行高后刷新，并在布局回调无动画对齐底部。新端新增 `ChatStore.hasLoadedInitialHistory`，首轮请求结束（含失败回退）后才允许显示正文，关闭会话重置，后续分页不重置；回调仍校验当前generation和context。末尾布局快照同时携带与该批消息一起捕获的首轮完成状态，避免旧缓存布局提前放行；完成新布局和底部定位后再显示正文、更新可见已读和游戏播放。空会话无需等待不存在的末条；首轮失败保留缓存和原有错误反馈。没有新增固定延迟、loading Toast或网络请求，正文等待沿用现有首轮请求及超时边界；慢网络下可能需要等待该请求结束。
+
+验证：新增真实 `ChatStore` 加生产视图放行/定位逻辑的离线时序检查，修复前8/16通过、修复后16/16通过，覆盖缓存、在途实时消息、同末条ID补历史、新布局、分页、离线、空会话和关闭重进后的迟到回调。首屏定位、历史分页、消息定位、滚动性能和聊天基础检查也全部通过，共6个脚本exit0，汇总 `/tmp/ddlNew-first-screen-results.json`。workspace无签名generic iOS Debug构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-initial-history-build.log`）；构建环境排除sentry-cli，既有SDK警告保留。Mobile MCP继续暂停，未做设备视觉验收、未提交或推送；需重新Run验证首次/再次进入、长历史、弱网及搜索定位进入的实际画面。
+
+## 2026-10-27 聊天名片气泡与 xgd 对齐
+
+用户随后要求点击用户进入资料页不显示loading Toast：`ContactRecordDetailView` 的资料读取和黑名单查询改为静默加载，主动提交操作的loading、业务失败/结果和复制反馈保留；共用资料页的各入口一致生效。该调整无签名generic iOS workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-profile-silent-loading-build.log`），`git diff --check`通过；未操作设备。
+
+按用户要求只读对照 xgd `NoaMessageCardCell`、`NoaMessageModel.calculateNameCardMessage`、`NoaMessageContentBaseCell` 和聊天名片点击方法。原新端已映射 `cardUserId/cardNickName/cardHeadPicUrl`，但气泡落入普通文字分支，只显示“[名片] 昵称”。新增 `ChatContactCardContent`：40点圆形头像、昵称、分隔线与“个人名片”，正文最大230点加左右各10点留白、默认高度85点；窄窗可收缩，辅助字号可换行增高。收发名片均使用中性卡片底色，沿用项目浅深色、森林绿细节和 UIAdapter；本人名片定位描边改用强调色，避免白色描边融入卡片。
+
+整卡使用显式按钮接原 `activateMessage`，依据名片UID打开用户资料，不使用发送者UID或来源群；发送者外侧头像仍打开作者资料。名片头像使用消息快照中的被推荐用户头像，并复用当前文件Host、Kingfisher和旧格式图片处理器；缺失/失败显示默认头像。缺少名片UID的卡片禁用资料按钮。原资料推荐入口、真实推荐接口、接收人选择及删除/引用/撤回权限保持既有实现，没有新增聊天底栏名片入口。
+
+验证：名片/消息可见性11项、资料导航12项、消息操作10项通过，日志 `/tmp/ddlNew-contact-card-parity.log`、`/tmp/ddlNew-contact-card-navigation.log`、`/tmp/ddlNew-contact-card-actions.log`。生产卡片布局经macOS ImageRenderer替换网络头像边界后检查收发、320pt长昵称、深色、宽屏和空昵称；这是静态布局证据，不代表真实iOS Dynamic Type、下载、VoiceOver或点击验收。预览在 `/tmp/ddlNew-contact-card-preview/`。最终workspace无签名generic iOS构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-contact-card-final-build.log`），既有SDK umbrella/桥接头警告保留；本轮三个Swift文件无新增编译警告，`git diff --check`通过。Mobile MCP继续暂停，未安装或操作设备、未发送真实名片、未提交或推送；重新Run后需验证收发名片外观、整卡进入对应用户、返回原聊天位置和长按菜单。
+
 ## 2026-10-26 清理未使用的腾讯播放器依赖
 
 按用户要求移除 `Player_SwiftPM`：删除应用 target 的 Frameworks 链接项、package product、远程包引用，并由 Xcode 重新解析 `Package.resolved`。仅移除腾讯播放器，剩余24个包的版本及revision保持不变。应用与自有SDK未发现腾讯播放器导入、初始化、播放或动态调用；聊天视频仍使用 `ChatPhotoBrowserPlayback` 的系统 `AVPlayer` 和 `ChatPhotoBrowserVideoCell` 的 `AVPlayerViewController`。

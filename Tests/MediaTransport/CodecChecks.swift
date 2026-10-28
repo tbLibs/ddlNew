@@ -27,6 +27,12 @@ import Foundation
         defer { if avatar != temp { try? FileManager.default.removeItem(at: avatar) } }
         let avatarBytes = try Data(contentsOf: avatar)
         precondition(avatarBytes.prefix(3) == Data("XOR".utf8), "群头像沿旧端isEncrypt:YES包装")
+        let ownAvatar = try LegacyChatMediaCodec.prepareUpload(file: temp, type: 103)
+        defer { if ownAvatar != temp { try? FileManager.default.removeItem(at: ownAvatar) } }
+        let ownAvatarBytes = try Data(contentsOf: ownAvatar)
+        precondition(ownAvatarBytes.prefix(3) == Data("XOR".utf8), "个人头像沿旧端isEncrypt:YES包装")
+        let ownAvatarRoundtrip = try LegacyChatMediaCodec.decode(ownAvatarBytes)
+        precondition(ownAvatarRoundtrip == bytes, "个人头像解包后字节一致")
         let plain = try LegacyChatMediaCodec.decode(Data("plain".utf8))
         precondition(plain == Data("plain".utf8))
         print("Legacy media codec checks passed")

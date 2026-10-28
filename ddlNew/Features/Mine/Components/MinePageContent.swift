@@ -15,6 +15,7 @@ struct MinePageContent<Avatar: View>: View {
     let isSignedIn: Bool
     let avatar: Avatar
     let copyAccount: () -> Void
+    let openProfile: () -> Void
     let switchClub: () -> Void
     let openComplaint: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -42,12 +43,22 @@ struct MinePageContent<Avatar: View>: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16.zoom()))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 16.zoom()))
         return layout {
-            avatar.accessibilityHidden(true)
+            Button(action: openProfile) { avatar.accessibilityHidden(true) }
+                .disabled(!isSignedIn)
+                .accessibilityLabel("编辑个人资料，修改头像")
+                .accessibilityIdentifier("mine.editAvatar")
             VStack(alignment: .leading, spacing: 4.zoom()) {
-                Text(displayName)
-                    .font(.system(size: nameSize, weight: .semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
+                Button(action: openProfile) {
+                    HStack(spacing: 8.zoom()) {
+                        Text(displayName)
+                            .font(.system(size: nameSize, weight: .semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        if isSignedIn { chevron }
+                    }.frame(minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                }
+                .disabled(!isSignedIn)
+                .accessibilityLabel("编辑个人资料，昵称：\(displayName)")
+                .accessibilityIdentifier("mine.editNickname")
                 if isSignedIn, !account.isEmpty {
                     HStack(alignment: .top, spacing: 4.zoom()) {
                         Text("账号：\(account)")

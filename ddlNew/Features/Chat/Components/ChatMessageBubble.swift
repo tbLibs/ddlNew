@@ -18,6 +18,7 @@ struct ChatMessageBubble: View {
     var onReference: () -> Void = {}
     var onAvatar: (() -> Void)? = nil
     var onMention: (() -> Void)? = nil
+    var onOpenCard: (() -> Void)? = nil
     var referenceSummary: String = "引用原文尚未加载，点击定位"
     var showsSenderName = false
     var scrollVisibility: ChatScrollGeometry?
@@ -34,8 +35,8 @@ struct ChatMessageBubble: View {
                 if showsSenderName && !own && !message.senderName.isEmpty { Text(message.senderName).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
                 content
                     .padding(isVisualMedia ? 0 : 10.zoom())
-                    .background(isVisualMedia ? Color.clear : own ? MessagingTheme.outgoingBubble : MessagingTheme.surface)
-                    .foregroundStyle(isVisualMedia ? MessagingTheme.text : own ? MessagingTheme.onPrimaryAction : MessagingTheme.text)
+                    .background(isVisualMedia ? Color.clear : own && !isContactCard ? MessagingTheme.outgoingBubble : MessagingTheme.surface)
+                    .foregroundStyle(isVisualMedia ? MessagingTheme.text : own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.text)
                     .clipShape(ChatMediaBubbleShape(own: own, media: isVisualMedia))
                     // 本人气泡用反差内框并留出绿色外沿，避免白框与浅色页面连成一片。
                     .overlay {
@@ -44,7 +45,7 @@ struct ChatMessageBubble: View {
                                 ChatMediaBubbleShape(own: own).stroke(MessagingTheme.accent, lineWidth: 3)
                             } else {
                                 RoundedRectangle(cornerRadius: 8.zoom()).inset(by: own ? 2 : 0)
-                                    .strokeBorder(own ? MessagingTheme.onPrimaryAction : MessagingTheme.accent, lineWidth: 3)
+                                    .strokeBorder(own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.accent, lineWidth: 3)
                             }
                         }
                     }
@@ -84,6 +85,9 @@ struct ChatMessageBubble: View {
 
     /// 图片和贴纸沿旧端直接展示资源，不给整张媒体再加一层文字气泡留白。
     private var isVisualMedia: Bool { message.status == .normal && message.isCompatible && ([1, 2, 12].contains(message.type) || message.type == 21 && ChatGameSticker(rawValue: message.gameType)?.isValid(message.text) == true) && message.referenceID.isEmpty }
+
+    /// xgd名片收发均使用中性卡片底色，定位描边仍须与底色保持反差。
+    private var isContactCard: Bool { message.status == .normal && message.isCompatible && message.type == 6 }
 
     /// 旧端只在本人发送成功且有展示权限时，于气泡左下侧显示16点已读进度。
     private var showsReadProgress: Bool {
@@ -162,7 +166,7 @@ struct ChatMessageBubble: View {
         if !message.isCompatible { Text(message.displayText).foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText) }
         else if message.status == .recalled { Text("消息已撤回").font(.callout).italic() }
         else {
-            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
+            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
             if message.type == 21 {
                 if let scrollVisibility {
                     ChatVisibleGameStickerBubble(message: message, onComplete: onGameAnimationComplete, visibility: scrollVisibility)
@@ -185,6 +189,14 @@ struct ChatMessageBubble: View {
                 } else {
                     Label(voiceDuration, systemImage: "play.fill").font(.body)
                 }
+            } else if message.type == 6 {
+                Button { onOpenCard?() } label: {
+                    ChatContactCardContent(name: message.text, avatar: message.thumbnail,
+                        fileHost: connection.current?.getFileHost)
+                }
+                .buttonStyle(.plain)
+                .disabled(message.cardProfileID == nil || onOpenCard == nil)
+                .accessibilityHint(message.cardProfileID == nil ? "名片信息不完整" : "查看用户资料")
             } else if message.type == 5 {
                 HStack(spacing: 12.zoom()) {
                     Image(systemName: "doc.fill").font(.system(size: 32.zoom()))

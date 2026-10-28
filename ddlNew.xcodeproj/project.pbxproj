@@ -608,9 +608,10 @@
 				);
 				INFOPLIST_FILE = ddlNew/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "叮咚聊";
-				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描二维码、拍摄聊天照片和进行视频通话";
+				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描二维码、拍摄头像和聊天照片、进行视频通话";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制语音消息及进行语音和视频通话";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将聊天图片、视频和二维码保存到相册";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于选择并裁剪个人头像";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -675,9 +676,10 @@
 				);
 				INFOPLIST_FILE = ddlNew/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "叮咚聊";
-				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描二维码、拍摄聊天照片和进行视频通话";
+				INFOPLIST_KEY_NSCameraUsageDescription = "用于扫描二维码、拍摄头像和聊天照片、进行视频通话";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于录制语音消息及进行语音和视频通话";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将聊天图片、视频和二维码保存到相册";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于选择并裁剪个人头像";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

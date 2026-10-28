@@ -20,6 +20,7 @@ struct ChatPermission: Equatable, Sendable {
     var isGroup = false
     var role = 0
     var isActive = true
+    var isChecking = false
     var isPrivateChat = false
     var sendInterval: TimeInterval = 0
     var recallWindow: TimeInterval? = nil

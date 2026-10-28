@@ -23,6 +23,7 @@ import ObjectiveC
  private var context: ChatContext?
  private let validSession: @MainActor (ChatContext) -> Bool
  private var generation = UUID(); private var groupRefreshRevision = UUID(); private var muteExpiryRevision = UUID()
+ private var groupPermissionTask: Task<Void,Never>?; private var groupPermissionRequest: UUID?
  private var muteExpiryTask: Task<Void,Never>?; private var muteExpiryState = ChatGroupMuteExpiryState()
  private var waiting: [UUID: () -> Void] = [:]; private var delegate: NSObject?
  private var groupDetail: [String: Any]?; private var groupMute: [String: Any]?; private var eventHandler: ((ChatEvent) -> Void)?

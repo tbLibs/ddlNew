@@ -57,6 +57,7 @@ struct ChatRoomView: View {
     @State private var scrollGeometry = ChatScrollGeometry()
     @State private var resizeFollowTask: Task<Void, Never>?
     @State private var didInitialScroll = false
+    @State private var alignedInitialHistoryRevision = 0
     @State private var followsInitialLatest = true
     @State private var showFullHistorySearch = false
     // UIKit输入器自己管理first responder，普通状态不会因缺少.focused目标而被系统复位。
@@ -68,6 +69,7 @@ struct ChatRoomView: View {
     /// 聊天正文与输入共用原状态，键盘交互只切焦点不修改文字或引用。
     private var chatViewport: some View {
         let messages = displayedMessages
+        let initialHistoryRevision = store.initialHistoryRevision
         return ScrollViewReader { proxy in
             VStack(spacing: 0.zoom()) {
                 if route.kind == .group && composerMode.panel != .selection { groupNavigation }
@@ -103,7 +105,7 @@ struct ChatRoomView: View {
                         }
                         // 末尾标记独立于懒加载行，首屏和发送后定位仍能取得内容底部坐标。
                         Color.clear.frame(height: 1).id("latest")
-                            .background(GeometryReader { geometry in Color.clear.preference(key: ChatLatestPreference.self, value: ChatLatestPreference.Value(frame: geometry.frame(in: .named("chatViewport")), lastMessageID: messages.last?.id)) })
+                            .background(GeometryReader { geometry in Color.clear.preference(key: ChatLatestPreference.self, value: ChatLatestPreference.Value(frame: geometry.frame(in: .named("chatViewport")), lastMessageID: messages.last?.id, initialHistoryRevision: initialHistoryRevision)) })
                             .padding(.top, messages.isEmpty ? 0 : 14.zoom())
                     }.padding(.horizontal, 16.zoom()).padding(.bottom, 14.zoom())
                 }
@@ -220,7 +222,7 @@ struct ChatRoomView: View {
             guard !conversationClosed else { return }
             if let context = runtime.context(for: route) {
                 if store.context != context {
-                    didInitialScroll = false; followsInitialLatest = true
+                    didInitialScroll = false; alignedInitialHistoryRevision = 0; followsInitialLatest = true
                     pendingSheetLocation = nil; pendingLocatedMessageID = nil; pendingSendSuccessScroll = false
                     latestLayout = ChatLatestPreference.Value(); messageFrames.removeAll(); visibleMessageIDs.removeAll()
                 }
@@ -343,13 +345,16 @@ struct ChatRoomView: View {
         get { scrollGeometry.visibleMessageIDs }
         nonmutating set { scrollGeometry.visibleMessageIDs = newValue }
     }
-    // 首屏布局仍参与测量，但未定位的历史位置不展示、不读消息，也不播放游戏动画。
-    private var initialMessagesReady: Bool { route.targetMessageID != nil || didInitialScroll || !followsInitialLatest || displayedMessages.isEmpty }
+    // 只在首次展示前等待定位；沿旧端增量补齐，已显示的正文不重新隐藏。
+    private var initialMessagesReady: Bool {
+        store.initialHistoryRevision > 0 && (route.targetMessageID != nil || !followsInitialLatest || displayedMessages.isEmpty
+            || didInitialScroll)
+    }
 
     /// 请求未结束时不提示临时禁发，确认后的限制与业务错误共用浮层，不挤占消息视口。
     private var chatFeedbackMessage: String? {
         if let error = store.errorMessage, !error.isEmpty { return error }
-        guard store.context != nil, !store.isLoading,
+        guard store.context != nil, !store.isLoading, !store.permission.isChecking,
               !store.permission.isActive || !store.permission.canSend else { return nil }
         return store.permission.reason.isEmpty ? "当前会话暂不能发送消息" : store.permission.reason
     }
@@ -512,13 +517,14 @@ struct ChatRoomView: View {
     /// 沿旧端在真实布局回调无动画对齐首屏，用户翻历史或显式定位后停止首次跟随。
     private func positionInitialMessages(_ proxy: ScrollViewProxy) {
         guard followsInitialLatest, store.isVisible, route.targetMessageID == nil,
+              store.initialHistoryRevision > 0, latestLayout.initialHistoryRevision == store.initialHistoryRevision,
               let lastID = displayedMessages.last?.id, latestLayout.lastMessageID == lastID,
               viewport.width > 0, viewport.height > 0, latestFrame.width > 0 else { return }
         resizeFollowTask?.cancel(); resizeFollowTask = nil
         var transaction = Transaction(animation: nil); transaction.disablesAnimations = true
         withTransaction(transaction) {
             if ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) {
-                didInitialScroll = true; store.isAtBottom = true
+                didInitialScroll = true; alignedInitialHistoryRevision = store.initialHistoryRevision; store.isAtBottom = true
             } else { proxy.scrollTo("latest", anchor: .bottom) }
         }
         if didInitialScroll { updateVisibleMessages() }
@@ -620,7 +626,7 @@ struct ChatRoomView: View {
                     }
                     ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
                     isSelected: store.selectedIDs.contains(message.id), isHighlighted: store.locatedMessageID == message.id,
-                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, scrollVisibility: scrollGeometry, onGameAnimationComplete: { store.completeGameAnimation($0) }, voicePlayback: voicePlayback)
+                    onRetry: { store.retry(message.id) }, onReference: { locateMessage(message.referenceID) }, onAvatar: { openSenderProfile(message) }, onMention: mentionAction(for: message), onOpenCard: { activateMessage(message) }, referenceSummary: store.referenceSummary(message.referenceID), showsSenderName: route.kind == .group, scrollVisibility: scrollGeometry, onGameAnimationComplete: { store.completeGameAnimation($0) }, voicePlayback: voicePlayback)
                     .allowsHitTesting(composerMode.panel != .selection)
                     .accessibilityHidden(composerMode.panel == .selection)
                     .overlay {

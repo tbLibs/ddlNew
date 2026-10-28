@@ -31,6 +31,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param offset 开始取数据的位置
 - (NSArray <NoaIMChatMessageModel *> *)getChatMessageHistoryWith:(NSString *)sessionTableName limit:(NSInteger)limit offset:(NSInteger)offset;
 
+/// 聊天时间线按同一分页窗口读取正常消息和撤回占位，排除删除与未知状态。
+- (NSArray<NoaIMChatMessageModel *> *)getChatMessageTimelineWith:(NSString *)sessionTableName limit:(NSInteger)limit offset:(NSInteger)offset;
+
 /// 请求开始时读取全部合法状态，用于区分旧缓存状态与请求期间的变更。
 - (NSArray<NoaIMChatMessageModel *> *)getChatMessageHistoryIncludingInactiveWith:(NSString *)sessionTableName limit:(NSInteger)limit offset:(NSInteger)offset;
 

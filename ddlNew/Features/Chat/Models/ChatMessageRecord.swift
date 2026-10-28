@@ -51,7 +51,7 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     nonisolated var id: String { localID.isEmpty ? "server:" + serverID : localID }
     nonisolated var isBody: Bool { status == .normal && ![8, 9, 13, 15, 1000].contains(type) }
     /// 撤回控制记录只更新原消息占位；同步类系统事件没有正文，不生成额外行。
-    nonisolated var isVisible: Bool { status != .deleted && type != 8 && (![1000, 20].contains(type) || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+    nonisolated var isVisible: Bool { status.isDisplayable && type != 8 && (![1000, 20].contains(type) || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
     /// 名片是独立用户入口，不套用消息发送者的来源群限制。
     nonisolated var cardProfileID: String? { status == .normal && isCompatible && type == 6 && !cardUID.isEmpty ? cardUID : nil }
     nonisolated var displayText: String {
@@ -75,4 +75,9 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
 }
 
 enum ChatSendState: Int, Sendable { case sending, sent, failed }
-enum ChatMessageStatus: Int, Sendable { case deleted = 0, normal = 1, recalled = 2 }
+enum ChatMessageStatus: Int, Sendable {
+    case deleted = 0, normal = 1, recalled = 2
+    /// SDK未识别的非正常状态仅阻止展示；不猜测服务端语义，也不回写此占位值。
+    case unavailable = -1
+    nonisolated var isDisplayable: Bool { self == .normal || self == .recalled }
+}

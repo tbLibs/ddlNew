@@ -5,8 +5,10 @@ struct PositionRoute { var targetMessageID: String? }
 struct ChatLatestLayout: Equatable {
     var frame = CGRect.zero
     var lastMessageID: String?
+    var initialHistoryRevision = 1
 }
 @MainActor final class PositionStore {
+    var initialHistoryRevision = 1
     var isAtBottom = true
     var isVisible = true
     var isForeground = true

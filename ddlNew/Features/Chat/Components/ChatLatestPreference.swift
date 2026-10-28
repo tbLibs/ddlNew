@@ -13,6 +13,8 @@ struct ChatLatestPreference: PreferenceKey {
     nonisolated struct Value: Equatable {
         var frame = CGRect.zero
         var lastMessageID: String?
+        /// 缓存和远端补齐分别测量；末条ID相同时也不能复用旧快照的布局。
+        var initialHistoryRevision = 0
     }
 
     static var defaultValue = Value()

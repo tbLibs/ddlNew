@@ -63,11 +63,15 @@ final class SessionMaintenanceCoordinator {
                     && UserSessionStore.shared.currentUser?.userUID == uid
         }
         guard valid() else { return }
+        let profileRevision = UserSessionStore.shared.profileRevision
         do {
             let json = try await client.profile(userUID: uid, onRejected: rejected)
             guard valid(), let bytes = json.data(using: .utf8),
                   let fields = try JSONSerialization.jsonObject(with: bytes) as? [String: Any] else { return }
-            try UserSessionStore.shared.updateProfile(fields, userUID: uid, lastLiceseId: license)
+            // 主动编辑已提交时，忽略这次更早发起的资料读取；角色维护仍继续。
+            if UserSessionStore.shared.profileRevision == profileRevision {
+                try UserSessionStore.shared.updateProfile(fields, userUID: uid, lastLiceseId: license)
+            }
         } catch { if valid() { debugPrint("[会话维护] 用户资料刷新失败，保留原资料") } }
         guard valid() else { return }
         do {

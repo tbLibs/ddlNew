@@ -108,7 +108,8 @@ struct ContactRecordDetailView: View {
         .navigationDestination(isPresented: Binding(get: { requestedChat != nil }, set: { if !$0 { requestedChat = nil } })) {
             if let requestedChat { ChatRoomView(route: requestedChat) }
         }
-        .messagingLoadingToast((businessStore.isLoading || businessStore.isSubmitting || businessStore.loadingBlackIDs.contains(contactID)) && !editing && !moving && !sharing && !showingComplaint)
+        // 进入资料页的资料与黑名单查询静默加载，仅主动提交操作显示加载反馈。
+        .messagingLoadingToast(businessStore.isSubmitting && !editing && !moving && !sharing && !showingComplaint)
         .messagingFeedbackToast(complaintFeedback ?? businessStore.errorMessage ?? businessStore.notice, isEnabled: !editing && !moving && !sharing && !showingComplaint)
         .toast(isPresenting: $showingCopyToast, duration: 2) {
             AlertToast(displayMode: .alert, type: .regular, title: "账号已复制",
@@ -118,17 +119,22 @@ struct ContactRecordDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 if groupAccessAllowed, let contact, isFriend, !contact.isDeleted, contact.id != businessStore.identity?.userUID {
                     Menu {
-                        Button("备注与描述") { editing = true }
                         Button("移动到分组") { moving = true }
                         Button("推荐名片") { sharing = true }
                         if contact.userType == 0, contactID != "100002" {
+                            Button("投诉与支持") { complaintFeedback = nil; showingComplaint = true }
                             if let blocked = businessStore.blackStates[contactID] {
                                 Button(blocked ? "移出黑名单" : "加入黑名单", role: blocked ? nil : .destructive) {
                                     if blocked { Task { await businessStore.perform(.setBlack(friendID: contactID, blocked: false), sourceGroupID: sourceGroupID) } }
                                     else { confirmingBlack = true }
                                 }
-                            } else { Button("重新确认黑名单状态") { Task { await businessStore.loadBlackState(contactID) } } }
-                            Button("投诉与支持") { complaintFeedback = nil; showingComplaint = true }
+                            } else {
+                                Button("重新确认黑名单状态") {
+                                    Task {
+                                        await businessStore.loadBlackState(contactID)
+                                    }
+                                }
+                            }
                         }
                         Button("删除好友", role: .destructive) { confirmingDelete = true }
                     } label: {

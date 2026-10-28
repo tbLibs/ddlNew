@@ -26,6 +26,8 @@ import Foundation
         precondition(!productionGroupPermission(group: group, detail: nil, mute: nil).canSend)
         precondition(!productionGroupPermission(group: group, detail: ["userInGroup": false], mute: missingPersonal).canSend)
         precondition(!productionGroupPermission(group: group, detail: detail, mute: ["isGroupForbid": NSNull(), "isGroupChat": false]).canSend)
-        print("Group send permission checks: 12 passed")
+        precondition(productionGroupPermission(group: group, detail: nil, mute: nil).isChecking, "独立权限请求等待中不冒充已确认的禁言")
+        precondition(!productionGroupPermission(group: group, detail: detail, mute: missingPersonal).isChecking, "真实权限确认后结束等待状态")
+        print("Group send permission checks: 14 passed")
     }
 }

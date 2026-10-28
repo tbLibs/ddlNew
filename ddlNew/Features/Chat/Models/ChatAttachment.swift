@@ -10,6 +10,8 @@ import Foundation
 struct ChatAttachment: Sendable {
     /// 仅安全表单内部使用的上传类型，不是聊天wire消息类型。
     static let complaintEvidenceType = 102
+    /// 个人头像专用上传类型，不属于聊天消息类型。
+    static let userAvatarType = 103
     let file: URL
     let type: Int
     let name: String

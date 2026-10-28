@@ -16,6 +16,7 @@ enum ChatEvent: Sendable {
     case memberHistoryDeleted([String])
     case memberMetadataRefresh
     case memberMetadataChanged([ChatGroupMember])
+    case permissionRefreshFailed(String)
     case refresh, cleared, permissionsChanged, pinsChanged
 }
 

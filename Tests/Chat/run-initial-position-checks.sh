@@ -37,6 +37,7 @@ code = '''import SwiftUI
     var route = PositionRoute()
     var viewport = CGRect(x: 0, y: 0, width: 390, height: 500)
     var didInitialScroll = false
+    var alignedInitialHistoryRevision = 0
     var followsInitialLatest = true
     var resizeFollowTask: Task<Void, Never>?
     var displayedMessages: [PositionMessage] { store.messages }

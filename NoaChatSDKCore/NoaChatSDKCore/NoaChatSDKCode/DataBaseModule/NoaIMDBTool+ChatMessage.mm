@@ -40,7 +40,13 @@
     return [self.noaChatDB getObjectsOfClass:NoaIMChatMessageModel.class fromTable:sessionTableName where:NoaIMChatMessageModel.messageStatus == 1 orders:{NoaIMChatMessageModel.sendTime.asOrder(WCTOrderedDescending), NoaIMChatMessageModel.serviceMsgID.asOrder(WCTOrderedDescending)} limit:limit offset:offset];
 }
 
-// 只用于同步前的版本快照；正常聊天查询仍严格读取messageStatus == 1。
+// 仅供聊天页面使用；搜索、媒体和会话摘要继续沿用原来的正常消息查询。
+- (NSArray<NoaIMChatMessageModel *> *)getChatMessageTimelineWith:(NSString *)sessionTableName limit:(NSInteger)limit offset:(NSInteger)offset {
+    [DBTOOL isTableStateOkWithName:sessionTableName model:NoaIMChatMessageModel.class];
+    return [self.noaChatDB getObjectsOfClass:NoaIMChatMessageModel.class fromTable:sessionTableName where:(NoaIMChatMessageModel.messageStatus == 1 || NoaIMChatMessageModel.messageStatus == 2) orders:{NoaIMChatMessageModel.sendTime.asOrder(WCTOrderedDescending), NoaIMChatMessageModel.serviceMsgID.asOrder(WCTOrderedDescending)} limit:limit offset:offset];
+}
+
+// 只用于同步前的版本快照，不过滤状态，不能直接作为聊天展示列表。
 - (NSArray<NoaIMChatMessageModel *> *)getChatMessageHistoryIncludingInactiveWith:(NSString *)sessionTableName limit:(NSInteger)limit offset:(NSInteger)offset {
     [DBTOOL isTableStateOkWithName:sessionTableName model:NoaIMChatMessageModel.class];
     return [self.noaChatDB getObjectsOfClass:NoaIMChatMessageModel.class fromTable:sessionTableName orders:{NoaIMChatMessageModel.sendTime.asOrder(WCTOrderedDescending), NoaIMChatMessageModel.serviceMsgID.asOrder(WCTOrderedDescending)} limit:limit offset:offset];

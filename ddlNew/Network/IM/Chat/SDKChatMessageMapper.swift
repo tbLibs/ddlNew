@@ -19,7 +19,7 @@ enum SDKChatMessageMapper {
             avatarURL: model.fromIcon ?? "", type: type,
             text: model.textContent ?? model.showContent ?? model.atContent ?? model.groupNoticeContent ?? model.systemNoticeContent ?? "",
             timestamp: model.sendTime, state: ChatSendState(rawValue: Int(model.messageSendType.rawValue)) ?? .failed,
-            failure: failure(Int(model.sendFailureReason.rawValue)), status: ChatMessageStatus(rawValue: model.messageStatus) ?? .normal,
+            failure: failure(Int(model.sendFailureReason.rawValue)), status: ChatMessageStatus(rawValue: model.messageStatus) ?? .unavailable,
             isRead: model.chatMessageReaded, readCount: model.haveReadCount, totalReadCount: model.totalNeedReadCount,
             referenceID: model.referenceMsgId ?? "")
         record.isEncrypted = model.isEncry; record.snapchat = model.snapchat; record.isCompatible = model.currentVersionMessageOK

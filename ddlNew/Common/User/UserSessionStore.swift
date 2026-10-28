@@ -16,6 +16,8 @@ final class UserSessionStore: ObservableObject {
 
     @AppStorage(userInfoAppStorageKey) private var userInfoJSON = ""
     @Published private(set) var currentUser: UserInfo?
+    /// 资料写入版本使早于主动保存发起的维护读取失效。
+    private(set) var profileRevision = UUID()
 
     private let credentials = UserCredentialStore.shared
 
@@ -108,6 +110,7 @@ final class UserSessionStore: ObservableObject {
         guard let updated = user.applyingProfile(fields, expectedUID: userUID),
               let json = Mapper<UserInfo>().toJSONString(updated) else { throw UserSessionError.invalidData }
         userInfoJSON = json
+        profileRevision = UUID()
         currentUser = updated
     }
 
