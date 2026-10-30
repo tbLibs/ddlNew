@@ -14,11 +14,14 @@ struct CallRoomView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.035, green: 0.10, blue: 0.075).ignoresSafeArea()
+            HomeTheme.heroBackground.ignoresSafeArea()
             if let call = coordinator.session {
+                let immersiveVideo = call.context.route.kind == .single && call.kind == .video && call.phase != .incoming
+                if immersiveVideo { mainVideo(call).ignoresSafeArea() }
                 VStack(spacing: 20.zoom()) {
                     header(call)
-                    participants(call).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if immersiveVideo { secondaryVideo(call).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing) }
+                    else { participants(call).frame(maxWidth: .infinity, maxHeight: .infinity) }
                     controls(call)
                 }
                 .padding(.horizontal, 20.zoom()).padding(.vertical, 16.zoom())
@@ -39,10 +42,10 @@ struct CallRoomView: View {
     private func header(_ call: CallSession) -> some View {
         HStack(alignment: .top) {
             Button { coordinator.minimize() } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left").frame(width: 44, height: 44)
+                Image(systemName: "chevron.down").frame(width: 44, height: 44)
             }.accessibilityLabel("缩小通话")
             VStack(spacing: 6.zoom()) {
-                Text(call.title).font(.title3.weight(.semibold)).lineLimit(2)
+                Text(call.title).font(.title2.weight(.semibold)).lineLimit(2)
                 if let started = call.connectedAt, call.phase == .connected {
                     Text(started, style: .timer).monospacedDigit().font(.subheadline)
                         .accessibilityLabel("通话时长")
@@ -65,37 +68,40 @@ struct CallRoomView: View {
     @ViewBuilder private func participants(_ call: CallSession) -> some View {
         if call.context.route.kind == .group {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 105.zoom()), spacing: 12.zoom())], spacing: 12.zoom()) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12.zoom()), GridItem(.flexible(), spacing: 12.zoom())], spacing: 12.zoom()) {
                     ForEach(call.participants) { person in
                         participantTile(person, kind: call.kind)
                             .frame(height: 145.zoom()).clipShape(RoundedRectangle(cornerRadius: 16.zoom()))
                     }
                 }
             }
-        } else if call.kind == .video && call.phase != .incoming {
-            let local = call.participants.first(where: \.isLocal)
-            let remote = call.participants.first(where: { !$0.isLocal })
-            ZStack(alignment: .topTrailing) {
-                if let main = layout.prefersLocalVideo ? local : remote {
-                    participantTile(main, kind: call.kind)
-                }
-                if let small = layout.prefersLocalVideo ? remote : local {
-                    Button { layout.prefersLocalVideo.toggle() } label: {
-                        participantTile(small, kind: call.kind)
-                            .frame(width: 110.zoom(), height: 160.zoom())
-                            .clipShape(RoundedRectangle(cornerRadius: 14.zoom()))
-                            .overlay(RoundedRectangle(cornerRadius: 14.zoom()).stroke(.white.opacity(0.3)))
-                    }.buttonStyle(.plain).padding(12.zoom()).accessibilityLabel("交换大小视频画面")
-                }
-            }.clipShape(RoundedRectangle(cornerRadius: 22.zoom()))
         } else {
             VStack(spacing: 24.zoom()) {
                 let peer = call.participants.first(where: { !$0.isLocal })
                 CallAvatar(name: peer?.name ?? call.title, resource: peer?.avatar ?? call.context.route.avatarURL, size: 108.zoom())
-                Text(peer?.name ?? call.title).font(.title2.weight(.semibold)).multilineTextAlignment(.center)
-                Label(call.kind == .audio ? "语音通话" : "视频通话", systemImage: call.kind == .audio ? "phone.fill" : "video.fill")
-                    .font(.subheadline).foregroundStyle(.white.opacity(0.7))
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    /// 只有主画面越过安全区；小窗跟随标题下方的安全区内容布局。
+    @ViewBuilder private func mainVideo(_ call: CallSession) -> some View {
+        let local = call.participants.first(where: \.isLocal)
+        let remote = call.participants.first(where: { !$0.isLocal })
+        if let main = layout.prefersLocalVideo ? local : remote {
+            participantTile(main, kind: call.kind)
+        }
+    }
+
+    @ViewBuilder private func secondaryVideo(_ call: CallSession) -> some View {
+        let local = call.participants.first(where: \.isLocal)
+        let remote = call.participants.first(where: { !$0.isLocal })
+        if let small = layout.prefersLocalVideo ? remote : local {
+            Button { layout.prefersLocalVideo.toggle() } label: {
+                participantTile(small, kind: call.kind)
+                    .frame(width: 110.zoom(), height: 160.zoom())
+                    .clipShape(RoundedRectangle(cornerRadius: 14.zoom()))
+                    .overlay(RoundedRectangle(cornerRadius: 14.zoom()).stroke(.white.opacity(0.3)))
+            }.buttonStyle(.plain).accessibilityLabel("交换大小视频画面")
         }
     }
 
@@ -132,14 +138,14 @@ struct CallRoomView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14.zoom()) { mediaControls(call) }
                 }.disabled(call.phase != .connected)
             }
-            HStack(spacing: 70.zoom()) {
-                action(call.phase == .incoming ? "拒绝" : call.phase == .outgoing ? "取消" : "挂断",
+            HStack(spacing: 24.zoom()) {
+                primaryAction(call.phase == .incoming ? "拒绝" : call.phase == .outgoing ? "取消" : "挂断",
                        icon: "phone.down.fill", color: .red, enabled: call.phase != .ending) {
                     Task { await coordinator.hangUp() }
                 }
                 if call.phase == .incoming {
-                    action("接听", icon: call.kind == .audio ? "phone.fill" : "video.fill",
-                           color: MessagingTheme.accent, enabled: !coordinator.busy) {
+                    primaryAction("接听", icon: call.kind == .audio ? "phone.fill" : "video.fill",
+                           color: Color(clubHex: 0x2859BC), enabled: !coordinator.busy) {
                         Task { await coordinator.accept() }
                     }
                 }
@@ -159,6 +165,17 @@ struct CallRoomView: View {
         }
     }
 
+    /// 主通话动作独立于设备控件：来电双胶囊，通话中横向挂断。
+    private func primaryAction(_ title: String, icon: String, color: Color, enabled: Bool, perform: @escaping () -> Void) -> some View {
+        Button(action: perform) {
+            HStack(spacing: 8.zoom()) {
+                Image(systemName: icon).accessibilityHidden(true)
+                Text(title).font(.body.weight(.medium))
+            }.frame(maxWidth: .infinity, minHeight: 50.zoom()).foregroundStyle(.white)
+                .background(color, in: Capsule())
+        }.buttonStyle(.plain).disabled(!enabled).opacity(enabled ? 1 : 0.45).accessibilityLabel(title)
+    }
+
     private func action(_ title: String, icon: String, color: Color? = nil, selected: Bool = false,
                         enabled: Bool = true, perform: @escaping () -> Void) -> some View {
         Button(action: perform) {
@@ -166,7 +183,7 @@ struct CallRoomView: View {
                 Image(systemName: icon).font(.system(size: 24.zoom(), weight: .medium))
                     .frame(width: max(54, 58.zoom()), height: max(54, 58.zoom()))
                     .foregroundStyle(selected && color == nil ? Color.black : Color.white)
-                    .background(color ?? (selected ? .white : .white.opacity(0.16)), in: Circle())
+                    .background(color ?? (selected ? .white : .clear), in: RoundedRectangle(cornerRadius: 12.zoom()))
                 Text(title).font(.caption).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }.frame(minWidth: 64.zoom(), minHeight: 82.zoom())
         }
@@ -201,6 +218,6 @@ struct CallAvatar: View {
                 ZStack { MessagingTheme.avatarBackground; Text(String(name.prefix(1))).font(.title).foregroundStyle(MessagingTheme.accent) }
             }
             .resizable().scaledToFill().frame(width: size, height: size)
-            .clipShape(RoundedRectangle(cornerRadius: size * 0.24)).accessibilityHidden(true)
+            .clipShape(Circle()).accessibilityHidden(true)
     }
 }

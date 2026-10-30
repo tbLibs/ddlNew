@@ -29,9 +29,9 @@ struct BusinessQRScannerView: View {
     var body: some View {
         Group {
             if let target {
-                Form {
-                    destination(target)
-                }
+                ScrollView {
+                    destination(target).frame(maxWidth: 640, alignment: .leading).padding(20.zoom()).frame(maxWidth: .infinity)
+                }.background(MessagingTheme.surface.ignoresSafeArea())
                 .modifier(MessagingPageChrome())
             } else {
                 camera
@@ -102,17 +102,24 @@ struct BusinessQRScannerView: View {
         switch target {
         case .user: EmptyView()
         case .group(let id, let name, let avatar, let inviter, let isMember, let needsApproval):
-            Section(name) {
+            VStack(alignment: .leading, spacing: 20.zoom()) {
+                Text(name).font(.title2.weight(.semibold))
                 if isMember { EmptyView() }
                 else {
-                    if needsApproval { TextField("填写入群理由", text: $reason) }
+                    if needsApproval {
+                        VStack(alignment: .leading, spacing: 10.zoom()) {
+                            Text("入群理由").font(.footnote.weight(.medium)).foregroundStyle(MessagingTheme.secondaryText)
+                            TextField("填写入群理由", text: $reason).padding(16.zoom())
+                                .background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 10.zoom()))
+                        }
+                    }
                     Button(needsApproval ? "申请加入群聊" : "加入群聊") { Task {
                         let identity = businessStore.identity
                         if await businessStore.perform(.joinGroup(id: id, inviter: inviter, reason: reason)), businessStore.identity == identity {
                             if needsApproval { showFeedback("申请已提交，请等待群管理员审核") }
                             else { joinedRoute = ChatRoute(id: id, kind: .group, title: name, avatarURL: avatar) }
                         } else if businessStore.identity == identity, let error = businessStore.errorMessage { showFeedback(error) }
-                    } }.disabled(businessStore.isSubmitting || (needsApproval && reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                    } }.buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(businessStore.isSubmitting || (needsApproval && reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                 }
             }
         }

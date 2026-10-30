@@ -14,12 +14,12 @@ struct LoginVerificationSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 20) {
                 if !request.message.isEmpty {
                     Text(request.message)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                        .foregroundStyle(LoginPalette.secondary)
+                        .multilineTextAlignment(.leading)
                 }
                 switch request.kind {
                 case .imageCaptcha: imageCaptcha
@@ -29,7 +29,12 @@ struct LoginVerificationSheet: View {
                 Spacer(minLength: 0)
             }
             .padding(24)
-            .background(LoginPalette.background)
+            .background(LoginPalette.card)
+            .safeAreaInset(edge: .bottom) {
+                if !isProviderCaptcha && (request.kind != .imageCaptcha || request.imageData.flatMap({ UIImage(data: $0) }) != nil) {
+                    continueButton.padding(20).background(LoginPalette.card)
+                }
+            }
             .messagingLoadingToast(isProviderCaptcha && loadState == .loading, title: "正在加载验证")
             .messagingFeedbackToast(verificationFeedback, presentInitial: true)
             .navigationTitle(title)
@@ -63,31 +68,34 @@ struct LoginVerificationSheet: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: 260, maxHeight: 100)
+                .frame(maxWidth: .infinity).frame(height: 90).padding(.horizontal, 16)
+                .background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 10))
                 .accessibilityLabel("图片验证码")
+            Text("图片验证码").font(.footnote.weight(.medium)).foregroundStyle(LoginPalette.secondary)
             TextField("请输入图片中的验证码", text: $input)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
-                .frame(minHeight: 44)
+                .padding(.horizontal, 15).padding(.vertical, 8)
+                .background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 12))
+                .frame(minHeight: 52)
                 .accessibilityIdentifier("loginImageCode")
                 .onSubmit(submitInput)
-            continueButton
         } else {
             Color.clear.frame(height: 100)
         }
     }
 
     private var securityCode: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("安全码").font(.footnote.weight(.medium)).foregroundStyle(LoginPalette.secondary)
             SecureField("请输入安全码", text: $input)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal, 15).padding(.vertical, 8)
+                .background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 12))
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("loginSecurityCode")
                 .onSubmit(submitInput)
-            continueButton
         }
     }
 

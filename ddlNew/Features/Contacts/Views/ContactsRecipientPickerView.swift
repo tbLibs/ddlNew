@@ -53,7 +53,7 @@ struct ContactsRecipientPickerView: View {
             .navigationTitle("选择接收人")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(sending) }
-                ToolbarItem(placement: .confirmationAction) { Button("分享(\(chosen.count))") { searchFocused = false; confirmingShare = true }.disabled(sending || chosen.isEmpty) }
+                ToolbarItem(placement: .topBarTrailing) { Button("分享(\(chosen.count))") { searchFocused = false; confirmingShare = true }.buttonStyle(.plain).foregroundStyle(MessagingTheme.accent).frame(minHeight: 44).disabled(sending || chosen.isEmpty) }
             }
             .confirmationDialog("分享给\(chosen.count)个会话？", isPresented: $confirmingShare, titleVisibility: .visible) {
                 Button("分享") { Task { await send() } }

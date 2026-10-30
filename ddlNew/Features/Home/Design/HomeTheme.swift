@@ -8,27 +8,27 @@
 import SwiftUI
 import UIKit
 
-/// 首页专用的自然色板；不改变尚未重设计的旧版业务页面。
+/// 岩白与钴蓝语义色板；旧属性名保留以避免改变页面接口。
 enum HomeTheme {
-    static let background = adaptive(light: 0xF7F7F2, dark: 0x151D19)
-    static let surface = adaptive(light: 0xFFFFFF, dark: 0x202D25)
-    static let text = adaptive(light: 0x20392D, dark: 0xF0F5EC)
-    static let secondaryText = adaptive(light: 0x58665C, dark: 0xB9C9BD)
-    static let forest = adaptive(light: 0x285B43, dark: 0xAED5B5)
-    static let mintSurface = adaptive(light: 0xE6EDE2, dark: 0x2B4031)
-    static let sandSurface = adaptive(light: 0xF1EBDD, dark: 0x3A3428)
-    static let warmAccent = adaptive(light: 0x986127, dark: 0xEBC38D)
-    static let border = adaptive(light: 0xD8DED5, dark: 0x425449)
+    static let background = adaptive(light: 0xF3F5F9, dark: 0x111923)
+    static let surface = adaptive(light: 0xFFFFFF, dark: 0x192432)
+    static let text = adaptive(light: 0x182536, dark: 0xEDF2FA)
+    static let secondaryText = adaptive(light: 0x647184, dark: 0xACB9CC)
+    static let forest = adaptive(light: 0x2859BC, dark: 0x9EBDFF)
+    static let mintSurface = adaptive(light: 0xEAF0FC, dark: 0x253754)
+    static let sandSurface = adaptive(light: 0xF3F5F9, dark: 0x202E3F)
+    static let warmAccent = adaptive(light: 0x97611D, dark: 0xE5BD80)
+    static let border = adaptive(light: 0xDFE5EE, dark: 0x354459)
 
     /// 插画与深色活动卡固定使用同一套前景色，避免系统主题改变图层关系。
-    static let heroBackground = Color(red: 0.13, green: 0.25, blue: 0.19)
-    static let onHero = Color(red: 0.97, green: 0.98, blue: 0.94)
-    static let onHeroSecondary = Color(red: 0.79, green: 0.87, blue: 0.79)
+    static let heroBackground = Color(clubHex: 0x142239)
+    static let onHero = Color(clubHex: 0xF3F6FC)
+    static let onHeroSecondary = Color(clubHex: 0xB8C9E3)
     static let mountainBack = Color(red: 0.35, green: 0.48, blue: 0.35)
     static let mountainFront = Color(red: 0.22, green: 0.37, blue: 0.27)
     static let sun = Color(red: 0.93, green: 0.79, blue: 0.52)
 
-    static let cardRadius: CGFloat = 24
+    static let cardRadius: CGFloat = 12
     static let contentWidth: CGFloat = 640
 
     private static func adaptive(light: UInt32, dark: UInt32) -> Color {

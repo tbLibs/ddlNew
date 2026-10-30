@@ -10,25 +10,27 @@ import UIKit
 
 /// 消息与通讯录沿用 xgd 的中性底色，品牌强调复用首页和我的主题色。
 enum MessagingTheme {
-    static let background = adaptive(0xF8F9FB, 0x16171C)
-    static let surface = adaptive(0xFFFFFF, 0x202127)
-    static let text = adaptive(0x111111, 0xF4F5FA)
-    static let secondaryText = adaptive(0x62697B, 0xACB1C0)
+    static let background = HomeTheme.background
+    static let surface = HomeTheme.surface
+    static let text = HomeTheme.text
+    static let secondaryText = HomeTheme.secondaryText
     static let accent = HomeTheme.forest
-    static let divider = adaptive(0xEEF1FA, 0x353740)
+    static let divider = adaptive(0xE8EDF4, 0x303E50)
     static let border = HomeTheme.border
-    static let pressed = adaptive(0xEEEFF5, 0x30323D)
+    static let pressed = adaptive(0xF0F3F8, 0x263449)
     static let avatarBackground = HomeTheme.mintSurface
-    static let error = adaptive(0xC72C41, 0xFF8494)
-    static let badge = Color(clubHex: 0xD92D38)
+    static let error = adaptive(0xB9413E, 0xFF9B95)
+    static let onError = adaptive(0xFFFFFF, 0x142239)
+    static let badge = Color(clubHex: 0xB9413E)
     static let online = adaptive(0x16843B, 0x62D98A)
     static let primaryAction = HomeTheme.forest
-    /// 深色主题的森林绿变浅，实色按钮与气泡需配深色文字。
-    static let onPrimaryAction = adaptive(0xFFFFFF, 0x20392D)
-    static let outgoingBubble = primaryAction
+    /// 实色按钮与浅蓝消息气泡分开定义前景，避免浅底白字。
+    static let onPrimaryAction = adaptive(0xFFFFFF, 0x142239)
+    static let outgoingBubble = adaptive(0xDCE7FD, 0x2B4165)
+    static let onOutgoingBubble = adaptive(0x182536, 0xEDF2FA)
     static let mutedBadge = adaptive(0x62697B, 0x62697B)
-    /// 浮层采用低饱和灰绿底，与页面有柔和层次，文字仍保持清晰对比。
-    static let toastBackground = adaptive(0xE1E9E3, 0x2F3C34)
+    /// 短反馈使用独立中性底色，浅深色均与正文保持对比。
+    static let toastBackground = adaptive(0xE5EBF5, 0x2B3A50)
     static let toastText = HomeTheme.text
 
     /// UIColor 动态解析使导航、列表与弹窗在系统主题变化时同步切换。

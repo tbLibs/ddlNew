@@ -29,29 +29,15 @@ struct ActivitiesScreen: View {
     var body: some View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 10) {
-                    ClubIcon(name: "search")
-                    TextField("搜索活动或地点", text: $query).focused($searchFocused).submitLabel(.search).font(.system(size: 14)).accessibilityIdentifier("activitySearch")
-                    if !query.isEmpty { Button("清除") { query = "" }.font(.caption) }
-                }.padding(12).background(ClubTheme.card).clipShape(RoundedRectangle(cornerRadius: 17))
-                    .overlay(RoundedRectangle(cornerRadius: 17).stroke(ClubTheme.border, lineWidth: 1))
+                CommunitySearchField(placeholder: "搜索活动或地点", text: $query,
+                                     focus: $searchFocused, identifier: "activitySearch")
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 9) {
-                        ForEach(ActivityFilter.allCases) { item in
-                            Button { filter = item } label: {
-                                Text(item.rawValue).font(.system(size: 14))
-                                    .foregroundColor(filter == item ? .white : ClubTheme.secondary)
-                                    .padding(.horizontal, 16).frame(minHeight: 38)
-                                    .background(filter == item ? ClubTheme.teal : ClubTheme.card)
-                                    .clipShape(Capsule()).overlay(Capsule().stroke(filter == item ? .clear : ClubTheme.border, lineWidth: 1))
-                            }.accessibilityAddTraits(filter == item ? .isSelected : [])
-                        }
-                    }
+                    MessagingTabs(selection: $filter)
                 }
                 if filtered.isEmpty {
                     EmptyClubState(title: "暂无符合条件的活动", message: "试试其他关键词，或切换活动分类。")
                 } else {
-                    LazyVStack(spacing: 12) { ForEach(filtered) { ActivityCard(activity: $0) } }
+                    LazyVStack(spacing: 0) { ForEach(filtered) { ActivityCard(activity: $0) } }
                 }
             }.padding(.horizontal, 20).padding(.top, 18)
         }

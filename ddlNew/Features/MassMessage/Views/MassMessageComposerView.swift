@@ -38,65 +38,82 @@ struct MassMessageComposerView: View {
     private var busy: Bool { store.busy || preparing }
 
     var body: some View {
-        Form {
-          Group {
-            Section {
-                if let original = store.original {
-                    NavigationLink { MassMessageRecipientsView(context: store.context, record: original, failures: false) } label: {
-                        Label("原接收对象（\(original.total)）", systemImage: "person.2").frame(minHeight: 44)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28.zoom()) {
+                VStack(alignment: .leading, spacing: 12.zoom()) {
+                    Text(store.original == nil ? "接收对象" : "原接收对象").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                    if let original = store.original {
+                        NavigationLink { MassMessageRecipientsView(context: store.context, record: original, failures: false) } label: {
+                            HStack {
+                                Text("\(original.total)个对象").font(.title3.weight(.semibold)).foregroundStyle(MessagingTheme.text)
+                                Spacer(minLength: 12.zoom())
+                                Text("查看").font(.subheadline)
+                            }.frame(minHeight: 44)
+                        }
+                        Text("再发一次沿用原接收对象，无法修改成员。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
+                    } else {
+                        Button { selecting = true } label: {
+                            HStack(alignment: .center, spacing: 16.zoom()) {
+                                VStack(alignment: .leading, spacing: 8.zoom()) {
+                                    Text(store.selection.isEmpty ? "选择好友或群聊" : store.selection.prefix(5).map(\.name).joined(separator: "、") + (store.selection.count > 5 ? "等" : ""))
+                                        .font(.title3.weight(.semibold)).foregroundStyle(MessagingTheme.text).multilineTextAlignment(.leading)
+                                    if !store.selection.isEmpty { Text("\(store.selection.count)个对象").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                                Text(store.selection.isEmpty ? "选择" : "修改").font(.subheadline.weight(.medium)).fixedSize()
+                            }.frame(minHeight: 60.zoom()).contentShape(Rectangle())
+                        }.buttonStyle(.plain).foregroundStyle(MessagingTheme.accent)
+                        Text("可同时选择好友和群聊，重复选择只计一次。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
                     }
-                } else {
-                    Button { selecting = true } label: {
-                        HStack {
-                            Label("接收对象", systemImage: "person.2")
-                            Spacer()
-                            Text(store.selection.isEmpty ? "请选择" : "已选 \(store.selection.count)").foregroundStyle(MessagingTheme.secondaryText)
-                            Image(systemName: "chevron.right").font(.caption).accessibilityHidden(true)
-                        }.frame(minHeight: 44)
-                    }
-                    if !store.selection.isEmpty {
-                        Text(store.selection.prefix(5).map(\.name).joined(separator: "、") + (store.selection.count > 5 ? "等" : ""))
-                            .font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
-                    }
+                    MessagingTheme.divider.frame(height: 1).padding(.top, 8.zoom())
                 }
-            } header: { Text("发送给") } footer: {
-                if store.original != nil { Text("再发一次沿用原接收对象，无法修改成员。") }
-                else { Text("可同时选择好友和群聊，重复选择只计一次。") }
-            }
-            Section {
-                TextField("可选，便于区分群发记录", text: $store.label)
-                    .accessibilityLabel("群发标签").disabled(store.original != nil)
-                HStack { Text("标签长度"); Spacer(); Text("\(store.label.utf16.count)/16") }
-                    .font(.caption).foregroundStyle(store.label.utf16.count > 16 ? MessagingTheme.error : MessagingTheme.secondaryText)
-                if store.label.utf16.count > 16 { Text("标签过长，请缩短后发送（表情可能占多个长度）。").font(.caption).foregroundStyle(MessagingTheme.error) }
-            } header: { Text("标签") }
-            Section {
-                if store.messageType == 0 {
-                    TextEditor(text: $store.text).frame(minHeight: 180.zoom()).accessibilityLabel("群发正文")
-                    if store.text.isEmpty { Text("输入要发送给所有接收对象的消息").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
-                } else {
-                    Button { previewAttachment() } label: {
-                        HStack(spacing: 12.zoom()) {
-                            Image(systemName: store.messageType == 1 ? "photo" : store.messageType == 2 ? "play.rectangle" : "doc").font(.title2).frame(width: 44, height: 44).accessibilityHidden(true)
-                            VStack(alignment: .leading, spacing: 6.zoom()) {
-                                Text(attachmentTitle).font(.body)
-                                if let attachment = store.attachment { Text(ByteCountFormatter.string(fromByteCount: attachment.bytes, countStyle: .file)).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
-                                Text("轻点预览").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                VStack(alignment: .leading, spacing: 10.zoom()) {
+                    Text(store.original == nil ? "群发标签（选填）" : "群发标签 · 不可修改").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                    TextField("可选，便于区分群发记录", text: $store.label)
+                        .accessibilityLabel("群发标签").disabled(store.original != nil)
+                        .frame(minHeight: 44).padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+                        .background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                    Text("\(store.label.utf16.count)/16").font(.caption).foregroundStyle(store.label.utf16.count > 16 ? MessagingTheme.error : MessagingTheme.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    if store.label.utf16.count > 16 { Text("标签过长，请缩短后发送（表情可能占多个长度）。").font(.caption).foregroundStyle(MessagingTheme.error) }
+                }
+                VStack(alignment: .leading, spacing: 12.zoom()) {
+                    Text(store.messageType == 0 ? "群发正文" : "群发附件").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                    if store.messageType == 0 {
+                        ZStack(alignment: .topLeading) {
+                            if store.text.isEmpty {
+                                Text("输入要发送给所有接收对象的消息").font(.body).foregroundStyle(MessagingTheme.secondaryText)
+                                    .padding(.horizontal, 17.zoom()).padding(.vertical, 20.zoom()).allowsHitTesting(false).accessibilityHidden(true)
                             }
-                            Spacer(minLength: 0)
-                        }.frame(minHeight: 44)
-                    }.buttonStyle(.plain)
-                    Button("移除附件，改发文字", role: .destructive) { store.replaceAttachment(nil) }.frame(minHeight: 44)
+                            TextEditor(text: $store.text).font(.body).scrollContentBackground(.hidden).frame(minHeight: 180.zoom()).accessibilityLabel("群发正文")
+                                .padding(12.zoom())
+                        }.background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                    } else {
+                        Button { previewAttachment() } label: {
+                            HStack(spacing: 12.zoom()) {
+                                Image(systemName: store.messageType == 1 ? "photo" : store.messageType == 2 ? "play.rectangle" : "doc").font(.title2).frame(width: 44, height: 44).accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 6.zoom()) {
+                                    Text(attachmentTitle).font(.body)
+                                    if let attachment = store.attachment { Text(ByteCountFormatter.string(fromByteCount: attachment.bytes, countStyle: .file)).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                                    Text("轻点预览").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                                }
+                                Spacer(minLength: 0)
+                            }.frame(minHeight: 44)
+                        }.buttonStyle(.plain)
+                        Button("移除附件，改发文字", role: .destructive) { store.replaceAttachment(nil) }.frame(minHeight: 44)
+                    }
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 24.zoom()) { photoButton; fileButton }
+                        VStack(alignment: .leading, spacing: 8.zoom()) { photoButton; fileButton }
+                    }
+                    Text("每次发送文字，或一张图片、一段视频、一个文件。选择附件后仅发送附件。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
                 }
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 24.zoom()) { photoButton; fileButton }
-                    VStack(alignment: .leading, spacing: 8.zoom()) { photoButton; fileButton }
-                }
-            } header: { Text("群发内容") } footer: { Text("每次发送文字，或一张图片、一段视频、一个文件。选择附件后仅发送附件。") }
-            if !allowed { Section { Text("当前账号没有群发权限").font(.subheadline).foregroundStyle(MessagingTheme.error) } }
-          }.disabled(busy)
+                if !allowed { Text("当前账号没有群发权限").font(.subheadline).foregroundStyle(MessagingTheme.error) }
+            }.disabled(busy).padding(.horizontal, 20.zoom()).padding(.vertical, 28.zoom())
+                .frame(maxWidth: 720).frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: 720).frame(maxWidth: .infinity)
+        .scrollDismissesKeyboard(.interactively)
+        .foregroundStyle(MessagingTheme.text)
+        .background(MessagingTheme.surface)
         .navigationTitle(store.original == nil ? "新建群发" : "再发一次").modifier(MessagingPageChrome())
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { discard = true }.frame(minHeight: 44) } }
         .safeAreaInset(edge: .bottom) {

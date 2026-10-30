@@ -37,7 +37,7 @@ struct MineView: View {
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
         }
-        .background(HomeTheme.background.ignoresSafeArea())
+        .background(HomeTheme.surface.ignoresSafeArea())
         .tint(HomeTheme.forest)
         .navigationTitle("我的")
         .navigationBarTitleDisplayMode(.inline)
@@ -104,8 +104,8 @@ struct MineView: View {
             }
             .resizable().scaledToFill()
             .frame(width: 72.zoom(), height: 72.zoom())
-            .clipShape(RoundedRectangle(cornerRadius: 24.zoom(), style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 24.zoom(), style: .continuous)
+            .clipShape(RoundedRectangle(cornerRadius: 36.zoom(), style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 36.zoom(), style: .continuous)
                 .stroke(HomeTheme.border, lineWidth: 1))
             .id(userSession.currentUser?.userUID)
             .accessibilityHidden(true)

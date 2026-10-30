@@ -33,7 +33,11 @@ struct ContactsView: View {
             VStack(spacing: 0.zoom()) {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0.zoom(), pinnedViews: [.sectionHeaders]) {
-                        shortcuts.padding(.horizontal, 12.zoom()).padding(.vertical, 12.zoom())
+                        Text("通讯录").font(.largeTitle.weight(.bold)).foregroundStyle(MessagingTheme.text)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16.zoom()).padding(.top, 16.zoom()).padding(.bottom, 8.zoom())
+                            .background(MessagingTheme.surface).accessibilityAddTraits(.isHeader)
+                        shortcuts.padding(.horizontal, 12.zoom()).padding(.vertical, 12.zoom()).background(MessagingTheme.surface)
                         Section {
                             content
                         } header: {
@@ -54,7 +58,7 @@ struct ContactsView: View {
                                 }
                                 MessagingSearchField(placeholder: filter == .groups ? "搜索群名称" : "搜索备注、昵称、账号",
                                                      text: $query, focus: $searchFocused, identifier: "contactSearch")
-                            }.padding(.horizontal, 16.zoom()).padding(.bottom, 12.zoom()).background(MessagingTheme.background)
+                            }.padding(.horizontal, 16.zoom()).padding(.bottom, 12.zoom()).background(MessagingTheme.surface)
                         }
                     }
                 }
@@ -72,6 +76,10 @@ struct ContactsView: View {
         .navigationTitle("通讯录")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // 标题由正文绘制，保留 navigationTitle 元数据用于子页返回文本。
+            ToolbarItem(placement: .principal) {
+                Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+            }
             ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions }
         }
         .toolbarBackground(MessagingTheme.surface, for: .navigationBar)

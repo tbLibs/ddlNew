@@ -10,19 +10,14 @@ import UIAdapter
 
 /// “连接俱乐部”按钮的纯视觉样式。
 struct InvitationCodeButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15.zoom(), weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 52.zoom())
-            .background(InvitationCodePalette.action)
-            .clipShape(RoundedRectangle(cornerRadius: 16.zoom(), style: .continuous))
-            .shadow(
-                color: InvitationCodePalette.teal.opacity(0.14),
-                radius: 14.zoom(),
-                y: 10.zoom()
-            )
+            .font(.body.weight(.semibold))
+            .foregroundStyle(isEnabled ? MessagingTheme.onPrimaryAction : HomeTheme.secondaryText)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(isEnabled ? InvitationCodePalette.action : HomeTheme.border)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

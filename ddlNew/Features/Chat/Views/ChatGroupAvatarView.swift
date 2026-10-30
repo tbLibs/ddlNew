@@ -22,27 +22,35 @@ struct ChatGroupAvatarView: View {
     @State private var preparation: Task<Void, Never>?
 
     var body: some View {
-        MessagingScroll {
+        ScrollView {
             VStack(spacing: 24.zoom()) {
-                MessagingCard {
+                VStack(spacing: 20.zoom()) {
                     KFImage(RemoteAvatarURL.resolve(store.snapshot?.group?.avatar ?? route.avatarURL, relativeTo: connection.current?.getFileHost))
                         .downloader(NetworkImageDownloader.downloader(for: connection.current?.getFileHost))
                         .setProcessor(LegacyRemoteImageProcessor())
-                        .placeholder { Image(systemName: "person.3.fill").font(.largeTitle).foregroundStyle(MessagingTheme.secondaryText).frame(width: 240.zoom(), height: 240.zoom()).background(MessagingTheme.avatarBackground) }
-                        .resizable().scaledToFit().frame(maxWidth: 280.zoom(), maxHeight: 280.zoom())
-                        .clipShape(RoundedRectangle(cornerRadius: 12.zoom())).frame(maxWidth: .infinity).accessibilityLabel("当前群头像")
-                }
+                        .placeholder { Image(systemName: "person.3.fill").font(.largeTitle).foregroundStyle(MessagingTheme.secondaryText).frame(width: 100.zoom(), height: 100.zoom()).background(MessagingTheme.avatarBackground) }
+                        .resizable().scaledToFill().frame(width: 100.zoom(), height: 100.zoom())
+                        .clipShape(Circle()).frame(maxWidth: .infinity).accessibilityLabel("当前群头像")
+                    Text(store.snapshot?.group?.name ?? route.title).font(.title2.weight(.semibold)).multilineTextAlignment(.center)
+                    Text("当前群头像").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                }.padding(.top, 36.zoom())
                 if busy {
                     VStack(spacing: 12.zoom()) {
                         Button("取消上传") { preparation?.cancel(); client.cancel() }.frame(minHeight: 44)
                     }
                 }
+
+            }.padding(16.zoom())
+        }.background(MessagingTheme.surface.ignoresSafeArea()).scrollDismissesKeyboard(.interactively)
+        .navigationTitle("群头像").modifier(MessagingPageChrome())
+        .safeAreaInset(edge: .bottom) {
+            Group {
                 if [1, 2].contains(store.snapshot?.group?.role ?? 0) {
                     PhotosPicker(selection: $photo, matching: .images) { Label("选择新群头像", systemImage: "photo").frame(maxWidth: .infinity) }
                         .buttonStyle(MessagingActionButtonStyle()).disabled(busy || store.busy)
                 }
-            }.padding(16.zoom())
-        }.navigationTitle("群头像").modifier(MessagingPageChrome())
+            }.frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
+        }
         .messagingFeedbackToast(errorMessage ?? store.errorMessage ?? feedback)
         .messagingLoadingToast(busy || store.busy, title: "正在更新群头像")
         .onChange(of: photo) { item in preparation?.cancel(); preparation = Task { await upload(item) } }

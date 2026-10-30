@@ -13,7 +13,16 @@ struct MessagingTabs<Selection: RawRepresentable & CaseIterable & Hashable>: Vie
     @Binding var selection: Selection
 
     var body: some View {
-        HStack(spacing: 24.zoom()) {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 24.zoom()) { options; Spacer(minLength: 0) }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 24.zoom()) { options }
+            }
+        }
+    }
+
+    private var options: some View {
+        Group {
             ForEach(Array(Selection.allCases), id: \.self) { item in
                 Button { selection = item } label: {
                     VStack(spacing: 0.zoom()) {
@@ -25,7 +34,6 @@ struct MessagingTabs<Selection: RawRepresentable & CaseIterable & Hashable>: Vie
                 .buttonStyle(.plain).foregroundStyle(selection == item ? MessagingTheme.accent : MessagingTheme.secondaryText)
                 .accessibilityAddTraits(selection == item ? .isSelected : [])
             }
-            Spacer(minLength: 0)
         }
     }
 }

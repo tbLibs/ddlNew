@@ -18,13 +18,9 @@ struct DeleteAccountScreen: View {
     var body: some View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 24) {
-                Image(systemName: "person.crop.circle.badge.minus")
-                    .font(.system(size: 36)).foregroundColor(ClubTheme.error)
-                    .frame(width: 76, height: 76).background(ClubTheme.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 24)).accessibilityHidden(true)
-                Text("注销前，请确认以下事项").font(.title2.bold())
-                    .font(.body).foregroundColor(ClubTheme.secondary).lineSpacing(5)
-                ClubCard {
+                Text("注销前，请确认以下事项").font(.title2.weight(.semibold))
+                    .foregroundColor(ClubTheme.ink).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 18) {
                         explanation("清除账号记录", "清除登录状态、俱乐部连接、报名、候补和签到记录。")
                         Divider()
@@ -33,8 +29,13 @@ struct DeleteAccountScreen: View {
                         explanation("账号无法再次登录", "注销后不可撤销，账号无法再次登录。")
                     }
                 }
+
+            }.padding(20).disabled(deleting)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 16) {
                 Toggle("我已了解注销后果", isOn: $acknowledged)
-                    .font(.body).tint(ClubTheme.darkTeal)
+                    .font(.body).tint(ClubTheme.darkTeal).frame(minHeight: 44)
                     .accessibilityIdentifier("acknowledgeAccountDeletion")
 
                 Button { confirming = true } label: {
@@ -42,10 +43,10 @@ struct DeleteAccountScreen: View {
                         Text("确认注销账号")
                     }.frame(maxWidth: .infinity)
                 }
-                .buttonStyle(MessagingActionButtonStyle(fill: ClubTheme.error, foreground: .white))
+                .buttonStyle(MessagingActionButtonStyle(fill: ClubTheme.error, foreground: MessagingTheme.onError))
                 .disabled(!acknowledged || deleting)
                 .accessibilityIdentifier("confirmAccountDeletion")
-            }.padding(24).disabled(deleting)
+            }.frame(maxWidth: 600).padding(20).frame(maxWidth: .infinity).background(ClubTheme.card).disabled(deleting)
         }
         .messagingLoadingToast(deleting, title: "正在注销")
         .messagingFeedbackToast(errorMessage)

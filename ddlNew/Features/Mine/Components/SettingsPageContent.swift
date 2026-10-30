@@ -27,8 +27,7 @@ struct SettingsPageContent<DeleteDestination: View>: View {
                     .accessibilityIdentifier("settings.support")
                 }
                 .padding(.horizontal, 16.zoom())
-                .background(HomeTheme.surface, in: cardShape)
-                .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+                .background(HomeTheme.surface)
             }
             section("账户管理") {
                 NavigationLink(destination: deleteDestination) {
@@ -36,32 +35,32 @@ struct SettingsPageContent<DeleteDestination: View>: View {
                         .padding(.horizontal, 16.zoom())
                 }
                 .accessibilityIdentifier("deleteAccountEntry")
-                .background(HomeTheme.surface, in: cardShape)
-                .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+                .background(HomeTheme.surface)
             }
-            VStack(spacing: 12.zoom()) {
-                Button(role: .destructive, action: logout) {
-                    Text("退出登录")
-                        .font(.body.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .foregroundStyle(HomeTheme.text)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .padding(.vertical, 4.zoom())
-                        .background(HomeTheme.surface, in: cardShape)
-                        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
-                        .contentShape(cardShape)
-                }
-                .accessibilityIdentifier("settings.logout")
-                Text("退出登录后，活动记录会保留。")
-                    .font(.footnote).foregroundStyle(HomeTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+
         }
         .padding(.horizontal, 20.zoom())
         .padding(.top, 24.zoom()).padding(.bottom, 32.zoom())
         .foregroundStyle(HomeTheme.text)
         .buttonStyle(SettingsPressStyle())
+    }
+
+    var logoutFooter: some View {
+        VStack(spacing: 12.zoom()) {
+            Button(role: .destructive, action: logout) {
+                Text("退出登录").font(.body.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+            .accessibilityIdentifier("settings.logout")
+            Text("退出登录后，活动记录会保留。")
+                .font(.footnote).foregroundStyle(HomeTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 20.zoom()).padding(.vertical, 12.zoom())
+        .frame(maxWidth: HomeTheme.contentWidth).frame(maxWidth: .infinity)
+        .background(HomeTheme.surface)
     }
 
     private var accountSummary: some View {
@@ -76,8 +75,6 @@ struct SettingsPageContent<DeleteDestination: View>: View {
                 .background(HomeTheme.surface, in: RoundedRectangle(cornerRadius: 18.zoom()))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 7.zoom()) {
-                Text("当前账户").font(.caption.weight(.medium))
-                    .foregroundStyle(HomeTheme.secondaryText)
                 Text(displayName).font(.title3.weight(.semibold))
                     .accessibilityIdentifier("settings.displayName")
                 if !account.isEmpty {
@@ -89,9 +86,9 @@ struct SettingsPageContent<DeleteDestination: View>: View {
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(20.zoom())
+        .padding(.vertical, 20.zoom())
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HomeTheme.mintSurface, in: cardShape)
+        .background(HomeTheme.surface)
         .accessibilityElement(children: .combine)
     }
 
@@ -123,7 +120,6 @@ struct SettingsPageContent<DeleteDestination: View>: View {
         .contentShape(Rectangle())
     }
 
-    private var cardShape: RoundedRectangle { RoundedRectangle(cornerRadius: 22.zoom(), style: .continuous) }
     private var divider: some View { Rectangle().fill(HomeTheme.border).frame(height: 0.5).accessibilityHidden(true) }
 }
 

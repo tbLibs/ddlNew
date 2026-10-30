@@ -40,27 +40,25 @@ private struct MassMessageHistoryView: View {
     init(context: ChatContext) { _store = StateObject(wrappedValue: MassMessageStore(context: context)) }
 
     var body: some View {
-        List {
-            Section {
-                Label("将同一条消息发送给多个好友或群聊", systemImage: "paperplane")
-                    .font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 4.zoom())
-            }
-            if store.records.isEmpty && !store.loading {
-                Section {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if store.records.isEmpty && !store.loading {
                     VStack(spacing: 12.zoom()) {
                         Image(systemName: "paperplane.circle").font(.largeTitle).foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
                         Text(store.errorMessage == nil ? "还没有群发记录" : "暂时无法加载记录").font(.headline)
                         Text(store.errorMessage == nil ? "新建一条群发消息，发送结果会显示在这里。" : "请下拉刷新，或轻点重试。").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                         if store.errorMessage != nil { Button("重试") { Task { await store.reload() } }.frame(minHeight: 44) }
-                    }.frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.vertical, 24.zoom())
+                    }.frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.vertical, 48.zoom())
                 }
-            }
-            ForEach(store.records) { record in
-                Section {
-                    VStack(alignment: .leading, spacing: 12.zoom()) {
-                        if !record.label.isEmpty {
-                            Label(record.label, systemImage: "tag").font(.subheadline.weight(.medium)).foregroundStyle(MessagingTheme.accent)
+                ForEach(store.records) { record in
+                    VStack(alignment: .leading, spacing: 16.zoom()) {
+                        VStack(alignment: .leading, spacing: 8.zoom()) {
+                            Text(record.label.isEmpty ? "群发消息" : record.label).font(.title3.weight(.semibold))
+                            Text("\(record.statusText) · \(record.total)个接收对象")
+                                .font(.subheadline).foregroundStyle(record.errors > 0 || record.status == 3 ? MessagingTheme.error : MessagingTheme.secondaryText)
+                            Text(MassMessagePresentation.time(record.sentAt)).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                         }
+                        MessagingTheme.divider.frame(height: 1)
                         if record.type == 0 {
                             Text(record.summary).font(.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                         } else {
@@ -74,35 +72,30 @@ private struct MassMessageHistoryView: View {
                                 }.frame(minHeight: 44).contentShape(Rectangle())
                             }.buttonStyle(.plain).disabled(![1, 2, 5].contains(record.type))
                         }
-                        Label(record.statusText, systemImage: record.status == 1 ? "clock" : record.errors > 0 || record.status == 3 ? "exclamationmark.circle" : record.status == 2 ? "checkmark.circle" : "questionmark.circle")
-                            .font(.subheadline).foregroundStyle(record.errors > 0 || record.status == 3 ? MessagingTheme.error : MessagingTheme.secondaryText)
-                    }.padding(.vertical, 8.zoom())
-                    NavigationLink { MassMessageRecipientsView(context: store.context, record: record, failures: false) } label: {
-                        Label("全部接收对象 · \(record.total)", systemImage: "person.2").font(.subheadline).frame(minHeight: 44)
-                    }
-                    if record.errors > 0 {
-                        NavigationLink { MassMessageRecipientsView(context: store.context, record: record, failures: true) } label: {
-                            Label("发送失败 · \(record.errors)", systemImage: "exclamationmark.circle").font(.subheadline).foregroundStyle(MessagingTheme.error).frame(minHeight: 44)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 20.zoom()) { recipients(record); Spacer(minLength: 0); resend(record); Spacer(minLength: 0); delete(record) }
+                            VStack(alignment: .leading, spacing: 8.zoom()) { recipients(record); resend(record); delete(record) }
                         }
-                    }
-                    ViewThatFits(in: .horizontal) {
-                        HStack { resend(record); Spacer(); delete(record) }
-                        VStack(alignment: .leading) { resend(record); delete(record) }
-                    }
-                } header: {
-                    Text(MassMessagePresentation.time(record.sentAt)).textCase(nil)
-                }.listRowBackground(MessagingTheme.surface)
-            }
-            if !store.records.isEmpty && store.hasMore {
-                Button(store.loading ? "正在加载" : "加载更多记录") { Task { await store.loadMore() } }
-                    .frame(maxWidth: .infinity, minHeight: 44).disabled(store.loading)
-            }
+                        if record.errors > 0 {
+                            NavigationLink { MassMessageRecipientsView(context: store.context, record: record, failures: true) } label: {
+                                Label("发送失败 · \(record.errors)", systemImage: "exclamationmark.circle").font(.subheadline).foregroundStyle(MessagingTheme.error).frame(minHeight: 44)
+                            }
+                        }
+                    }.padding(.vertical, 28.zoom())
+                    MessagingTheme.divider.frame(height: 1)
+                }
+                if !store.records.isEmpty && store.hasMore {
+                    Button(store.loading ? "正在加载" : "加载更多记录") { Task { await store.loadMore() } }
+                        .frame(maxWidth: .infinity, minHeight: 44).disabled(store.loading)
+                }
+            }.padding(.horizontal, 20.zoom()).padding(.bottom, 24.zoom())
+                .frame(maxWidth: 720).frame(maxWidth: .infinity)
         }
-        .listStyle(.insetGrouped)
-        .frame(maxWidth: 720).frame(maxWidth: .infinity)
+        .foregroundStyle(MessagingTheme.text)
+        .background(MessagingTheme.surface)
         .refreshable { await store.reload() }
         .task { if !didLoad { didLoad = true; await store.reload() } }
-        .toolbar { ToolbarItem(placement: .primaryAction) { Button { draft = MassMessageDraftRequest(original: nil) } label: { Label("新建群发", systemImage: "square.and.pencil") }.frame(minWidth: 44, minHeight: 44).disabled(!allowed) } }
+        .toolbar { ToolbarItem(placement: .primaryAction) { Button { draft = MassMessageDraftRequest(original: nil) } label: { Text("新建") }.frame(minWidth: 44, minHeight: 44).disabled(!allowed) } }
         .messagingLoadingToast(store.loading && store.records.isEmpty)
         .messagingFeedbackToast(store.errorMessage ?? store.feedback, isEnabled: draft == nil)
         .sheet(item: $draft, onDismiss: {
@@ -119,6 +112,12 @@ private struct MassMessageHistoryView: View {
             ChatMediaDetailView(message: message, context: store.context, onVoicePlayed: {})
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { file = nil }.frame(minHeight: 44) } }
         } }
+    }
+
+    private func recipients(_ record: MassMessageRecord) -> some View {
+        NavigationLink { MassMessageRecipientsView(context: store.context, record: record, failures: false) } label: {
+            Text("查看对象").font(.subheadline).frame(minHeight: 44)
+        }.accessibilityLabel("全部接收对象，\(record.total)个")
     }
 
     private func resend(_ record: MassMessageRecord) -> some View {

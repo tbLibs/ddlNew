@@ -14,7 +14,7 @@ struct ChatVoiceRecordingMeter: View {
         GeometryReader { geometry in
             HStack(alignment: .center, spacing: 3) {
                 ForEach(0..<7) { index in
-                    Capsule().fill(.white)
+                    Capsule().fill(.foreground)
                         .frame(width: 3, height: max(3, geometry.size.height * level * [0.4, 0.7, 0.9, 1, 0.8, 0.6, 0.35][index]))
                 }
             }.frame(width: geometry.size.width, height: geometry.size.height)

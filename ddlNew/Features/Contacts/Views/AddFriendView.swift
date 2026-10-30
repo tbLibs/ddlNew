@@ -19,14 +19,15 @@ struct AddFriendView: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        MessagingScroll {
-            VStack(spacing: 16.zoom()) {
-                HStack(spacing: 8.zoom()) {
-                    MessagingSearchField(placeholder: "请输入用户账号", text: $query, focus: $focused, identifier: "addFriendAccount")
-                        .onSubmit { search() }
-                    Button("查找") { search() }
-                        .frame(minWidth: 44, minHeight: 44)
-                        .disabled(businessStore.isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20.zoom()) {
+                VStack(alignment: .leading, spacing: 10.zoom()) {
+                    Text("账号").font(.footnote.weight(.medium)).foregroundStyle(MessagingTheme.secondaryText)
+                    TextField("输入好友账号", text: $query).focused($focused)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.search)
+                        .accessibilityIdentifier("addFriendAccount").onSubmit { search() }
+                        .padding(.horizontal, 16.zoom()).frame(minHeight: 52.zoom())
+                        .background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 10.zoom()))
                 }
                 if businessStore.searchResults.isEmpty, let user = session.currentUser {
                     // 与旧版一致：点击账号行查看二维码，长按或菜单复制公开账号。
@@ -34,13 +35,16 @@ struct AddFriendView: View {
                         HStack(spacing: 12.zoom()) {
                             Text("我的账号：\(user.userName)").font(.subheadline).foregroundStyle(MessagingTheme.text)
                             Image(systemName: "qrcode").foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
-                        }.frame(maxWidth: .infinity).frame(minHeight: max(44, 44.zoom()))
+                        }.frame(maxWidth: .infinity, alignment: .leading).frame(minHeight: max(44, 44.zoom()))
                     }
                     .buttonStyle(.plain)
                     .onLongPressGesture(minimumDuration: 0.8) { copyAccount(user.userName) }
                     .contextMenu { Button { copyAccount(user.userName) } label: { Label("复制账号", systemImage: "doc.on.doc") } }
                     .accessibilityHint("查看我的二维码，也可通过操作菜单复制账号")
                 }
+                NavigationLink(value: ContactsPageRoute.scanner) {
+                    Text("扫一扫").font(.body).frame(minHeight: 44)
+                }.buttonStyle(.plain).foregroundStyle(MessagingTheme.secondaryText)
                 if searched && !businessStore.isSearching && businessStore.errorMessage == nil && businessStore.searchResults.isEmpty {
                     EmptyClubState(title: "没有找到用户", message: "请核对用户账号，或扫描对方的业务二维码。")
                 }
@@ -57,17 +61,18 @@ struct AddFriendView: View {
                             }.padding(16.zoom()).frame(minHeight: max(64, 72.zoom()))
                         }.buttonStyle(MessagingRowStyle())
                     }
-                }.clipShape(RoundedRectangle(cornerRadius: 10.zoom()))
-            }.padding(16.zoom())
+                }
+            }.padding(20.zoom()).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity)
         }
+        .background(MessagingTheme.surface.ignoresSafeArea()).scrollDismissesKeyboard(.interactively)
         .navigationTitle("添加好友")
         .messagingLoadingToast(businessStore.isSearching, title: "正在查找用户")
         .modifier(MessagingPageChrome())
         .messagingFeedbackToast(businessStore.errorMessage ?? copyNotice)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink(value: ContactsPageRoute.scanner) { Image(systemName: "qrcode.viewfinder").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("扫一扫")
-            }
+        .safeAreaInset(edge: .bottom) {
+            Button("查找") { search() }.buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+                .disabled(businessStore.isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
         }
         .onAppear {
             query = ""; searched = false; copyNotice = nil

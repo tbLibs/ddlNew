@@ -13,6 +13,7 @@ struct ChatEmojiPanel: View {
     @Binding var selection: NSRange
     @State private var tab = 0
     @State private var recent: [ChatEmojiItem] = []
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,7 +36,7 @@ struct ChatEmojiPanel: View {
                                         Image(game.icon).resizable().scaledToFit().frame(width: 44.zoom(), height: 44.zoom())
                                         Text(game.title).font(.caption).foregroundStyle(MessagingTheme.text)
                                     }.frame(maxWidth: .infinity, minHeight: 64).contentShape(Rectangle())
-                                }.buttonStyle(.plain).accessibilityLabel("发送" + game.title)
+                                }.buttonStyle(ChatComposerButtonStyle()).accessibilityLabel("发送" + game.title)
                             }
                         }
                         Text("最近使用").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
@@ -43,9 +44,11 @@ struct ChatEmojiPanel: View {
                         Text("全部表情").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                         grid(ChatEmojiCatalog.items)
                     }.padding(.horizontal, 12.zoom()).padding(.bottom, 12.zoom())
-                }
-            } else { ChatStickersView(chat: chat, embedded: true) }
-        }.disabled(!chat.permission.canSend)
+                }.transition(.opacity)
+            } else { ChatStickersView(chat: chat, embedded: true).transition(.opacity) }
+        }.buttonStyle(ChatComposerButtonStyle())
+            .animation(.easeOut(duration: reduceMotion ? 0.1 : 0.18), value: tab)
+            .disabled(!chat.permission.canSend)
     }
 
     /// 自适应列宽保留至少44pt的操作区，窄屏与辅助字号不会挤掉表情。
@@ -58,7 +61,7 @@ struct ChatEmojiPanel: View {
                 } label: {
                     Image(item.image).resizable().scaledToFit().frame(width: 30.zoom(), height: 30.zoom())
                         .frame(maxWidth: .infinity, minHeight: 44)
-                }.buttonStyle(.plain).accessibilityLabel("插入表情" + item.token)
+                }.buttonStyle(ChatComposerButtonStyle()).accessibilityLabel("插入表情" + item.token)
             }
         }
     }

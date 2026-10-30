@@ -25,21 +25,26 @@ struct ChatMessageEditorView: View {
     init(message: ChatMessageRecord, context: ChatContext, store: ChatStore) { self.message = message; self.context = context; self.store = store; _input = State(initialValue: message.text); _previousInput = State(initialValue: message.text); _mentions = State(initialValue: message.mentions) }
 
     var body: some View {
-        MessagingScroll {
+        ScrollView {
             VStack(alignment: .leading, spacing: 16.zoom()) {
-                Text("修改已发送的消息").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
-                MessagingCard {
-                    TextEditor(text: $input).font(.body).scrollContentBackground(.hidden)
-                        .frame(minHeight: 240.zoom()).focused($editorFocused).accessibilityLabel("编辑消息正文")
-                }
-            }.padding(16.zoom())
+                Text("正文").font(.footnote.weight(.medium)).foregroundStyle(MessagingTheme.secondaryText)
+                TextEditor(text: $input).font(.body).scrollContentBackground(.hidden)
+                    .frame(minHeight: 272.zoom()).focused($editorFocused).accessibilityLabel("编辑消息正文")
+                    .padding(12.zoom()).background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+            }.padding(20.zoom()).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity)
         }
+        .background(MessagingTheme.surface.ignoresSafeArea()).scrollDismissesKeyboard(.interactively)
         .navigationTitle("编辑消息").modifier(MessagingPageChrome())
         .messagingFeedbackToast(error)
         .messagingLoadingToast(busy, title: "正在保存").navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("取消") { cancel() }.frame(minHeight: 44).disabled(busy) }
-            ToolbarItem(placement: .confirmationAction) { Button("保存") { editorFocused = false; Task { await save() } }.buttonStyle(MessagingActionButtonStyle()).disabled(busy || input == message.text || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button("保存") { editorFocused = false; Task { await save() } }
+                .buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+                .disabled(busy || input == message.text || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
         }
         .interactiveDismissDisabled(busy || input != message.text)
         .confirmationDialog("放弃修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {} }

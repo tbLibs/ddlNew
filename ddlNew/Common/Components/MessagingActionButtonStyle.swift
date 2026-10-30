@@ -12,7 +12,7 @@ struct MessagingActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.horizontal, 16.zoom())
-            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 48)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 50)
             .foregroundStyle(foreground)
             .background(fill, in: RoundedRectangle(cornerRadius: 12.zoom()))
             .overlay { RoundedRectangle(cornerRadius: 12.zoom()).stroke(border ?? .clear, lineWidth: 1) }

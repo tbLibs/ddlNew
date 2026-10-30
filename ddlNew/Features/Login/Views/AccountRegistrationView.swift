@@ -28,6 +28,14 @@ struct AccountRegistrationView: View {
                     if context?.requiresInviteCode == true {
                         field("邀请码", text: $inviteCode, focus: .invite)
                     }
+
+                    Text(connection.phase.message).font(.footnote).foregroundStyle(LoginPalette.secondary)
+                }
+                .padding(20).frame(maxWidth: 460).frame(maxWidth: .infinity)
+                .disabled(viewModel.phase.isBusy)
+            }
+            .background(LoginBackground())
+            .safeAreaInset(edge: .bottom) {
                     Button(buttonTitle) {
                         focusedField = nil
                         if viewModel.accountWasRegistered {
@@ -41,12 +49,8 @@ struct AccountRegistrationView: View {
                     .disabled(viewModel.phase.isBusy || viewModel.phase == .succeeded || context == nil)
                     .accessibilityIdentifier("submitAccountRegistration")
 
-                    Text(connection.phase.message).font(.footnote).foregroundStyle(LoginPalette.secondary)
-                }
-                .padding(24).frame(maxWidth: 460).frame(maxWidth: .infinity)
-                .disabled(viewModel.phase.isBusy)
+                        .frame(maxWidth: 460).padding(20).frame(maxWidth: .infinity).background(LoginPalette.card)
             }
-            .background(LoginBackground())
             .messagingLoadingToast(viewModel.phase.isBusy, title: "正在注册")
             .messagingFeedbackToast(registrationFeedback)
             .scrollDismissesKeyboard(.interactively)
@@ -86,8 +90,8 @@ struct AccountRegistrationView: View {
             }
             .textInputAutocapitalization(.never).autocorrectionDisabled()
             .focused($focusedField, equals: focus)
-            .padding(14).background(LoginPalette.card)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(15).frame(minHeight: 52).background(HomeTheme.background)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .accessibilityIdentifier("registration\(String(describing: focus))")
         }
     }

@@ -48,33 +48,42 @@ struct ContactRemarkEditor: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("设置备注") {
-                    TextField("请填写备注", text: $remark).frame(minHeight: 44).accessibilityLabel("好友备注").disabled(isSaving)
-                    Text("\(remark.utf16.count)/50").font(.caption).foregroundStyle(remark.utf16.count > 50 ? MessagingTheme.error : MessagingTheme.secondaryText)
-                    if remark.utf16.count > 50 { Text("备注最多50字，请缩短后保存。").font(.caption).foregroundStyle(MessagingTheme.error) }
-                }
-                Section("描述") {
-                    TextEditor(text: $description).font(.body).scrollContentBackground(.hidden).frame(minHeight: 160.zoom()).accessibilityLabel("备注描述").disabled(isSaving)
-                    Text("\(description.utf16.count)/200").font(.caption).foregroundStyle(description.utf16.count > 200 ? MessagingTheme.error : MessagingTheme.secondaryText)
-                    if description.utf16.count > 200 { Text("描述最多200字，请缩短后保存。").font(.caption).foregroundStyle(MessagingTheme.error) }
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28.zoom()) {
+                    VStack(alignment: .leading, spacing: 10.zoom()) {
+                        Text("好友备注").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                        TextField("请填写备注", text: $remark).font(.body).frame(minHeight: 44).accessibilityLabel("好友备注").disabled(isSaving)
+                            .padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+                            .background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                        Text("\(remark.utf16.count)/50").font(.caption).foregroundStyle(remark.utf16.count > 50 ? MessagingTheme.error : MessagingTheme.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        if remark.utf16.count > 50 { Text("备注最多50字，请缩短后保存。").font(.caption).foregroundStyle(MessagingTheme.error) }
+                    }
+                    VStack(alignment: .leading, spacing: 10.zoom()) {
+                        Text("描述").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                        TextEditor(text: $description).font(.body).scrollContentBackground(.hidden).frame(minHeight: 160.zoom()).accessibilityLabel("备注描述").disabled(isSaving)
+                            .padding(12.zoom()).background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                        Text("\(description.utf16.count)/200").font(.caption).foregroundStyle(description.utf16.count > 200 ? MessagingTheme.error : MessagingTheme.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        if description.utf16.count > 200 { Text("描述最多200字，请缩短后保存。").font(.caption).foregroundStyle(MessagingTheme.error) }
+                    }
+                }.padding(.horizontal, 20.zoom()).padding(.vertical, 32.zoom())
+                    .frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
-            .listRowBackground(MessagingTheme.surface)
+            .foregroundStyle(MessagingTheme.text)
+            .background(MessagingTheme.surface)
             .navigationTitle("备注与描述")
             .modifier(MessagingPageChrome())
-        .messagingFeedbackToast(businessStore.errorMessage)
+            .messagingFeedbackToast(businessStore.errorMessage)
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(isSaving) }
-            }
-            .safeAreaInset(edge: .bottom) {
-                Button { Task { await save() } } label: {
-                    Text("保存").frame(maxWidth: .infinity)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { Task { await save() } } label: { Text("保存") }
+                        .buttonStyle(.plain).foregroundStyle(MessagingTheme.accent)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .disabled(isSaving || !isDirty || remark.utf16.count > 50 || description.utf16.count > 200 || (!remark.isEmpty && remark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                 }
-                .buttonStyle(MessagingActionButtonStyle())
-                .disabled(isSaving || !isDirty || remark.utf16.count > 50 || description.utf16.count > 200 || (!remark.isEmpty && remark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                .padding(16.zoom()).background(MessagingTheme.surface)
             }
             .interactiveDismissDisabled(isSaving || isDirty)
             .confirmationDialog("放弃未保存的修改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {

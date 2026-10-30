@@ -98,10 +98,17 @@ struct MassMessageRecipientPicker: View {
                 if visible.isEmpty { Text(selectedOnly ? "还没有选择接收对象" : "暂无匹配对象，可切换分类或修改搜索").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 24.zoom()) }
             }.listStyle(.plain)
         }.navigationTitle("选择接收对象").modifier(MessagingPageChrome())
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.frame(minHeight: 44) } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.frame(minHeight: 44) }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成（\(selected.count)）") { let available = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) }); selection = selected.keys.compactMap { available[$0] }.sorted { $0.id < $1.id }; dismiss() }
+                        .buttonStyle(.plain).foregroundStyle(MessagingTheme.accent)
+                        .frame(minHeight: 44)
+                }
+            }
             .safeAreaInset(edge: .bottom) {
-                Button("完成（\(selected.count)）") { let available = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) }); selection = selected.keys.compactMap { available[$0] }.sorted { $0.id < $1.id }; dismiss() }
-                    .buttonStyle(MessagingActionButtonStyle(fullWidth: true)).padding(16.zoom()).background(MessagingTheme.surface)
+                Text("已选 \(selected.count) 个接收对象").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(16.zoom()).background(MessagingTheme.surface)
             }
             .task { await contacts.reload(); await groups.reload(); await business.reload() }
             .messagingFeedbackToast(contacts.errorMessage ?? groups.errorMessage ?? business.errorMessage)

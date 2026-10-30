@@ -25,7 +25,7 @@ struct LegalDocumentScreen: View {
                         if loading {
                             ProgressView("正在加载…")
                                 .padding(20).background(ClubTheme.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                         if loadFailed {
                             VStack(spacing: 16) {
@@ -36,6 +36,7 @@ struct LegalDocumentScreen: View {
                                     loading = true
                                     reloadID += 1
                                 }
+                                .frame(minWidth: 44, minHeight: 44)
                                 .accessibilityIdentifier("reloadLegalDocument")
                             }
                             .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)

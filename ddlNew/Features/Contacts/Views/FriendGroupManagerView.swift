@@ -23,44 +23,41 @@ struct FriendGroupManagerView: View {
         NavigationStack {
             List {
                 Section {
-                    Button { name = ""; editingID = nil; showNameEditor = true } label: {
-                        Label("添加分组", systemImage: "plus.circle").frame(minHeight: 48)
-                    }
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16.zoom(), bottom: 0, trailing: 16.zoom()))
-                }
-                Section {
                     ForEach(businessStore.groups) { group in
                         HStack(spacing: 8.zoom()) {
-                            if !group.isDefault {
-                                Button(role: .destructive) { deleting = group; showDelete = true } label: {
-                                    Image(systemName: "minus.circle.fill").frame(minWidth: 44, minHeight: 44)
-                                }.buttonStyle(.borderless).accessibilityLabel("删除\(group.displayName)")
-                            }
                             Button { name = group.displayName; editingID = group.id; showNameEditor = true } label: {
-                                VStack(alignment: .leading, spacing: 4.zoom()) {
-                                    Text(group.displayName).foregroundStyle(MessagingTheme.text)
+                                VStack(alignment: .leading, spacing: 8.zoom()) {
+                                    Text(group.displayName).font(.body.weight(.semibold)).foregroundStyle(MessagingTheme.text)
                                     Text(group.isDefault ? "默认分组 · \(group.members.count)位好友" : "\(group.members.count)位好友").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
-                                }.frame(maxWidth: .infinity, alignment: .leading).frame(minHeight: max(44, 54.zoom()))
+                                }.frame(maxWidth: .infinity, alignment: .leading).frame(minHeight: max(44, 72.zoom()))
                             }.buttonStyle(.borderless).accessibilityHint("重命名分组")
                             Menu {
                                 Button("重命名") { name = group.displayName; editingID = group.id; showNameEditor = true }
+                                if !group.isDefault {
+                                    Button("删除分组", role: .destructive) { deleting = group; showDelete = true }
+                                }
                                 Button("移到前面") { Task { await businessStore.moveGroup(id: group.id, toIndex: 0) } }
                                     .disabled(group.id == businessStore.groups.first?.id)
                                 Button("移到后面") { Task { await businessStore.moveGroup(id: group.id, toIndex: businessStore.groups.count - 1) } }
                                     .disabled(group.id == businessStore.groups.last?.id)
                             } label: { Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("管理\(group.displayName)")
-                        }
+                        }.listRowBackground(MessagingTheme.surface)
                     }.onMove(perform: moveGroup)
                 } footer: { Text("点击名称可重命名，拖动排序；更多菜单也可调整顺序。") }
                 if businessStore.groups.isEmpty && !businessStore.isLoading && businessStore.errorMessage == nil { Text("暂无好友分组").foregroundStyle(MessagingTheme.secondaryText) }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(MessagingTheme.surface)
+            .frame(maxWidth: 640).frame(maxWidth: .infinity)
             .environment(\.editMode, .constant(.active))
             .listRowBackground(MessagingTheme.surface)
             .modifier(MessagingPageChrome())
-        .messagingFeedbackToast(businessStore.errorMessage, isEnabled: !showNameEditor)
+            .messagingFeedbackToast(businessStore.errorMessage, isEnabled: !showNameEditor)
             .navigationTitle("分组管理")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .primaryAction) { Button("添加") { name = ""; editingID = nil; showNameEditor = true }.frame(minWidth: 44, minHeight: 44) }
             }
             .disabled(businessStore.isSubmitting)
             .interactiveDismissDisabled(businessStore.isSubmitting)

@@ -23,9 +23,11 @@ struct ClubHomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("首页").font(.largeTitle.weight(.bold)).foregroundStyle(HomeTheme.text)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 12)
+                    .accessibilityAddTraits(.isHeader)
                 welcome
-                hubEntries
                 if let activity = featuredActivity {
                     HomeFeaturedActivity(activity: activity, status: store.status(activity)) {
                         navigation.open(activity)
@@ -33,22 +35,20 @@ struct ClubHomeView: View {
                 }
                 quickEntries
                 recommendations
+                hubEntries
                 announcement
-                Text("去山野，遇见同路人。")
-                    .font(.footnote).foregroundStyle(HomeTheme.secondaryText)
-                    .frame(maxWidth: .infinity).padding(.vertical, 8)
             }
             .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 24)
             .frame(maxWidth: HomeTheme.contentWidth)
             .frame(maxWidth: .infinity)
         }
-        .background(HomeTheme.background.ignoresSafeArea())
+        .background(HomeTheme.surface.ignoresSafeArea())
         .navigationTitle("首页")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // 标题在正文稳定展示，导航标题仍用于子页返回文本。
             ToolbarItem(placement: .principal) {
-                Label("远山户外俱乐部", systemImage: "leaf")
-                    .font(.headline).foregroundStyle(HomeTheme.forest)
+                Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { information = .announcements } label: {
@@ -63,42 +63,28 @@ struct ClubHomeView: View {
         .accessibilityIdentifier("clubHome")
     }
 
-    /// 欢迎语属于首页内容；俱乐部标识和公告动作交给系统导航工具栏。
+    /// 俱乐部标识位于正文标题下方，公告动作保留在系统导航工具栏。
     private var welcome: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(userName.isEmpty ? "一起出发，走进自然。" : "\(userName)，一起出发。")
-                .font(.title.weight(.bold)).foregroundStyle(HomeTheme.text)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            Text("把日常留在身后，把周末交给山野。")
-                .font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
-        }
+        Text("远山户外俱乐部").font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
+            .frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 24)
     }
 
     private var hubEntries: some View {
-        // 大字体时改为纵排，保证两个入口的名称与说明完整可见。
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            NavigationLink(value: ClubHomeDestination.activities) {
-                HomeHubCard(destination: .activities, detail: "发现下一场精彩")
-            }
-            .accessibilityHint("浏览、筛选与报名活动")
-            .accessibilityIdentifier("home.activities")
+        HStack {
             NavigationLink(value: ClubHomeDestination.club) {
-                HomeHubCard(destination: .club, detail: "了解我们的俱乐部")
-            }
-            .accessibilityHint("查看俱乐部介绍与会员权益")
-            .accessibilityIdentifier("home.club")
-        }
-        .buttonStyle(HomePressStyle())
+                Text("俱乐部介绍").font(.subheadline.weight(.medium)).frame(minHeight: 44)
+            }.accessibilityIdentifier("home.club")
+            Spacer()
+            NavigationLink(value: ClubHomeDestination.activities) {
+                Text("全部活动").font(.subheadline.weight(.medium)).frame(minHeight: 44)
+            }.accessibilityIdentifier("home.activities")
+        }.foregroundStyle(HomeTheme.forest).padding(.top, 20)
     }
 
     private var quickEntries: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
         return VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("我的户外日程")
             layout {
                 NavigationLink(value: RecordKind.registered) {
                     HomeQuickEntry(title: "我的报名", symbol: "calendar",
@@ -117,15 +103,17 @@ struct ClubHomeView: View {
             }
             .buttonStyle(HomePressStyle())
         }
+        .padding(.bottom, 16)
+        .overlay(alignment: .bottom) { Rectangle().fill(MessagingTheme.divider).frame(height: 1) }
     }
 
     private var recommendations: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
             : AnyLayout(HStackLayout(spacing: 12))
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 0) {
             layout {
-                sectionTitle("值得一起出发")
+                sectionTitle("近期活动")
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 4) }
                 NavigationLink(value: ClubHomeDestination.activities) {
                     Label("全部活动", systemImage: "arrow.right")
@@ -136,7 +124,7 @@ struct ClubHomeView: View {
             ForEach(store.activities.filter { $0.id != featuredActivity?.id }.prefix(2)) { activity in
                 HomeActivityRow(activity: activity, status: store.status(activity)) { navigation.open(activity) }
             }
-        }
+        }.padding(.top, 16)
     }
 
     private var announcement: some View {
@@ -145,7 +133,7 @@ struct ClubHomeView: View {
                 Image(systemName: "megaphone")
                     .font(.system(size: 20)).foregroundStyle(HomeTheme.warmAccent)
                     .frame(width: 36, height: 36)
-                    .background(HomeTheme.sandSurface, in: Circle())
+
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("俱乐部公告").font(.caption.weight(.semibold)).foregroundStyle(HomeTheme.secondaryText)
@@ -155,7 +143,8 @@ struct ClubHomeView: View {
                 Image(systemName: "chevron.right").font(.caption.weight(.semibold))
                     .foregroundStyle(HomeTheme.secondaryText).padding(.top, 12).accessibilityHidden(true)
             }
-            .padding(16).background(HomeTheme.surface, in: RoundedRectangle(cornerRadius: 20))
+            .padding(.vertical, 16)
+            .overlay(alignment: .top) { Rectangle().fill(MessagingTheme.divider).frame(height: 1) }
         }
         .buttonStyle(HomePressStyle())
         .accessibilityIdentifier("home.announcementCard")

@@ -138,21 +138,26 @@ private struct ChatNoticeDetailView: View {
     }
 
     var body: some View {
-        MessagingScroll {
+        ScrollView {
             VStack(alignment: .leading, spacing: 16.zoom()) {
-                MessagingCard {
+                Group {
                     VStack(alignment: .leading, spacing: 16.zoom()) {
                         if current.pinned { Label("置顶公告", systemImage: "pin.fill").font(.caption).foregroundStyle(MessagingTheme.accent) }
                         Text([current.author, current.displayTimestamp()].filter { !$0.isEmpty }.joined(separator: " · ")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                         Text(current.content).font(.body).foregroundStyle(MessagingTheme.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                if canManage {
+
+            }.padding(20.zoom())
+        }.background(MessagingTheme.surface.ignoresSafeArea()).navigationTitle("群公告").modifier(MessagingPageChrome())
+        .safeAreaInset(edge: .bottom) {
+            if canManage {
+                VStack(spacing: 12.zoom()) {
                     Button("编辑公告") { onEdit(current) }.buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(store.busy)
                     Button("删除公告", role: .destructive) { confirmDelete = current }.buttonStyle(MessagingActionButtonStyle(fill: MessagingTheme.surface, foreground: MessagingTheme.error, border: MessagingTheme.error, fullWidth: true)).disabled(store.busy)
-                }
-            }.padding(16.zoom())
-        }.navigationTitle("群公告").modifier(MessagingPageChrome())
+                }.frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
+            }
+        }
         .messagingLoadingToast(store.busy, title: "正在更新")
         .messagingFeedbackToast(store.errorMessage)
         // 确认框由正在显示的详情页持有，避免挂在隐藏列表上等返回后才弹出。
@@ -197,31 +202,33 @@ private struct ChatNoticeEditorView: View {
 
     var body: some View {
         NavigationStack {
-            MessagingScroll {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 12.zoom()) {
-                    Text("公告正文").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
-                    MessagingCard {
-                        ZStack(alignment: .topLeading) {
+                    Text("正文").font(.footnote.weight(.medium)).foregroundStyle(MessagingTheme.secondaryText)
+                    ZStack(alignment: .topLeading) {
                             if input.isEmpty { Text("请输入群公告内容").foregroundStyle(MessagingTheme.secondaryText).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false) }
-                            TextEditor(text: $input).focused($editorFocused).scrollContentBackground(.hidden).frame(minHeight: 220.zoom()).accessibilityLabel("公告正文")
-                        }
-                    }
-                    MessagingCard {
-                        VStack(spacing: 16.zoom()) { Toggle("置顶公告", isOn: $pinned); Toggle("作为群消息发送", isOn: $sendMessage) }
+                            TextEditor(text: $input).focused($editorFocused).scrollContentBackground(.hidden).frame(minHeight: 272.zoom()).accessibilityLabel("公告正文")
+                        }.padding(12.zoom()).background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                    VStack(spacing: 0) {
+                        Toggle("置顶公告", isOn: $pinned).padding(.vertical, 14.zoom())
+                        Divider().overlay(MessagingTheme.divider)
+                        Toggle("作为群消息发送", isOn: $sendMessage).padding(.vertical, 14.zoom())
                     }
                     if notice != nil {
                         Button("删除公告", role: .destructive) { confirmDelete = true }
                             .buttonStyle(MessagingActionButtonStyle(fill: MessagingTheme.surface, foreground: MessagingTheme.error, border: MessagingTheme.error, fullWidth: true)).disabled(store.busy)
                     }
-                }.padding(16.zoom())
-            }
+                }.padding(20.zoom())
+            }.background(MessagingTheme.surface.ignoresSafeArea()).scrollDismissesKeyboard(.interactively)
             .navigationTitle(notice == nil ? "发布公告" : "编辑公告").modifier(MessagingPageChrome())
+            .safeAreaInset(edge: .bottom) {
+                Button(notice == nil ? "发布" : "保存") { Task { if await store.save(notice, content: input, pinned: pinned, sendMessage: sendMessage) { onSaved(); dismiss() } } }
+                    .buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(store.busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmDiscard = true } else { dismiss() } }.disabled(store.busy) }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { Task { if await store.save(notice, content: input, pinned: pinned, sendMessage: sendMessage) { onSaved(); dismiss() } } }
-                        .buttonStyle(.plain).frame(minHeight: 44).disabled(store.busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+
             }
         }
         .messagingLoadingToast(store.busy, title: "正在保存")

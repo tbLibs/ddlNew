@@ -18,7 +18,7 @@ struct MessagingSearchField: View {
     var body: some View {
         HStack(spacing: 8.zoom()) {
             Image(systemName: "magnifyingglass").font(.system(size: 18.zoom())).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
-            TextField(placeholder, text: $text).font(.subheadline).focused(focus).submitLabel(.search)
+            TextField(placeholder, text: $text).font(.body).focused(focus).submitLabel(.search)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                 .accessibilityLabel(placeholder).accessibilityIdentifier(identifier)
             if !text.isEmpty {
@@ -28,6 +28,6 @@ struct MessagingSearchField: View {
             }
         }
         .padding(.leading, 12.zoom()).padding(.trailing, text.isEmpty ? 12 : 0.zoom())
-        .frame(minHeight: max(44, 44.zoom())).background(MessagingTheme.pressed, in: RoundedRectangle(cornerRadius: 8.zoom()))
+        .frame(minHeight: max(48, 48.zoom())).background(MessagingTheme.pressed, in: RoundedRectangle(cornerRadius: 12.zoom()))
     }
 }

@@ -46,15 +46,15 @@ struct ContactRecordDetailView: View {
     }
 
     var body: some View {
-        MessagingScroll {
-            VStack(spacing: 20.zoom()) {
+        ScrollView {
+            VStack(spacing: 0) {
                 if !groupAccessAllowed { EmptyClubState(title: "当前不可查看资料", message: "该群已限制私聊或成员资料访问。") }
                 else if let contact {
                     if wasFriend && cachedContact == nil { Text("该好友已不在通讯录中").foregroundStyle(MessagingTheme.secondaryText) }
                     HStack(alignment: .center, spacing: 16.zoom()) {
                         ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 72.zoom())
                         VStack(alignment: .leading, spacing: 8.zoom()) {
-                            Text(contact.displayName).font(.title3.weight(.semibold)).foregroundStyle(MessagingTheme.text)
+                            Text(contact.displayName).font(.title.weight(.bold)).foregroundStyle(MessagingTheme.text)
                             if !contact.isDeleted {
                                 Button { copyAccount(contact) } label: {
                                     HStack(spacing: 6.zoom()) {
@@ -67,13 +67,14 @@ struct ContactRecordDetailView: View {
                                 Text(role).font(.caption).foregroundStyle(MessagingTheme.accent)
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
-                    }.padding(16.zoom()).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 12.zoom()))
-                    MessagingCard(padding: 0) {
+                    }.padding(.vertical, 32.zoom())
+                    MessagingTheme.divider.frame(height: 1)
+
+                    Group {
                         VStack(alignment: .leading, spacing: 0) {
                             if contact.isDeleted { Text("该用户账号已注销").foregroundStyle(MessagingTheme.secondaryText).padding(16.zoom()) }
                             else {
-                                detail("账号", value: contact.account)
-                                detail("昵称", value: contact.nickname)
+                                if contact.nickname != contact.displayName { detail("昵称", value: contact.nickname) }
                                 if let sourceGroupID, let nickname = businessStore.groupNickname(in: sourceGroupID, for: contactID), !nickname.isEmpty { detail("群昵称", value: nickname) }
                                 if isFriend {
                                     // 旧版资料的备注整行可点击，打开同一份备注与描述草稿。
@@ -88,6 +89,15 @@ struct ContactRecordDetailView: View {
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
+                } else if !businessStore.isLoading { EmptyClubState(title: "资料暂时不可用", message: "好友关系可能已变化，请刷新资料后重试。") }
+            }.padding(.horizontal, 20.zoom()).padding(.bottom, 24.zoom())
+                .frame(maxWidth: 640).frame(maxWidth: .infinity)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(MessagingTheme.surface)
+        .safeAreaInset(edge: .bottom) {
+            if groupAccessAllowed, let contact {
+                VStack(spacing: 12.zoom()) {
                     if !contact.isDeleted, contact.id != businessStore.identity?.userUID {
                         if isFriend {
                             if contact.userType == 0, businessStore.blackStates[contactID] == true {
@@ -100,8 +110,9 @@ struct ContactRecordDetailView: View {
                             applicationAction(contact)
                         }
                     }
-                } else if !businessStore.isLoading { EmptyClubState(title: "资料暂时不可用", message: "好友关系可能已变化，请刷新资料后重试。") }
-            }.padding(16.zoom())
+                }.padding(.horizontal, 20.zoom()).padding(.vertical, 16.zoom())
+                    .frame(maxWidth: 640).frame(maxWidth: .infinity).background(MessagingTheme.surface)
+            }
         }
         .navigationTitle("用户资料")
         .modifier(MessagingPageChrome())
@@ -227,18 +238,19 @@ struct ContactRecordDetailView: View {
 
     /// 未设置字段明确占位，不展示服务端原始空值。
     private func detail(_ title: String, value: String, showsDisclosure: Bool = false) -> some View {
-        HStack(alignment: .top, spacing: 16.zoom()) {
-            Text(title).font(.body).foregroundStyle(MessagingTheme.text).frame(minWidth: 64.zoom(), alignment: .leading)
-            Spacer(minLength: 0)
-            HStack(alignment: .firstTextBaseline, spacing: 6.zoom()) {
-                Text(value.isEmpty ? "未设置" : value).font(.body).foregroundStyle(MessagingTheme.secondaryText)
-                    .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
-                if showsDisclosure {
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
-                }
+        HStack(spacing: 16.zoom()) {
+            VStack(alignment: .leading, spacing: 8.zoom()) {
+                Text(title).font(.body.weight(.semibold)).foregroundStyle(MessagingTheme.text)
+                Text(value.isEmpty ? "未设置" : value).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            if showsDisclosure {
+                Image(systemName: "chevron.right").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
             }
-        }.padding(16.zoom()).frame(minHeight: max(44, 54.zoom()))
-            .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 0.5).padding(.horizontal, 16.zoom()) }
+        }.padding(.vertical, 20.zoom()).frame(minHeight: max(44, 72.zoom()))
+            .contentShape(Rectangle())
+            .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 1) }
+
     }
 
     /// 复制当前展示的公开账号后短暂提示，不在资料底部追加状态文案。

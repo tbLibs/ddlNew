@@ -1,0 +1,540 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T03:40:42.022422+00:00",
+  "title": "Design System: 叮咚聊 · 岩白与钴蓝 · 业务校正版",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "primary",
+        "canonical": "#2859BC",
+        "tonalRamp": [
+          "oklch(0.15 0.0184 262.31)",
+          "oklch(0.27 0.0624 262.31)",
+          "oklch(0.39 0.1064 262.31)",
+          "oklch(0.51 0.1505 262.31)",
+          "oklch(0.63 0.1358 262.31)",
+          "oklch(0.75 0.0918 262.31)",
+          "oklch(0.87 0.0477 262.31)",
+          "oklch(0.95 0.0184 262.31)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "primary-soft",
+        "canonical": "#EAF0FA",
+        "tonalRamp": [
+          "oklch(0.15 0.0017 260.73)",
+          "oklch(0.27 0.0056 260.73)",
+          "oklch(0.39 0.0096 260.73)",
+          "oklch(0.51 0.0136 260.73)",
+          "oklch(0.63 0.0123 260.73)",
+          "oklch(0.75 0.0083 260.73)",
+          "oklch(0.87 0.0043 260.73)",
+          "oklch(0.95 0.0017 260.73)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "canvas",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "oklch(0.15 0.0000 89.88)",
+          "oklch(0.27 0.0000 89.88)",
+          "oklch(0.39 0.0000 89.88)",
+          "oklch(0.51 0.0000 89.88)",
+          "oklch(0.63 0.0000 89.88)",
+          "oklch(0.75 0.0000 89.88)",
+          "oklch(0.87 0.0000 89.88)",
+          "oklch(0.95 0.0000 89.88)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "background",
+        "canonical": "#F3F5F9",
+        "tonalRamp": [
+          "oklch(0.15 0.0006 264.53)",
+          "oklch(0.27 0.0022 264.53)",
+          "oklch(0.39 0.0037 264.53)",
+          "oklch(0.51 0.0052 264.53)",
+          "oklch(0.63 0.0047 264.53)",
+          "oklch(0.75 0.0032 264.53)",
+          "oklch(0.87 0.0017 264.53)",
+          "oklch(0.95 0.0006 264.53)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "ink",
+        "canonical": "#182536",
+        "tonalRamp": [
+          "oklch(0.15 0.0041 255.45)",
+          "oklch(0.27 0.0139 255.45)",
+          "oklch(0.39 0.0238 255.45)",
+          "oklch(0.51 0.0336 255.45)",
+          "oklch(0.63 0.0303 255.45)",
+          "oklch(0.75 0.0205 255.45)",
+          "oklch(0.87 0.0107 255.45)",
+          "oklch(0.95 0.0041 255.45)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "secondary-text": {
+        "role": "neutral",
+        "displayName": "secondary-text",
+        "canonical": "#647184",
+        "tonalRamp": [
+          "oklch(0.15 0.0037 257.79)",
+          "oklch(0.27 0.0127 257.79)",
+          "oklch(0.39 0.0217 257.79)",
+          "oklch(0.51 0.0307 257.79)",
+          "oklch(0.63 0.0277 257.79)",
+          "oklch(0.75 0.0187 257.79)",
+          "oklch(0.87 0.0097 257.79)",
+          "oklch(0.95 0.0037 257.79)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "separator": {
+        "role": "neutral",
+        "displayName": "separator",
+        "canonical": "#E4E9F0",
+        "tonalRamp": [
+          "oklch(0.15 0.0012 256.70)",
+          "oklch(0.27 0.0041 256.70)",
+          "oklch(0.39 0.0070 256.70)",
+          "oklch(0.51 0.0099 256.70)",
+          "oklch(0.63 0.0090 256.70)",
+          "oklch(0.75 0.0061 256.70)",
+          "oklch(0.87 0.0031 256.70)",
+          "oklch(0.95 0.0012 256.70)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "danger",
+        "canonical": "#B9413E",
+        "tonalRamp": [
+          "oklch(0.15 0.0173 25.20)",
+          "oklch(0.27 0.0589 25.20)",
+          "oklch(0.39 0.1004 25.20)",
+          "oklch(0.51 0.1420 25.20)",
+          "oklch(0.63 0.1281 25.20)",
+          "oklch(0.75 0.0866 25.20)",
+          "oklch(0.87 0.0450 25.20)",
+          "oklch(0.95 0.0173 25.20)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "disabled": {
+        "role": "semantic",
+        "displayName": "disabled",
+        "canonical": "#DCE2EB",
+        "tonalRamp": [
+          "oklch(0.15 0.0015 258.35)",
+          "oklch(0.27 0.0052 258.35)",
+          "oklch(0.39 0.0089 258.35)",
+          "oklch(0.51 0.0126 258.35)",
+          "oklch(0.63 0.0114 258.35)",
+          "oklch(0.75 0.0077 258.35)",
+          "oklch(0.87 0.0040 258.35)",
+          "oklch(0.95 0.0015 258.35)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "outgoing-bubble": {
+        "role": "neutral",
+        "displayName": "outgoing-bubble",
+        "canonical": "#DCE7FD",
+        "tonalRamp": [
+          "oklch(0.15 0.0036 264.41)",
+          "oklch(0.27 0.0122 264.41)",
+          "oklch(0.39 0.0207 264.41)",
+          "oklch(0.51 0.0293 264.41)",
+          "oklch(0.63 0.0265 264.41)",
+          "oklch(0.75 0.0179 264.41)",
+          "oklch(0.87 0.0093 264.41)",
+          "oklch(0.95 0.0036 264.41)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "media-background": {
+        "role": "neutral",
+        "displayName": "media-background",
+        "canonical": "#101821",
+        "tonalRamp": [
+          "oklch(0.15 0.0024 251.81)",
+          "oklch(0.27 0.0082 251.81)",
+          "oklch(0.39 0.0140 251.81)",
+          "oklch(0.51 0.0197 251.81)",
+          "oklch(0.63 0.0178 251.81)",
+          "oklch(0.75 0.0120 251.81)",
+          "oklch(0.87 0.0063 251.81)",
+          "oklch(0.95 0.0024 251.81)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      },
+      "call-background": {
+        "role": "neutral",
+        "displayName": "call-background",
+        "canonical": "#142239",
+        "tonalRamp": [
+          "oklch(0.15 0.0053 259.91)",
+          "oklch(0.27 0.0181 259.91)",
+          "oklch(0.39 0.0309 259.91)",
+          "oklch(0.51 0.0437 259.91)",
+          "oklch(0.63 0.0395 259.91)",
+          "oklch(0.75 0.0267 259.91)",
+          "oklch(0.87 0.0139 259.91)",
+          "oklch(0.95 0.0053 259.91)"
+        ],
+        "rampEvidence": "Synthesized panel illustration only; not used by render.swift and not an approved app token scale."
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "正文",
+        "purpose": "16pt regular, NSFont.systemFont; preview maps logical points to CSS px."
+      },
+      "brand-wordmark": {
+        "displayName": "叮咚聊启动字标",
+        "purpose": "NSFont.systemFont semibold 29pt, kern 1.3pt, centered; identity board uses a separate 48pt presentation size."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [],
+    "source": {
+      "renderer": "../render.swift",
+      "scope": "Static proposal only",
+      "canvasPoints": [
+        390,
+        844
+      ],
+      "exportScale": 2,
+      "paragraphLineSpacingPoints": 7,
+      "textFrameHeightMultiplier": 1.7,
+      "separatorPoints": 0.7,
+      "dialogScrimAlpha": 0.25,
+      "sheetScrimAlpha": 0.22,
+      "reviewStatus": "Ship for five-fix static review only: 057, 074, 099, 092-attachment, flow 4/5 and corresponding JSON states; no blocking findings. Not full 146-page runtime or accessibility certification."
+    },
+    "brand": {
+      "appName": "叮咚聊",
+      "sampleClubName": "远山户外",
+      "reviewStatus": "D selected by user. Fresh static review is tracked in review.md; no pass asserted here, no production or runtime acceptance.",
+      "provenance": "New alternatives are manually defined SVG/AppKit geometry, not imagegen output. Earlier imagegen connection failure produced no adopted asset.",
+      "svgViewBox": [
+        0,
+        0,
+        256,
+        256
+      ],
+      "fillRule": "evenodd",
+      "markColorRef": "colors.primary",
+      "iconBackgroundRef": "colors.primary",
+      "iconMarkColorRef": "colors.canvas",
+      "appIconPixels": [
+        1024,
+        1024
+      ],
+      "startupMarkRectPoints": [
+        125,
+        285,
+        128,
+        128
+      ],
+      "startupWordmarkFrameOriginPoints": [
+        20,
+        438
+      ],
+      "startupWordmarkWidthPoints": 350,
+      "startupWordmarkTypographyRef": "typography.brand-wordmark",
+      "entryHeaderMarkRectPoints": [
+        14,
+        54,
+        42,
+        42
+      ],
+      "sourceBoundary": "LaunchWaitingView still reuses LaunchScreen.storyboard. Indeterminate waiting affordance is proposed static UI only; existing routes unchanged.",
+      "pageCount": 147,
+      "originalPages": 121,
+      "additionalStates": 26,
+      "flowCount": 10,
+      "waitingIndicator": "Proposed iOS-style indeterminate spinner static frame; no percent, countdown, animation or runtime claim.",
+      "colorVariants": [
+        {
+          "backgroundRef": "colors.canvas",
+          "markRef": "colors.primary"
+        },
+        {
+          "backgroundRef": "colors.primary",
+          "markRef": "colors.canvas"
+        }
+      ],
+      "iconCornerTreatment": "Opaque square export; rounded mask exists only in identity preview.",
+      "status": "selected_by_user",
+      "selected": "D",
+      "name": "笑着聊",
+      "assets": {
+        "vector": "../brand/mark.svg",
+        "transparentMark": "../brand/mark.png",
+        "opaqueAppIcon": "../brand/app-icon.png",
+        "identityBoard": "../brand/identity.png",
+        "startupFlow": "../flow-10.png"
+      },
+      "previousProposal": {
+        "status": "rejected_by_user",
+        "assets": {
+          "vector": "../brand/archive-dual-d/mark.svg",
+          "transparentMark": "../brand/archive-dual-d/mark.png",
+          "opaqueAppIcon": "../brand/archive-dual-d/app-icon.png",
+          "identityBoard": "../brand/archive-dual-d/identity.png"
+        },
+        "startupFlowStatus": "Current flow-10.png has been rerendered with selected D; it is not a historical placeholder."
+      },
+      "alternatives": {
+        "renderer": "../brand/alternatives/render.swift",
+        "comparison": "../brand/alternatives/comparison.png",
+        "startupComparison": "../brand/alternatives/startup-comparison.png",
+        "candidates": [
+          {
+            "id": "A",
+            "name": "一声叮",
+            "vector": "../brand/alternatives/a-ding.svg",
+            "transparentMark": "../brand/alternatives/a-ding-mark.png",
+            "opaqueAppIcon": "../brand/alternatives/a-ding-icon.png",
+            "tradeoff": "Most directly tied to the app name; geometric and weighty."
+          },
+          {
+            "id": "B",
+            "name": "响铃",
+            "vector": "../brand/alternatives/b-bell.svg",
+            "transparentMark": "../brand/alternatives/b-bell-mark.png",
+            "opaqueAppIcon": "../brand/alternatives/b-bell-icon.png",
+            "tradeoff": "Direct sound association; may read as generic notification icon."
+          },
+          {
+            "id": "C",
+            "name": "你来我往",
+            "vector": "../brand/alternatives/c-dialogue.svg",
+            "transparentMark": "../brand/alternatives/c-dialogue-mark.png",
+            "opaqueAppIcon": "../brand/alternatives/c-dialogue-icon.png",
+            "tradeoff": "Opposed quotation shapes; may read as f at small size."
+          },
+          {
+            "id": "D",
+            "name": "笑着聊",
+            "vector": "../brand/alternatives/d-smile.svg",
+            "transparentMark": "../brand/alternatives/d-smile-mark.png",
+            "opaqueAppIcon": "../brand/alternatives/d-smile-icon.png",
+            "tradeoff": "Friendly smiling bubble; comparatively common motif."
+          }
+        ]
+      },
+      "scope": "Selected D applied to canonical design assets and all 147 static pages/states and flow boards in the existing cobalt/white world. Candidate boards retain historical pre-selection copy. No production asset replacement or startup implementation; application implementation remains paused."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Static preview: one CSS pixel maps to one renderer logical point; no interaction validation.",
+      "html": "<button class=\"sample\" type=\"button\">保存</button>",
+      "css": ".sample {box-sizing:border-box;width:350px;height:50px;border:0;border-radius:12px;background:#2859BC;color:#FFFFFF;font:600 16px system-ui;}"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Static preview: one CSS pixel maps to one renderer logical point; no interaction validation.",
+      "html": "<button class=\"sample\" type=\"button\">保存</button>",
+      "css": ".sample {box-sizing:border-box;width:350px;height:50px;border:0;border-radius:12px;background:#B9413E;color:#FFFFFF;font:600 16px system-ui;}"
+    },
+    {
+      "name": "Disabled Button",
+      "kind": "button",
+      "refersTo": "button-disabled",
+      "description": "Static preview: one CSS pixel maps to one renderer logical point; no interaction validation.",
+      "html": "<button class=\"sample\" type=\"button\" disabled>保存</button>",
+      "css": ".sample {box-sizing:border-box;width:350px;height:50px;border:0;border-radius:12px;background:#DCE2EB;color:#647184;font:600 16px system-ui;}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Static single-line input preview; focus behavior is unspecified.",
+      "html": "<div class=\"field\">林夏</div>",
+      "css": ".field {box-sizing:border-box;width:350px;height:52px;border-radius:12px;background:#F3F5F9;color:#182536;padding:15px;font:400 16px system-ui;}"
+    },
+    {
+      "name": "Conversation Row",
+      "kind": "custom",
+      "description": "Flat task-specific row; examples are synthetic.",
+      "html": "<div class=\"conversation\"><strong>阿哲</strong><span>14:26</span><p>收到，周六见。</p></div>",
+      "css": ".conversation {box-sizing:border-box;width:286px;height:83px;border-bottom:.7px solid #E4E9F0;color:#182536;font:400 17px system-ui;} strong {font-weight:500;} span {float:right;color:#647184;font-size:11px;} p {margin-top:16px;color:#647184;font-size:13px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "岩白与钴蓝",
+    "overview": "沿用用户已批准的“岩白与钴蓝”。以白色内容面、深蓝灰文字和钴蓝操作建立稳定识别；用原生任务层级、信息密度和状态反馈组织页面，避免把聊天产品排成营销模板。\n\n本次为现有视觉世界的业务细化，用户要求先看更新效果图，再继续应用实现。用户否定上一版双 D／错位口形标志后，已明确选择 D「笑着聊」，本轮将其统一到设计资产与效果图，沿用既定视觉世界与全部 token。文档记录本目录 render.swift 的实际静态表达；不是生产组件规范已经落地的声明。",
+    "keyCharacteristics": [
+      "首页以日期与下一场活动组织注意力；消息页以会话、摘要和时间形成连续列表。",
+      "聊天保留气泡与输入栏的工作结构；表单让字段和提交状态形成顺序。",
+      "资料、群管理与群发按权限和任务分区；不把不同任务压成统一装饰卡片。"
+    ],
+    "rules": [],
+    "dos": [
+      "Do 让标题、现状和下一步操作在首屏可辨认，动作名称说明具体结果。",
+      "Do 按页面任务调整密度：会话连续排列，表单留出输入空间，媒体优先展示内容。",
+      "Do 在失败时保留已有输入，并在相关操作附近给出恢复路径。",
+      "Do 将示例身份、数量与媒体的性质写在图外说明中，实际产品使用真实数据。",
+      "Do 用真实权限决定编辑入口、只读文案和可执行动作。"
+    ],
+    "donts": [
+      "Don't 用统一大卡片、重复圆角容器或装饰图标替代页面自身结构。",
+      "Don't 添加口号、营销副标题、虚构功能、虚构统计或没有业务结果的蓝色按钮。",
+      "Don't 给点按立即生效的选择器追加统一的完成按钮。",
+      "Don't 将群发已受理、静态成功态或演示报名写成实际送达与服务器业务验收。",
+      "Don't 将此单尺寸效果图当作动态字体、辅助功能或真机适配证据。"
+    ]
+  },
+  "implementationEvidence": {
+    "recordedAt": "2026-10-30",
+    "branch": "feature-newUI-5",
+    "status": "UI/UX source implementation resumed and implemented; device and production acceptance not verified",
+    "precedence": "This object supersedes implementation-paused statements in preserved static-proposal metadata. Existing frontmatter, narrative, static components and canonical token metadata remain unchanged.",
+    "scope": "Appearance and branding only; existing bindings, callbacks, validation and permission ownership retained. No business Store, Service, Model, ViewModel or SDK changes.",
+    "sources": {
+      "homeTheme": "ddlNew/Features/Home/Design/HomeTheme.swift",
+      "messagingTheme": "ddlNew/Common/Design/MessagingTheme.swift",
+      "clubTheme": "ddlNew/Common/Design/ClubTheme.swift",
+      "mark": "ddlNew/Resources/Assets.xcassets/DingDongMark.imageset/mark.png",
+      "appIcon": "ddlNew/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+      "launchStoryboard": "ddlNew/Resources/LaunchScreen.storyboard",
+      "waitingView": "ddlNew/App/Startup/LaunchWaitingView.swift"
+    },
+    "nativeDifferences": {
+      "scope": "Observed implementation values only; do not replace approved static frontmatter tokens with this record.",
+      "primaryAction": {
+        "light": "#2859BC",
+        "dark": "#9EBDFF",
+        "foregroundLight": "#FFFFFF",
+        "foregroundDark": "#142239"
+      },
+      "surface": {
+        "light": "#FFFFFF",
+        "dark": "#192432"
+      },
+      "background": {
+        "light": "#F3F5F9",
+        "dark": "#111923"
+      },
+      "text": {
+        "light": "#182536",
+        "dark": "#EDF2FA"
+      },
+      "secondaryText": {
+        "light": "#647184",
+        "dark": "#ACB9CC"
+      },
+      "mintSurface": {
+        "light": "#EAF0FC",
+        "dark": "#253754",
+        "staticSpec": "#EAF0FA"
+      },
+      "divider": {
+        "light": "#E8EDF4",
+        "dark": "#303E50",
+        "staticSpec": "#E4E9F0"
+      },
+      "border": {
+        "light": "#DFE5EE",
+        "dark": "#354459"
+      },
+      "danger": {
+        "light": "#B9413E",
+        "dark": "#FF9B95",
+        "foregroundLight": "#FFFFFF",
+        "foregroundDark": "#142239"
+      },
+      "outgoingBubble": {
+        "light": "#DCE7FD",
+        "dark": "#2B4165",
+        "foregroundLight": "#182536",
+        "foregroundDark": "#EDF2FA"
+      },
+      "fonts": "Native dynamic system text styles and local ScaledMetric; not static point-for-point reproduction.",
+      "buttons": "Login/invitation min50pt, ClubButtonStyle min52pt, 12pt corners; disabled appearance varies with existing component.",
+      "separators": "Native components use 0.5pt or 1pt rather than a global0.7pt.",
+      "startup": "Shared storyboard: centered128pt mark, proportional vertical position,25pt title gap,29pt semibold. Static1.3pt letter spacing not separately authored in storyboard."
+    },
+    "brand": {
+      "selected": "D",
+      "name": "笑着聊",
+      "assets": "Approved mark.png and app-icon.png copied byte-for-byte to production assets",
+      "waitingIndicator": "Real indeterminate UIActivityIndicatorView present only while waiting view is mounted; no artificial delay or routing changes"
+    },
+    "checks": {
+      "offline": {
+        "result": "107/107 passed",
+        "evidenceOwner": "root integration run"
+      },
+      "integratedUnsignedGenericIOSBuild": {
+        "result": "BUILD SUCCEEDED",
+        "evidenceOwner": "root integration run"
+      },
+      "finalIncrementalBuildAfterRecordingForegroundAdjustment": {
+        "result": "BUILD SUCCEEDED",
+        "log": "/tmp/ddlNew-newUI-5-build-final.log",
+        "evidenceOwner": "root integration run; final log tail directly checked"
+      }
+    },
+    "visualFixture": {
+      "report": ".superpowers/sdd/2026-10-30-new-ui/visual-report.md",
+      "artifacts": "/tmp/ddlNew-newUI-5-visuals/",
+      "sourceProvenance": "/tmp/ddlNew-newUI-5-visuals/provenance.json",
+      "outputs": "/tmp/ddlNew-newUI-5-visuals/outputs.json",
+      "generatedPNGCount": 24,
+      "directlyInspectedRepresentativeCount": 12,
+      "components": [
+        "HomeFeaturedActivity",
+        "HomeActivityDate",
+        "HomeActivityRow",
+        "ClubButtonStyle",
+        "MessagingTabs",
+        "MinePageContent",
+        "SettingsPageContent"
+      ],
+      "configurations": [
+        "390 light/dark",
+        "320 long text accessibility3 light/dark",
+        "320 long text accessibility5 light/dark",
+        "768 light/dark"
+      ],
+      "finding": "No observed clipping/overlap in inspected images; source component geometry and colors only",
+      "independentReview": {
+        "report": ".superpowers/sdd/2026-10-30-new-ui/visual-review.md",
+        "disposition": "SHIP",
+        "scope": "Seven explicitly inspected macOS production-component fixture images only; not app release acceptance",
+        "sourceDrift": "14/15 provenance summaries match currentsource; MessagingTheme added onError after capture, unused by covered fixture components"
+      },
+      "limitation": "macOS ImageRenderer with UIKit color and numeric zoom shims; explicit accessibility branches exercised but iOS font scaling not reproduced. a3/a5 output dimensions identical. Not whole-screen runtime or all-page design fidelity."
+    },
+    "unverified": [
+      "Actual iOS keyboard and safe-area/navigation/tab presentation",
+      "Largest iOS Dynamic Type sizing and VoiceOver",
+      "Native startup snapshot and launch transition",
+      "Captcha web rendering, photo permissions and live requests",
+      "Real server and physical-device acceptance"
+    ],
+    "staticCoverageBoundary": "147 static pages/states and10 flow boards remain design-material coverage; not147 individually runtime-tested screens."
+  }
+}

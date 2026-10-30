@@ -8,23 +8,9 @@
 import SwiftUI
 import UIAdapter
 
-/// 复刻旧页面的渐变背景与圆形装饰。
+/// 纯色画布让输入与连接状态保持清晰。
 struct InvitationCodeBackground: View {
     var body: some View {
-        GeometryReader { proxy in
-            InvitationCodePalette.wash
-                .overlay(alignment: .topLeading) {
-                    Circle()
-                        .fill(InvitationCodePalette.pale.opacity(0.3))
-                        .overlay {
-                            Circle()
-                                .stroke(InvitationCodePalette.teal.opacity(0.12), lineWidth: 1.zoom())
-                        }
-                        .frame(width: 342.zoom(), height: 342.zoom())
-                        .offset(x: (-139).zoom(), y: proxy.size.height * 0.14)
-                }
-        }
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
+        InvitationCodePalette.background.ignoresSafeArea().accessibilityHidden(true)
     }
 }

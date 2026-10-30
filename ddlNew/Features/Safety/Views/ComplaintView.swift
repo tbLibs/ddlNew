@@ -27,37 +27,40 @@ struct ComplaintView: View {
 
     var body: some View {
         NavigationStack {
-            MessagingScroll {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 20.zoom()) {
                     Text(targetName.isEmpty ? "系统投诉" : "投诉对象：" + targetName).font(.headline).foregroundStyle(MessagingTheme.text)
-                    evidence
-                    MessagingCard {
+                    VStack(alignment: .leading, spacing: 0) {
                         VStack(alignment: .leading, spacing: 12.zoom()) {
                             Text("投诉原因").font(.subheadline.weight(.semibold))
                             Picker("投诉原因", selection: $draft.reason) { ForEach(ComplaintReason.allCases) { Text($0.title).tag($0) } }
-                                .pickerStyle(.menu).tint(MessagingTheme.accent).frame(minHeight: 44)
+                                .pickerStyle(.menu).tint(MessagingTheme.accent)
+                                .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading).padding(.horizontal, 15)
+                                .background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 12))
+                            evidence
                             Divider()
                             HStack { Text("投诉内容（选填）").font(.subheadline.weight(.semibold)); Spacer(); Text("\(draft.content.utf16.count)/200").font(.caption).monospacedDigit().foregroundStyle(draft.content.utf16.count > 200 ? MessagingTheme.error : MessagingTheme.secondaryText) }
-                            TextEditor(text: $draft.content).focused($focused).frame(minHeight: 120.zoom()).accessibilityLabel("投诉内容，最多200字")
+                            TextEditor(text: $draft.content).focused($focused).scrollContentBackground(.hidden).padding(10).frame(minHeight: 120.zoom()).background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 12)).accessibilityLabel("投诉内容，最多200字")
                             if draft.content.utf16.count > 200 { Text("投诉内容最多200字，请精简后提交。").font(.footnote).foregroundStyle(MessagingTheme.error) }
                         }
                     }
-                    MessagingCard {
+                    VStack(alignment: .leading, spacing: 0) {
                         VStack(alignment: .leading, spacing: 10.zoom()) {
                             Text("联系邮箱（必填）").font(.subheadline.weight(.semibold))
-                            TextField("用于联系处理结果", text: $draft.email).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().focused($focused).frame(minHeight: 44).accessibilityLabel("联系邮箱")
+                            TextField("用于联系处理结果", text: $draft.email).padding(.horizontal, 15).padding(.vertical, 4).background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 12)).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().focused($focused).frame(minHeight: 44).accessibilityLabel("联系邮箱")
                             if !draft.email.isEmpty && !draft.hasValidEmail { Text("请输入有效的联系邮箱。").font(.footnote).foregroundStyle(MessagingTheme.error) }
                             Text("请填写可正常收信的邮箱。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
                         }
                     }
-                }.frame(maxWidth: 640).frame(maxWidth: .infinity).padding(16.zoom())
+                }.frame(maxWidth: 640).frame(maxWidth: .infinity).padding(20)
                     .disabled(preparing || store.isSubmitting)
             }
+            .scrollDismissesKeyboard(.interactively).background(MessagingTheme.surface.ignoresSafeArea())
             .navigationTitle("投诉与支持").modifier(MessagingPageChrome())
             .safeAreaInset(edge: .bottom) {
                 Button { focused = false; Task { await submit() } } label: { Text("确认提交投诉").frame(maxWidth: .infinity) }
                     .buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(draft.validationMessage != nil || store.isSubmitting || preparing || store.submitted)
-                    .frame(maxWidth: 640).frame(maxWidth: .infinity).padding(16.zoom()).background(MessagingTheme.surface)
+                    .frame(maxWidth: 640).frame(maxWidth: .infinity).padding(20).background(MessagingTheme.surface)
             }
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { photoTask?.cancel(); store.close(); dismiss() } } }
             .messagingLoadingToast(preparing || store.isSubmitting, title: preparing ? "正在准备证据图片" : "正在提交投诉")
@@ -77,7 +80,7 @@ struct ComplaintView: View {
     }
 
     private var evidence: some View {
-        MessagingCard {
+        VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 12.zoom()) {
                 HStack { Text("图片证据（必填）").font(.subheadline.weight(.semibold)); Spacer(); Text("\(draft.images.count)/9").font(.caption).monospacedDigit().foregroundStyle(MessagingTheme.secondaryText) }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 84.zoom()), spacing: 12.zoom())], spacing: 12.zoom()) {

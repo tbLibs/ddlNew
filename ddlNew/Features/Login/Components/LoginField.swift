@@ -11,7 +11,7 @@ import SwiftUI
 struct LoginField: View {
     let title: String
     let placeholder: String
-    /// 使用新项目 Assets 中的图标，不引用旧版图标组件。
+    /// 保留字段标识，用于无障碍与自动化定位。
     let icon: String
     @Binding var text: String
     var secure = false
@@ -21,17 +21,9 @@ struct LoginField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.footnote.weight(.medium))
 
             HStack(spacing: 12) {
-                Image("club-\(icon)")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
-                    .foregroundColor(LoginPalette.darkTeal)
-                    .accessibilityHidden(true)
-
                 Group {
                     if secure && !passwordVisible {
                         SecureField(placeholder, text: $text)
@@ -39,7 +31,7 @@ struct LoginField: View {
                         TextField(placeholder, text: $text)
                     }
                 }
-                .font(.system(size: 15))
+                .font(.body)
                 .foregroundColor(LoginPalette.ink)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -48,7 +40,7 @@ struct LoginField: View {
                 .focused(focus)
                 .accessibilityLabel(title)
                 .accessibilityIdentifier("field.\(icon)")
-                .frame(height: 36)
+                .frame(minHeight: 44)
 
                 if secure {
                     Button {
@@ -61,20 +53,16 @@ struct LoginField: View {
                             .frame(width: 18, height: 18)
                             .foregroundColor(LoginPalette.darkTeal)
                             .frame(width: 44, height: 44)
-                            .background(LoginPalette.wash)
+                            .background(Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .accessibilityLabel(passwordVisible ? "隐藏密码" : "显示密码")
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(LoginPalette.background)
-            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .stroke(LoginPalette.border, lineWidth: 1)
-            }
+            .padding(.horizontal, 15)
+            .padding(.vertical, 4)
+            .background(HomeTheme.background)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }

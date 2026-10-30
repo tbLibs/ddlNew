@@ -16,28 +16,33 @@ struct SettingsScreen: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                SettingsPageContent(
-                    displayName: displayName,
-                    account: userSession.currentUser?.userName ?? "",
-                    deleteDestination: DeleteAccountScreen(),
-                    openPrivacyPolicy: { legalDocument = .privacy },
-                    openSupport: { legalDocument = .support },
-                    logout: { confirmLogout = true }
-                )
+                content
                 .frame(maxWidth: HomeTheme.contentWidth)
                 .frame(maxWidth: .infinity)
             }
-                .background(HomeTheme.background.ignoresSafeArea())
+                .background(HomeTheme.surface.ignoresSafeArea())
+                .safeAreaInset(edge: .bottom) { content.logoutFooter }
                 .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
                 .toolbarBackground(HomeTheme.surface, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
+                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() }.buttonStyle(.plain).foregroundStyle(HomeTheme.forest).frame(minHeight: 44) } }
                 .alert("退出会员空间？", isPresented: $confirmLogout) {
                     Button("取消", role: .cancel) { }
                     Button("退出登录", role: .destructive) { dismiss(); Task { await store.signOut() } }
                 } message: { Text("退出登录后，活动记录会保留。") }
                 .sheet(item: $legalDocument) { LegalDocumentScreen(document: $0) }
         }.navigationViewStyle(.stack).tint(HomeTheme.forest)
+    }
+
+    private var content: SettingsPageContent<DeleteAccountScreen> {
+        SettingsPageContent(
+            displayName: displayName,
+            account: userSession.currentUser?.userName ?? "",
+            deleteDestination: DeleteAccountScreen(),
+            openPrivacyPolicy: { legalDocument = .privacy },
+            openSupport: { legalDocument = .support },
+            logout: { confirmLogout = true }
+        )
     }
 
     private var displayName: String {

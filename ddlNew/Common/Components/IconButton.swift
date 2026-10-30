@@ -14,8 +14,8 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             ClubIcon(name: icon, size: 21).foregroundColor(ClubTheme.teal)
-                .frame(width: 44, height: 44).background(ClubTheme.wash)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .frame(width: 44, height: 44)
+
         }.accessibilityLabel(label)
     }
 }

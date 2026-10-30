@@ -30,13 +30,21 @@ struct FriendGroupNameEditor: View {
     }
     var body: some View {
         NavigationStack {
-            Form {
-                Section("分组名称") { TextField("请输入分组名称", text: $name).frame(minHeight: 44).accessibilityLabel("分组名称").disabled(businessStore.isSubmitting) }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12.zoom()) {
+                    Text("分组名称").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
+                    TextField("请输入分组名称", text: $name).font(.body).frame(minHeight: 44).accessibilityLabel("分组名称").disabled(businessStore.isSubmitting)
+                        .padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+                        .background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                }.padding(.horizontal, 20.zoom()).padding(.vertical, 32.zoom())
+                    .frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
-            .listRowBackground(MessagingTheme.surface)
+            .scrollDismissesKeyboard(.interactively)
+            .foregroundStyle(MessagingTheme.text)
+            .background(MessagingTheme.surface)
             .navigationTitle(groupID == nil ? "添加分组" : "重命名分组")
             .modifier(MessagingPageChrome())
-        .messagingFeedbackToast(businessStore.errorMessage)
+            .messagingFeedbackToast(businessStore.errorMessage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(businessStore.isSubmitting) }
             }

@@ -31,7 +31,6 @@ struct ChatMediaDetailView: View {
                     Image(systemName: "doc.fill").font(.system(size: 64.zoom())).foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
                     Text(attachmentName).font(.headline).multilineTextAlignment(.center)
                     if message.size > 0 { Text(ByteCountFormatter.string(fromByteCount: message.size, countStyle: .file)).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText) }
-                    Button("下载并预览") { requestedDownload = true; Task { await store.load(message, context: context) } }.buttonStyle(MessagingActionButtonStyle(fullWidth: true))
                 }.frame(maxWidth: 400).padding(24.zoom())
                 Spacer()
             }
@@ -42,16 +41,13 @@ struct ChatMediaDetailView: View {
             }
             if let file = store.file {
                 if message.type == 4 {
-                    MessagingScroll {
+                    ScrollView {
                         VStack(spacing: 24.zoom()) {
                             Image(systemName: store.playing ? "waveform" : "speaker.wave.2").font(.system(size: 48.zoom())).foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
                             Text("语音 \(Int(message.duration)) 秒").font(.title3.weight(.semibold))
                             Text(store.playing ? "正在播放" : "点击播放语音").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
-                            MessagingCard {
-                                Toggle("听筒播放", isOn: Binding(get: { store.usesReceiver }, set: { value in do { try store.setReceiver(value) } catch { store.errorMessage = error.localizedDescription } })).frame(minHeight: max(44, 44.zoom()))
-                            }
-                            Button(store.playing ? "重新播放" : "播放语音") { do { if try store.playVoice() { onVoicePlayed() } } catch { store.errorMessage = error.localizedDescription } }
-                                .buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+                            Toggle("听筒播放", isOn: Binding(get: { store.usesReceiver }, set: { value in do { try store.setReceiver(value) } catch { store.errorMessage = error.localizedDescription } }))
+                                .frame(minHeight: max(44, 64.zoom())).overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 0.7) }
                         }.padding(24.zoom())
                     }
                 } else if message.type == 5 {
@@ -70,6 +66,17 @@ struct ChatMediaDetailView: View {
                 }
             }
             if store.file == nil && !store.loading { Spacer(minLength: 0) }
+        }
+        .background(MessagingTheme.surface.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
+            Group {
+                if message.type == 5 && store.file == nil && !store.loading && store.errorMessage == nil {
+                    Button("下载并预览") { requestedDownload = true; Task { await store.load(message, context: context) } }.buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+                } else if message.type == 4 && store.file != nil {
+                    Button(store.playing ? "重新播放" : "播放语音") { do { if try store.playVoice() { onVoicePlayed() } } catch { store.errorMessage = error.localizedDescription } }
+                        .buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+                }
+            }.frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
         }
         .navigationTitle(attachmentName).modifier(MessagingPageChrome())
         .messagingLoadingToast(store.loading, title: "正在下载附件")

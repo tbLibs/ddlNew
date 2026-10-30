@@ -16,6 +16,7 @@ struct ChatStickersView: View {
     @State private var sentFeedback: String?
     @State private var sendError: String?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// 内嵌面板和独立页面共用真实贴纸内容，不重复提供两个发送入口。
     private var pickerContent: some View {
@@ -25,19 +26,19 @@ struct ChatStickersView: View {
                 if !chat.permission.canSend { Text("当前聊天暂不能发送消息").foregroundStyle(MessagingTheme.error).font(.subheadline) }
                 if store.errorMessage != nil { Button("重试") { Task { await store.loadMore() } }.frame(minHeight: 44).disabled(store.busy) }
                 if store.stickers.isEmpty && !store.busy && store.errorMessage == nil { Label("暂无已用贴纸或收藏表情", systemImage: "face.smiling").foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 32.zoom()) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: (embedded ? 64.0 : 92.0).zoom()), spacing: 12.zoom())], spacing: 16.zoom()) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12.zoom()), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 16.zoom()) {
                     ForEach(store.stickers) { sticker in
                         Button { send(sticker) } label: {
                             VStack(spacing: 8.zoom()) {
-                                ChatAnimatedRemoteImage(url: RemoteAvatarURL.resolve(sticker.resource.isEmpty ? sticker.thumbnail : sticker.resource, relativeTo: connection.current?.getFileHost), fileHost: connection.current?.getFileHost, size: CGSize(width: 72.zoom(), height: 72.zoom())).accessibilityHidden(true)
+                                ChatAnimatedRemoteImage(url: RemoteAvatarURL.resolve(sticker.resource.isEmpty ? sticker.thumbnail : sticker.resource, relativeTo: connection.current?.getFileHost), fileHost: connection.current?.getFileHost, size: CGSize(width: 56.zoom(), height: 56.zoom())).accessibilityHidden(true)
                                 Text(sticker.title.isEmpty ? "贴纸" : sticker.title).font(.caption).lineLimit(2).foregroundStyle(MessagingTheme.text)
-                            }.frame(maxWidth: .infinity, minHeight: max(44, 112.zoom())).padding(8.zoom()).contentShape(Rectangle())
-                        }.buttonStyle(MessagingRowStyle()).clipShape(RoundedRectangle(cornerRadius: 8.zoom())).disabled(!chat.permission.canSend).accessibilityLabel("发送" + (sticker.title.isEmpty ? "贴纸" : sticker.title))
+                            }.frame(maxWidth: .infinity, minHeight: max(44, 96.zoom())).padding(4.zoom()).contentShape(Rectangle())
+                        }.buttonStyle(ChatComposerButtonStyle()).clipShape(RoundedRectangle(cornerRadius: 8.zoom())).disabled(!chat.permission.canSend).accessibilityLabel("发送" + (sticker.title.isEmpty ? "贴纸" : sticker.title))
                     }
                 }
                 if store.hasMore && !store.busy { Button("加载更多") { Task { await store.loadMore() } }.frame(maxWidth: .infinity, minHeight: max(44, 44.zoom())) }
             }.padding(16.zoom())
-        }
+        }.buttonStyle(ChatComposerButtonStyle())
     }
 
     /// 已用贴纸以完整资源显示动画，展开面板仍保留原SDK和身份轮次校验。

@@ -95,22 +95,21 @@ struct MinePageContent<Avatar: View>: View {
         .padding(.horizontal, 24.zoom())
         .padding(.vertical, 24.zoom())
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HomeTheme.surface, in: MineHeaderShape(radius: 28.zoom()))
+        .background(HomeTheme.surface)
     }
 
-    /// 四个既有记录入口不再展示本地演示计数；辅助字号按单列排布。
+    /// 四个既有记录入口使用单列连续行，不展示演示计数。
     private var activityRecords: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4.zoom()),
-                            count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 4.zoom()) {
+        VStack(spacing: 0) {
             record(.registered, symbol: "calendar")
+            divider
             record(.waiting, symbol: "clock")
+            divider
             record(.checkedIn, symbol: "checkmark.square")
+            divider
             record(.past, symbol: "flag")
         }
-        .padding(8.zoom())
-        .background(HomeTheme.surface, in: cardShape)
-        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+        .background(HomeTheme.surface)
     }
 
     /// 当前俱乐部与更换操作分离，切换仍由父页面确认。
@@ -125,8 +124,8 @@ struct MinePageContent<Avatar: View>: View {
                         .background(HomeTheme.forest, in: RoundedRectangle(cornerRadius: 14.zoom()))
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4.zoom()) {
-                        Text("远山户外").font(.headline)
-                        Text("当前俱乐部").font(.caption).foregroundStyle(HomeTheme.secondaryText)
+                        Text("当前俱乐部").font(.headline)
+                        Text("查看俱乐部资料").font(.caption).foregroundStyle(HomeTheme.secondaryText)
                     }
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -150,8 +149,7 @@ struct MinePageContent<Avatar: View>: View {
             }
             .accessibilityIdentifier("mine.switchClub")
         }
-        .background(HomeTheme.mintSurface, in: cardShape)
-        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+        .background(HomeTheme.surface)
     }
 
     private var accountServices: some View {
@@ -162,9 +160,7 @@ struct MinePageContent<Avatar: View>: View {
             Button(action: openComplaint) { menuRow("投诉与支持", symbol: "headphones") }
                 .accessibilityIdentifier("mine.complaint")
         }
-        .padding(.horizontal, 16.zoom())
-        .background(HomeTheme.surface, in: cardShape)
-        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+        .background(HomeTheme.surface)
     }
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -182,13 +178,13 @@ struct MinePageContent<Avatar: View>: View {
                 Image(systemName: symbol).font(.system(size: 19.zoom()))
                     .foregroundStyle(HomeTheme.forest)
                     .frame(width: 34.zoom(), height: 34.zoom())
-                    .background(HomeTheme.mintSurface, in: RoundedRectangle(cornerRadius: 11.zoom()))
                     .accessibilityHidden(true)
-                Text(kind.rawValue).font(.subheadline.weight(.medium))
+                Text(kind.rawValue).font(.body)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
+                chevron
             }
-            .padding(.horizontal, 8.zoom()).padding(.vertical, 12.zoom())
+            .padding(.vertical, 12.zoom())
             .frame(maxWidth: .infinity, minHeight: max(44, 64.zoom()), alignment: .leading)
             .contentShape(Rectangle())
         }
@@ -207,7 +203,6 @@ struct MinePageContent<Avatar: View>: View {
         .contentShape(Rectangle())
     }
 
-    private var cardShape: RoundedRectangle { RoundedRectangle(cornerRadius: 22.zoom(), style: .continuous) }
     private var divider: some View { Rectangle().fill(HomeTheme.border).frame(height: 0.5).accessibilityHidden(true) }
     private var chevron: some View {
         Image(systemName: "chevron.right").font(.caption.weight(.medium))
@@ -219,22 +214,5 @@ struct MinePageContent<Avatar: View>: View {
 private struct MinePressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.opacity(configuration.isPressed ? 0.6 : 1)
-    }
-}
-
-/// iOS16 的身份区只圆下沿，顶部与原生导航栏自然相接。
-private struct MineHeaderShape: Shape {
-    let radius: CGFloat
-    func path(in rect: CGRect) -> Path {
-        let r = min(radius, rect.width / 2, rect.height / 2)
-        return Path { path in
-            path.move(to: .zero)
-            path.addLine(to: CGPoint(x: rect.maxX, y: 0))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
-            path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY), control: CGPoint(x: rect.maxX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: r, y: rect.maxY))
-            path.addQuadCurve(to: CGPoint(x: 0, y: rect.maxY - r), control: CGPoint(x: 0, y: rect.maxY))
-            path.closeSubpath()
-        }
     }
 }

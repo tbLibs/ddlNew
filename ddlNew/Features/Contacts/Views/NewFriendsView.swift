@@ -86,9 +86,9 @@ struct NewFriendsView: View {
     @ViewBuilder private func action(_ application: FriendApplicationRecord, userUID: String) -> some View {
         switch application.action(for: userUID) {
         case .accept:
-            Button { Task { await businessStore.perform(.accept(friendID: application.peerID(for: userUID))) } } label: { Text("通过验证").fixedSize(horizontal: false, vertical: true) }.buttonStyle(MessagingActionButtonStyle()).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
+            Button { Task { await businessStore.perform(.accept(friendID: application.peerID(for: userUID))) } } label: { Text("通过验证").fixedSize(horizontal: false, vertical: true) }.buttonStyle(.borderless).foregroundStyle(MessagingTheme.accent).frame(minHeight: 44).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
         case .reapply:
-            Button { Task { await businessStore.perform(.apply(friendID: application.peerID(for: userUID))) } } label: { Text("重新申请").fixedSize(horizontal: false, vertical: true) }.buttonStyle(MessagingActionButtonStyle()).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
+            Button { Task { await businessStore.perform(.apply(friendID: application.peerID(for: userUID))) } } label: { Text("重新申请").fixedSize(horizontal: false, vertical: true) }.buttonStyle(.borderless).foregroundStyle(MessagingTheme.accent).frame(minHeight: 44).disabled(businessStore.isSubmitting || permissions.current?.allows("allowAddFriend") != true)
         case .waiting: Text("等待验证").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
         case .accepted: Text("已添加").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
         case .expired: Text("已过期").font(.caption).foregroundStyle(MessagingTheme.secondaryText)

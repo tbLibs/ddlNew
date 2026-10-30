@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// 优先展示已报名的下一场；没有报名时展示可探索的活动，不伪造参与状态。
+/// 下一场活动以日期与参与信息组织；继续使用原来的活动和参与状态。
 struct HomeFeaturedActivity: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let activity: ClubActivity
     let status: Participation
     let action: () -> Void
@@ -16,47 +17,54 @@ struct HomeFeaturedActivity: View {
     private var isRegistered: Bool { status == .registered }
 
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 0) {
-                HomeLandscape()
-                    .frame(height: 104)
-                    .overlay(alignment: .topLeading) {
-                        Label(isRegistered ? "我的下一场" : "下一站，去户外", systemImage: "sun.max")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(HomeTheme.onHero)
-                            .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(HomeTheme.heroBackground.opacity(0.85), in: Capsule())
-                            .padding(16)
-                    }
-
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(activity.title).font(.title2.weight(.bold))
+        VStack(alignment: .leading, spacing: 24) {
+            Text("下一场活动").font(.headline).foregroundStyle(HomeTheme.text)
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 24))
+            layout {
+                HomeActivityDate(date: activity.date)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(activity.title).font(.title2.weight(.semibold))
+                        .foregroundStyle(HomeTheme.text).fixedSize(horizontal: false, vertical: true)
+                    Text("\(activity.date) · \(activity.place)")
+                        .font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label(activity.date, systemImage: "calendar")
-                        Label(activity.place, systemImage: "mappin.and.ellipse")
-                    }
-                    .font(.subheadline).foregroundStyle(HomeTheme.onHeroSecondary)
-
-                    HStack(spacing: 12) {
-                        Text(isRegistered ? "查看参与信息" : "查看活动详情")
-                            .font(.subheadline.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true).layoutPriority(1)
-                        Spacer(minLength: 0)
-                        Image(systemName: "arrow.right").accessibilityHidden(true)
-                    }
-                    .padding(.top, 10)
-                    .overlay(alignment: .top) { Rectangle().fill(HomeTheme.onHero.opacity(0.2)).frame(height: 1) }
-                }
-                .foregroundStyle(HomeTheme.onHero)
-                .padding(20)
+                    Label(status.title, systemImage: isRegistered ? "checkmark.circle" : "calendar")
+                        .font(.subheadline.weight(.medium)).foregroundStyle(HomeTheme.forest)
+                }.frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(HomeTheme.heroBackground)
-            .clipShape(RoundedRectangle(cornerRadius: HomeTheme.cardRadius))
+            Button(isRegistered ? "查看参与信息" : "查看活动详情", action: action)
+                .buttonStyle(ClubButtonStyle())
+                .accessibilityIdentifier("home.featuredActivity")
         }
-        .buttonStyle(HomePressStyle())
-        .accessibilityLabel("\(isRegistered ? "我的下一场" : "推荐活动")，\(activity.title)，\(activity.date)，\(activity.place)，\(status.title)")
-        .accessibilityHint("打开活动详情与参与信息")
-        .accessibilityIdentifier("home.featuredActivity")
+        .padding(.vertical, 24)
+        .overlay(alignment: .top) { Rectangle().fill(MessagingTheme.divider).frame(height: 1) }
+    }
+}
+
+/// 仅拆分已有展示日期；格式未知时完整显示原文，不推算年份或星期。
+struct HomeActivityDate: View {
+    let date: String
+    @ScaledMetric(relativeTo: .largeTitle) private var daySize = 44
+
+    private var dateParts: [String] {
+        guard let token = date.split(separator: " ").first,
+              token.contains("月"), token.hasSuffix("日") else { return [] }
+        return token.dropLast().components(separatedBy: "月")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if dateParts.count == 2 {
+                Text(dateParts[1]).font(.system(size: daySize, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(HomeTheme.forest)
+                Text("\(dateParts[0])月").font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
+            } else {
+                Text(date).font(.headline).foregroundStyle(HomeTheme.forest)
+            }
+        }
+        .frame(minWidth: 72, alignment: .leading)
+        .accessibilityElement(children: .ignore).accessibilityLabel(date)
     }
 }

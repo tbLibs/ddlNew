@@ -49,7 +49,7 @@ struct ChatGroupMembersView: View {
         .messagingLoadingToast(store.busy && !showingRemoval, title: "正在更新群成员")
         .messagingFeedbackToast(store.errorMessage ?? feedback, isEnabled: !showingRemoval)
         .sheet(isPresented: Binding(get: { if case .remove = confirmation { return true }; return false }, set: { if !$0 { confirmation = nil } })) {
-            NavigationStack { Form { Text("移除成员：" + targetName); Toggle("同时删除该成员的群消息", isOn: $deleteMessages) }
+            NavigationStack { ScrollView { VStack(alignment: .leading, spacing: 24.zoom()) { Text("移除成员：" + targetName).font(.headline); Toggle("同时删除该成员的群消息", isOn: $deleteMessages) }.padding(20.zoom()).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity) }.background(MessagingTheme.surface.ignoresSafeArea())
                 .navigationTitle("移除成员").modifier(MessagingPageChrome()).toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { confirmation = nil }.disabled(store.busy) }; ToolbarItem(placement: .confirmationAction) { Button("移除", role: .destructive) { if case .remove(let ids, _) = confirmation { Task { feedback = nil; if await store.groupAction(.remove(ids, deleteMessages: deleteMessages)) { feedback = "已移除成员"; confirmation = nil } } } }.disabled(store.busy) } }.messagingLoadingToast(store.busy, title: "正在移除成员").messagingFeedbackToast(store.errorMessage).interactiveDismissDisabled(store.busy)
             }
         }

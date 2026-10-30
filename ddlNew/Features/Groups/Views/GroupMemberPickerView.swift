@@ -78,14 +78,17 @@ struct GroupMemberPickerView: View {
                         if records.isEmpty { empty(query.isEmpty ? (filter == .recent ? "暂无最近联系人" : "暂无可选择的好友") : "无搜索结果") }
                         ForEach(records) { contact in row(contact) }
                     }
-                }.listStyle(.plain).scrollDismissesKeyboard(.interactively).disabled(submitting)
+                }.listStyle(.plain).scrollContentBackground(.hidden).scrollDismissesKeyboard(.interactively).disabled(submitting)
+            }.background(MessagingTheme.surface)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                selectedSummary
             }
             .navigationTitle(title).modifier(MessagingPageChrome())
             .messagingLoadingToast(submitting, title: "正在提交选择")
             .messagingFeedbackToast(failedSubmission ? (submissionError ?? "提交失败，请重试。当前选择已保留。") : selectionMessage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.frame(minHeight: 44).disabled(submitting) }
-                ToolbarItem(placement: .confirmationAction) { Button("完成(\(chosen.count))") { Task { await confirm() } }.frame(minHeight: 44).disabled(submitting || !(minimum...maximum).contains(chosen.count)) }
+                ToolbarItem(placement: .topBarTrailing) { Button("完成(\(chosen.count))") { Task { await confirm() } }.buttonStyle(.plain).foregroundStyle(MessagingTheme.accent).frame(minHeight: 44).disabled(submitting || !(minimum...maximum).contains(chosen.count)) }
             }
             .interactiveDismissDisabled(submitting)
         }
@@ -105,10 +108,21 @@ struct GroupMemberPickerView: View {
         } else { onConfirm(chosen); dismiss() }
     }
 
-    /// 顶部已选可取消普通成员，预选与数量边界持续可见。
+    /// 搜索与文字分类标签保持在列表上方。
     private var selectionHeader: some View {
         VStack(alignment: .leading, spacing: 8.zoom()) {
             MessagingSearchField(placeholder: "搜索好友", text: $query, focus: $searchFocused, identifier: "groupPicker.search")
+            MessagingTabs(selection: $filter)
+                .overlay(alignment: .bottom) { MessagingTheme.divider.frame(height: 1) }
+        }.padding(.horizontal, 20.zoom()).padding(.top, 16.zoom())
+            .background(MessagingTheme.surface)
+    }
+
+    /// 已选摘要固定在列表底部，取消普通成员仍共用原勾选动作。
+    private var selectedSummary: some View {
+        VStack(alignment: .leading, spacing: 12.zoom()) {
+            MessagingTheme.divider.frame(height: 1)
+            Text("已选择 \(chosen.count) 人").font(.subheadline.weight(.medium)).foregroundStyle(MessagingTheme.secondaryText)
             Text(preselectedIDs.isEmpty ? "选择至少\(minimum)位好友，最多\(maximum)位。" : "当前好友已选中，请再选择至少\(max(1, minimum - preselectedIDs.count))位好友。")
                 .font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
             if !chosen.isEmpty {
@@ -124,9 +138,8 @@ struct GroupMemberPickerView: View {
                     } }
                 }
             }
-            Picker("候选来源", selection: $filter) { ForEach(GroupMemberPickerFilter.allCases) { item in Text(item.rawValue).tag(item) } }.pickerStyle(.segmented)
-        }.padding(.horizontal, 16.zoom()).padding(.top, 16.zoom())
-            .padding(.bottom, filter == .groups ? 8.zoom() : 16.zoom()).background(MessagingTheme.surface)
+        }.padding(.horizontal, 20.zoom()).padding(.bottom, 12.zoom())
+            .background(MessagingTheme.surface)
     }
 
     /// 头像和勾选沿用旧选人列表，所有候选来源共用UID集合。

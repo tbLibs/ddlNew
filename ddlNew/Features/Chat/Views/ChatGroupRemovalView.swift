@@ -103,8 +103,10 @@ struct ChatGroupRemovalView: View {
     /// 确认弹窗保留旧版删除消息选项，失败后仍可继续或取消，保留选择。
     private var confirmation: some View {
         NavigationStack {
-            Form {
-                Section("将所选成员移除群聊") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20.zoom()) {
+                Text("将所选成员移除群聊").font(.headline)
+                Group {
                     ForEach(chosen) { member in
                         VStack(alignment: .leading, spacing: 4.zoom()) {
                             Text(member.name); ChatGroupMemberRoleBadge(member: member)
@@ -113,7 +115,8 @@ struct ChatGroupRemovalView: View {
                 }
                 Toggle("删除所选成员全部已发消息", isOn: $deleteMessages)
                 if chosen.isEmpty { Text("成员或权限已变化，请返回重新选择。").foregroundStyle(MessagingTheme.secondaryText) }
-            }
+                }.padding(20.zoom()).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity)
+            }.background(MessagingTheme.surface.ignoresSafeArea())
             .disabled(submitting || store.busy)
             .navigationTitle("移除成员").modifier(MessagingPageChrome())
             .toolbar {

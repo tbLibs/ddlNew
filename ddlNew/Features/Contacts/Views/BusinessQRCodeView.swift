@@ -25,9 +25,9 @@ struct BusinessQRCodeView: View {
     @ObservedObject private var session = UserSessionStore.shared
 
     var body: some View {
-        MessagingScroll {
+        ScrollView {
             VStack(spacing: 20.zoom()) {
-                MessagingCard(padding: 24.zoom()) {
+                Group {
                     VStack(spacing: 12.zoom()) {
                         if groupID == nil, let user = session.currentUser {
                             ContactRecordAvatar(contact: ContactRecord(id: user.userUID, account: user.userName, nickname: user.nickname, avatar: user.avatar), fileHost: OSSConnectionBootstrap.shared.current?.getFileHost, size: 80.zoom())
@@ -57,6 +57,7 @@ struct BusinessQRCodeView: View {
                 }
             }.padding(24.zoom())
         }
+        .background(MessagingTheme.surface.ignoresSafeArea())
         .navigationTitle(title)
         .modifier(MessagingPageChrome())
         .messagingFeedbackToast(businessStore.errorMessage)

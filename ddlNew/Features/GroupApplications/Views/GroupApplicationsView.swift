@@ -110,8 +110,8 @@ struct GroupApplicationsView: View {
                     if pendingOnly { Text("待审核").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
                     else {
                         HStack(spacing: 12.zoom()) {
-                            Button("同意") { store.selectedIDs = [record.id]; confirmation = true }.buttonStyle(.borderedProminent).tint(MessagingTheme.primaryAction).foregroundStyle(MessagingTheme.onPrimaryAction)
-                            Button("拒绝", role: .destructive) { store.selectedIDs = [record.id]; confirmation = false }.buttonStyle(.bordered).tint(MessagingTheme.error)
+                            Button("同意") { store.selectedIDs = [record.id]; confirmation = true }.buttonStyle(.borderless).foregroundStyle(MessagingTheme.accent).frame(minWidth: 44, minHeight: 44)
+                            Button("拒绝", role: .destructive) { store.selectedIDs = [record.id]; confirmation = false }.buttonStyle(.borderless).foregroundStyle(MessagingTheme.error).frame(minWidth: 44, minHeight: 44)
                         }.controlSize(.large).frame(minHeight: 44).disabled(store.isReviewing)
                     }
                 } else { Text(record.statusText).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }

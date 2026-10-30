@@ -23,7 +23,6 @@ struct CommunitySearchField: View {
                     .accessibilityLabel("清除搜索").accessibilityIdentifier("clearCommunitySearch")
             }
         }.padding(.leading, 14).padding(.trailing, text.isEmpty ? 14 : 0).frame(minHeight: 52)
-            .background(ClubTheme.card).clipShape(RoundedRectangle(cornerRadius: 17))
-            .overlay(RoundedRectangle(cornerRadius: 17).stroke(ClubTheme.border, lineWidth: 1))
+            .background(HomeTheme.background).clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

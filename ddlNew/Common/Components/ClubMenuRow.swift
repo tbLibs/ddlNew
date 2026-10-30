@@ -13,10 +13,10 @@ struct ClubMenuRow: View {
     var detail: String = ""
     var body: some View {
         HStack(spacing: 10) {
-            ClubIcon(name: icon)
-            Text(title).font(.system(size: 15))
+            ClubIcon(name: icon).foregroundStyle(ClubTheme.secondary)
+            Text(title).font(.body)
             Spacer()
-            Text(detail).font(.system(size: 11)).foregroundColor(ClubTheme.secondary)
+            Text(detail).font(.subheadline).foregroundColor(ClubTheme.secondary)
         }.frame(minHeight: 56).contentShape(Rectangle())
     }
 }

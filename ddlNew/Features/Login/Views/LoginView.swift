@@ -37,9 +37,10 @@ struct LoginView: View {
                 brandHeader
                 loginForm
                 legalEntries
+                loginAction
                 auxiliaryActions
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 20)
             .padding(.bottom, 28)
             .frame(maxWidth: 460)
             .frame(maxWidth: .infinity)
@@ -90,21 +91,19 @@ struct LoginView: View {
         }
     }
 
-    /// 保留旧版品牌展示，后续接入系统配置时再替换名称和图标。
     private var brandHeader: some View {
-        VStack(spacing: 16) {
-            Text("远山")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(LoginPalette.darkTeal)
-                .frame(width: 74, height: 74)
-                .background(LoginPalette.wash)
-                .clipShape(RoundedRectangle(cornerRadius: 25))
-
-            Text("远山户外俱乐部")
-                .font(.system(size: 25, weight: .bold))
-
-        }
-        .padding(.top, 48)
+        VStack(alignment: .leading, spacing: 56) {
+            HStack(spacing: 10) {
+                Image("DingDongMark").resizable().scaledToFit().frame(width: 42, height: 42).accessibilityHidden(true)
+                Text("叮咚聊").font(.title2.weight(.semibold))
+                Spacer(minLength: 8)
+                Button("更换俱乐部", action: changeClub)
+                    .font(.subheadline).foregroundStyle(LoginPalette.darkTeal)
+                    .frame(minHeight: 44).accessibilityIdentifier("changeClub")
+            }
+            Text("欢迎回来").font(.largeTitle.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.top, 12).padding(.bottom, 12)
     }
 
     private var loginForm: some View {
@@ -131,21 +130,12 @@ struct LoginView: View {
             .padding(.top, 12)
 
             Toggle("记住密码", isOn: $rememberPassword)
-                .font(.system(size: 14))
+                .font(.subheadline)
                 .tint(LoginPalette.darkTeal)
                 .frame(minHeight: 44)
                 .disabled(viewModel.loginPhase.isBusy)
                 .accessibilityIdentifier("rememberPassword")
 
-
-
-            // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
-            Button(viewModel.loginPhase.buttonTitle, action: login)
-                .buttonStyle(LoginButtonStyle())
-                .disabled(card.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
-                          || viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
-                .padding(.top, 10)
-                .accessibilityIdentifier("login")
 
 
             if viewModel.loginPhase != .succeeded {
@@ -163,14 +153,17 @@ struct LoginView: View {
                 .accessibilityIdentifier("retryLoginConnection")
             }
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(LoginPalette.card)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(LoginPalette.border, lineWidth: 1)
-        }
+    }
+
+    private var loginAction: some View {
+        // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
+        Button(viewModel.loginPhase.buttonTitle, action: login)
+            .buttonStyle(LoginButtonStyle())
+            .disabled(card.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
+                      || viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
+            .padding(.top, 10)
+            .accessibilityIdentifier("login")
     }
 
     private var loginFeedback: String? {
@@ -190,11 +183,10 @@ struct LoginView: View {
                 .disabled(viewModel.loginPhase.isBusy || verification.request != nil)
                 .accessibilityIdentifier("openAccountRegistration")
             }
-            Button("更换俱乐部", action: changeClub)
-                .accessibilityIdentifier("changeClub")
         }
-        .font(.system(size: 14))
+        .font(.subheadline)
         .foregroundColor(LoginPalette.darkTeal)
+        .frame(minHeight: 44)
         .padding(.top, 5)
     }
 
@@ -234,7 +226,7 @@ struct LoginView: View {
         HStack {
             Spacer()
             Button("完成", action: dismissKeyboard)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(LoginPalette.darkTeal)
                 .frame(minWidth: 60, minHeight: 44)
                 .accessibilityIdentifier("keyboardDone")

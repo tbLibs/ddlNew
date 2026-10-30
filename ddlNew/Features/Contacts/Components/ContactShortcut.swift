@@ -24,8 +24,7 @@ struct ContactShortcut: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 64.zoom(), alignment: .leading).padding(12.zoom())
-        .background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 12.zoom()))
-        .overlay(RoundedRectangle(cornerRadius: 12.zoom()).stroke(MessagingTheme.divider, lineWidth: 1))
+        .background(MessagingTheme.surface)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title + (unreadCount > 0 ? "，\(unreadCount)条未读申请" : ""))
     }

@@ -86,12 +86,9 @@ struct ChatForwardRecipientView: View {
         .messagingFeedbackToast(!busy && !results.isEmpty ? (Array(results.prefix(3)) + (results.count > 3 ? ["另有\(results.count - 3)项处理结果，尚有\(selectedIDs.count)个会话待重试"] : [])).joined(separator: "\n") : nil)
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44).disabled(busy) } }
         .safeAreaInset(edge: .bottom) {
-            HStack(spacing: 16.zoom()) {
-                Text("已选 \(selectedRecipients.count) 人").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
-                Spacer()
-                Button { searchFocused = false; confirming = true } label: { Text("发送").frame(minWidth: 100.zoom()) }
-                    .buttonStyle(MessagingActionButtonStyle()).disabled(busy || selectedRecipients.isEmpty || messages.isEmpty || messages.count > 100)
-            }.padding(16.zoom()).background(MessagingTheme.surface)
+            Button { searchFocused = false; confirming = true } label: { Text("发送（\(selectedRecipients.count)）") }
+                .buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(busy || selectedRecipients.isEmpty || messages.isEmpty || messages.count > 100)
+                .frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
         }
         .disabled(busy).interactiveDismissDisabled(busy)
         .sheet(isPresented: $confirming) { confirmation }
@@ -109,7 +106,7 @@ struct ChatForwardRecipientView: View {
                     MessagingCard { VStack(alignment: .leading, spacing: 8.zoom()) { Text(merged ? "合并转发 \(messages.count) 条消息" : "逐条转发 \(messages.count) 条消息").font(.headline); ForEach(Array(messages.prefix(3))) { item in Text(item.displayText).font(.subheadline).lineLimit(2) }; if messages.count > 3 { Text("还有 \(messages.count - 3) 条消息").font(.caption).foregroundStyle(MessagingTheme.secondaryText) } } }
                 }.padding(16.zoom())
             }.navigationTitle("确认转发").modifier(MessagingPageChrome())
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { confirming = false }.frame(minHeight: 44) }; ToolbarItem(placement: .confirmationAction) { Button("发送") { let targets = selectedRecipients; let mergeMessages = merged; confirming = false; Task { await forward(to: targets, merged: mergeMessages) } }.frame(minHeight: 44).disabled(selectedRecipients.isEmpty) } }
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { confirming = false }.frame(minHeight: 44) }; ToolbarItem(placement: .topBarTrailing) { Button("发送") { let targets = selectedRecipients; let mergeMessages = merged; confirming = false; Task { await forward(to: targets, merged: mergeMessages) } }.buttonStyle(.plain).foregroundStyle(MessagingTheme.accent).frame(minHeight: 44).disabled(selectedRecipients.isEmpty) } }
         }
     }
 

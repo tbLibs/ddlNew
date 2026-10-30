@@ -21,7 +21,7 @@ struct ClubField: View {
     @State private var passwordVisible = false
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.system(size: 12, weight: .semibold))
+            Text(title).font(.subheadline.weight(.medium))
             HStack(spacing: 12) {
                 ClubIcon(name: icon).foregroundColor(ClubTheme.darkTeal)
                 Group {
@@ -31,26 +31,27 @@ struct ClubField: View {
                         TextField(placeholder, text: $text)
                     }
                 }
-                    .font(.system(size: 15))
+                    .font(.body)
                     .foregroundColor(ClubTheme.ink)
                     .keyboardType(keyboard).submitLabel(.done).autocapitalization(.none)
                     .disableAutocorrection(true)
                     .focused(focus ?? $localFocus)
                     .textContentType(contentType ?? (secure ? .password : (keyboard == .numberPad ? .oneTimeCode : .username)))
                     .accessibilityLabel(title).accessibilityIdentifier(identifier ?? "field.\(icon)")
-                    .frame(height: 36)
+                    .frame(minHeight: 36)
                 if secure {
                     Button { passwordVisible.toggle() } label: {
-                        ClubIcon(name: "eye").frame(width: 44, height: 44)
-                            .background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 14))
+                        Image(systemName: passwordVisible ? "eye.slash" : "eye").frame(width: 44, height: 44)
+
                     }
                     .accessibilityLabel(passwordVisible ? "隐藏密码" : "显示密码")
                     .accessibilityIdentifier("\(identifier ?? "field.\(icon)").visibility")
                 }
             }
-            .padding(.horizontal, 16).padding(.vertical, 14)
-            .background(ClubTheme.background).clipShape(RoundedRectangle(cornerRadius: 17))
-            .overlay(RoundedRectangle(cornerRadius: 17).stroke(ClubTheme.border, lineWidth: 1))
+            .padding(.horizontal, 14).padding(.vertical, 4)
+            .frame(minHeight: 52)
+            .background(HomeTheme.background).clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(ClubTheme.border, lineWidth: 1))
         }
     }
 }

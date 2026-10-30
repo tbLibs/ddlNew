@@ -25,8 +25,10 @@ struct ChatMediaComposer: View {
     @StateObject private var recorder = ChatRuntime.shared.makeRecorder()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var photos: [PhotosPickerItem] = []
     @State private var showFiles = false
+    @State private var showsTools = false
     @State private var preparation: Task<Void, Never>?
     @State private var voicePress = ChatVoicePressState()
     @State private var recordingGestureID = UUID()
@@ -37,12 +39,30 @@ struct ChatMediaComposer: View {
         VStack(spacing: 0) {
             if mode.panel != .selection {
                 inputRow
-                tools
-                if mode.panel == .stickers {
-                    ChatEmojiPanel(chat: chat, selection: $inputSelection)
-                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 220.zoom() : 260.zoom())
-                } else if mode.panel == .voice { voicePanel }
+                VStack(spacing: 0) {
+                    if showsTools && mode.panel == .text {
+                        tools.transition(panelTransition)
+                    } else if mode.panel == .stickers {
+                        ChatEmojiPanel(chat: chat, selection: $inputSelection)
+                            .frame(height: dynamicTypeSize.isAccessibilitySize ? 220.zoom() : 260.zoom())
+                            .transition(panelTransition)
+                    }
+                }
+                .clipped()
             }
+        }
+        .animation(panelAnimation, value: showsTools)
+        .animation(panelAnimation, value: mode.panel)
+        .overlay(alignment: .bottom) {
+            VStack {
+                if voicePress.isHolding {
+                    voiceFeedback
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+                }
+            }
+            .padding(.horizontal, 24.zoom()).padding(.bottom, 76.zoom())
+            .allowsHitTesting(false)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: voicePress.isHolding)
         }
         .tint(MessagingTheme.accent)
         .task { registerCleanup() }
@@ -63,40 +83,90 @@ struct ChatMediaComposer: View {
             if !showCamera && !calls.isPresented && calls.selection == nil { preparation?.cancel(); media.cancel() }
             cancelRecording()
         }
-        .onChange(of: mode.panel) { panel in if panel != .voice { cancelRecording() } }
-        .onChange(of: focused.wrappedValue) { value in if value { mode.beginTyping() } }
+        .onChange(of: mode.panel) { panel in
+            if panel != .voice { cancelRecording() }
+            if panel != .text { showsTools = false }
+        }
+        .onChange(of: focused.wrappedValue) { value in
+            if value { withAnimation(panelAnimation) { showsTools = false; mode.beginTyping() } }
+        }
         .onChange(of: chat.permission.canSend) { allowed in if !allowed { cancelRecording(); focused.wrappedValue = false } }
         .onChange(of: scenePhase) { phase in if phase != .active { cancelRecording() } }
     }
 
-    /// 旧版输入框内置表情，右侧在空闲语音与编辑发送间切换，操作区至少44pt。
+    private var panelAnimation: Animation? { reduceMotion ? nil : .easeOut(duration: 0.24) }
+    private var controlAnimation: Animation { .easeOut(duration: reduceMotion ? 0.1 : 0.24) }
+    private var panelTransition: AnyTransition {
+        reduceMotion ? .identity : .opacity.combined(with: .offset(y: 12.zoom()))
+    }
+    private var primaryRole: String {
+        mode.panel == .voice ? "keyboard" :
+            (ChatComposerMode.primaryAction(input: chat.input, focused: focused.wrappedValue) == .send ? "send" : "voice")
+    }
+
+    /// 左侧展开附件，右侧沿现有状态切换语音／发送，操作区至少44pt。
     private var inputRow: some View {
         HStack(alignment: .bottom, spacing: 8.zoom()) {
-            HStack(alignment: .bottom, spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    if chat.input.isEmpty {
-                        Text("发送消息").foregroundStyle(MessagingTheme.secondaryText)
-                            .padding(.leading, 12).padding(.top, 10).allowsHitTesting(false).accessibilityHidden(true)
-                    }
-                    ChatComposerTextInput(text: $chat.input, selection: $inputSelection, focused: focused,
-                        maximumLines: dynamicTypeSize.isAccessibilitySize ? 2 : 5, onAtSign: onAtSign)
+            Button {
+                withAnimation(panelAnimation) {
+                    focused.wrappedValue = false
+                    mode.beginTyping()
+                    showsTools.toggle()
                 }
-                Button {
+            } label: {
+                Image(systemName: reduceMotion && showsTools ? "xmark.circle" : "plus.circle")
+                    .font(.system(size: 25.zoom()))
+                    .frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+                    .rotationEffect(.degrees(showsTools && !reduceMotion ? 45 : 0))
+            }
+            .accessibilityLabel(showsTools ? "收起更多功能" : "展开更多功能")
+            .accessibilityIdentifier("chatComposerMore")
+            ZStack {
+                if mode.panel == .voice { voicePressBar.transition(.identity) }
+                else { textInput.transition(.identity) }
+            }
+            // identity避免旧控件残留；位置跟随外层收展事务，不单独禁用动画。
+            ZStack {
+                primaryButton.id(primaryRole).transition(.opacity)
+            }
+            .frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            .animation(controlAnimation, value: primaryRole)
+            .disabled(!chat.permission.canSend)
+
+        }.buttonStyle(ChatComposerButtonStyle())
+            .padding(.horizontal, 12.zoom()).padding(.vertical, 6.zoom())
+    }
+
+    private var textInput: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                if chat.input.isEmpty {
+                    Text("发送消息").foregroundStyle(MessagingTheme.secondaryText)
+                        .padding(.leading, 12).padding(.top, 10).allowsHitTesting(false).accessibilityHidden(true)
+                }
+                ChatComposerTextInput(text: $chat.input, selection: $inputSelection, focused: focused,
+                    maximumLines: dynamicTypeSize.isAccessibilitySize ? 2 : 5, onAtSign: onAtSign)
+            }
+            Button {
+                withAnimation(panelAnimation) {
                     if mode.panel == .stickers { mode.beginTyping(); focused.wrappedValue = true }
                     else { focused.wrappedValue = false; mode.toggle(.stickers) }
-                } label: {
+                }
+            } label: {
+                ZStack {
                     Image(systemName: mode.panel == .stickers ? "keyboard" : "face.smiling")
-                        .font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                }.accessibilityLabel(mode.panel == .stickers ? "切换文字输入" : "展开表情与贴纸")
-            }.background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 14.zoom()))
-            primaryButton
-        }.disabled(!chat.permission.canSend).padding(.horizontal, 16.zoom()).padding(.top, 6.zoom())
+                        .id(mode.panel == .stickers).transition(.opacity)
+                }
+                .font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
+            }.accessibilityLabel(mode.panel == .stickers ? "切换文字输入" : "展开表情与贴纸")
+        }.background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 14.zoom()))
+            .disabled(!chat.permission.canSend)
     }
 
     /// 无文本时不占用一个永久发送按钮；键盘编辑时保留明确发送出口。
     @ViewBuilder private var primaryButton: some View {
         if mode.panel == .voice {
-            Button { mode.beginTyping(); focused.wrappedValue = true } label: {
+            Button { withAnimation(panelAnimation) { mode.beginTyping(); focused.wrappedValue = true } } label: {
                 Image(systemName: "keyboard").font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
             }.accessibilityLabel("切换文字输入")
         } else if ChatComposerMode.primaryAction(input: chat.input, focused: focused.wrappedValue) == .send {
@@ -106,8 +176,9 @@ struct ChatMediaComposer: View {
                     .foregroundStyle(MessagingTheme.onPrimaryAction).background(MessagingTheme.primaryAction, in: RoundedRectangle(cornerRadius: 12.zoom()))
             }.accessibilityLabel("发送消息").disabled(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .opacity(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+                .animation(controlAnimation, value: chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } else {
-            Button { focused.wrappedValue = false; mode.toggle(.voice) } label: {
+            Button { withAnimation(panelAnimation) { focused.wrappedValue = false; mode.toggle(.voice) } } label: {
                 Image(systemName: "mic").font(.system(size: 24.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
             }.accessibilityLabel("展开语音录制")
         }
@@ -116,22 +187,22 @@ struct ChatMediaComposer: View {
     /// 通话资格独立于文字禁言；大字时自适应换行，保持触点大小。
     private var tools: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0),
-                                 count: dynamicTypeSize.isAccessibilitySize ? 3 : (offersCalls ? 5 : 3)), spacing: 4.zoom()) {
-            if offersCalls {
-                Button { beginCall(.video) } label: { Label("视频通话", systemImage: "video") }
-                    .disabled(calls.busy)
-                Button { beginCall(.audio) } label: { Label("语音通话", systemImage: "phone") }
-                    .disabled(calls.busy)
-            }
+                                 count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 16.zoom()) {
             PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo") }
                 .frame(maxWidth: .infinity).disabled(!chat.permission.canSend)
             Button { focused.wrappedValue = false; prepareCamera() } label: { Label("拍摄", systemImage: "camera") }
                 .frame(maxWidth: .infinity).disabled(!chat.permission.canSend || calls.session != nil)
             Button { focused.wrappedValue = false; showFiles = true } label: { Label("文件", systemImage: "doc") }
                 .frame(maxWidth: .infinity).disabled(!chat.permission.canSend)
-        }.labelStyle(ChatComposerToolLabelStyle(equalWidth: true)).buttonStyle(.plain)
+            if offersCalls {
+                Button { beginCall(.video) } label: { Label("视频通话", systemImage: "video") }
+                    .disabled(calls.busy)
+                Button { beginCall(.audio) } label: { Label("语音通话", systemImage: "phone") }
+                    .disabled(calls.busy)
+            }
+        }.labelStyle(ChatComposerToolLabelStyle(equalWidth: true)).buttonStyle(ChatComposerButtonStyle())
             .padding(.horizontal, 12.zoom())
-            .frame(minHeight: max(56, 56.zoom()))
+            .padding(.vertical, 12.zoom())
     }
 
     private var offersCalls: Bool {
@@ -141,46 +212,61 @@ struct ChatMediaComposer: View {
 
     private func beginCall(_ kind: CallKind) {
         guard let context = chat.context else { return }
+        showsTools = false
         focused.wrappedValue = false; mode.beginTyping()
         cancelRecording(); onBeginRecording()
         Task { await calls.start(context: context, kind: kind) }
     }
 
-    /// 旧端100点按住按钮及160×60录音状态卡，移出按钮切换取消提示。
-    private var voicePanel: some View {
-        VStack(spacing: 0) {
-            Text("按住说话").font(.system(size: 16.zoom())).foregroundStyle(MessagingTheme.secondaryText)
-                .padding(.top, 16.zoom())
-            ZStack {
-                Circle().fill(voicePress.isHolding && !voicePress.isInside ? MessagingTheme.error : MessagingTheme.primaryAction)
-                Image(systemName: "mic").font(.system(size: 38.zoom(), weight: .light))
-                    .foregroundStyle(MessagingTheme.onPrimaryAction).accessibilityHidden(true)
-                ChatVoiceRecordButton(holding: voicePress.isHolding, onBegin: beginRecording,
-                    onMove: { voicePress.move(inside: $0) }, onEnd: releaseRecording, onCancel: cancelRecording)
-            }
-            .frame(width: 100.zoom(), height: 100.zoom()).padding(.top, 30.zoom())
+    /// 按住触点始终留在输入栏，录音反馈不参与布局，防止手势中途位移。
+    private var voicePressBar: some View {
+        ZStack {
+            Text(voicePress.isHolding ? (voicePress.isInside && recorder.isRecording ? "松开发送" : "松开取消") : "按住说话")
+                .font(.body.weight(.medium))
+                .frame(maxWidth: .infinity, minHeight: max(48, 48.zoom()))
+                .foregroundStyle(voicePress.isHolding && !voicePress.isInside ? MessagingTheme.error : MessagingTheme.text)
+                .background(voicePress.isHolding
+                    ? (voicePress.isInside ? HomeTheme.mintSurface : MessagingTheme.error.opacity(0.12))
+                    : MessagingTheme.background, in: RoundedRectangle(cornerRadius: 12.zoom()))
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: voicePress.isInside)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: voicePress.isHolding)
+                .accessibilityHidden(true)
+            ChatVoiceRecordButton(holding: voicePress.isHolding, onBegin: beginRecording,
+                onMove: { voicePress.move(inside: $0) }, onEnd: releaseRecording, onCancel: cancelRecording)
         }
-        .frame(maxWidth: .infinity).frame(height: 220.zoom(), alignment: .top)
-        .background(MessagingTheme.surface)
-        .overlay(alignment: .top) {
-            if voicePress.isHolding {
-                VStack(spacing: 5.zoom()) {
-                    HStack(spacing: 12.zoom()) {
-                        Image(systemName: "mic.fill").font(.system(size: 20.zoom()))
-                        ChatVoiceRecordingMeter(level: recorder.level).frame(width: 44.zoom(), height: 17.zoom())
-                        Text("\(Int(recorder.duration))s").font(.system(size: 16.zoom())).monospacedDigit()
-                    }
-                    Text(voicePress.isInside ? "上滑取消发送" : "松开取消发送").font(.system(size: 10.zoom()))
-                }
-                .foregroundStyle(.white).frame(width: 160.zoom(), height: 60.zoom())
-                .background(voicePress.isInside ? MessagingTheme.primaryAction : MessagingTheme.error,
-                            in: RoundedRectangle(cornerRadius: 16.zoom()))
-                .shadow(color: (voicePress.isInside ? MessagingTheme.accent : MessagingTheme.error).opacity(0.4), radius: 5)
-                .offset(y: -70.zoom()).allowsHitTesting(false)
-                .accessibilityLabel(voicePress.isInside ? "正在录音，上滑取消发送" : "松开取消发送")
-            }
-        }
+        .frame(height: max(48, 48.zoom()))
         .disabled(!chat.permission.canSend)
+    }
+
+    /// 仅展示真实录音电平和时长；授权等待不冒充正在录音。
+    private var voiceFeedback: some View {
+        VStack(spacing: 12.zoom()) {
+            HStack(spacing: 12.zoom()) {
+                if !voicePress.isInside {
+                    Image(systemName: "xmark").font(.system(size: 26.zoom(), weight: .medium))
+                        .frame(width: 60.zoom(), height: 32.zoom())
+                } else if recorder.isRecording {
+                    ChatVoiceRecordingMeter(level: recorder.level)
+                        .frame(width: 60.zoom(), height: 32.zoom())
+                        .animation(reduceMotion ? nil : .linear(duration: 0.1), value: recorder.level)
+                } else {
+                    ProgressView().tint(MessagingTheme.onPrimaryAction)
+                        .frame(width: 60.zoom(), height: 32.zoom())
+                }
+                Text(recorder.isRecording ? "\(Int(recorder.duration))秒" : "准备中")
+                    .font(.title3.weight(.semibold)).monospacedDigit()
+            }
+            Text(voicePress.isInside ? (recorder.isRecording ? "松开发送，上滑取消" : "正在准备录音…") : "松开取消")
+                .font(.body.weight(.medium))
+            if !voicePress.isInside {
+                Text("向下滑回，继续录音").font(.subheadline)
+            }
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 20.zoom()).padding(.horizontal, 16.zoom())
+        .foregroundStyle(voicePress.isInside ? MessagingTheme.onPrimaryAction : MessagingTheme.onError)
+        .background(voicePress.isInside ? MessagingTheme.primaryAction : MessagingTheme.error,
+                    in: RoundedRectangle(cornerRadius: 16.zoom()))
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: voicePress.isInside)
     }
 
     /// 同步清理捕获独立弱对象，避免SwiftUI页面被根runtime长期持有。
@@ -242,13 +328,13 @@ struct ChatMediaComposer: View {
         }
     }
 
-    /// 松手时以实际按钮区域判定；录满自动发送后的松手被状态机消费。
+    /// 松手时采用手势组件的上滑判定；录满自动发送后的松手被状态机消费。
     private func releaseRecording(inside: Bool) {
         guard let shouldSend = voicePress.release(inside: inside) else { return }
         if shouldSend && recorder.isRecording { sendRecording() } else { cancelRecording() }
     }
 
-    /// 收起、移出松手、系统取消、失去权限和后台统一清理未发送录音。
+    /// 收起、上滑松手、系统取消、失去权限和后台统一清理未发送录音。
     private func cancelRecording() {
         recordingGestureID = UUID(); startRecordingTask?.cancel(); startRecordingTask = nil
         recorder.cancel(); voicePress.cancel()

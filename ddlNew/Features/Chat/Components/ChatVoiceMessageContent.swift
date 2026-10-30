@@ -22,7 +22,7 @@ struct ChatVoiceMessageContent: View {
 
     private var playing: Bool { playback.messageID == message.id && preview.playing }
     private var duration: Double { message.duration.isFinite ? min(86_400, max(0, message.duration)) : 0 }
-    private var foreground: Color { own ? MessagingTheme.onPrimaryAction : MessagingTheme.accent }
+    private var foreground: Color { own ? MessagingTheme.onOutgoingBubble : MessagingTheme.accent }
     private var width: CGFloat { CGFloat(90 + (duration <= 1 ? 0 : min(60, duration) / 60 * 100)).zoom() }
 
     var body: some View {

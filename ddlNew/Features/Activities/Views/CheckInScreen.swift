@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CheckInScreen: View {
     @EnvironmentObject private var store: ClubStore
+    @Environment(\.dismiss) private var dismiss
     let activity: ClubActivity
     @State private var code = ""
     @State private var invalid = false
@@ -16,49 +17,47 @@ struct CheckInScreen: View {
     @FocusState private var codeFocused: Bool
     private var checkedIn: Bool { store.status(activity) == .checkedIn }
     var body: some View {
-        ClubScroll {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(activity.title).font(.headline).foregroundStyle(ClubTheme.ink).padding(.bottom, 6)
-                ClubCard(padding: 28, highlighted: true) {
-                    VStack(spacing: 20) {
-                        ClubBadge(text: checkedIn ? "签到已完成" : "签到开放中")
-                        Text(checkedIn ? "签到成功" : "输入活动签到码").font(.system(size: 25, weight: .bold))
-                        Text("签到时间 \(activity.checkInTime)").font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
-                        if !checkedIn {
-                            ZStack {
-                                HStack(spacing: 9) {
-                                    ForEach(0..<4, id: \.self) { index in
-                                        Text(index < code.count ? String(Array(code)[index]) : " ")
-                                            .font(.system(size: 28, weight: .medium)).frame(maxWidth: .infinity).frame(height: 60)
-                                            .background(ClubTheme.card.opacity(0.5)).clipShape(RoundedRectangle(cornerRadius: 16))
-                                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(ClubTheme.teal.opacity(0.4), lineWidth: 1))
-                                    }
-                                }.accessibilityHidden(true)
-                                TextField("4位签到码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
-                                    .focused($codeFocused).foregroundColor(.clear).tint(.clear).opacity(0.025)
-                                    .accessibilityLabel("4位签到码").accessibilityIdentifier("checkInCode")
-                                    .frame(height: 60)
-                            }.contentShape(Rectangle()).onTapGesture { codeFocused = true }
-                            Button("确认签到") {
-                                codeFocused = false
-                                saving = true
-                                Task { invalid = !(await store.checkIn(activity, code: code)); saving = false }
-                            }.buttonStyle(ClubButtonStyle()).disabled(code.count != 4 || saving).padding(.top, 14)
-                                .accessibilityIdentifier("confirmCheckIn")
-                        } else {
-                            ClubIcon(name: "check", size: 36).foregroundColor(ClubTheme.darkTeal).padding(22)
-                        }
-                    }.frame(maxWidth: .infinity)
-                }
-                ClubCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(checkedIn ? "已签到" : (invalid ? "签到码不正确" : "尚未签到")).font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(invalid && !checkedIn ? ClubTheme.error : ClubTheme.ink)
-                        Text(checkedIn ? "签到记录已保存，祝你度过愉快的活动时光。" : "请到达集合点后完成签到；遇到问题请联系活动负责人。")
-                            .font(.system(size: 12)).foregroundColor(ClubTheme.secondary).lineSpacing(4)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                if checkedIn {
+                    VStack(spacing: 24) {
+                        Image(systemName: "checkmark.circle").font(.system(size: 56, weight: .light)).foregroundStyle(ClubTheme.teal).accessibilityHidden(true)
+                        Text("签到成功").font(.title2.weight(.semibold))
+                        Text(activity.title).font(.subheadline).foregroundStyle(ClubTheme.secondary)
+                        Text("签到记录已保存，祝你度过愉快的活动时光。").font(.subheadline).foregroundStyle(ClubTheme.secondary).multilineTextAlignment(.center)
+                    }.frame(maxWidth: .infinity).padding(.top, 64)
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(activity.title).font(.headline)
+                        Text("签到时间 \(activity.checkInTime)").font(.subheadline).foregroundStyle(ClubTheme.secondary)
                     }
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("4位签到码").font(.footnote.weight(.medium)).foregroundStyle(ClubTheme.secondary)
+                        TextField("输入签到码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                            .focused($codeFocused).padding(.horizontal, 16).frame(minHeight: 52)
+                            .background(ClubTheme.wash, in: RoundedRectangle(cornerRadius: 10))
+                            .accessibilityLabel("4位签到码").accessibilityIdentifier("checkInCode")
+                        if invalid { Text("签到码不正确").font(.subheadline).foregroundStyle(ClubTheme.error) }
+                    }.padding(.top, 20)
+                    Text("请到达集合点后完成签到；遇到问题请联系活动负责人。").font(.subheadline).foregroundStyle(ClubTheme.secondary)
                 }
-            }.padding(20)
+            }.padding(20).frame(maxWidth: 600, alignment: .leading).frame(maxWidth: .infinity)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(ClubTheme.card.ignoresSafeArea()).foregroundStyle(ClubTheme.ink).tint(ClubTheme.teal)
+        .safeAreaInset(edge: .bottom) {
+            if !checkedIn {
+                Button("确认签到") {
+                    codeFocused = false
+                    saving = true
+                    Task { invalid = !(await store.checkIn(activity, code: code)); saving = false }
+                }.buttonStyle(ClubButtonStyle()).disabled(code.count != 4 || saving)
+                    .accessibilityIdentifier("confirmCheckIn")
+                    .frame(maxWidth: 600).padding(20).frame(maxWidth: .infinity).background(ClubTheme.card)
+            } else {
+                Button("完成") { dismiss() }.buttonStyle(ClubButtonStyle())
+                    .frame(maxWidth: 600).padding(20).frame(maxWidth: .infinity).background(ClubTheme.card)
+            }
         }
         .modifier(ClubKeyboardDismissal(isFocused: codeFocused) { codeFocused = false })
         .toolbar(.visible, for: .navigationBar).navigationTitle("个人签到").navigationBarTitleDisplayMode(.inline)

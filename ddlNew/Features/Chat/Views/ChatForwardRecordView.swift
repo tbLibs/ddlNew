@@ -15,8 +15,9 @@ struct ChatForwardRecordView: View {
     @State private var mediaGallery: ChatPhotoBrowserRequest?
     @State private var location: ChatMessageRecord?
     var body: some View {
-        MessagingScroll {
+        ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
+                if !message.text.isEmpty { Text(message.text).font(.title3.weight(.semibold)).frame(maxWidth: .infinity, alignment: .leading).padding(20.zoom()) }
                 if message.nestedMessages.isEmpty { Label("聊天记录资源暂不可用，请稍后重试", systemImage: "doc.text.magnifyingglass").foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()) }
                 ForEach(message.nestedMessages) { item in
                     if item.type == 6 && !item.cardUID.isEmpty {
@@ -25,9 +26,9 @@ struct ChatForwardRecordView: View {
                         Button { open(item) } label: { ChatSecondaryRecordRow(message: item) }.buttonStyle(MessagingRowStyle()).accessibilityHint("打开记录内附件")
                     } else {
                         VStack(alignment: .leading, spacing: 8.zoom()) {
-                            HStack(spacing: 12.zoom()) {
-                                ChatSecondaryAvatar(name: item.senderName, resource: item.avatarURL, isGroup: false)
-                                VStack(alignment: .leading, spacing: 4.zoom()) { Text(item.senderName).font(.subheadline.weight(.semibold)); Text(Date(timeIntervalSince1970: Double(item.timestamp) / 1000), format: .dateTime.month().day().hour().minute()).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                            HStack(spacing: 8.zoom()) {
+                                Text(item.senderName).font(.subheadline.weight(.semibold))
+                                Text(Date(timeIntervalSince1970: Double(item.timestamp) / 1000), format: .dateTime.month().day().hour().minute()).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                             }
                             Text(item.displayText).font(.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                         }.padding(16.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
@@ -36,7 +37,8 @@ struct ChatForwardRecordView: View {
                 }
             }
         }
-        .navigationTitle(message.text.isEmpty ? "聊天记录" : message.text).modifier(MessagingPageChrome())
+        .background(MessagingTheme.surface.ignoresSafeArea())
+        .navigationTitle("聊天记录").modifier(MessagingPageChrome())
         .sheet(item: $location) { item in NavigationStack { ChatLocationDetailView(message: item).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { location = nil }.frame(minHeight: 44) } } } }
         .sheet(item: $media) { item in NavigationStack { ChatMediaDetailView(message: item, context: context, allowSharing: false, onVoicePlayed: {}).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { media = nil }.frame(minHeight: 44) } } } }
         .chatPhotoBrowser(item: $mediaGallery, context: context, allowSharing: false, includeCachedHistory: false)

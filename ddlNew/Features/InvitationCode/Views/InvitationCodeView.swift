@@ -18,15 +18,19 @@ struct InvitationCodeView: View {
         ScrollView {
             VStack(spacing: 22.zoom()) {
                 // 顶部品牌区
-                InvitationCodeLogo(size: 60.zoom())
-                    .padding(.top, 48.zoom())
+                HStack(spacing: 10) {
+                    InvitationCodeLogo(size: 42)
+                    Text("叮咚聊").font(.title2.weight(.semibold))
+                    Spacer()
+                }.padding(.top, 12)
 
-                VStack(spacing: 10.zoom()) {
-                    Text("连接你的俱乐部")
-                        .font(.system(size: 25.zoom(), weight: .bold))
-                }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("连接俱乐部")
+                        .font(.largeTitle.weight(.semibold))
+                    Text("输入俱乐部提供的邀请码").font(.body).foregroundStyle(InvitationCodePalette.secondary)
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 56)
 
-                // 邀请码输入卡片
+                // 邀请码输入
                 VStack(alignment: .leading, spacing: 10.zoom()) {
                     InvitationCodeField(text: $viewModel.invitationCode)
 
@@ -34,20 +38,13 @@ struct InvitationCodeView: View {
                         viewModel.clickClub()
                     }
                     .buttonStyle(InvitationCodeButtonStyle())
-                    .padding(.top, 10.zoom())
+                    .padding(.top, 54)
                     .accessibilityIdentifier("connectClub")
                     .disabled(viewModel.isRacing)
 
 
                 }
-                .padding(20.zoom())
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(InvitationCodePalette.card)
-                .clipShape(RoundedRectangle(cornerRadius: 22.zoom(), style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 22.zoom(), style: .continuous)
-                        .stroke(InvitationCodePalette.border, lineWidth: 1.zoom())
-                }
                 .padding(.top, 4.zoom())
 
                 LegalEntryLinks()
@@ -57,7 +54,7 @@ struct InvitationCodeView: View {
 
                 Spacer(minLength: 24.zoom())
             }
-            .padding(.horizontal, 24.zoom())
+            .padding(.horizontal, 20)
             .frame(maxWidth: 460.zoom())
             .frame(maxWidth: .infinity)
         }

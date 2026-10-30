@@ -18,5 +18,7 @@ struct ClubScroll<Content: View>: View {
             $0.keyboardDismissMode = .interactive
         }
         .background(ClubTheme.background.ignoresSafeArea())
+        .foregroundStyle(ClubTheme.ink)
+        .tint(ClubTheme.teal)
     }
 }

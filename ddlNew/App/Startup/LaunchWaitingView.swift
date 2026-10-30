@@ -8,10 +8,11 @@
 import SwiftUI
 import UIKit
 
-/// 系统 LaunchScreen 由 iOS 自动关闭；业务等待页直接复用同一 storyboard 保持外观一致。
+/// 系统启动与业务恢复共用品牌构图；真实恢复进度与状态由 App 根页面统一展示。
 struct LaunchWaitingView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
-        UIStoryboard(name: "LaunchScreen", bundle: .main).instantiateInitialViewController() ?? UIViewController()
+        let controller = UIStoryboard(name: "LaunchScreen", bundle: .main).instantiateInitialViewController() ?? UIViewController()
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}

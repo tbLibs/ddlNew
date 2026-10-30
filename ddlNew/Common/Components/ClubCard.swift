@@ -12,10 +12,8 @@ struct ClubCard<Content: View>: View {
     var highlighted = false
     @ViewBuilder let content: Content
     var body: some View {
-        content.padding(padding).frame(maxWidth: .infinity, alignment: .leading)
-            .background { if highlighted { ClubTheme.wash } else { ClubTheme.card } }
-            .clipShape(RoundedRectangle(cornerRadius: highlighted ? 28 : 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: highlighted ? 28 : 22, style: .continuous)
-                .stroke(highlighted ? ClubTheme.teal.opacity(0.2) : ClubTheme.border, lineWidth: 1))
+        content.padding(.vertical, padding).frame(maxWidth: .infinity, alignment: .leading)
+            .background(ClubTheme.card)
+            .overlay(alignment: .bottom) { Rectangle().fill(MessagingTheme.divider).frame(height: 1) }
     }
 }

@@ -1204,3 +1204,73 @@ Mac当前真实App已收到真机B发来的 QA_20261014_B2A_1840 中文/emoji/�
 19:35真机公告删除返回已闭环：编辑真实14后confirm即自动回列表，服务器首屏只有原11/7，自建QA消失。诊断另证实编辑13回执新14；按xgd保存回公告列表避免旧ID操作。保留全文/真实详情编辑已复验。临时身份日志将移除，过滤证据见 /tmp/ddlNew-parity-evidence/notice-id-lifecycle.log。另补type13真实三段已读协议，51项离线通过，最终新marker实读人数继续。
 
 21:xx补充：公告最新无诊断包普通发布→置顶→取消置顶→编辑删除已真机闭环，保存和删除均自动回列表；全文中文/emoji/换行保留，QA项回查消失，原公告保留。读计数新增AUTH范围SDK观察和成员epoch，保留未知初始正数/进程结束/SDK506无边界全清限制；最终59/59离线与签名build通过。真机又确认备注恢复时排序新而好友行视觉旧，最小展示identity修正构建通过，即时同步仍待末包复验。详情以全量验收台账最新章节为准，工作区保留、不提交推送。
+
+
+## 2026-10-30：feature-newUI-5 设计评审阶段
+
+用户要求先创建 `feature-newUI-5` 再实现新UI，随后明确改为“结合业务重新打磨，先看更新效果图，再继续实现”，并要求 Impeccable 去除模板化AI观感。当前 HEAD 为 `a55a32f`；分支已创建，未提交/推送。创建前清理的是无 CHERRY_PICK_HEAD 的过期 sequencer 元数据，已备份至 `/tmp/ddlNew-cherry-pick-state.a2NdBh`，没有回退提交。
+
+静态设计材料位于 [业务校正版目录](design/new-ui-business-2026-10-30/README.md)，预览 `index.html`；147个页面/状态、10组流程，包含业务资格/失败保稿/权限状态。用户追加LOGO及启动页，确认App名“叮咚聊”；“远山户外”仅是示例俱乐部。LOGO为新矢量提案，未替换生产资产；内置图片服务一次调用连接失败，最终未采用图像模型输出。业务五项修正和品牌/启动两项修正的独立静态复评均为ship，范围见review.md，不可扩展为运行验收。
+
+**实现保持暂停，等待用户确认效果图。** 此前29个UI源码文件的部分修改保留在工作区：主题/公共组件及首页活动等。任务1仅做源级parse、对比度及diff检查；任务2已parse但有尾随空白未收尾；尚未运行整合build。聊天发出气泡新浅色背景与旧前景消费者尚未完成配套，恢复实现时先处理该不完整状态；不得将此分支当作可发布版本。设计阶段未继续改业务逻辑、Network/SDK/Services/Models/ViewModels，未使用设备操作。
+
+
+### LOGO 选型确认
+
+用户已明确选择 D「笑着聊」：微笑对话框，钴蓝与白色。设计目录的 mark.svg、品牌展示板及启动／等待／连接／登录效果图已统一采用 D。旧双口方案存入 brand/archive-dual-d，四款候选保留作选型记录。此次确认仅落实设计资产；未改生产 Assets、storyboard 或业务源码，整体 UI 实现仍待后续继续指令。
+
+
+### 2026-10-30：用户批准后恢复 UI 实现
+
+用户明确授权按确认稿在 `feature-newUI-5` 实现，LOGO 用 D「笑着聊」，撤销此前暂停。当前工作区已落地共享主题/公共组件、首页活动、登录邀请码、我的设置安全法律、消息与通讯录根页、聊天气泡前景、录音反馈与通话配色；二级页通过共享组件统一样式。正式 AppIcon、DingDongMark、LaunchScreen 与 LaunchWaitingView 已接入所选品牌。等待仅添加不定进度指示器，无人为延迟或启动路由变动。业务Store/Services/Models/ViewModels/Network/SDK无改动。
+
+最终 `generic/platform=iOS` Debug 无签名构建成功（`/tmp/ddlNew-newUI-5-build-final.log`），107/107离线脚本通过（`/tmp/ddlNew-newUI-5-qa/summary.json`），diff空白检查通过。首次Pods Manifest不一致用`pod install --deployment`同步现有锁，Podfile.lock与工程配置无净改动。独立代码复核的登录/邀请码、注销深色前景对比问题已修正，录音状态采用语义前景。原聊天浅色发出气泡消费者已完成配套。
+
+原生组件夹具24张、独立视觉复核7张ship，覆盖实际生产组件的浅深色、窄宽屏和长文本；macOS不能模拟iOS最大辅助字号字体缩放，不代表完整147页面或真实交互验收。真机/模拟器、SDK服务器、键盘验证码、头像/投诉上传及启动过渡仍待验收；未自动提交、推送、安装或操作真实账号。证据与限制见[实现记录](design/new-ui-business-2026-10-30/implementation/README.md)。
+
+### 2026-10-30 新UI实际运行与二级页补漏
+
+用户授权运行当前 `feature-newUI-5` 并逐页对照，业务逻辑不变。147设计状态已映射67主来源（排除旧演示065后为146/66）；发现并补齐12个View的群发历史/编辑、资料、备注/分组/密码表单、群选人、@成员/通话选人、聊天设置具体布局。8类缺口源码级复核关闭；原动作、权限、绑定及21个原辅助方法保持，业务Stores/Services/Models/ViewModels/Network/SDK未改。7组专项、parse和diff检查通过，最终签名Mac Designed for iPhone构建成功。
+
+用户已完成登录，实际App在Mac Designed for iPhone与iPhone检查了16类页面，独立视觉复核12张画面。运行发现三个根页展开导航标题未显示，消息/通讯录/首页改为正文大标题并在iPhone确认，工具栏、路由、权限及数据条件保留。等待页重复指示器已移除，仅保留App根部原有真实连接进度，取代上节“等待页新增指示器”的过程实现，启动链路未改。
+
+最终签名Debug构建成功（`/tmp/ddlNew-newUI-5-verified-build.log`），debug.dylib SHA256 `7a5e05dfb11b8a3f2ca91282ef5bcb8c957844a3f8f6b8b14e9ae8fd83e57581`；已覆盖安装iPhone12并正常进入消息及首页。最终diff检查通过，业务目录无净修改。GUI类型缺失来自Xcode进程同步文件清单遗漏5文件，完整退出重开后461→466项且Build Succeeded，用户确认“不报错了”；未改工程成员关系或业务绕过。工程保留此前CocoaPods删除六行空设置的既有差异。
+
+147状态仅完成源码映射，不代表全部实机验收。权限限制的群发编辑、强制密码、通话、异常/断网、最大字号/VoiceOver、完整深色与服务端提交仍未验证；最终版启动过渡未截获，不能声明逐帧通过。证据、截图和边界见[运行核对](design/new-ui-business-2026-10-30/implementation/runtime-review.md)与[页面审计](design/new-ui-business-2026-10-30/implementation/page-audit.md)。未提交推送，未主动发送或提交业务操作。
+
+
+### 2026-10-30 第二轮：重新全量对照并补齐独立布局
+
+用户明确指出“还有很多页面没有改完”，并要求自行全量检查。此前147状态来源映射与共享主题覆盖不等于布局落地，本轮重新对全部66生产来源检查代表设计PNG和源码，包含私有群名/昵称编辑、公告详情/编辑、移除确认及录音面板。相对上一轮工作树再改39个UI文件：表单标签/输入面/底部操作，群管理公告与头像，二维码，转发/文件/贴纸，活动详情/报名/签到/结果，俱乐部阅读，通话/录音，设置/注销/投诉。实际数据、权限、校验、回调和异步所有权保留；业务目录、SDK及App根启动无净改动。
+
+独立审阅发现的视频小窗顶部安全区、公告长文动作、签到交互收键盘、录音触点错位和投诉字段同色均修正并复评。根执行者核对token避免ClubTheme.background白底冒充灰字段，并通过实际Mac截图修正完成按钮白字浅灰底；同类正向确认工具栏使用普通右侧位置，所有原禁用条件/回调不变。原生系统媒体/权限/菜单、真实数据/路由和原输入模式作为明确差异保留，不制造业务数据去配图。
+
+最终签名Debug build exit0 / BUILD SUCCEEDED：`/tmp/ddlNew-newUI-5-round2-final-acceptance-build.log`；debug.dylib SHA256 `1c84cdf487ab9ae24d8e38333becb88c5cdf7cc3c22fd9062f1fea42b2b09b12`。35布局文件加4新增正向toolbar消费者共39UI文件（6个toolbar文件中2已在35内）。首批9组与后续按影响范围的既有专项、parse、diff检查通过；没有冒报重新执行107全套。最新包已覆盖安装/启动iPhone；本轮手机自动化持续黑屏/失联，用户解锁后仍未恢复，不作新真机视觉通过声明。
+
+Mac真实App独立复核7张截图未发现可见阻断，另实际检查二维码/信息页与投诉邮箱聚焦可达；最后6处同类工具栏增量未逐个再次运行。全部146生产状态、实时通话/录音发送、验证码、最大字号/深色/键盘和服务端提交未穷尽验证。无主动提交业务、无commit/push。清单和证据边界见[第二轮全量布局台账](design/new-ui-business-2026-10-30/implementation/round2-layout-audit.md)。
+
+
+### 2026-10-30 聊天底部工具区修复
+
+用户确认附件工具区布局错误，并要求加号在左、语音在右。实际Mac运行复现：附件五项始终显示两行，语音/表情展开时继续叠加；此前将工具常驻作为保留差异的结论撤回。仅修改 `ChatMediaComposer.swift`：View本地 `showsTools` 默认收起，左侧加号展开/关闭附件，输入聚焦与语音、表情、多选互斥；右侧按原条件显示语音、键盘或发送，工具网格补行间距与上下留白。输入和附件仍受原禁言条件，更多入口保留访问原通话资格的能力。录音手势/状态机、发送、上传、通话业务均未改。
+
+最终构建 `/tmp/ddlNew-chat-composer-fix/build-final.log` exit0 / BUILD SUCCEEDED；SHA256 `cf2f469d579c9739c64b9c726d37b547235ca0b1eb102536fd8a230488f65614`。输入模式、焦点、录音三组既有检查及diff检查通过；独立单文件差异复核未发现权限/切换回归。Mac实际确认默认收起、附件展开、切换语音/表情不叠加、输入聚焦收起附件，截图在 `/tmp/ddlNew-chat-composer-fix/`。最终按钮换位版已覆盖安装并启动iPhone；手机UI自动化仍失联，不声明软键盘/安全区实机验收通过。未发送消息、录音或提交业务操作，未commit/push。
+
+### 2026-10-30 语音按住交互与动效重做
+
+用户反馈语音交互/UI不好，明确选择“按住说话、松开发送”，并要求优化动画。仅ChatMediaComposer与ChatVoiceRecordButton展示/触摸层变化：语音模式在输入栏中间显示48pt高整条按住区，左加号/右键盘保留，撤掉220pt独立语音面板；录音反馈overlay显示真实时长、电平及准备态，不改变按住区布局。上滑相对初始按下位置60pt进入取消，滑回恢复，松手按最终位置判断，避免原bounds.contains边缘抖动误取消。该调整属于用户授权的UX语义变化，不再保持旧100pt录音触点。录音器、press状态机、权限等待轮次、60秒单次交付、上传和SDK发送不改。
+
+反馈0.18秒淡入并从0.96缩放，取消颜色0.14秒切换，电平0.1秒插值；Reduce Motion关闭自定义动画。生产UIControl跟踪方法抽取离线测试先复现边缘抖动失败，修正后通过：`Tests/Chat/run-voice-gesture-checks.sh`；原录音器/输入模式/焦点三组也通过。独立差异审阅未发现触点身份或取消/权限回归。
+
+最终构建 `/tmp/ddlNew-voice-ui/build-final.log` exit0 / BUILD SUCCEEDED，debug.dylib SHA256 `4649dd2419d0a682f46bac7202e436661bdf75a8fb681294e194157bb9f47ffb`，已覆盖安装并启动iPhone。Mac实际核对输入栏按住区、文字/语音/附件切换，截图 `/tmp/ddlNew-voice-ui/runtime-voice-idle.png`；320pt浅深色夹具从生产视图提取并验证空闲/录音/取消，准备态系统ProgressView不支持ImageRenderer离屏绘制，不作该图标视觉通过。未操作真实录音/发送，手机连续手势、动效手感、权限弹窗、最大辅助字号仍待用户实测。计划 `Docs/superpowers/plans/2026-10-30-voice-input.md`。未commit/push。
+
+
+### 2026-10-30 聊天底部动效与同步修正
+
+用户要求加号及底部其余操作补动画，随后实测指出加号/表情按钮与面板背景不同步。本轮四个UI文件：ChatMediaComposer、ChatEmojiPanel、ChatComposerToolLabelStyle、ChatStickersView。附件/表情收展0.24秒，加号旋转45度，右侧主动作与表情图标淡换；表情/贴纸页签淡换，附件、表情插入/删除、互动表情和贴纸按钮共用按压反馈。系统相册/相机/文件/通话保持原生转场。
+
+同步问题修正以本节为准：加号、表情、语音/键盘按钮的纯UI状态变更放入同一个withAnimation，包含safeAreaInset外层重排；移除输入区过宽的transaction(animation:nil)以及加号/表情独立动画，收展与主按钮时长统一0.24秒。voice/text仍采用identity替换避免交叠的旧原生控件。iOS17+按压使用局部animation(body:)只改变scale/opacity，避免松手时0.12秒反馈覆盖按钮位置动画；iOS16直接透明反馈。Reduce Motion取消空间运动，保留短淡化。补回按压样式的语义蓝色，避免自定义ButtonStyle丢失tint。
+
+五组离线检查（手势、录音、模式、焦点、表情）通过，最后同步增量再次跑模式/焦点通过；独立审阅通过。逐方法对比确认录音/取消/发送、附件、通话、草稿编辑及贴纸发送方法原样。一次并行GUI构建导致build.db锁，等待GUI完成后重新构建成功，不是源码编译错误。最终日志 `/tmp/ddlNew-composer-motion/build-final-synchronized.log` exit0 / BUILD SUCCEEDED；debug.dylib SHA256 `59fe6f0d342a436adc9eb6350f4f1bc111d24e3b646ba6c7336e88638630b0ab`，已覆盖安装/启动iPhone。
+
+Mac最终版实际走通：加号展开/收起、附件到表情、表情与贴纸页签、表情到语音、语音到文字聚焦、聚焦后再开附件。截图 `/tmp/ddlNew-composer-motion/expanded-final.png` 与 `emoji-final.png`，未发送或录音。验证证明切换后的布局与状态；没有手机逐帧录屏或帧率证据，真机动画同步观感仍需用户复核。Xcode目标已恢复iPhone。计划 `Docs/superpowers/plans/2026-10-30-composer-motion.md`。未commit/push。

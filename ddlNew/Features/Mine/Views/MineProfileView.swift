@@ -34,8 +34,8 @@ struct MineProfileView: View {
 
     var body: some View {
         NavigationStack {
-            MessagingScroll {
-                MessagingCard(padding: 0) {
+            ScrollView {
+                VStack(spacing: 0) {
                     VStack(spacing: 0) {
                         Button { errorMessage = nil; choosingAvatar = true } label: {
                             HStack(spacing: 16.zoom()) {
@@ -57,6 +57,7 @@ struct MineProfileView: View {
                     }
                 }.padding(16.zoom()).disabled(editor.busy || cameraPermissionPending)
             }
+            .background(MessagingTheme.surface.ignoresSafeArea())
             .navigationTitle("编辑个人资料")
             .modifier(MessagingPageChrome())
             .toolbar {
@@ -107,10 +108,11 @@ struct MineProfileView: View {
     /// 账号只读；长昵称可换行，行触点不低于44点。
     private func row(_ title: String, value: String, editable: Bool) -> some View {
         HStack(spacing: 16.zoom()) {
-            Text(title).foregroundStyle(MessagingTheme.text)
-            Spacer(minLength: 0)
-            Text(value.isEmpty ? "未设置" : value).foregroundStyle(MessagingTheme.secondaryText)
-                .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8.zoom()) {
+                Text(title).foregroundStyle(MessagingTheme.text)
+                Text(value.isEmpty ? "未设置" : value).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity, alignment: .leading)
             if editable { chevron }
         }.padding(16.zoom()).frame(minHeight: 54.zoom()).contentShape(Rectangle())
     }
@@ -147,10 +149,10 @@ private struct MineNicknameEditor: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        MessagingScroll {
+        ScrollView {
             VStack(alignment: .leading, spacing: 12.zoom()) {
-                MessagingCard {
-                    HStack(alignment: .top) {
+                Text("昵称").font(.footnote.weight(.medium)).foregroundStyle(MessagingTheme.secondaryText)
+                HStack(alignment: .top) {
                         TextField("请输入昵称", text: $editor.nickname, axis: .vertical)
                             .lineLimit(1...4).textInputAutocapitalization(.never).autocorrectionDisabled()
                             .accessibilityIdentifier("mine.nickname")
@@ -158,7 +160,8 @@ private struct MineNicknameEditor: View {
                             Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
                         }.accessibilityLabel("清空昵称").foregroundStyle(MessagingTheme.secondaryText)
                     }
-                }
+                    .padding(.horizontal, 15).padding(.vertical, 4)
+                    .background(HomeTheme.background, in: RoundedRectangle(cornerRadius: 12))
                 Text("\(editor.normalizedNickname.utf16.count)/30")
                     .font(.footnote).foregroundStyle(editor.normalizedNickname.utf16.count > 30 ? .red : MessagingTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -166,12 +169,12 @@ private struct MineNicknameEditor: View {
                     .font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
             }.padding(16.zoom()).disabled(editor.busy)
         }
+        .background(MessagingTheme.surface.ignoresSafeArea()).scrollDismissesKeyboard(.interactively)
         .navigationTitle("修改昵称").modifier(MessagingPageChrome())
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { Task { if await editor.saveNickname() { dismiss() } } }
-                    .disabled(!editor.canSaveNickname)
-            }
+        .safeAreaInset(edge: .bottom) {
+            Button("保存") { Task { if await editor.saveNickname() { dismiss() } } }
+                .buttonStyle(MessagingActionButtonStyle(fullWidth: true)).disabled(!editor.canSaveNickname)
+                .frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
         }
         .messagingLoadingToast(editor.busy, title: "正在保存昵称")
         .messagingFeedbackToast(editor.feedback)

@@ -30,6 +30,7 @@ struct MessageView: View {
         var id: Self { self }
     }
 
+
     private var visibleConversations: [ConversationRecord] {
         let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
         return store.conversations.filter { conversation in
@@ -43,9 +44,16 @@ struct MessageView: View {
     var body: some View {
         List {
             VStack(alignment: .leading, spacing: 10.zoom()) {
+                Text("消息").font(.largeTitle.weight(.bold)).foregroundStyle(MessagingTheme.text)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 12.zoom()).padding(.bottom, 8.zoom())
+                    .accessibilityAddTraits(.isHeader)
                 MessagingSearchField(placeholder: "搜索会话或消息预览", text: $query,
                                      focus: $searchFocused, identifier: "messageSearch")
-                MessagingTabs(selection: $filter)
+                HStack {
+                    MessagingTabs(selection: $filter)
+                    synchronizationStatus
+                }
                 if authentication.state != .ready {
                     Label(authentication.state.message, systemImage: "wifi.exclamationmark")
                         .font(.callout).foregroundStyle(MessagingTheme.secondaryText)
@@ -55,7 +63,7 @@ struct MessageView: View {
                 if store.errorMessage?.hasPrefix("会话缓存读取失败") == true { Button("重新读取") { Task { await store.reload() } }.frame(minHeight: 44) }
             }
             .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 12.zoom(), trailing: 16.zoom()))
-            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            .listRowBackground(MessagingTheme.surface).listRowSeparator(.hidden)
             if visibleConversations.isEmpty {
                 emptyState.listRowBackground(Color.clear).listRowSeparator(.hidden)
             } else {
@@ -82,7 +90,10 @@ struct MessageView: View {
         .navigationTitle("消息")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .principal) { navigationTitle }
+            // 标题由正文绘制，保留 navigationTitle 元数据用于子页返回文本。
+            ToolbarItem(placement: .principal) {
+                Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+            }
             ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions }
         }
         .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
@@ -113,10 +124,9 @@ struct MessageView: View {
         } message: { Text("删除后会移除会话，聊天记录仍保留。") }
     }
 
-    /// 标题与同步数量放入系统导航栏，不再占用列表顶部安全区。
-    private var navigationTitle: some View {
+    /// 同步数量与分类处于同一信息层级，正文大标题独立展示。
+    private var synchronizationStatus: some View {
         HStack(spacing: 8.zoom()) {
-            Text("消息").font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
             if store.isSyncing {
                 ProgressView().accessibilityLabel("正在同步会话")
             } else {

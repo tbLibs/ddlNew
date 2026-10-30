@@ -35,8 +35,8 @@ struct ChatSettingsView: View {
     @State private var createdRoute: ChatRoute?
 
     var body: some View {
-        MessagingScroll {
-            VStack(spacing: 12.zoom()) {
+        ScrollView {
+            VStack(spacing: 0) {
                 if store.errorMessage != nil { Button("重新加载") { Task { await store.reload() } }.frame(minHeight: 44) }
                 if let group = store.snapshot?.group {
                     MessagingCard {
@@ -94,8 +94,10 @@ struct ChatSettingsView: View {
                     if group.role == 2 { Text("群主退出前，请在群管理中先转让群主。").font(.footnote).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, alignment: .leading) }
                     MessagingCard(padding: 0) { Button(group.role == 2 ? "解散群聊" : "退出群聊", role: .destructive) { if group.role == 2 { showDissolve = true } else { showLeave = true } }.frame(maxWidth: .infinity, minHeight: max(44, 52.zoom())).foregroundStyle(MessagingTheme.error).buttonStyle(MessagingRowStyle()) }
                 }
-            }.padding(16.zoom())
+            }.padding(.bottom, 24.zoom()).frame(maxWidth: 640).frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .background(MessagingTheme.surface)
         .disabled(store.busy)
         .navigationTitle(route.kind == .group ? "群聊设置" : "聊天设置")
         .modifier(MessagingPageChrome())
@@ -163,7 +165,17 @@ struct ChatSettingsView: View {
 
     /// 分区行保留系统导航语义，数值按用户字号自适应换行。
     private func row(_ title: String, value: String = "", icon: String? = nil) -> some View {
-        HStack(spacing: 12.zoom()) { Text(title).foregroundStyle(MessagingTheme.text); Spacer(minLength: 8.zoom()); if !value.isEmpty { Text(value).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).multilineTextAlignment(.trailing) }; if let icon { Image(systemName: icon).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }; chevron }.padding(16.zoom()).frame(minHeight: max(44, 52.zoom())).contentShape(Rectangle())
+        HStack(spacing: 12.zoom()) {
+            VStack(alignment: .leading, spacing: 8.zoom()) {
+                Text(title).foregroundStyle(MessagingTheme.text)
+                if !value.isEmpty {
+                    Text(value).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                        .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            if let icon { Image(systemName: icon).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true) }
+            chevron
+        }.padding(16.zoom()).frame(minHeight: max(44, 52.zoom())).contentShape(Rectangle())
     }
 
     /// 人数角色开关独立于群成员资料访问权限。
@@ -187,12 +199,12 @@ private struct ChatGroupNameEditor: View {
 
     var body: some View {
         NavigationStack {
-            MessagingScroll {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 12.zoom()) {
                     Text(editingName ? "群名称" : "我的群昵称")
                         .font(.footnote)
                         .foregroundStyle(MessagingTheme.secondaryText)
-                    MessagingCard {
+                    Group {
                         TextField(
                             editingName ? "输入群名称" : "输入群昵称",
                             text: $input,
@@ -201,7 +213,9 @@ private struct ChatGroupNameEditor: View {
                         .focused($focused)
                         .submitLabel(.done)
                         .accessibilityLabel(editingName ? "群名称" : "我的群昵称")
-                        .frame(minHeight: 44)
+                        .frame(minHeight: 52)
+                        .padding(.horizontal, 16.zoom()).padding(.vertical, 8.zoom())
+                        .background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 10.zoom()))
                     }
                     if !editingName {
                         Text("最多30字")
@@ -210,9 +224,22 @@ private struct ChatGroupNameEditor: View {
                                 valid ? MessagingTheme.secondaryText : MessagingTheme.error
                             )
                     }
-                }.padding(16.zoom())
-            }
+                }.padding(20.zoom()).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity)
+            }.scrollDismissesKeyboard(.interactively).background(MessagingTheme.surface.ignoresSafeArea())
             .navigationTitle(editingName ? "修改群名称" : "我的群昵称").modifier(MessagingPageChrome())
+            .safeAreaInset(edge: .bottom) {
+                    Button("保存") {
+                        Task {
+                            if await store
+                                .groupAction(editingName ? .rename(input) : .nickname(input)) {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .buttonStyle(MessagingActionButtonStyle(fullWidth: true))
+                    .frame(maxWidth: 640).padding(20.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
+                    .disabled(!canSave)
+                }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
@@ -222,22 +249,7 @@ private struct ChatGroupNameEditor: View {
                     }
                     .disabled(store.busy)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        Task {
-                            if await store
-                                .groupAction(editingName ? .rename(input) : .nickname(input)) {
-                                dismiss()
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(
-                        canSave ? MessagingTheme.primaryAction : MessagingTheme.secondaryText
-                    )
-                    .frame(minHeight: 44)
-                    .disabled(!canSave)
-                }
+
             }
         }
         .messagingLoadingToast(store.busy, title: "正在保存")

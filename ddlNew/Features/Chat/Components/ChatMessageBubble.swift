@@ -36,16 +36,16 @@ struct ChatMessageBubble: View {
                 content
                     .padding(isVisualMedia ? 0 : 10.zoom())
                     .background(isVisualMedia ? Color.clear : own && !isContactCard ? MessagingTheme.outgoingBubble : MessagingTheme.surface)
-                    .foregroundStyle(isVisualMedia ? MessagingTheme.text : own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.text)
+                    .foregroundStyle(isVisualMedia ? MessagingTheme.text : own && !isContactCard ? MessagingTheme.onOutgoingBubble : MessagingTheme.text)
                     .clipShape(ChatMediaBubbleShape(own: own, media: isVisualMedia))
-                    // 本人气泡用反差内框并留出绿色外沿，避免白框与浅色页面连成一片。
+                    // 本人气泡使用独立反差内框，避免浅蓝背景上的定位标记失去对比。
                     .overlay {
                         if isHighlighted {
                             if isVisualMedia {
                                 ChatMediaBubbleShape(own: own).stroke(MessagingTheme.accent, lineWidth: 3)
                             } else {
                                 RoundedRectangle(cornerRadius: 8.zoom()).inset(by: own ? 2 : 0)
-                                    .strokeBorder(own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.accent, lineWidth: 3)
+                                    .strokeBorder(own && !isContactCard ? MessagingTheme.onOutgoingBubble : MessagingTheme.accent, lineWidth: 3)
                             }
                         }
                     }
@@ -163,10 +163,10 @@ struct ChatMessageBubble: View {
 
     /// 动图使用原资源保留帧，照片与视频封面仍先解码再按展示尺寸采样。
     @ViewBuilder private var content: some View {
-        if !message.isCompatible { Text(message.displayText).foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText) }
+        if !message.isCompatible { Text(message.displayText).foregroundStyle(own ? MessagingTheme.onOutgoingBubble : MessagingTheme.secondaryText) }
         else if message.status == .recalled { Text("消息已撤回").font(.callout).italic() }
         else {
-            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
+            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own && !isContactCard ? MessagingTheme.onOutgoingBubble : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
             if message.type == 21 {
                 if let scrollVisibility {
                     ChatVisibleGameStickerBubble(message: message, onComplete: onGameAnimationComplete, visibility: scrollVisibility)
@@ -206,7 +206,7 @@ struct ChatMessageBubble: View {
                     }
                 }.frame(maxWidth: 220.zoom(), alignment: .leading)
             } else { ChatEmojiText(value: message.displayText).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
-            if [0, 10].contains(message.type) { ForEach(messageLinks, id: \.absoluteString) { url in Link("打开链接：" + (url.host ?? url.absoluteString), destination: url).tint(own ? MessagingTheme.onPrimaryAction : MessagingTheme.accent).frame(minHeight: max(44, 44.zoom())).accessibilityLabel("打开链接 " + url.absoluteString) } }
+            if [0, 10].contains(message.type) { ForEach(messageLinks, id: \.absoluteString) { url in Link("打开链接：" + (url.host ?? url.absoluteString), destination: url).tint(own ? MessagingTheme.onOutgoingBubble : MessagingTheme.accent).frame(minHeight: max(44, 44.zoom())).accessibilityLabel("打开链接 " + url.absoluteString) } }
         }
     }
 

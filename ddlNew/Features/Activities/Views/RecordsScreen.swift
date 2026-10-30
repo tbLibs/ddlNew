@@ -18,13 +18,13 @@ struct RecordsScreen: View {
         }
     }
     var body: some View {
-        ClubScroll {
-            VStack(spacing: 12) {
+        ScrollView {
+            VStack(spacing: 0) {
                 if records.isEmpty {
                     EmptyClubState(title: "还没有相关记录", message: "参加一场感兴趣的活动，留下新的回忆。")
                     NavigationLink("发现活动", value: ClubHomeDestination.activities).buttonStyle(ClubButtonStyle())
                 } else { ForEach(records) { ActivityCard(activity: $0) } }
             }.padding(20)
-        }.toolbar(.visible, for: .navigationBar).navigationTitle(kind.rawValue).navigationBarTitleDisplayMode(.inline)
+        }.background(ClubTheme.card.ignoresSafeArea()).foregroundStyle(ClubTheme.ink).tint(ClubTheme.teal).toolbar(.visible, for: .navigationBar).navigationTitle(kind.rawValue).navigationBarTitleDisplayMode(.inline)
     }
 }
