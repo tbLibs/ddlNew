@@ -1,16 +1,16 @@
 # 叮咚聊 · 已选 LOGO与启动设计
 
-**用户已选择 D「笑着聊」。** 状态 `selected_by_user`，`selected = D`。本目录为当前规范设计资产，上一版双 D／错位口形标志归档于 `archive-dual-d/`。四案及比较板保留为[选型记录](alternatives/README.md)；本轮静态复评见上级 `review.md`，此处不预先声明通过。
+**用户现已改选 B「响铃」。** 状态 `selected_by_user`，`selected = B`。本目录为当前规范设计资产，上一版双 D／错位口形标志归档于 `archive-dual-d/`。四案及比较板保留为[选型记录](alternatives/README.md)；上级 `review.md` 保留此前 D 方案的历史复评；本次 B 方案替换记录见项目交接文档。
 
 用户明确选择「叮咚聊」作为 App 名称。「远山户外」只是俱乐部示例，不应写入系统启动品牌。
 
-- `mark.svg`：可编辑矢量源，viewBox 256×256，钴蓝 #2859BC，微笑对话框，与 `alternatives/d-smile.svg` 字节一致。字标单独排版。
+- `mark.svg`：可编辑矢量源，viewBox 256×256，钴蓝 #2859BC，紧凑铃铛，与 `alternatives/b-bell.svg` 字节一致。字标单独排版。
 - `mark.png`：1024×1024透明预览，钴蓝标志。
 - `app-icon.png`：1024×1024不透明、直角方形，钴蓝底白色标志；圆角由操作系统处理。
 - `identity.png`：标志、图标与60/40/24pt小尺寸对照。
 - `../flow-10.png`：系统启动、App等待、邀请码及登录的衔接。
 
-当前为用户选定的设计资产；147个页面/状态与流程板已重新渲染，品牌位置统一采用 D，`flow-10.png` 已不是旧标志占位。本轮没有替换生产 Assets、LaunchScreen.storyboard 或业务源码；应用实现继续暂停。
+当前为用户选定的设计资产；147个页面/状态与流程板已重新渲染，品牌位置统一采用 B，`flow-10.png` 已不是旧标志占位。2026-10-31 已同步替换生产 AppIcon 与 DingDongMark 资产；启动、等待、登录及邀请码通过既有图片引用显示新标志，业务源码和启动时序未改。
 
 ## 启动行为边界
 

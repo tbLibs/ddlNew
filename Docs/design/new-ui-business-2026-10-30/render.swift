@@ -119,24 +119,24 @@ func chat(_ p:Page) {
  }
 }
 let bg = color("F3F5F9"), danger = color("B9413E")
+final class BrandShape {
+ let p=NSBezierPath(); var d=""
+ init(){p.windingRule = .evenOdd}
+ @discardableResult func m(_ x:CGFloat,_ y:CGFloat)->BrandShape{p.move(to:NSPoint(x:x,y:y));d+="M\(x) \(y) ";return self}
+ @discardableResult func l(_ x:CGFloat,_ y:CGFloat)->BrandShape{p.line(to:NSPoint(x:x,y:y));d+="L\(x) \(y) ";return self}
+ @discardableResult func c(_ a:CGFloat,_ b:CGFloat,_ c:CGFloat,_ e:CGFloat,_ x:CGFloat,_ y:CGFloat)->BrandShape{p.curve(to:NSPoint(x:x,y:y),controlPoint1:NSPoint(x:a,y:b),controlPoint2:NSPoint(x:c,y:e));d+="C\(a) \(b) \(c) \(e) \(x) \(y) ";return self}
+ @discardableResult func z()->BrandShape{p.close();d+="Z ";return self}
+}
 func brandMark(_ x:CGFloat,_ y:CGFloat,_ size:CGFloat,_ c:NSColor=green) {
  NSGraphicsContext.saveGraphicsState();let ctx=NSGraphicsContext.current!.cgContext
  ctx.translateBy(x:x,y:y);ctx.scaleBy(x:size/256,y:size/256)
- let p=NSBezierPath();p.windingRule = .evenOdd
- p.move(to:NSPoint(x:128,y:34))
- p.curve(to:NSPoint(x:224,y:121),controlPoint1:NSPoint(x:185,y:34),controlPoint2:NSPoint(x:224,y:71))
- p.curve(to:NSPoint(x:129,y:211),controlPoint1:NSPoint(x:224,y:174),controlPoint2:NSPoint(x:183,y:211))
- p.curve(to:NSPoint(x:86,y:202),controlPoint1:NSPoint(x:113,y:211),controlPoint2:NSPoint(x:99,y:208))
- p.line(to:NSPoint(x:43,y:223));p.line(to:NSPoint(x:51,y:180))
- p.curve(to:NSPoint(x:32,y:121),controlPoint1:NSPoint(x:38,y:165),controlPoint2:NSPoint(x:32,y:144))
- p.curve(to:NSPoint(x:128,y:34),controlPoint1:NSPoint(x:32,y:71),controlPoint2:NSPoint(x:72,y:34));p.close()
- p.move(to:NSPoint(x:76,y:120))
- p.curve(to:NSPoint(x:128,y:170),controlPoint1:NSPoint(x:80,y:151),controlPoint2:NSPoint(x:101,y:170))
- p.curve(to:NSPoint(x:181,y:120),controlPoint1:NSPoint(x:156,y:170),controlPoint2:NSPoint(x:177,y:151))
- p.line(to:NSPoint(x:158,y:120))
- p.curve(to:NSPoint(x:128,y:148),controlPoint1:NSPoint(x:154,y:138),controlPoint2:NSPoint(x:144,y:148))
- p.curve(to:NSPoint(x:99,y:120),controlPoint1:NSPoint(x:112,y:148),controlPoint2:NSPoint(x:102,y:138));p.close()
- c.setFill();p.fill();NSGraphicsContext.restoreGraphicsState()
+  // B: a compact bell, without eyes, sparkles or decoration.
+  let bell=BrandShape().m(119,37).c(119,32,137,32,137,37).l(140,49).c(170,55,189,79,189,110).l(189,136).c(189,153,195,166,207,179).c(211,184,208,192,201,192).l(55,192).c(48,192,45,184,49,179).c(61,166,67,153,67,136).l(67,110).c(67,79,86,55,116,49).z()
+  // Deliberately off-centre, broad aperture: a bell heard in motion.
+  bell.m(105,81).c(91,89,87,101,87,120).l(87,141).l(104,141).l(104,118).c(104,105,106,99,113,94).z()
+  let clapper=BrandShape().m(106,205).l(150,205).c(147,224,111,224,106,205).z()
+  c.setFill();bell.p.fill();clapper.p.fill()
+ NSGraphicsContext.restoreGraphicsState()
 }
 func brandWordmark(_ x:CGFloat,_ y:CGFloat,_ size:CGFloat=29,_ c:NSColor=ink,_ width:CGFloat=350){
  let p=NSMutableParagraphStyle();p.alignment = .center
@@ -658,13 +658,13 @@ for (n,f) in flows.enumerated() {
 try png(512,512,dir.appendingPathComponent("brand/app-icon.png")){rect(0,0,512,512,green);brandMark(66.56,66.56,378.88,white)}
 try png(512,512,dir.appendingPathComponent("brand/mark.png")){brandMark(0,0,512,green)}
 try png(1752,1100,dir.appendingPathComponent("brand/identity.png")) {
- rect(0,0,1752,1100,white);text("叮咚聊",58,42,36,ink,.semibold);text("已选定 · 笑着聊",58,102,19,secondary)
+ rect(0,0,1752,1100,white);text("叮咚聊",58,42,36,ink,.semibold);text("已选定 · 响铃",58,102,19,secondary)
  rect(62,233,462,462,green,103);brandMark(122.06,293.06,341.88,white)
  text("应用图标",62,749,21,ink,.semibold);paragraph("钴蓝底色，白色标志。系统负责图标圆角。",62,794,462,17,secondary)
  brandMark(748,220,256,green);brandWordmark(628,532,48,ink,500)
- divider(663,628,500);text("笑着聊，让对话更亲近。",628,702,24,ink,.semibold,500)
- paragraph("一个对话框，一道微笑。保留 D 方案的轮廓、留白和钴蓝配色。",628,754,500,18,secondary)
+ divider(663,628,500);text("把叮咚的声音变成标志。",628,702,24,ink,.semibold,500)
+ paragraph("紧凑的铃铛轮廓与偏心开口，保留 B 方案的留白和钴蓝配色。",628,754,500,18,secondary)
  text("小尺寸检视",1250,247,18,ink,.semibold,400)
  for(i,size) in [CGFloat(60),40,24].enumerated(){let y:CGFloat=315+CGFloat(i)*153;rect(1250,y,size,size,green,size*0.22);brandMark(1250+size*0.13,y+size*0.13,size*0.74,white);text("\(Int(size)) pt",1350,y+size/2-11,17,secondary)}
- text("单色标志 · 矢量绘制 · 尚未替换项目资产",58,1013,15,secondary,.regular,1400)
+ text("单色标志 · 矢量绘制 · 已用于项目品牌资产",58,1013,15,secondary,.regular,1400)
 }

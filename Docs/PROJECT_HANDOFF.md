@@ -1274,3 +1274,9 @@ Mac真实App独立复核7张截图未发现可见阻断，另实际检查二维�
 五组离线检查（手势、录音、模式、焦点、表情）通过，最后同步增量再次跑模式/焦点通过；独立审阅通过。逐方法对比确认录音/取消/发送、附件、通话、草稿编辑及贴纸发送方法原样。一次并行GUI构建导致build.db锁，等待GUI完成后重新构建成功，不是源码编译错误。最终日志 `/tmp/ddlNew-composer-motion/build-final-synchronized.log` exit0 / BUILD SUCCEEDED；debug.dylib SHA256 `59fe6f0d342a436adc9eb6350f4f1bc111d24e3b646ba6c7336e88638630b0ab`，已覆盖安装/启动iPhone。
 
 Mac最终版实际走通：加号展开/收起、附件到表情、表情与贴纸页签、表情到语音、语音到文字聚焦、聚焦后再开附件。截图 `/tmp/ddlNew-composer-motion/expanded-final.png` 与 `emoji-final.png`，未发送或录音。验证证明切换后的布局与状态；没有手机逐帧录屏或帧率证据，真机动画同步观感仍需用户复核。Xcode目标已恢复iPhone。计划 `Docs/superpowers/plans/2026-10-30-composer-motion.md`。未commit/push。
+
+### 2026-10-31 品牌改选 B「响铃」
+
+用户查看原四款候选后明确要求使用第二款 B「响铃」，替代此前 D「笑着聊」；App 名称继续为「叮咚聊」。当前分支 `feature-newUI-5`。仅替换生产 `AppIcon.appiconset/AppIcon.png` 与 `DingDongMark.imageset/mark.png`，启动/等待、登录及邀请码继续使用已有资源引用，未修改布局、启动时序或任何业务源码。同步更新规范 SVG/PNG、品牌展示板、受影响的8张页面状态图、3张分组板、2张流程板及设计选型说明；四款原候选与历史评审保留。
+
+验证：生产图标与原 B 候选解码像素一致，1024×1024且全部像素不透明；规范标志1024×1024保留透明背景。已查看品牌展示板与品牌启动流程图，`git diff --check`通过。workspace generic iOS Debug 无签名构建 exit0 / BUILD SUCCEEDED，日志 `/tmp/ddlNew-bell-build.log`；资源编译在最终资产替换后执行。未安装或重新启动设备，不将静态预览与构建当作系统图标缓存/启动快照实机验收。本轮未提交推送，保留工程文件原有两行空traits自动整理差异。

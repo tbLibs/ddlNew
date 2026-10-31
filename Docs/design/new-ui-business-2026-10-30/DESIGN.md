@@ -97,7 +97,7 @@ components:
 
 沿用用户已批准的“岩白与钴蓝”。以白色内容面、深蓝灰文字和钴蓝操作建立稳定识别；用原生任务层级、信息密度和状态反馈组织页面，避免把聊天产品排成营销模板。
 
-本次为现有视觉世界的业务细化，用户要求先看更新效果图，再继续应用实现。用户否定上一版双 D／错位口形标志后，已明确选择 D「笑着聊」，本轮将其统一到设计资产与效果图，沿用既定视觉世界与全部 token。文档记录本目录 render.swift 的实际静态表达；不是生产组件规范已经落地的声明。
+本次为现有视觉世界的业务细化，用户要求先看更新效果图，再继续应用实现。用户否定上一版双 D／错位口形标志后，现已改选 B「响铃」，本轮将其统一到设计资产与效果图，沿用既定视觉世界与全部 token。文档记录本目录 render.swift 的实际静态表达；不是生产组件规范已经落地的声明。
 
 **Key Characteristics:**
 - 首页以日期与下一场活动组织注意力；消息页以会话、摘要和时间形成连续列表。
@@ -138,11 +138,11 @@ App 内容采用平面分层，不使用投影。分隔线为 0.7pt；背景色�
 
 ## Shapes
 
-品牌状态为 `selected_by_user`，`selected = D`，名称「笑着聊」：微笑对话框使用 primary 与 canvas，不增加品牌色。当前规范资产为 `brand/mark.svg`、`mark.png`、`app-icon.png` 和 `identity.png`；矢量与 `brand/alternatives/d-smile.svg` 字节一致。上一版双 D／错位口形标志已被用户否定，归档于 `brand/archive-dual-d/`。
+品牌状态为 `selected_by_user`，`selected = B`，名称「响铃」：紧凑铃铛使用 primary 与 canvas，不增加品牌色。当前规范资产为 `brand/mark.svg`、`mark.png`、`app-icon.png` 和 `identity.png`；矢量与 `brand/alternatives/b-bell.svg` 字节一致。上一版双 D／错位口形标志已被用户否定，归档于 `brand/archive-dual-d/`。
 
-四案保留在 `brand/alternatives/` 作为选型记录：A「一声叮」、B「响铃」、C「你来我往」、D「笑着聊」。D 用微笑气泡表达亲近感，图形相对常见；用户选择不构成商标独占性结论。手工矢量以对应几何导出 SVG 与 AppKit PNG，不是 imagegen 输出。
+四案保留在 `brand/alternatives/` 作为选型记录：A「一声叮」、B「响铃」、C「你来我往」、D「笑着聊」。B 以铃声呼应产品名称，使用偏心开口的紧凑铃铛轮廓；用户选择不构成商标独占性结论。手工矢量以对应几何导出 SVG 与 AppKit PNG，不是 imagegen 输出。
 
-规范 SVG 的 viewBox 为 256×256，透明标志与不透明方形图标均为1024×1024。图标圆角仅用于展示板模拟系统裁切，不烘焙进独立图标。候选目录另保留每案512×512透明标志；`comparison.png` 和 `startup-comparison.png` 保留选型前文案，属于历史比较板。此前 **OPTIONS-READY** 只评价候选展示；本轮选定 D 后的静态复评另见 `review.md`，不在此预先声明通过。
+规范 SVG 的 viewBox 为 256×256，透明标志与不透明方形图标均为1024×1024。图标圆角仅用于展示板模拟系统裁切，不烘焙进独立图标。候选目录另保留每案512×512透明标志；`comparison.png` 和 `startup-comparison.png` 保留选型前文案，属于历史比较板。此前 **OPTIONS-READY** 只评价候选展示；此前选定 D 后的静态复评保留在 `review.md`；2026-10-31 改选 B 的替换与验证记录见项目交接文档。
 
 输入框、主按钮和消息气泡沿用 control 圆角；搜索框使用更小的 search 圆角；确认弹窗与 sheet 分别使用自己的圆角。通用旧式表单仍有 10pt 圆角与不同底色的实际例外，尚未宣称所有页面都已统一。头像按边长一半绘圆；通话接听/拒绝控件采用胶囊形。避免将局部圆角规则扩张成每行一个卡片。
 
@@ -218,7 +218,7 @@ App 内容采用平面分层，不使用投影。分隔线为 0.7pt；背景色�
 
 ### 品牌与启动
 
-批准的 D「笑着聊」`brand/mark.png` 与 `brand/app-icon.png` 已原样复制到生产 `DingDongMark.imageset` 和 `AppIcon.appiconset/AppIcon.png`。`LaunchScreen.storyboard`、登录及邀请码采用新品牌；系统启动与业务等待共用构图。`LaunchWaitingView` 仅在实际等待期间增加原生不定进度指示器与“正在打开…”；没有人为延时、百分比、广告或路由时序修改。该源码和资产落地不等于系统启动快照或真机启动验收。
+批准的 B「响铃」`brand/mark.png` 与 `brand/app-icon.png` 已原样复制到生产 `DingDongMark.imageset` 和 `AppIcon.appiconset/AppIcon.png`。`LaunchScreen.storyboard`、登录及邀请码采用新品牌；系统启动与业务等待共用构图。`LaunchWaitingView` 仅在实际等待期间增加原生不定进度指示器与“正在打开…”；没有人为延时、百分比、广告或路由时序修改。该源码和资产落地不等于系统启动快照或真机启动验收。
 
 ### 本轮检查与边界
 
