@@ -47,10 +47,6 @@ final class NoaIMSDKManager {
 }
 enum UserSessionError: Error { case databaseNotReady }
 enum ConversationsClientError: Error { case cacheReadFailed }
-enum SDKMassMessagePreview {
-    struct Snapshot { let summary: String }
-    static func latest(userUID: String) -> Snapshot? { userUID == "me" ? Snapshot(summary: "群发正文") : nil }
-}
 enum ConversationPreview {
     static func text(for message: NoaIMChatMessageModel?, kind: ConversationKind, userUID: String, sdk: NoaIMSDKManager) -> String { "正文" }
 }
@@ -87,7 +83,7 @@ enum ConversationPreview {
         check(store.conversations.first(where: { $0.id == "peer" }).map(isOnline) == true, "重新上线可恢复标识")
         sdk.models.append(LingIMSessionModel("100001", type: 3))
         values = try await client.loadConversations(for: "me")
-        check(values.last?.preview == "群发正文" && values.last?.kind == .massMessage, "群发助手读取SDK专用摘要而非聊天正文")
+        check(values.map(\.id) == ["peer", "group", "missing", "deleted"], "旧缓存中的类型 3 会话不进入应用列表")
         store.prepare(for: "other"); sdk.userUID = "other"; sdk.models = []; await store.reload()
         check(store.conversations.isEmpty, "切换账号不保留旧在线会话")
         print("Conversation online checks: \(checks - failures)/\(checks) passed")

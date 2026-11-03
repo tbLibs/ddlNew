@@ -17,6 +17,8 @@ struct TabbarView: View {
     @ObservedObject private var groups = LoginSessionService.shared.groups
     @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
+    @ObservedObject private var session = LoginSessionService.shared
+    @ObservedObject private var loginSecurity = LoginSecurityCoordinator.shared
     @StateObject private var community = ClubCommunity()
 
     var body: some View {
@@ -30,6 +32,14 @@ struct TabbarView: View {
                              fileHost: connection.current?.getFileHost)
             }
             tab(.profile) { MineView() }
+        }
+        .alert("提示", isPresented: Binding(
+            get: { session.curfewMessage != nil && loginSecurity.request == nil },
+            set: { if !$0 { session.dismissCurfew() } }
+        )) {
+            Button("我知道了", role: .cancel) { }
+        } message: {
+            Text(verbatim: session.curfewMessage ?? "")
         }
         .tint(HomeTheme.forest)
         .environmentObject(community)
@@ -54,7 +64,6 @@ struct TabbarView: View {
                     ContactsPageDestination(route: route, businessStore: contactBusiness,
                         fileHost: connection.current?.getFileHost)
                 }
-                .navigationDestination(for: MassMessageRoute.self) { route in MassMessageView(route: route) }
                 .navigationDestination(for: SafetyRoute.self) { _ in BlacklistView(businessStore: contactBusiness) }
         }
         .tabItem {

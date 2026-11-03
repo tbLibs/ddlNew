@@ -7,6 +7,19 @@
 
 import Foundation
 
+/// 仅登录重连任务绑定 SDK 轮次，子任务继承，其他 DNS1 调用保持静默。
+nonisolated enum IMReconnectTrace {
+    @TaskLocal static var round: UInt?
+
+    static func log(_ fields: @autoclosure () -> String) {
+        #if DEBUG
+        if let round {
+            NSLog("[IM掉线] sdkRound=%lu %@", round, fields())
+        }
+        #endif
+    }
+}
+
 nonisolated struct DNS1Source: Sendable, Equatable {
     enum Kind: String, Sendable { case cache, main, backup, bin }
     let kind: Kind
@@ -38,12 +51,18 @@ nonisolated struct DNS1Selection: Sendable {
                     probe: @escaping @MainActor (DNS1TCPNode) async throws -> Bool) async throws -> DNS1Selection {
         var all = sources
         if cached != nil { all.insert(DNS1Source(kind: .cache, address: "cache"), at: 0) }
+        IMReconnectTrace.log("event=dns1_plan sources=\(all.map { $0.kind.rawValue }.joined(separator: ","))")
         for source in all {
             try Task.checkCancellation()
+            let kind = source.kind.rawValue
+            IMReconnectTrace.log("event=dns1_source source=\(kind) result=loading")
+            var candidateCount = 0
             do {
                 let payload: DNS1Payload
                 if source.kind == .cache, let cached { payload = cached }
                 else { payload = try await load(source) }
+                candidateCount = payload.tcp.count
+                IMReconnectTrace.log("event=dns1_source source=\(kind) result=parsed candidates=\(candidateCount)")
                 let node = try await withThrowingTaskGroup(of: DNS1TCPNode?.self) { group in
                     for node in payload.tcp {
                         group.addTask {
@@ -57,9 +76,14 @@ nonisolated struct DNS1Selection: Sendable {
                     throw DNS1Error.unavailable
                 }
                 try Task.checkCancellation()
+                IMReconnectTrace.log("event=dns1_source source=\(kind) result=probe_success")
                 return DNS1Selection(source: source, payload: payload, node: node)
             } catch is CancellationError { throw CancellationError() }
-            catch { try Task.checkCancellation() }
+            catch {
+                try Task.checkCancellation()
+                let result = candidateCount > 0 ? "all_probes_failed" : "load_or_decode_failed"
+                IMReconnectTrace.log("event=dns1_source source=\(kind) result=\(result)")
+            }
         }
         throw DNS1Error.unavailable
     }

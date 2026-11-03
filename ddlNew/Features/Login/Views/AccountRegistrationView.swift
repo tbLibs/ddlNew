@@ -28,15 +28,8 @@ struct AccountRegistrationView: View {
                     if context?.requiresInviteCode == true {
                         field("邀请码", text: $inviteCode, focus: .invite)
                     }
-                    Button(buttonTitle) {
-                        focusedField = nil
-                        if viewModel.accountWasRegistered {
-                            dismiss()
-                            return
-                        }
-                        viewModel.register(AccountRegistrationInput(account: account, password: password,
-                            confirmation: confirmation, inviteCode: inviteCode))
-                    }
+                    LegalConsentRow(isAccepted: $viewModel.hasAcceptedLegalDocuments) { focusedField = nil }
+                    Button(buttonTitle, action: submit)
                     .buttonStyle(LoginButtonStyle())
                     .disabled(viewModel.phase.isBusy || viewModel.phase == .succeeded || context == nil)
                     .accessibilityIdentifier("submitAccountRegistration")
@@ -58,12 +51,31 @@ struct AccountRegistrationView: View {
                 }
                 ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成") { focusedField = nil } }
             }
+            .alert("提示", isPresented: $viewModel.showsLegalConsentAlert) {
+                Button("取消", role: .cancel) {}
+                Button("同意并继续") {
+                    viewModel.hasAcceptedLegalDocuments = true
+                    submit()
+                }
+            } message: {
+                Text("请阅读并同意《隐私政策》和《使用支持》")
+            }
             .onDisappear {
                 viewModel.cancel()
                 password = ""
                 confirmation = ""
             }
         }
+    }
+
+    private func submit() {
+        focusedField = nil
+        if viewModel.accountWasRegistered {
+            dismiss()
+            return
+        }
+        viewModel.register(AccountRegistrationInput(account: account, password: password,
+            confirmation: confirmation, inviteCode: inviteCode))
     }
 
     private var registrationFeedback: String? { if case .failed(let message) = viewModel.phase { return message }; return nil }

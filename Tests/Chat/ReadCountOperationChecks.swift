@@ -9,17 +9,19 @@ typealias LingIMFailureCallback = (Int, String?, String?) -> Void
 final class NoaIMChatMessageModel { var serviceMsgID: String?; init(_ id: String) { serviceMsgID = id } }
 final class LingIMSessionModel {
     var sessionUnreadCount = 1; var readTag = 0; var sessionTop = false; var sessionNoDisturb = false
+    var sessionLatestTime = 1
     var sessionLatestServerMsgID: String? = "10"
     var sessionLatestMessage: NoaIMChatMessageModel? = NoaIMChatMessageModel("10")
     func clone() -> LingIMSessionModel {
         let copy = LingIMSessionModel(); copy.sessionUnreadCount = sessionUnreadCount; copy.readTag = readTag
-        copy.sessionLatestServerMsgID = sessionLatestServerMsgID; copy.sessionLatestMessage = sessionLatestMessage
+        copy.sessionLatestTime = sessionLatestTime; copy.sessionLatestServerMsgID = sessionLatestServerMsgID; copy.sessionLatestMessage = sessionLatestMessage
         return copy
     }
 }
 @MainActor final class NoaIMSDKManager: NSObject {
     static let instance = NoaIMSDKManager()
     var current = LingIMSessionModel(); var pending: LingIMSuccessCallback?; var params: [String: Any] = [:]
+    var deletedWithHistory: [Bool] = []
     var failsWrite = false; var writeCount = 0
     static func sharedTool() -> NoaIMSDKManager { instance }
     func myUserID() -> String { "A" }
@@ -27,13 +29,13 @@ final class LingIMSessionModel {
     func toolCheckMySession(with id: String) -> LingIMSessionModel? { current.clone() }
     func toolGetLatestChatMessage(withSessionID id: String) -> NoaIMChatMessageModel? { current.sessionLatestMessage }
     func toolUpdateSession(with model: LingIMSessionModel) -> Bool { if failsWrite { return false }; current = model.clone(); writeCount += 1; return true }
-    func toolDeleteSessionModel(with model: LingIMSessionModel, andDeleteAllChatModel: Bool) -> Bool { true }
+    func toolDeleteSessionModel(with model: LingIMSessionModel, andDeleteAllChatModel: Bool) -> Bool { deletedWithHistory.append(andDeleteAllChatModel); return true }
     func conversationReadedStatus(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) { params = values as? [String: Any] ?? [:]; pending = onSuccess }
     func groupConversationTop(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) {}
     func singleConversationTop(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) {}
     func groupConversationPromt(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) {}
     func singleConversationPromt(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) {}
-    func deleteServerConversation(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) {}
+    func deleteServerConversation(_ values: NSMutableDictionary, onSuccess: @escaping LingIMSuccessCallback, onFailure: @escaping LingIMFailureCallback) { params = values as? [String: Any] ?? [:]; pending = onSuccess }
     func reply(_ accepted: Bool) { let callback = pending; pending = nil; callback?(NSNumber(value: accepted), nil) }
     /// SDK在成功包无data时传nil；只替换真实传输返回值，仍执行生产Operations。
     func replyPayload(_ value: Any?) { let callback = pending; pending = nil; callback?(value, nil) }
@@ -104,22 +106,35 @@ final class LingIMSessionModel {
         var rejected = false
         do { try await falseMark.value } catch { rejected = true }
         precondition(rejected && sdk.writeCount == beforeRejection && sdk.current.readTag == 0, "明确false/0拒绝不写会话，不用界面变化当服务端受理")
-        for payload: Any in ["true", NSNumber(value: 2), ["accepted": true] as [String: Any]] {
-            let unknown = Task { try await client.perform(.toggleUnread, conversation: conversation, userUID: "A") }
-            while sdk.pending == nil { await Task.yield() }
-            sdk.replyPayload(payload)
-            var unknownRejected = false
-            do { try await unknown.value } catch { unknownRejected = true }
-            precondition(unknownRejected && sdk.writeCount == beforeRejection, "未知非空回执不能宽松猜测受理")
-        }
+        let mark = Task { try await client.perform(.toggleUnread, conversation: conversation, userUID: "A") }
+        while sdk.pending == nil { await Task.yield() }
+        precondition(sdk.params["latestSMsgId"] as? String == "30", "最新正文与会话表不同，沿 xgd 提交正文 SID")
+        sdk.replyPayload([:] as [String: Any])
+        do { try await mark.value } catch { preconditionFailure("成功回调可携带空字典") }
+        precondition(sdk.current.readTag == 1)
+        // 会话表与正文表最新 SID 可以不同，只要等待期间没有变化就应删除。
+        sdk.current.sessionLatestMessage = NoaIMChatMessageModel("39")
+        let delete = Task { try await client.perform(.delete, conversation: conversation, userUID: "A") }
+        while sdk.pending == nil { await Task.yield() }
+        precondition(sdk.params["peerUid"] as? String == "g" && sdk.params["dialogType"] as? Int == 1)
+        sdk.replyPayload(nil)
+        do { try await delete.value } catch { preconditionFailure("删除成功空回执须移除会话") }
+        precondition(sdk.deletedWithHistory == [false], "仅删除会话，保留聊天记录")
+        let racingDelete = Task { try await client.perform(.delete, conversation: conversation, userUID: "A") }
+        while sdk.pending == nil { await Task.yield() }
+        sdk.current.sessionLatestMessage = NoaIMChatMessageModel("41")
+        sdk.replyPayload(nil)
+        try! await racingDelete.value
+        precondition(sdk.deletedWithHistory == [false], "保留等待期间收到新消息的会话")
+        let beforeStale = sdk.writeCount
         let oldEmpty = Task { try await client.perform(.toggleUnread, conversation: conversation, userUID: "A") }
         while sdk.pending == nil { await Task.yield() }
         runtime.activate(userUID: "A", tenantID: "club", sessionID: UUID())
         sdk.replyPayload(nil)
         var cancelled = false
         do { try await oldEmpty.value } catch { cancelled = error is CancellationError }
-        precondition(cancelled && sdk.writeCount == beforeRejection, "同UID新AUTH拒绝旧空成功回执，不改新数据库或界面")
+        precondition(cancelled && sdk.writeCount == beforeStale, "同UID新AUTH拒绝旧空成功回执，不改新数据库或界面")
         runtime.close()
-        print("Read count operation integration checks: 16 passed")
+        print("会话读标记、删除与在途消息隔离检查通过")
     }
 }

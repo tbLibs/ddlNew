@@ -5,6 +5,9 @@
 //  Created by phl on 2025/8/25.
 //
 
+#if DEBUG
+#import "NoaIMHttpManager+Auth.h"
+#endif
 #import "NoaIMSocketManagerTool+LingImTcpReplaceHttp.h"
 #import "NoaIMRequestSessionFence.h"
 
@@ -199,6 +202,12 @@
         BOOL isRefreshTokenRequest = [requestModel.url isEqualToString:Auth_Refresh_Token_Url];
         BOOL transportReady = SOCKETMANAGER.gcdSocket.isConnected && [self isExchangeEcdhKeySuccess];
         BOOL requestChannelReady = isRefreshTokenRequest ? transportReady : [self socketConnectStatus];
+#if DEBUG
+        if ([requestModel.url isEqualToString:Auth_User_Exist_HasPwd_Url]) {
+            NSLog(@"[IM掉线] event=account_check_schedule traceId=%@ channelReady=%d transportReady=%d tokenExpired=%d tokenRefreshing=%d",
+                  requestModel.msgId, requestChannelReady, transportReady, self.isTokenExpired, self.isTokenRefreshing);
+        }
+#endif
         if (!requestChannelReady || ![self isExchangeEcdhKeySuccess]) {
             // socket连接没有成功不要发请求，否则会失败
             // 密钥交换不成功也不要发请求，否则会无法解密

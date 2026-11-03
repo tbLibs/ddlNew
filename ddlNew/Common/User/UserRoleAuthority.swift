@@ -14,7 +14,7 @@ nonisolated struct UserRoleAuthority: Mappable, Sendable {
     private(set) var configurationData: [String: String] = [:]
     private(set) var authorityKeys: [String: String] = [:]
     static let keys = ["allowAddFriend", "createGroup", "deleteMessage", "remoteDeleteMessage",
-                       "groupHairAssistant", "groupSecurity", "showGroupPersonNum", "showHeadLogo",
+                       "groupSecurity", "showGroupPersonNum", "showHeadLogo",
                        "showRoleName", "upFile", "showTeam", "upImageVideoFile", "showUserRead",
                        "isShowFileAssistant", "translation_switch", "group_msg_pinning",
                        "user_dialog_msg_pinning", "edited_message_sent"]

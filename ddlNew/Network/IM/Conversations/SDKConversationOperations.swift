@@ -16,7 +16,10 @@ extension SDKConversationsClient: ConversationOperationsClient {
         let runID = observationGeneration
         let isGroup = conversation.kind == .group
         let latest: NoaIMChatMessageModel? = initial.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: conversation.id)
-        let lastMessageID = initial.sessionLatestServerMsgID?.isEmpty == false ? initial.sessionLatestServerMsgID ?? "" : latest?.serviceMsgID ?? ""
+        let sessionSID = initial.sessionLatestServerMsgID ?? ""
+        let messageSID = latest?.serviceMsgID ?? ""
+        let latestTime = initial.sessionLatestTime
+        let lastMessageID = sessionSID.isEmpty ? messageSID : sessionSID
         let unreadAtStart = max(0, initial.sessionUnreadCount)
         let markingUnread = initial.sessionUnreadCount == 0 && initial.readTag == 0
         let route = ChatRoute(id: conversation.id, kind: conversation.kind, title: conversation.title, avatarURL: conversation.avatarURL)
@@ -33,7 +36,9 @@ extension SDKConversationsClient: ConversationOperationsClient {
             values["dialogType"] = isGroup ? 1 : 0
             if action == .toggleUnread {
                 values["readTag"] = markingUnread ? 1 : 0
-                if !lastMessageID.isEmpty { values["latestSMsgId"] = lastMessageID }
+                // 标记未读沿 xgd 优先发送正文 SID；清除未读则沿用计数起点的边界。
+                let requestSID = markingUnread && !messageSID.isEmpty ? messageSID : lastMessageID
+                if !requestSID.isEmpty { values["latestSMsgId"] = requestSID }
             }
         }
         let params = NSMutableDictionary(dictionary: values)
@@ -41,17 +46,20 @@ extension SDKConversationsClient: ConversationOperationsClient {
         let accepted = try await waiter.run {
             let success: LingIMSuccessCallback = { data, _ in
                 let accepted: Bool
-                if action == .toggleUnread {
-                    // 旧端以成功回调为准；SDK成功包允许无data，不能将空回执误报业务拒绝。
-                    if data == nil || data is NSNull { accepted = true }
-                    else if let number = data as? NSNumber, number == 0 || number == 1 { accepted = number == 1 }
-                    else { accepted = false }
-                } else { accepted = (data as? NSNumber)?.boolValue ?? false }
+                switch action {
+                case .toggleUnread, .delete:
+                    // 与 xgd 一致，这两个接口通过 SDK 成功回调确认；不要求 data 为布尔值。
+                    // 保留对显式 false 的识别。
+                    accepted = (data as? NSNumber)?.boolValue ?? true
+                case .togglePin, .toggleMute:
+                    accepted = (data as? NSNumber)?.boolValue ?? false
+                }
                 Task { @MainActor in waiter.finish(.success(accepted)) }
             }
-            let failure: LingIMFailureCallback = { code, _, _ in
+            let failure: LingIMFailureCallback = { code, message, _ in
+                let detail = message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 Task { @MainActor in
-                    waiter.finish(.failure(ChatClientError.unavailable("会话操作失败（\(code)），请稍后重试")))
+                    waiter.finish(.failure(ChatClientError.unavailable(detail.isEmpty ? "会话操作失败（\(code)），请稍后重试" : "\(detail)（\(code)）")))
                 }
             }
             switch action {
@@ -77,7 +85,9 @@ extension SDKConversationsClient: ConversationOperationsClient {
         if action == .delete {
             // 删除请求后若有新消息，保留新会话，不能移除服务端边界之后的消息入口。
             let latestNow: NoaIMChatMessageModel? = current.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: conversation.id)
-            guard (latestNow?.serviceMsgID ?? "") == lastMessageID else { return }
+            guard (current.sessionLatestServerMsgID ?? "") == sessionSID,
+                  (latestNow?.serviceMsgID ?? "") == messageSID,
+                  current.sessionLatestTime == latestTime else { return }
             guard sdk.toolDeleteSessionModel(with: current, andDeleteAllChatModel: false) else {
                 throw ChatClientError.unavailable("无法更新本机会话，请刷新确认状态")
             }

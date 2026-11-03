@@ -30,11 +30,16 @@ final class IMLoggedInReconnectCoordinator {
             isCurrentSession: { [weak self] in self?.owns($0, installation: installID) == true },
             cachedNodes: {
                 guard let cache = try? OSSNavigationStore.shared.load(), cache.lastLiceseId == lastLiceseId,
-                      cache.source == .dns1 else { return [] }
+                      cache.source == .dns1 else {
+                    IMReconnectTrace.log("event=reconnect_cache candidates=0")
+                    return []
+                }
+                IMReconnectTrace.log("event=reconnect_cache candidates=\(cache.tcpEndpoints.count) probeLimit=16")
                 return cache.tcpEndpoints.map { OSSLegacyEndpoint(host: $0.ip, port: UInt16($0.port)) }
             },
             refreshNodes: { [weak self] in
                 guard let self else { throw CancellationError() }
+                IMReconnectTrace.log("event=reconnect_refresh reason=no_cached_winner")
                 return try await self.refreshNodes(session, installation: installID, qualityOnly: false)
             },
             probe: { [weak self] node in
@@ -48,14 +53,18 @@ final class IMLoggedInReconnectCoordinator {
             })
         // SDK 回调来自内部串行队列，业务状态统一切回 MainActor。
         socket.raceTcpNodeBlock = { [weak self] completion in
+            let round = NoaIMSocketManager.sharedTool().tcpRaceSequence
             Task { @MainActor [weak self] in
                 guard let self, self.owns(session, installation: installID) else { return }
                 // 断线竞速先抢占质量检测，不能同时更新节点或刷新导航。
                 self.reconnectRacing = true
                 self.quality?.cancel()
                 self.httpPreference?.cancel()
-                self.engine?.begin { node, reason in
-                    completion(node?.host, node.map { Int($0.port) } ?? 0, reason)
+                IMReconnectTrace.$round.withValue(round) {
+                    self.engine?.begin { node, reason in
+                        IMReconnectTrace.log("event=reconnect_selection result=\(reason ?? "probe_success")")
+                        completion(node?.host, node.map { Int($0.port) } ?? 0, reason)
+                    }
                 }
             }
         }
@@ -135,6 +144,9 @@ final class IMLoggedInReconnectCoordinator {
             object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self, self.installation == installID else { return }
+                    #if DEBUG
+                    NSLog("[IM掉线] event=app_background")
+                    #endif
                     self.foregroundGate.enteredBackground()
                     self.quality?.cancel()
                     self.httpPreference?.cancel()
@@ -145,6 +157,9 @@ final class IMLoggedInReconnectCoordinator {
                 Task { @MainActor [weak self] in
                     guard let self, self.owns(session, installation: installID),
                           self.foregroundGate.takeForegroundCheck() else { return }
+                    #if DEBUG
+                    NSLog("[IM掉线] event=app_foreground")
+                    #endif
                     // 检查当前正式 Socket；SDK 自己处理 PING 超时和重连，不能建立访客连接。
                     self.socket.verifyConnectionOnForeground()
                 }

@@ -64,6 +64,9 @@ public class NetWorkStatusManager: NSObject {
             let isWifi: Bool = path.usesInterfaceType(.wifi) || path.usesInterfaceType(.wiredEthernet)
             let isCellular: Bool = path.usesInterfaceType(.cellular)
             
+            #if DEBUG
+            let previousType = self.getConnectType()
+            #endif
             self.isWifi = isWifi
             self.isCellular = isCellular
                         
@@ -82,6 +85,12 @@ public class NetWorkStatusManager: NSObject {
                 print("[网络检测] 网络不可用")
             }
             
+            #if DEBUG
+            let currentType = self.getConnectType()
+            if previousType != currentType || self.isConnected != isConnected {
+                NSLog("[IM掉线] event=network_path from=%@ to=%@ online=%d", previousType, currentType, isConnected ? 1 : 0)
+            }
+            #endif
             if (self.isConnected == isConnected) {
                 print("[网络检测] 当前联网状态没有发生变化，不进行推送")
                 return

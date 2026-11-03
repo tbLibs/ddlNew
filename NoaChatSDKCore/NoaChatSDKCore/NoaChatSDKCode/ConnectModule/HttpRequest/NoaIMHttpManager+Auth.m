@@ -10,6 +10,16 @@
 
 @implementation NoaIMHttpManager (Auth)
 
+#pragma mark - 宵禁的接口
+/// 宵禁的接口
+- (void)checkCurfewOnFailure:(LingIMFailureCallback)onFailure {
+    if (kAllHttpRequestUseTcp) {
+        [LingIMTcpRequestModel sendTcpRequestWithParam:@{} Url:Auth_Account_Curfew_Url Method:LingRequestPost SuccessFunc:nil FailureFunc:onFailure];
+    } else {
+        [self netRequestWithType:LingIMHttpRequestTypePOST path:Auth_Account_Curfew_Url parameters:@{} onSuccess:nil onFailure:onFailure];
+    }
+}
+
 #pragma mark - 信任设备列表
 /// 获取当前用户的信任设备列表，支持按 SDK 配置选择 HTTP 或 HTTP 转 TCP 通道。
 - (void)AuthTrustedDeviceListWith:(NSMutableDictionary * _Nullable)params

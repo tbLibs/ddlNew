@@ -24,7 +24,7 @@
                                     <constraint firstAttribute="height" constant="234" id="logo-height"/>
                                 </constraints>
                             </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="活动空间" textAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="launch-title">
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="叮咚聊" textAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="launch-title">
                                 <rect key="frame" x="24" y="324" width="327" height="54"/>
                                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="36"/>
                                 <color key="textColor" red="0.09019607843" green="0.2392156863" blue="0.2313725490" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

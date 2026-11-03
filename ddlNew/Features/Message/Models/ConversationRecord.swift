@@ -8,7 +8,7 @@
 import Foundation
 
 nonisolated enum ConversationKind: Hashable, Sendable {
-    case single, group, massMessage, systemMessage, signInReminder, paymentAssistant
+    case single, group, systemMessage, signInReminder, paymentAssistant
 }
 
 struct ConversationRecord: Identifiable, Sendable {

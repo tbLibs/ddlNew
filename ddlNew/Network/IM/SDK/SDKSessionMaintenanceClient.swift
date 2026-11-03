@@ -13,6 +13,12 @@ import NoaChatCore
 final class SDKSessionMaintenanceClient {
     private var sdk: NoaIMSDKManager { NoaIMSDKManager.sharedTool() }
 
+    func checkCurfew(onFailure: @escaping @MainActor (Int, String) -> Void) {
+        sdk.checkCurfew { code, message, _ in
+            Task { @MainActor in onFailure(code, message ?? "") }
+        }
+    }
+
     func profile(userUID: String, onRejected: @escaping @MainActor (Int, String) -> Void = { _, _ in }) async throws -> String {
         try await dictionary(onRejected: onRejected) { success, failure in
             self.sdk.getUserInfo(with: NSMutableDictionary(dictionary: ["userUid": userUID]),

@@ -627,7 +627,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/ddlNew/Basic/LXChatEncrypt",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.0;
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
 					"-lLXChatEncrypt",
@@ -695,7 +695,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/ddlNew/Basic/LXChatEncrypt",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.0;
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
 					"-lLXChatEncrypt",
@@ -816,8 +816,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.0.0;
 			};
-			traits = (
-			);
 		};
 		A71B2C3D4E5F60718293A402 /* XCRemoteSwiftPackageReference "Moya" */ = {
 			isa = XCRemoteSwiftPackageReference;

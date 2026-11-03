@@ -24,8 +24,6 @@ struct LoginView: View {
     @AppStorage(loginRememberPasswordAppStorageKey) private var rememberPassword = true
     /// 一个页面生命周期内只回填一次，避免弹窗关闭后覆盖正在编辑的输入。
     @State private var didRestoreRememberedLogin = false
-    /// 两个网页入口共用一个 Safari 弹窗，避免同时呈现多个浏览器。
-    @State private var webLink: WebLink?
     @State private var showingRegistration = false
     /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
     @FocusState private var cardFocused: Bool
@@ -36,7 +34,8 @@ struct LoginView: View {
             VStack(spacing: 24) {
                 brandHeader
                 loginForm
-                legalEntries
+                LegalConsentRow(isAccepted: $viewModel.hasAcceptedLegalDocuments, onOpenDocument: dismissKeyboard)
+                    .disabled(viewModel.loginPhase.isBusy)
                 auxiliaryActions
             }
             .padding(.horizontal, 24)
@@ -53,10 +52,6 @@ struct LoginView: View {
             if cardFocused || passwordFocused {
                 keyboardDismissBar
             }
-        }
-        .sheet(item: $webLink) { link in
-            SafariView(url: link.url)
-                .ignoresSafeArea()
         }
         .sheet(item: $verification.request) { request in
             LoginVerificationSheet(
@@ -198,38 +193,6 @@ struct LoginView: View {
         .padding(.top, 5)
     }
 
-    /// 勾选与阅读入口独立；打开在线网页不改变用户的同意状态。
-    private var legalEntries: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Button { viewModel.hasAcceptedLegalDocuments.toggle() } label: {
-                Image(systemName: viewModel.hasAcceptedLegalDocuments ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 22))
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("同意隐私政策和使用支持")
-            .accessibilityValue(viewModel.hasAcceptedLegalDocuments ? "已勾选" : "未勾选")
-            .accessibilityAddTraits(viewModel.hasAcceptedLegalDocuments ? .isSelected : [])
-            .accessibilityIdentifier("acceptLegalDocuments")
-
-            VStack(alignment: .leading, spacing: 0) {
-                Text("我已阅读并同意以下内容")
-                    .foregroundColor(LoginPalette.secondary)
-                HStack(spacing: 24) {
-                    Button("隐私政策") { openWebPage(privacyPolicyURLString) }
-                        .accessibilityIdentifier("openPrivacyPolicy")
-                    Button("使用支持") { openWebPage(usageSupportURLString) }
-                        .accessibilityIdentifier("openSupport")
-                }
-                .frame(minHeight: 44)
-            }
-        }
-        .font(.footnote)
-        .foregroundColor(LoginPalette.darkTeal)
-        .frame(minHeight: 44)
-        .disabled(viewModel.loginPhase.isBusy)
-    }
-
     private var keyboardDismissBar: some View {
         HStack {
             Spacer()
@@ -276,14 +239,6 @@ struct LoginView: View {
         card = ""
         password = ""
         viewModel.changeClub()
-    }
-
-    private func openWebPage(_ address: String) {
-        dismissKeyboard()
-        // Safari 只接受 HTTP/HTTPS；配置中统一使用 HTTPS，不加载本地旧版文档。
-        guard let url = URL(string: address), url.scheme == "https",
-              let host = url.host, !host.isEmpty else { return }
-        webLink = WebLink(url: url)
     }
 }
 

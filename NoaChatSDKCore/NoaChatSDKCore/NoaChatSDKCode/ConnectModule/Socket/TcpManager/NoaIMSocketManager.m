@@ -5,6 +5,9 @@
 //  Created by Candy on 2023/5/22.
 //
 
+#if DEBUG
+#import "NoaIMHttpManager+Auth.h"
+#endif
 #import "NoaIMSocketManager.h"
 #import "LingIMMacorHeader.h"//宏header
 #import "FCUUID.h"//获取设备唯一标识
@@ -57,6 +60,30 @@ static void *NoaSocketQueueKey = &NoaSocketQueueKey;
 
 /// ECDH交换密钥超时时间
 static const NSTimeInterval kKeyExchangeTimeout = 15.0;
+
+#if DEBUG
+// 每条正式 Socket 各自保留最后一次心跳时间；断开时只输出诊断字段。
+@interface NoaSocketDropTrace : NSObject
+@property (nonatomic, copy) NSString *traceID;
+@property (atomic) NSTimeInterval authAt;
+@property (atomic) NSTimeInterval pingAt;
+@property (atomic) NSTimeInterval pongAt;
+@property (atomic, copy) NSString *closeRequest;
+@end
+@implementation NoaSocketDropTrace
+@end
+
+static double NoaElapsed(NSTimeInterval now, NSTimeInterval event) {
+    return event > 0 ? now - event : -1;
+}
+
+static void NoaTraceCloseRequest(GCDAsyncSocket *socket, NSString *reason) {
+    NoaSocketDropTrace *trace = socket.userData;
+    if (!trace || !socket.isConnected) return;
+    trace.closeRequest = reason;
+    NSLog(@"[IM掉线] event=local_close connection=%@ reason=%@", trace.traceID, reason);
+}
+#endif
 
 @interface NoaIMSocketManager () <GCDAsyncSocketDelegate>
 
@@ -115,7 +142,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 /// 仅在 internalQueue 上访问，用于合并重连及丢弃旧竞速结果。
 @property (nonatomic, assign) BOOL isTcpRacing;
-@property (nonatomic, assign) NSUInteger tcpRaceSequence;
+@property (atomic, assign, readwrite) NSUInteger tcpRaceSequence;
 
 /// socket接收到数据信息
 @property (nonatomic, strong) NSMutableData *receiveData;
@@ -398,11 +425,18 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 #pragma mark - Disconnect
 - (void)disconnectSocket {
+    [self disconnectSocketWithReason:@"explicit_request"];
+}
+
+- (void)disconnectSocketWithReason:(NSString *)reason {
     __weak typeof(self) weakSelf = self;
     dispatch_async(self.internalQueue, ^{
         __strong typeof(weakSelf) self = weakSelf;
         if (!self) return;
         
+#if DEBUG
+        NoaTraceCloseRequest(self->_gcdSocket, reason);
+#endif
         // 停止心跳机制
         [self stopSocketHeartbeat];
         
@@ -421,15 +455,17 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 /// 强制断开Socket连接，用于连接前清理
 - (void)forceDisconnectSocket {
-    // 强制断开连接，不等待回调
-    if (self.gcdSocket.isConnected) {
-        [self.gcdSocket disconnectAfterReadingAndWriting];
-        [NoaLocalLogger info:@"强制断开旧连接"];
-    }
-    
-    // 重置相关状态
+    // 让每次连接独占 Socket 和密钥。已派发的旧回调只能接触旧对象。
+#if DEBUG
+    NoaTraceCloseRequest(self->_gcdSocket, @"connection_replaced");
+#endif
+    GCDAsyncSocket *oldSocket = _gcdSocket;
+    _gcdSocket = nil;
+    oldSocket.delegate = nil;
+    [oldSocket disconnect];
     [self clearKeyExchangeInfo];
-    
+    self.novDecryptorManager = [[NovDecryptorManager alloc] init];
+
     // 停止ECDH密钥交换超时定时器
     [self stopKeyExchangeTimer];
     
@@ -449,6 +485,9 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         [self stopSocketHeartbeat];
         
         //停止重连机制
+#if DEBUG
+        NoaTraceCloseRequest(self->_gcdSocket, @"network_lost");
+#endif
         [self stopSocketReconnectWithReason:@"network_lost"];
         
         [self cancelAuthPhase];
@@ -478,6 +517,9 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 - (void)prepareForConnectionInitializationWithCompletion:(dispatch_block_t)completion {
     dispatch_async(self.internalQueue, ^{
         self.isCanReconnect = NO;
+#if DEBUG
+        NoaTraceCloseRequest(self->_gcdSocket, @"initialization_restart");
+#endif
         [self stopSocketReconnectWithReason:@"initialization_restart"];
         [self stopSocketHeartbeat];
         [self resetSocketHeartNoPongCount];
@@ -525,7 +567,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         self.initedSocket = YES;
         if (self.connectState != LingIMSocketConnectStateDisconnected) {
             // 系统配置请求失败时，重新握手后再获取配置。
-            [self disconnectSocket];
+            [self disconnectSocketWithReason:@"initialization_retry"];
         }
         [self startingSocketReconnect];
     });
@@ -573,7 +615,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     self.initializationReconnectExhausted = YES;
     self.isCanReconnect = NO;
     [self stopSocketReconnectWithReason:@"join_retries_exhausted"];
-    [self disconnectSocket];
+    [self disconnectSocketWithReason:@"join_retries_exhausted"];
     dispatch_async(dispatch_get_main_queue(), ^{
         __block BOOL current;
         dispatch_sync(self.internalQueue, ^{
@@ -651,6 +693,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                     self.socketPort = port;
                     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=NODE_SELECTED sdkRound=%lu host=%@ port=%ld", (unsigned long)sequence, host, (long)port]];
                 } else {
+#if DEBUG
+                    NSLog(@"[IM掉线] sdkRound=%lu event=reconnect_no_winner reason=%@ hasOldNode=%d",
+                          (unsigned long)sequence, failureReason ?: @"unknown",
+                          self.socketHost.length > 0 && self.socketPort > 0 && self.socketPort <= UINT16_MAX);
+#endif
                     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=FALLBACK_OLD_NODE sdkRound=%lu host=%@ port=%ld", (unsigned long)sequence, self.socketHost, (long)self.socketPort]];
                 }
                 self.reconnectFailureReason = failureReason;
@@ -694,7 +741,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         [self resetReconnectFailureNotice];
 
         [self cancelAuthPhase];
-        [self disconnectSocket];
+        [self disconnectSocketWithReason:@"auth_retry"];
         // 即使当前没有底层连接、不会产生断线回调，也能继续恢复。
         [self startingSocketReconnect];
     });
@@ -726,6 +773,9 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
             ![self.socketUserID isEqualToString:userID] || self.socketUserToken.length == 0 ||
             ![self.socketUserToken isEqualToString:[sdk myUserToken]] ||
             ([self.socketHost isEqualToString:host] && self.socketPort == port)) return;
+#if DEBUG
+        NoaTraceCloseRequest(self->_gcdSocket, @"network_quality_switch");
+#endif
         [self stopSocketReconnectWithReason:@"network_quality_switch"];
         [self stopSocketHeartbeat];
         [self resetSocketHeartNoPongCount];
@@ -808,7 +858,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     if (accountChanged) {
         [self cancelAuthPhase];
         [self stopSocketReconnectWithReason:@"user_changed"];
-        [self disconnectSocket];
+        [self disconnectSocketWithReason:@"user_changed"];
         [self startingSocketReconnect];
         return;
     }
@@ -861,7 +911,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         [NoaLocalLogger info:@"[socket连接] configSocketHost:(LingIMSocketHostOptions *)hostOptions user:(LingIMSocketUserOptions *)userOptions 当前已连接，但是地址与端口号出现差异，需要先断开后连接\n正在断开中"];
         
         // 如果当前socket已经连接成功，直接断开连接，通过disconnect触发diddisconnect回调，然后重新竞速连接
-        [self disconnectSocket];
+        [self disconnectSocketWithReason:@"endpoint_changed"];
         
     }
     [NoaLocalLogger info:@"[socket连接] configSocketHost:(LingIMSocketHostOptions *)hostOptions user:(LingIMSocketUserOptions *)userOptions 已断开，正在连接"];
@@ -976,6 +1026,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 
 /// AUTH 成功后才对外标记业务连接成功，并恢复原有回调、缓存请求和重连状态。
 - (void)finishAuthPhaseSuccessfully {
+#if DEBUG
+    NoaSocketDropTrace *trace = _gcdSocket.userData;
+    trace.authAt = NSProcessInfo.processInfo.systemUptime;
+    NSLog(@"[IM掉线] event=authenticated connection=%@ network=%@", trace.traceID, [[NetWorkStatusManager shared] getConnectType]);
+#endif
     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=AUTH_SUCCESS action=business_connected"]];
     [self completePendingAuthRequest];
     self.isAuthPhaseActive = NO;
@@ -1065,7 +1120,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                                       sendMessage.authMessage.msgId,
                                       self.gcdSocket.isConnected ? @"YES" : @"NO"]];
             }
-            [self.gcdSocket writeData:frameData withTimeout:timeOut tag:messageTag];
+            [self writeFrame:frameData timeout:timeOut tag:messageTag message:sendMessage];
         } else {
             // 不在主线程，调度到主队列
             if (sendMessage.dataType == IMMessage_DataType_ImauthMessage) {
@@ -1074,7 +1129,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                                       self.gcdSocket.isConnected ? @"YES" : @"NO"]];
             }
             dispatch_async(dispatch_get_main_queue(), ^{
-                [self.gcdSocket writeData:frameData withTimeout:timeOut tag:messageTag];
+                [self writeFrame:frameData timeout:timeOut tag:messageTag message:sendMessage];
             });
         }
         
@@ -1087,8 +1142,24 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 }
 
 
-#pragma mark - 开始心跳机制(用户鉴权成功后开始)❤️❤️❤️❤️❤️❤️
 /// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
+- (void)writeFrame:(NSData *)frame timeout:(NSInteger)timeout tag:(NSInteger)tag message:(IMMessage *)message {
+    GCDAsyncSocket *socket = self.gcdSocket;
+#if DEBUG
+    if (message.dataType == IMMessage_DataType_RequestMessage && [message.requestMessage.path isEqualToString:Auth_User_Exist_HasPwd_Url]) {
+        NoaSocketDropTrace *trace = socket.userData;
+        NSLog(@"[IM掉线] event=account_check_write_submit connection=%@ traceId=%@ socketConnected=%d",
+              trace.traceID, message.requestMessage.requestId, socket.isConnected);
+    }
+    if (message.dataType == IMMessage_DataType_ImpingMessage) {
+        NoaSocketDropTrace *trace = socket.userData;
+        trace.pingAt = NSProcessInfo.processInfo.systemUptime;
+    }
+#endif
+    [socket writeData:frame withTimeout:timeout tag:tag];
+}
+
+#pragma mark - 开始心跳机制(用户鉴权成功后开始)❤️❤️❤️❤️❤️❤️
 - (void)startSocketHeartbeat {
     CIMWeakSelf
     
@@ -1223,7 +1294,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
     if (_heartNoPongCount >= LingIMHeartFailureCount) {
         
         //如果服务器长时间不响应心跳，则应执行重连机制
-        [self disconnectSocket];
+        [self disconnectSocketWithReason:@"heartbeat_missed"];
         
         CIMLog(@"==========startingSocketReconnect");
         
@@ -1306,7 +1377,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         // 建连/ECDH/AUTH 中沿用各阶段原有超时，不重复建立连接。
         if (self.connectState == LingIMSocketConnectStateConnecting) return;
         if (!self.gcdSocket.isConnected || !self.isECDHCompleted) {
-            [self disconnectSocket];
+            [self disconnectSocketWithReason:@"foreground_transport_invalid"];
             [self startingSocketReconnect];
             return;
         }
@@ -1335,7 +1406,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                 [self cleanForNetworkLoss];
                 return;
             }
-            [self disconnectSocket];
+            [self disconnectSocketWithReason:@"foreground_pong_timeout"];
             [self startingSocketReconnect];
         });
     });
@@ -1407,6 +1478,12 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         //保存解析正确的模型对象
         if (obj) {
             CIMLog(@"[TCP请求追踪] 📨 成功解析消息，类型:%d", obj.dataType);
+#if DEBUG
+            if (obj.dataType == IMMessage_DataType_ImpongMessage) {
+                NoaSocketDropTrace *trace = _gcdSocket.userData;
+                trace.pongAt = NSProcessInfo.processInfo.systemUptime;
+            }
+#endif
             [SOCKETMANAGERTOOL receiveMessageDealWith:obj];
         }
         //移出已经解析过的data - 增加防越界判断
@@ -1442,6 +1519,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 - (GCDAsyncSocket *)gcdSocket {
     if (!_gcdSocket) {
         _gcdSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:dispatch_get_main_queue()];
+#if DEBUG
+        NoaSocketDropTrace *trace = [NoaSocketDropTrace new];
+        trace.traceID = [NSUUID.UUID.UUIDString substringToIndex:8];
+        _gcdSocket.userData = trace;
+#endif
         _gcdSocket.IPv4Enabled = YES;
         _gcdSocket.IPv6Enabled = YES;
         _gcdSocket.IPv4PreferredOverIPv6 = NO;
@@ -1528,9 +1610,9 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         NSUInteger connectionSequence = self.connectionSequence;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kInitialDelayAfterConnect * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             if (connectionSequence != self.connectionSequence || !self.isCanReconnect ||
-                !self.isCanConnectNet || !sock.isConnected) return;
+                !self.isCanConnectNet || sock != self->_gcdSocket || !sock.isConnected) return;
             // 连接成功后，开始读取数据
-            [self.gcdSocket readDataWithTimeout:-1 tag:0];
+            [sock readDataWithTimeout:-1 tag:0];
             
             // 启动ECDH密钥交换超时定时器
             [self startKeyExchangeTimer];
@@ -1546,6 +1628,17 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err {
     // 被替换的旧 Socket 已派发的回调不能影响新连接。
     if (sock != _gcdSocket) return;
+#if DEBUG
+    NoaSocketDropTrace *trace = sock.userData;
+    NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
+    NSError *underlying = err.userInfo[NSUnderlyingErrorKey];
+    NSLog(@"[IM掉线] event=disconnected connection=%@ postAuth=%d authAgeSec=%.1f closeRequest=%@ domain=%@ code=%ld underlyingDomain=%@ underlyingCode=%ld online=%d network=%@ appState=%ld pingSubmitAgeSec=%.1f pongAgeSec=%.1f pendingPings=%ld",
+          trace.traceID, trace.authAt > 0, NoaElapsed(now, trace.authAt), trace.closeRequest ?: @"none",
+          err.domain ?: @"none", (long)err.code, underlying.domain ?: @"none", (long)underlying.code,
+          [[NetWorkStatusManager shared] getConnectStatus], [[NetWorkStatusManager shared] getConnectType],
+          (long)UIApplication.sharedApplication.applicationState, NoaElapsed(now, trace.pingAt),
+          NoaElapsed(now, trace.pongAt), (long)self.heartNoPongCount);
+#endif
     BOOL disconnectedDuringAuth = self.isAuthPhaseActive;
     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=SOCKET_DISCONNECTED host=%@ port=%ld error=%ld duringAuth=%d allow=%d", self.socketHost, (long)self.socketPort, (long)err.code, disconnectedDuringAuth, self.isCanReconnect]];
     if (err) {
@@ -1711,7 +1804,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                     @"port" : @(self.socketPort)
                 } errorCode:@""];
                 
-                [self handleKeyExchangeFailure];
+                [self handleKeyExchangeFailureForSocket:sock];
                 return;
             }
         }else {
@@ -1725,7 +1818,7 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
                 @"port" : @(self.socketPort)
             } errorCode:@""];
             
-            [self handleKeyExchangeFailure];
+            [self handleKeyExchangeFailureForSocket:sock];
             return;
         }
     }
@@ -1974,55 +2067,23 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 #pragma mark - 密钥交换方法
 
 - (void)startKeyExchangeProcess {
-    [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=ECDH_BEGIN"]];
-    [NoaLocalLogger info:[NSString stringWithFormat:@"[Socket-ECDH] startKeyExchangeProcess 开始 [当前线程: %@]", [NSThread isMainThread] ? @"主线程" : @"后台线程"]];
-    
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [NoaLocalLogger info:@"[Socket-ECDH] 开始ECDH密钥交换流程 [后台队列]"];
-        
-        [self.novDecryptorManager generateKeyPairWithComplete:^(SecKeyRef  _Nonnull publicKey, SecKeyRef  _Nonnull privateKey) {
-            if (!publicKey || !privateKey) {
-                [NoaLocalLogger error:@"[Socket-ECDH] ❌ 生成密钥对失败，立即断开重连"];
-                
-                [self sentryUploadWithEventObj:@{
-                    @"event" : @"socket连接 - ECDH",
-                    @"error" : @"生成密钥对失败，立即断开重连",
-                    @"host" : self.socketHost ? self.socketHost : @"",
-                    @"port" : @(self.socketPort)
-                } errorCode:@""];
-                
-                self.reconnectFailureReason = @"ecdh_prepare_failed";
-                [self handleKeyExchangeFailure];
-                return;
-            }
-            
-            [NoaLocalLogger info:@"[Socket-ECDH] 密钥对生成成功 [后台队列]"];
-            [self recordInitializationSentryStage:@"ecdh_keypair_ready" result:@YES reason:nil];
-            
-            NSData *publicKeyBase64Data = [self.novDecryptorManager secKeyRefToData:publicKey];
-            NSData *sendData = [self.novDecryptorManager buildServerPublicKeyRequestMessage:publicKeyBase64Data];
-            
-            [NoaLocalLogger info:[NSString stringWithFormat:@"[Socket-ECDH] 准备切换到主队列发送数据 (公钥大小: %lu bytes)", (unsigned long)sendData.length]];
-            
-            // TODO: writeData 调度回主队列（GCDAsyncSocket 的 delegateQueue） 原因：GCDAsyncSocket 要求所有操作在 delegateQueue 上调用，避免竞态条件
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [NoaLocalLogger info:@"[Socket-ECDH] 已切换到主队列，检查连接状态..."];
-                
-                // 再次检查socket状态，确保连接有效
-                if (self.gcdSocket && self.gcdSocket.isConnected) {
-                    [NoaLocalLogger info:@"[Socket-ECDH] Socket已连接，发送公钥到服务器 [主队列]"];
-                    [self.gcdSocket writeData:sendData withTimeout:-1 tag:0];
-                    [NoaLocalLogger info:@"[Socket-ECDH] writeData 调用完成，等待服务器响应..."];
-                    [self recordInitializationSentryStage:@"ecdh_public_key_write_requested" result:@YES reason:nil];
-                } else {
-                    self.reconnectFailureReason = @"ecdh_interrupted";
-                    [NoaLocalLogger error:[NSString stringWithFormat:@"[Socket-ECDH] Socket未连接(isConnected=%@)，无法发送公钥，立即断开重连",
-                                   self.gcdSocket.isConnected ? @"YES" : @"NO"]];
-                    [self handleKeyExchangeFailure];
-                }
-            });
-        }];
-    });
+    GCDAsyncSocket *socket = _gcdSocket;
+    NovDecryptorManager *keys = self.novDecryptorManager;
+    [NoaLocalLogger info:@"[TCP重连链路] stage=ECDH_BEGIN"];
+    // 密钥在后台生成，完成回调与 Socket delegate 同在主队列。
+    [keys generateKeyPairWithComplete:^(SecKeyRef publicKey, SecKeyRef privateKey) {
+        if (socket != self->_gcdSocket || !socket.isConnected || !self.isKeyExchangeInProgress) return;
+        if (!publicKey || !privateKey) {
+            self.reconnectFailureReason = @"ecdh_prepare_failed";
+            [self handleKeyExchangeFailureForSocket:socket];
+            return;
+        }
+        [self recordInitializationSentryStage:@"ecdh_keypair_ready" result:@YES reason:nil];
+        NSData *publicKeyData = [keys secKeyRefToData:publicKey];
+        NSData *sendData = [keys buildServerPublicKeyRequestMessage:publicKeyData];
+        [socket writeData:sendData withTimeout:-1 tag:0];
+        [self recordInitializationSentryStage:@"ecdh_public_key_write_requested" result:@YES reason:nil];
+    }];
 }
 
 #pragma mark - ECDH密钥交换超时处理
@@ -2031,7 +2092,8 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 - (void)startKeyExchangeTimer {
     [self stopKeyExchangeTimer]; // 先停止之前的定时器
     
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    GCDAsyncSocket *socket = _gcdSocket;
+    dispatch_queue_t queue = dispatch_get_main_queue();
     self.keyExchangeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
     
     if (self.keyExchangeTimer) {
@@ -2043,12 +2105,12 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         __weak typeof(self) weakSelf = self;
         dispatch_source_set_event_handler(self.keyExchangeTimer, ^{
             __strong typeof(weakSelf) self = weakSelf;
-            if (!self) return;
+            if (!self || socket != self->_gcdSocket || !socket.isConnected || !self.isKeyExchangeInProgress) return;
             [NoaLocalLogger error:[NSString stringWithFormat:@"[Socket-ECDH] 密钥交换超时(%.1f秒)，立即断开重连", kKeyExchangeTimeout]];
             self.reconnectFailureReason = @"ecdh_timeout";
             [self recordInitializationSentryStage:@"ecdh_timeout" result:@NO reason:@"key_exchange_timeout"];
             
-            [self handleKeyExchangeFailure];
+            [self handleKeyExchangeFailureForSocket:socket];
         });
         
         dispatch_resume(self.keyExchangeTimer);
@@ -2066,7 +2128,8 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
 }
 
 /// 处理ECDH密钥交换失败
-- (void)handleKeyExchangeFailure {
+- (void)handleKeyExchangeFailureForSocket:(GCDAsyncSocket *)socket {
+    if (socket != _gcdSocket || !socket.isConnected || !self.isKeyExchangeInProgress) return;
     if (self.reconnectFailureReason.length == 0) self.reconnectFailureReason = @"ecdh_interrupted";
     [NoaLocalLogger info:[NSString stringWithFormat:@"[TCP重连链路] stage=ECDH_FAILURE action=disconnect_reconnect"]];
     [NoaLocalLogger error:@"[Socket-ECDH] 密钥交换失败，立即断开连接并重连"];
@@ -2078,17 +2141,11 @@ static const NSTimeInterval kKeyExchangeTimeout = 15.0;
         @"port" : @(self.socketPort)
     } errorCode:@""];
     
-    // 停止ECDH密钥交换超时定时器
-    [self stopKeyExchangeTimer];
-    
-    // 重置ECDH相关状态
-    [self clearKeyExchangeInfo];
-    
-    // 清除缓存数据
-    [self cleanupReceiveBuffers];
-    
-    // 强制断开连接
-    [self disconnectSocket];
+    // 只关闭本轮 Socket，由断线代理统一清理并退避重连。
+#if DEBUG
+    NoaTraceCloseRequest(socket, self.reconnectFailureReason ?: @"ecdh_failed");
+#endif
+    [socket disconnect];
 }
 
 /// 重置ECDH相关状态

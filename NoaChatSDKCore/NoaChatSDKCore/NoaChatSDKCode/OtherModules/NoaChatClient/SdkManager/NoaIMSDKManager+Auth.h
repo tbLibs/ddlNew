@@ -11,6 +11,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface NoaIMSDKManager (Auth)
 
+/// 检查当前登录用户的宵禁提示。
+- (void)checkCurfewOnFailure:(LingIMFailureCallback)onFailure NS_SWIFT_NAME(checkCurfew(onFailure:));
+
 /**
  @brief  获取图形验证码
  */

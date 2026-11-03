@@ -10,6 +10,10 @@
 
 @implementation NoaIMSDKManager (Auth)
 
+- (void)checkCurfewOnFailure:(LingIMFailureCallback)onFailure {
+    [[NoaIMHttpManager sharedManager] checkCurfewOnFailure:onFailure];
+}
+
 #pragma mark - 获取图形验证码
 - (void)authGetImgVerCodeWith:(NSMutableDictionary * _Nullable)params
                     onSuccess:(nullable LingIMSuccessCallback)onSuccess

@@ -48,7 +48,7 @@ void cim_function_disconnected (void) {
     // 标记能够重新连接
     SOCKETMANAGER.isCanReconnect = YES;
     //断开连接
-    [SOCKETMANAGER disconnectSocket];
+    [SOCKETMANAGER disconnectSocketWithReason:@"sdk_disconnect_reconnect"];
     //清除用户信息
     [SOCKETMANAGER clearUserInfo];
 
@@ -62,7 +62,7 @@ void cim_function_disconnectWithOutReconnect (void) {
     // 标记无法重新连接
     SOCKETMANAGER.isCanReconnect = NO;
     //断开连接
-    [SOCKETMANAGER disconnectSocket];
+    [SOCKETMANAGER disconnectSocketWithReason:@"sdk_disconnect_stop"];
     //清除用户信息
     [SOCKETMANAGER clearUserInfo];
 }

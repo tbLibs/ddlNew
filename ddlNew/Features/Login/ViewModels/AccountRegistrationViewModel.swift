@@ -5,6 +5,8 @@ import Foundation
 @MainActor
 final class AccountRegistrationViewModel: ObservableObject {
     @Published private(set) var phase: AccountLoginPhase = .idle
+    @Published var hasAcceptedLegalDocuments = false
+    @Published var showsLegalConsentAlert = false
     /// 注册响应已成功时，AUTH 失败应引导回登录页，不能让用户重复创建账号。
     @Published private(set) var accountWasRegistered = false
     private let service: any AccountRegistrationServicing
@@ -27,6 +29,11 @@ final class AccountRegistrationViewModel: ObservableObject {
 
     func register(_ input: AccountRegistrationInput) {
         guard !phase.isBusy, phase != .succeeded, !accountWasRegistered else { return }
+        guard hasAcceptedLegalDocuments else {
+            showsLegalConsentAlert = true
+            return
+        }
+        showsLegalConsentAlert = false
         cancel()
         let id = runID
         phase = .checkingAccount

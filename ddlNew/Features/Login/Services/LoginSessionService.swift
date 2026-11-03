@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import Combine
 
 /// 登录后的编排层：保存 → 交接连接 → SDK 配置/建库 → AUTH；不承担页面跳转。
 @MainActor
-final class LoginSessionService: LoginSessionServicing {
+final class LoginSessionService: ObservableObject, LoginSessionServicing {
     static let shared = LoginSessionService()
 
     private let store = UserSessionStore.shared
@@ -22,11 +23,15 @@ final class LoginSessionService: LoginSessionServicing {
     let contactBusiness = ContactsBusinessStore.shared
     let groups = GroupsStore.shared
     let globalSearch = GlobalSearchStore(client: SDKGlobalSearchClient())
+    @Published private(set) var curfewMessage: String?
+
+    func dismissCurfew() { curfewMessage = nil }
+
     private var sessionID: UUID?
     private var pendingID: UUID?
     /// 启动 AUTH 已成功但根页面尚未接收结果时，仍需允许取消并释放运行时会话。
     private var startupRestoreID: UUID?
-    private var signOutTask: Task<Void, Error>?
+    private var pendingSignOut: (sessionID: UUID?, task: Task<Void, Error>)?
 
     /// 保持单一认证编排所有者，页面不能创建第二套 SDK 会话。
     private init() {}
@@ -161,6 +166,13 @@ final class LoginSessionService: LoginSessionServicing {
             throw AccountLoginError.connectionChanged
         }
         pendingID = nil
+        let userUID = user.userUID
+        SDKSessionMaintenanceClient().checkCurfew { [weak self] code, message in
+            guard code == 96305, !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  let self, self.sessionID == runID, self.store.currentUser?.userUID == userUID,
+                  self.pendingSignOut?.sessionID != runID else { return }
+            self.curfewMessage = message
+        }
         ChatRuntime.shared.activate(userUID: user.userUID, tenantID: credentials.lastLiceseId, sessionID: runID)
         // 业务 HTTP 列表不能阻塞登录；已有会话轮次在完成后再次核验，退出时 Store 会失效。
         Task { [weak self] in
@@ -181,8 +193,8 @@ final class LoginSessionService: LoginSessionServicing {
 
     /// 用户主动退出时先发送当前 UID/Token；不阻塞本地退出，也不让迟到结果清理新会话。
     func signOut() async throws {
-        if let existing = signOutTask { return try await existing.value }
         let run = sessionID
+        if let existing = pendingSignOut, existing.sessionID == run { return try await existing.task.value }
         let task = Task { @MainActor [self] in
             SessionMaintenanceCoordinator.shared.stop()
             if authentication.isAuthenticated, let snapshot = try? store.cachedSession() {
@@ -192,14 +204,15 @@ final class LoginSessionService: LoginSessionServicing {
             guard sessionID == run else { return }
             try clearSession()
         }
-        signOutTask = task
-        defer { signOutTask = nil }
+        pendingSignOut = (run, task)
+        defer { if pendingSignOut?.sessionID == run { pendingSignOut = nil } }
         try await task.value
     }
 
     /// 撤销全部业务资格后再关闭数据库及清理本地凭据。
     func clearSession() throws {
         sessionID = nil
+        curfewMessage = nil
         pendingID = nil
         startupRestoreID = nil
         SessionMaintenanceCoordinator.shared.stop()
@@ -223,6 +236,7 @@ final class LoginSessionService: LoginSessionServicing {
             LoginSecurityNoticeStore.shared.record(message: error.localizedDescription)
         }
         sessionID = nil
+        curfewMessage = nil
         pendingID = nil
         startupRestoreID = nil
         SessionMaintenanceCoordinator.shared.stop()

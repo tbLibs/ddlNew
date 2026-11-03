@@ -29,11 +29,21 @@ struct UserSessionSnapshot { let user: UserInfo; let credentials: UserSessionCre
     func record(message: String) { self.message = message }
 }
 @MainActor final class SDKSessionMaintenanceClient {
+    static var curfewCallbacks: [@MainActor (Int, String) -> Void] = []
+    func checkCurfew(onFailure: @escaping @MainActor (Int, String) -> Void) {
+        Self.curfewCallbacks.append(onFailure)
+    }
     static var logoutCalls: [(String, String)] = []
     static var logoutDelay: UInt64 = 0
+    static var holdLogout = false
+    static var heldLogout: CheckedContinuation<Void, Never>?
     func logout(userUID: String, token: String) async {
         Self.logoutCalls.append((userUID, token))
-        try? await Task.sleep(nanoseconds: Self.logoutDelay)
+        if Self.holdLogout {
+            await withCheckedContinuation { Self.heldLogout = $0 }
+        } else {
+            try? await Task.sleep(nanoseconds: Self.logoutDelay)
+        }
     }
 }
 enum AccountLoginError: Error { case connectionNotReady, connectionChanged }
@@ -238,11 +248,27 @@ struct SDKConversationsClient {}
                && SDKSessionMaintenanceClient.logoutCalls.first?.1 == "fixture", "退出请求使用当时的 UID 与 Token")
         expect(store.currentUser == nil && store.cached == nil && !auth.isAuthenticated, "服务端退出后清理本地会话")
         try reset(); seed(); _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        let oldCurfewReply = SDKSessionMaintenanceClient.curfewCallbacks.last!
+        SDKSessionMaintenanceClient.holdLogout = true
         let delayedLogout = Task { try await service.signOut() }
-        try await Task.sleep(nanoseconds: 5_000_000)
+        let deadline = ContinuousClock.now + .seconds(2)
+        while SDKSessionMaintenanceClient.heldLogout == nil {
+            guard ContinuousClock.now < deadline else { fatalError("等待旧账号退出请求超时") }
+            await Task.yield()
+        }
+        oldCurfewReply(96305, "旧账号提示")
+        expect(service.curfewMessage == nil, "退出中的账号不再展示宵禁提示")
         auth.onSessionInvalidated?(UserSessionError.authenticationRejected(code: 11, message: ""))
         seed(uid: "new", credentialUID: "new")
         _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        let newCurfewReply = SDKSessionMaintenanceClient.curfewCallbacks.last!
+        newCurfewReply(96305, "新账号提示")
+        expect(service.curfewMessage == "新账号提示", "旧退出请求在途时仍展示新登录账号的宵禁提示")
+        oldCurfewReply(96305, "迟到的旧账号提示")
+        expect(service.curfewMessage == "新账号提示", "旧回包不能覆盖新账号提示")
+        SDKSessionMaintenanceClient.heldLogout?.resume()
+        SDKSessionMaintenanceClient.heldLogout = nil
+        SDKSessionMaintenanceClient.holdLogout = false
         try await delayedLogout.value
         expect(store.currentUser?.userUID == "new" && auth.isAuthenticated, "旧退出请求返回不清理新账号")
         expect(LoginSecurityNoticeStore.shared.message?.contains("设备") == true, "强制下线保留具体原因")
@@ -263,6 +289,30 @@ struct SDKConversationsClient {}
                                            sessionID: service.maintenanceSessionID!)
         expect(auth.isAuthenticated, "维护请求临时失败不撤销会话")
         try reset()
+        SDKSessionMaintenanceClient.curfewCallbacks = []
+        auth.resultError = UserSessionError.authenticationTimedOut
+        seed()
+        _ = try await AppStartupCoordinator.restoreLocalEntry()
+        expect(SDKSessionMaintenanceClient.curfewCallbacks.isEmpty, "AUTH 失败不检查宵禁")
+        try reset()
+        let response = AccountLoginResponse(userInfo: UserInfo(userUID: "user"))
+        try await service.completeLogin(response, account: "user") { _ in }
+        expect(SDKSessionMaintenanceClient.curfewCallbacks.count == 1, "手动登录与注册共用的成功入口发一次检查")
+        let reply = SDKSessionMaintenanceClient.curfewCallbacks[0]
+        reply(500, "其他错误")
+        reply(96305, "  ")
+        expect(service.curfewMessage == nil, "其他错误及空消息保持静默")
+        store.currentUser = UserInfo(userUID: "user")
+        reply(96305, "提醒原文")
+        expect(service.curfewMessage == "提醒原文", "资料刷新后仍显示本轮 96305 原文")
+        service.dismissCurfew()
+        expect(service.curfewMessage == nil, "确认关闭弹窗")
+        reply(96305, "待清理")
+        try reset(); seed()
+        _ = try await service.restoreCachedSession(lastLiceseId: "club")
+        reply(96305, "旧轮次")
+        expect(SDKSessionMaintenanceClient.curfewCallbacks.count == 2 && service.curfewMessage == nil,
+               "缓存 AUTH 成功发一次检查，同 UID 重登不显示旧回包")
         print("Session restore checks passed")
     }
 }

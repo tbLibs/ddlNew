@@ -59,7 +59,8 @@
 
 //检测用户是否是弱密码
 #define Auth_Check_Password_Strength_Url  @"/auth/account/checkPassword"
-
+//宵禁的接口
+#define Auth_Account_Curfew_Url         @"/auth/account/curfew"
 
 
 #import <Foundation/Foundation.h>
@@ -68,6 +69,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface NoaIMHttpManager (Auth)
+
+/// 登录成功后检查宵禁提示，沿用当前会话的鉴权和传输通道。
+- (void)checkCurfewOnFailure:(LingIMFailureCallback)onFailure NS_SWIFT_NAME(checkCurfew(onFailure:));
 
 /**
  @brief  获取图形验证码

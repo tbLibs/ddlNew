@@ -5,6 +5,9 @@
 //  Created by phl on 2025/6/25.
 //
 
+#if DEBUG
+#import "NoaIMHttpManager+Auth.h"
+#endif
 #import "LingIMTcpRequestModel.h"
 
 // 发送协议需要引用的类
@@ -123,6 +126,11 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
         [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] ✅ 收到匹配响应，消息ID:%@, status:%d body_length=%lu",
                       self.msgId, message.responseMessage.status, (unsigned long)message.responseMessage.body.length]];
         [self cancelTimer];
+#if DEBUG
+        if ([self.url isEqualToString:Auth_User_Exist_HasPwd_Url]) {
+            NSLog(@"[IM掉线] event=account_check_response traceId=%@ status=%d", self.msgId, message.responseMessage.status);
+        }
+#endif
         [self receiveMessageDealWith:message];
     }
     // 不匹配的情况不打印日志，避免日志混乱
@@ -313,6 +321,11 @@ NSNotificationName const kLingIMTcpReceiveMessageNotification = @"LingIMTcpRecei
             [NoaLocalLogger info:[NSString stringWithFormat:@"[短连接转长连接] 消息超时了,重发次数+1,当前重发次数为%ld", strongSelf.retryCount]];
             [self sendMessageWithParam:strongSelf.param method:strongSelf.methodString url:strongSelf.url originUrl:strongSelf.originUrl];
         }else {
+#if DEBUG
+            if ([strongSelf.url isEqualToString:Auth_User_Exist_HasPwd_Url]) {
+                NSLog(@"[IM掉线] event=account_check_timeout traceId=%@ timeoutSec=%.0f", strongSelf.msgId, kLingTcpMessageTimeout);
+            }
+#endif
             // 不再重试，已达最大数量限制,直接调用失败回调
             if (strongSelf.failureCallBack != nil) {
                 strongSelf.failureCallBack(0, @"", strongSelf.msgId);

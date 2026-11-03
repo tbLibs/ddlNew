@@ -214,6 +214,13 @@ typealias LoginSessionService = RegistrationSession
             precondition(session.complete)
             navigations += 1
         })
+        try require(!vm.hasAcceptedLegalDocuments, "注册页默认未勾选")
+        vm.register(fixture.input)
+        try require(vm.showsLegalConsentAlert && vm.phase == .idle, "未同意时仅提示")
+        vm.showsLegalConsentAlert = false
+        await Task.yield()
+        try require(!vm.hasAcceptedLegalDocuments && fixture.driver.calls.isEmpty && session.calls == 0 && navigations == 0, "取消不得创建账号或会话")
+        vm.hasAcceptedLegalDocuments = true
         vm.register(fixture.input)
         vm.register(fixture.input)
         for _ in 0..<100 where vm.phase.isBusy { await Task.yield() }
@@ -225,6 +232,7 @@ typealias LoginSessionService = RegistrationSession
         let pendingSession = RegistrationSession()
         pendingSession.shouldSuspend = true
         let pending = AccountRegistrationViewModel(service: pendingFixture.service, session: pendingSession, onSucceeded: { navigations += 1 })
+        pending.hasAcceptedLegalDocuments = true
         pending.register(pendingFixture.input)
         for _ in 0..<100 where pendingSession.calls == 0 { await Task.yield() }
         try require(pending.phase == .savingSession, "取消测试必须进入会话建立阶段")
@@ -239,6 +247,7 @@ typealias LoginSessionService = RegistrationSession
         session.authError = AccountLoginError.timedOut
         var navigated = false
         let vm = AccountRegistrationViewModel(service: fixture.service, session: session, onSucceeded: { navigated = true })
+        vm.hasAcceptedLegalDocuments = true
         vm.register(fixture.input)
         for _ in 0..<100 where vm.phase.isBusy { await Task.yield() }
         guard case .failed(let message) = vm.phase else { throw TestFailure.unexpectedSuccess }

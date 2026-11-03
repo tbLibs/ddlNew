@@ -85,6 +85,8 @@ typedef void (^NoaTcpRaceCompletion)(NSString * _Nullable host, NSInteger port, 
 
 /// 断开socket连接
 - (void)disconnectSocket;
+/// 来源仅使用固定的诊断标签。
+- (void)disconnectSocketWithReason:(NSString *)reason;
 
 /// 重连socket
 - (void)startingSocketReconnect;
@@ -168,6 +170,9 @@ typedef void (^NoaTcpRaceCompletion)(NSString * _Nullable host, NSInteger port, 
 @property (nonatomic, copy) HasOptimalServerAvailableBlock hasOptimalServerAvailableBlock;
 
 @property (nonatomic, copy) GetOptimalServerInfoBlock getOptimalServerInfoBlock;
+
+/// 当前竞速序号。业务层在竞速回调入口同步取快照用于日志关联。
+@property (atomic, assign, readonly) NSUInteger tcpRaceSequence;
 
 /// 异步重新探测 TCP 节点，由 SocketManager 统一连接。
 @property (nonatomic, copy, nullable) void (^raceTcpNodeBlock)(NoaTcpRaceCompletion completion);

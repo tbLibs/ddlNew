@@ -368,7 +368,7 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
         [self messageSendFailLoganWith:@"timeout" messageId:pingMessage.msgId];
         self.isReconnectSocket = YES;
         //该Ping消息ID存在，说明没有Pong消息响应，需要执行重连
-        [SOCKETMANAGER disconnectSocket];
+        [SOCKETMANAGER disconnectSocketWithReason:@"message_ping_timeout"];
         
         //执行socket断开连接的代理回调，进行竞速后，重连
         [SOCKETMANAGER startingSocketReconnect];
@@ -597,7 +597,7 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
     SOCKETMANAGER.isCanReconnect = NO;
     [SOCKETMANAGER cancelAuthPhase];
     [SOCKETMANAGER clearUserInfo];
-    [SOCKETMANAGER disconnectSocket];
+    [SOCKETMANAGER disconnectSocketWithReason:@"auth_logout"];
     CIMLog(@"[AUTH链路] stage=AUTH_TERMINAL_FAILURE code=%ld action=logout_no_reconnect", (long)code);
     if ([self.userDelegate respondsToSelector:@selector(noaUserConnectLogoutWithCode:messsage:)]) {
         [self.userDelegate noaUserConnectLogoutWithCode:code messsage:message ?: @"身份认证失败，请重新登录"];
