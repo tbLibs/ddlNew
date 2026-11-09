@@ -63,6 +63,15 @@ struct PushIdentity { let userUID: String; let tenantID: String; let sessionID: 
     static let shared = PushCoordinator()
     private(set) var identity: PushIdentity?
     func activate(identity: PushIdentity) { self.identity = identity }
-    func prepareSignOut() async {}
-    func close() { identity = nil }
+    var signOutDelay: UInt64 = 0
+    func prepareSignOut() async { try? await Task.sleep(nanoseconds: signOutDelay) }
+    var closeCount = 0
+    func close() { closeCount += 1; identity = nil }
+}
+
+// 恢复调度独立测试，此处只绑定启动入口与会话清理。
+extension MessageSessionRecovery {
+    static let shared: MessageSessionRecovery = MessageSessionRecovery(attempt: { identity in
+        _ = try await LoginSessionService.shared.restoreCachedSession(lastLiceseId: identity.license, preserveLocalIdentity: true)
+    }, invalidate: { _ in })
 }

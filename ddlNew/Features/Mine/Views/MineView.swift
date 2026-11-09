@@ -10,15 +10,13 @@ import Kingfisher
 import UIAdapter
 import AlertToast
 
-/// 个人中心，提供活动记录、设置和更换俱乐部入口。
+/// 个人中心，提供个人资料、账户支持和设置入口。
 struct MineView: View {
-    @EnvironmentObject private var store: ClubStore
     @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @State private var showSettings = false
     @State private var profileDestination: MineProfileDestination?
     @State private var showingCopyToast = false
-    @State private var showSwitch = false
     @State private var showingComplaint = false
     @State private var complaintSubmitted = false
     @State private var feedback: String?
@@ -31,7 +29,6 @@ struct MineView: View {
                 avatar: profileAvatar,
                 copyAccount: copyAccount,
                 openProfile: openProfile,
-                switchClub: { showSwitch = true },
                 openComplaint: { feedback = nil; showingComplaint = true }
             )
             .frame(maxWidth: 640)
@@ -66,10 +63,6 @@ struct MineView: View {
                                      titleColor: MessagingTheme.toastText))
         }
         .onChange(of: userSession.currentUser?.userUID) { _ in showingCopyToast = false }
-        .alert("更换俱乐部？", isPresented: $showSwitch) {
-            Button("取消", role: .cancel) { }
-            Button("更换", role: .destructive) { Task { await store.signOut(changeClub: true) } }
-        } message: { Text("将退出当前会员空间，已保存的活动记录会保留。") }
     }
 
     /// 点击头像或昵称沿旧端打开个人资料，身份快照绑定本次认证。

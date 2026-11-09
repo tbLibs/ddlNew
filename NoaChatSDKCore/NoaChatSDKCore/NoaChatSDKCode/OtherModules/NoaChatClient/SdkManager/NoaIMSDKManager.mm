@@ -339,6 +339,23 @@ NoaGroupDelegate
     }
 }
 
+/// 本地读取与正式认证共用 SDK 锁；临时身份绝不包含 Token，也不会触发连接。
+- (BOOL)readLocalUserDatabase:(NSString *)userID token:(NSString *)token reader:(void (^)(BOOL hasCache))reader {
+    @synchronized (self) {
+        if (userID.length == 0 || token.length == 0 || reader == nil ||
+            _userID.length > 0 || _userToken.length > 0) return NO;
+        @try {
+            _userID = userID;
+            if (![DBTOOL openLocalSnapshotForUserID:userID]) return NO;
+            reader(DBTOOL.noaChatDB != nil);
+            return YES;
+        } @finally {
+            [DBTOOL closeLocalSnapshot];
+            _userID = nil;
+        }
+    }
+}
+
 /// 只读取初始化结果，不重复创建数据库或发送 AUTH。
 - (BOOL)isUserDatabaseReady {
     return _userID.length > 0 && [DBTOOL.myUserID isEqualToString:_userID]

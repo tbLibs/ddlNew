@@ -74,7 +74,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
     }
 
     /// 使用已有 Token 恢复，不重放密码登录；SDK 负责过期 Token 的刷新与认证。
-    func restoreCachedSession(lastLiceseId: String,
+    func restoreCachedSession(lastLiceseId: String, preserveLocalIdentity: Bool = false,
                               progress: @escaping @MainActor (AccountLoginPhase) -> Void = { _ in }) async throws -> Bool {
         try Task<Never, Never>.checkCancellation()
         guard sessionID == nil, let connectionID = connection.loginConnectionID else {
@@ -98,11 +98,12 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         store.activateCachedUser(cached.user)
         do {
             try await authenticate(user: cached.user, credentials: cached.credentials,
-                                   connectionID: connectionID, runID: runID, progress: progress)
+                                   connectionID: connectionID, runID: runID,
+                                   preserveConversationSnapshot: preserveLocalIdentity, progress: progress)
             debugPrint("[启动恢复] 缓存会话已通过 TCP 用户认证")
             return true
         } catch {
-            if sessionID == runID {
+            if sessionID == runID, pendingSignOut?.sessionID != runID {
                 // 明确认证拒绝才删除凭据；网络超时、断线和取消均不等于账号失效。
                 let clearStoredSession: Bool
                 switch error {
@@ -112,7 +113,8 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
                     clearStoredSession = false
                 }
                 invalidateSession(error, clearStoredSession: clearStoredSession,
-                                  reconnect: !(error is CancellationError))
+                                  reconnect: !preserveLocalIdentity && !(error is CancellationError),
+                                  preserveLocalIdentity: preserveLocalIdentity && !clearStoredSession)
             }
             throw error
         }
@@ -132,6 +134,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
     /// 手动登录、注册和缓存恢复共用同一连接交接、建库、AUTH 与失效监听。
     private func authenticate(user: UserInfo, credentials: UserSessionCredentials,
                               connectionID: UUID, runID: UUID,
+                              preserveConversationSnapshot: Bool = false,
                               progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws {
         try connection.beginUserAuthentication(connectionID: connectionID)
         authentication.onSessionInvalidated = { [weak self] error in
@@ -144,7 +147,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         }
         // AUTH 后 SDK 会自动同步好友和会话；提前订阅，避免首轮回调在页面创建前丢失。
         contacts.prepare(for: user.userUID)
-        conversations.prepare(for: user.userUID)
+        conversations.prepare(for: user.userUID, preservingSnapshot: preserveConversationSnapshot)
         contactBusiness.prepare(userUID: user.userUID, license: credentials.lastLiceseId)
         groups.prepare(userUID: user.userUID, license: credentials.lastLiceseId)
         globalSearch.prepare(userUID: user.userUID)
@@ -210,6 +213,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
 
     /// 用户主动退出时先发送当前 UID/Token；不阻塞本地退出，也不让迟到结果清理新会话。
     func signOut() async throws {
+        MessageSessionRecovery.shared.cancel()
         let run = sessionID
         if let existing = pendingSignOut, existing.sessionID == run { return try await existing.task.value }
         let task = Task { @MainActor [self] in
@@ -230,6 +234,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
 
     /// 撤销全部业务资格后再关闭数据库及清理本地凭据。
     func clearSession() throws {
+        MessageSessionRecovery.shared.cancel()
         PushCoordinator.shared.close()
         sessionID = nil
         if let pushRejectionObserver { NotificationCenter.default.removeObserver(pushRejectionObserver) }
@@ -249,15 +254,19 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         ChatRuntime.shared.close()
         authentication.reset()
         connection.releaseUserConnection(reconnect: false)
+        connection.reset()
         try store.clear()
     }
 
     /// 认证失效、恢复失败和取消共用清理，网络失败可保留磁盘恢复凭据。
-    private func invalidateSession(_ error: Error, clearStoredSession: Bool = true, reconnect: Bool = true) {
+    private func invalidateSession(_ error: Error, clearStoredSession: Bool = true, reconnect: Bool = true,
+                                   preserveLocalIdentity: Bool = false) {
+        if clearStoredSession { MessageSessionRecovery.shared.cancel() }
         if case UserSessionError.authenticationRejected = error {
             LoginSecurityNoticeStore.shared.record(message: error.localizedDescription)
         }
-        PushCoordinator.shared.close()
+        // 首次恢复尚未激活推送；临时失败必须保留冷启动点击和未知系统角标。
+        if !preserveLocalIdentity { PushCoordinator.shared.close() }
         sessionID = nil
         if let pushRejectionObserver { NotificationCenter.default.removeObserver(pushRejectionObserver) }
         pushRejectionObserver = nil
@@ -267,7 +276,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         SessionMaintenanceCoordinator.shared.stop()
         LoginSecurityCoordinator.shared.stop(clearCachedRequirement: clearStoredSession)
         contacts.reset()
-        conversations.reset()
+        if preserveLocalIdentity { conversations.suspend() } else { conversations.reset() }
         contactBusiness.reset()
         groups.reset()
         globalSearch.reset()
@@ -278,7 +287,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         if clearStoredSession {
             do { try store.clear() }
             catch { debugPrint("[用户会话] 清理本地会话失败：\(error)") }
-        } else {
+        } else if !preserveLocalIdentity {
             store.revokeCurrentUser()
         }
         if !(error is CancellationError) { authentication.markFailed(error.localizedDescription) }

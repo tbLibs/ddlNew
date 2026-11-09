@@ -8,7 +8,7 @@
 import Combine
 import Foundation
 
-/// 统一管理登录前连接。首次连接由邀请码页等待，缓存恢复由启动等待页等待。
+/// 统一管理登录前连接。邀请码页与登录页使用访客连接，消息页按轮恢复缓存连接。
 @MainActor
 final class IMConnectionCoordinator: ObservableObject {
     static let shared = IMConnectionCoordinator(
@@ -88,7 +88,29 @@ final class IMConnectionCoordinator: ObservableObject {
         }
     }
 
-    /// 缓存启动保留启动等待页，后台尝试缓存节点；失败后重新导航并退避重试。
+    /// 登录页访客连接后台恢复；消息页使用单轮入口，避免两个恢复循环争抢。
+    /// 消息页恢复只执行一轮，暂停与退避由会话恢复所有者统一调度。
+    func restoreCachedConnection(lastLiceseId: String, refresh: Bool) async throws {
+        reset()
+        let runID = generation
+        phase = .connecting
+        do {
+            let plan = try await reconnectPlan(lastLiceseId: lastLiceseId, refresh: refresh, runID: runID)
+            try await completeConnection(plan: plan, runID: runID)
+        } catch {
+            if generation == runID {
+                driver.reset()
+                phase = error is CancellationError ? .idle : .failed("连接失败，正在自动重试…")
+            }
+            throw error
+        }
+    }
+
+    func ensureCachedReconnect() {
+        guard !userOwnsConnection, reconnectTask == nil, !isLoginReady else { return }
+        startCachedReconnect()
+    }
+
     func startCachedReconnect() {
         guard !userOwnsConnection else { return }
         guard let lastLiceseId = OSSNavigationStore.shared.lastUsableLiceseId() else { return }
@@ -125,7 +147,7 @@ final class IMConnectionCoordinator: ObservableObject {
         }
     }
 
-    /// 启动页等待本轮恢复结果；连接失败时交由启动流程返回邀请码页。
+    /// 登录前调用方等待本轮连接；启动本地路由不调用此方法。
     func waitForLoginReadiness() async throws {
         while !isLoginReady {
             try Task<Never, Never>.checkCancellation()

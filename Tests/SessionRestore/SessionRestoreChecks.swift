@@ -66,7 +66,10 @@ struct SDKConversationsClient {}
     var reloadCount = 0
     var resetCount = 0
     init(client: SDKConversationsClient) {}
-    func prepare(for userUID: String) { prepareCount += 1 }
+    var preservingSnapshot = false
+    var suspendCount = 0
+    func prepare(for userUID: String, preservingSnapshot: Bool = false) { prepareCount += 1; self.preservingSnapshot = preservingSnapshot }
+    func suspend() { suspendCount += 1 }
     func reload() async { reloadCount += 1 }
     func reset() { resetCount += 1 }
 }
@@ -106,10 +109,22 @@ struct SDKConversationsClient {}
     var authenticateCount = 0
     var refreshedToken: String?
     var didAuthenticate: (() -> Void)?
+    var holdAuthentication = false
+    var heldAuthentication: CheckedContinuation<Void, Error>?
     var isAuthenticated = false
     func authenticate(user: UserInfo, credentials: UserSessionCredentials,
                       progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws {
         authenticateCount += 1
+        if holdAuthentication {
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { heldAuthentication = $0 }
+            } onCancel: {
+                Task { @MainActor in
+                    self.heldAuthentication?.resume(throwing: CancellationError())
+                    self.heldAuthentication = nil
+                }
+            }
+        }
         progress(.authenticating)
         if let refreshedToken { try onTokenRefreshed?(refreshedToken, user.userUID) }
         didAuthenticate?()
@@ -167,6 +182,9 @@ struct SDKConversationsClient {}
             guard value else { fatalError("FAIL: \(name)") }
             print("PASS: \(name)")
         }
+        try reset(); seed()
+        expect(try await AppStartupCoordinator.restoreLocalEntry() == .tabbar, "本地缓存直接显示消息页")
+        expect(connection.reconnectCount == 0 && auth.authenticateCount == 0, "启动路由不得连接TCP或AUTH")
         try reset()
         expect(try await service.restoreCachedSession(lastLiceseId: "club") == false, "无缓存不进行 AUTH")
         expect(auth.authenticateCount == 0, "无缓存保留登录入口")
@@ -177,23 +195,60 @@ struct SDKConversationsClient {}
             catch { expect(auth.authenticateCount == 0 && store.cached == nil, "不匹配的用户、Token 或俱乐部不能恢复") }
         }
         try reset(); seed(); auth.refreshedToken = "refreshed"
-        expect(try await AppStartupCoordinator.restoreLocalEntry() == .tabbar, "缓存会话完成真实 AUTH 后进入主页")
+        expect(try await service.restoreCachedSession(lastLiceseId: "club"), "缓存会话完成真实 AUTH")
         expect(store.currentUser?.userUID == "user" && store.cached?.credentials.token == "refreshed", "AUTH 期间刷新 Token 正确持久化")
         expect(service.contacts.prepareCount > 0 && service.contacts.reloadCount > 0
                && service.conversations.prepareCount > 0 && service.conversations.reloadCount > 0,
                "恢复登录沿用真实通讯录和消息的订阅与认证后读库")
 
         try reset(); seed(); auth.resultError = UserSessionError.authenticationRejected(code: 403, message: "已失效")
-        expect(try await AppStartupCoordinator.restoreLocalEntry() == .login, "认证失效返回登录页")
+        do { _ = try await service.restoreCachedSession(lastLiceseId: "club"); fatalError("expected rejection") } catch {}
         expect(store.cached == nil && store.currentUser == nil, "被拒绝的会话清除缓存")
 
         try reset(); seed(); auth.resultError = UserSessionError.authenticationTimedOut
-        expect(try await AppStartupCoordinator.restoreLocalEntry() == .login, "AUTH 暂时超时允许手动登录")
+        do { _ = try await service.restoreCachedSession(lastLiceseId: "club"); fatalError("expected timeout") } catch {}
         expect(store.cached != nil && store.currentUser == nil && !connection.owns, "暂时超时保留持久凭据并释放用户连接")
 
         try reset(); seed(); connection.readinessError = AccountLoginError.connectionNotReady
-        expect(try await AppStartupCoordinator.restoreLocalEntry() == .invitationCode, "启动连接失败仍返回邀请码")
+        expect(try await AppStartupCoordinator.restoreLocalEntry() == .tabbar, "启动路由不等待网络就绪")
         expect(store.cached != nil && auth.authenticateCount == 0, "连接失败不能删除缓存或发起 AUTH")
+
+        try reset(); seed()
+        _ = try await AppStartupCoordinator.restoreLocalEntry()
+        let recoveryIdentity = MessageSessionRecovery.shared.identity
+        let pushCloseCount = PushCoordinator.shared.closeCount
+        auth.resultError = UserSessionError.authenticationTimedOut
+        let snapshotResetCount = service.conversations.resetCount
+        do { _ = try await service.restoreCachedSession(lastLiceseId: "club", preserveLocalIdentity: true); fatalError("expected timeout") } catch {}
+        expect(service.conversations.preservingSnapshot && service.conversations.suspendCount > 0
+               && service.conversations.resetCount == snapshotResetCount, "AUTH timeout retains conversation snapshot and only suspends observation")
+        expect(store.currentUser?.userUID == "user" && store.cached != nil && !connection.owns,
+               "消息页恢复超时保留本地展示身份与凭据，释放失败AUTH连接")
+        expect(PushCoordinator.shared.closeCount == pushCloseCount, "首次恢复超时保留待消费推送与未知系统角标")
+        expect(MessageSessionRecovery.shared.identity == recoveryIdentity,
+               "暂时AUTH失败不撤销消息页恢复身份")
+        expect(ChatRuntime.shared.userUID == nil && CallCoordinator.shared.userUID == nil && PushCoordinator.shared.identity == nil,
+               "待恢复身份不开放聊天来电或推送业务")
+        auth.resultError = UserSessionError.databaseNotReady
+        do { _ = try await service.restoreCachedSession(lastLiceseId: "club", preserveLocalIdentity: true); fatalError("expected database error") } catch {}
+        expect(store.cached != nil && store.currentUser != nil, "本地数据库失败不删除待恢复账号")
+        auth.resultError = UserSessionError.authenticationRejected(code: 403, message: "已失效")
+        do { _ = try await service.restoreCachedSession(lastLiceseId: "club", preserveLocalIdentity: true); fatalError("expected rejection") } catch {}
+        expect(!MessageSessionRecovery.shared.hasPendingIdentity && store.cached == nil && store.currentUser == nil,
+               "消息页AUTH明确拒绝撤销本地入口和缓存")
+
+        try reset(); seed()
+        _ = try await AppStartupCoordinator.restoreLocalEntry()
+        auth.holdAuthentication = true
+        MessageSessionRecovery.shared.ensureRecovery()
+        while auth.heldAuthentication == nil { await Task.yield() }
+        PushCoordinator.shared.signOutDelay = 20_000_000
+        try await service.signOut()
+        PushCoordinator.shared.signOutDelay = 0
+        auth.holdAuthentication = false
+        try await Task.sleep(nanoseconds: 20_000_000)
+        expect(store.cached == nil && store.currentUser == nil && !MessageSessionRecovery.shared.hasPendingIdentity,
+               "AUTH等待期间主动退出必须清除凭据，取消恢复不能抢先吞掉退出")
 
         try reset(); seed(); auth.resultError = CancellationError()
         do { _ = try await service.restoreCachedSession(lastLiceseId: "club"); fatalError("应传播取消") }

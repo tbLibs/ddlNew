@@ -13,6 +13,7 @@ import Kingfisher
 struct MessageView: View {
     @ObservedObject var store: ConversationsStore
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
+    @ObservedObject private var recovery = MessageSessionRecovery.shared
     @ObservedObject private var authentication = IMUserAuthenticationService.shared
     @ObservedObject private var permissions = UserRoleAuthorityStore.shared
     @ObservedObject private var groups = LoginSessionService.shared.groups
@@ -48,13 +49,13 @@ struct MessageView: View {
                 MessagingSearchField(placeholder: "搜索会话或消息预览", text: $query,
                                      focus: $searchFocused, identifier: "messageSearch")
                 MessagingTabs(selection: $filter)
-                if authentication.state != .ready {
-                    Label(authentication.state.message, systemImage: "wifi.exclamationmark")
-                        .font(.callout).foregroundStyle(MessagingTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("messageConnectionState")
+                MessageConnectionStatusView()
+                if store.errorMessage?.hasPrefix("会话缓存读取失败") == true {
+                    Button("重新读取") {
+                        if recovery.hasPendingIdentity { recovery.retryLocalSnapshot() }
+                        else { Task { await store.reload() } }
+                    }.frame(minHeight: 44)
                 }
-                if store.errorMessage?.hasPrefix("会话缓存读取失败") == true { Button("重新读取") { Task { await store.reload() } }.frame(minHeight: 44) }
             }
             .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 12.zoom(), trailing: 16.zoom()))
             .listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -98,14 +99,16 @@ struct MessageView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { navigationTitle }
-            ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions }
+            ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions.disabled(!authentication.isAuthenticated) }
         }
         .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .tint(MessagingTheme.accent)
         .messagingFeedbackToast(store.operationError ?? store.errorMessage ?? chatRuntime.conversationCleanupWarning, isEnabled: !selectingMembers)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
-        .task { await store.reload() }
+        .onAppear { MessageConnectionMonitor.shared.setVisible(true) }
+        .onDisappear { MessageConnectionMonitor.shared.setVisible(false) }
+        .task { if authentication.isAuthenticated { await store.reload() } }
         .task(id: miniApps.store.map(ObjectIdentifier.init)) {
             if let apps = miniApps.store, !apps.hasLoaded { await apps.refresh() }
         }
@@ -167,7 +170,10 @@ struct MessageView: View {
         if !keyword.isEmpty {
             title = "没有找到相关会话"
             detail = "试试搜索联系人名称或消息内容。"
-        } else if store.isSyncing && store.conversations.isEmpty {
+        } else if recovery.hasPendingIdentity && !store.hasLoadedSnapshot && store.errorMessage == nil {
+            title = "正在读取本地会话…"
+            detail = "已有消息将显示在这里。"
+        } else if store.isSyncing && !store.hasLoadedSnapshot && store.conversations.isEmpty {
             title = "正在同步会话…"
             detail = "同步完成后，消息会显示在这里。"
         } else if let error = store.errorMessage, store.conversations.isEmpty {
@@ -216,7 +222,9 @@ struct MessageView: View {
 
     /// 上下文菜单复用同一操作策略，助手与特殊会话不会出现无效操作。
     @ViewBuilder private func conversationActions(_ conversation: ConversationRecord, actions: [ConversationAction] = [.togglePin, .toggleMute, .toggleUnread, .delete]) -> some View {
-        let allowed = ConversationActionPolicy.allowed(for: conversation).filter { actions.contains($0) }
+        // 断线不阻止打开聊天；需要在线资格的列表操作单独控制。
+        let allowed = authentication.isAuthenticated
+            ? ConversationActionPolicy.allowed(for: conversation).filter { actions.contains($0) } : []
         if allowed.contains(.togglePin) {
             Button {
                 Task { await store.perform(.togglePin, conversationID: conversation.id) }

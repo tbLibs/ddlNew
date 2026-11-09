@@ -16,7 +16,6 @@ struct MinePageContent<Avatar: View>: View {
     let avatar: Avatar
     let copyAccount: () -> Void
     let openProfile: () -> Void
-    let switchClub: () -> Void
     let openComplaint: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .title2) private var nameSize = 24
@@ -25,8 +24,6 @@ struct MinePageContent<Avatar: View>: View {
         VStack(spacing: 0) {
             profile
             VStack(alignment: .leading, spacing: 24.zoom()) {
-                section("我的活动") { activityRecords }
-                section("俱乐部") { club }
                 section("账户与支持") { accountServices }
             }
             .padding(.horizontal, 20.zoom())
@@ -98,62 +95,6 @@ struct MinePageContent<Avatar: View>: View {
         .background(HomeTheme.surface, in: MineHeaderShape(radius: 28.zoom()))
     }
 
-    /// 四个既有记录入口不再展示本地演示计数；辅助字号按单列排布。
-    private var activityRecords: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4.zoom()),
-                            count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 4.zoom()) {
-            record(.registered, symbol: "calendar")
-            record(.waiting, symbol: "clock")
-            record(.checkedIn, symbol: "checkmark.square")
-            record(.past, symbol: "flag")
-        }
-        .padding(8.zoom())
-        .background(HomeTheme.surface, in: cardShape)
-        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
-    }
-
-    /// 当前俱乐部与更换操作分离，切换仍由父页面确认。
-    private var club: some View {
-        VStack(spacing: 0) {
-            NavigationLink(value: ClubHomeDestination.club) {
-                HStack(spacing: 12.zoom()) {
-                    Image(systemName: "mountain.2")
-                        .font(.system(size: 26.zoom()))
-                        .foregroundStyle(HomeTheme.background)
-                        .frame(width: 44.zoom(), height: 44.zoom())
-                        .background(HomeTheme.forest, in: RoundedRectangle(cornerRadius: 14.zoom()))
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 4.zoom()) {
-                        Text("远山户外").font(.headline)
-                        Text("当前俱乐部").font(.caption).foregroundStyle(HomeTheme.secondaryText)
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    chevron
-                }
-                .padding(16.zoom()).contentShape(Rectangle())
-            }
-            .accessibilityIdentifier("mine.club")
-            divider.padding(.horizontal, 16.zoom())
-            Button(action: switchClub) {
-                HStack(spacing: 12.zoom()) {
-                    Text("更换俱乐部").font(.subheadline)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    chevron
-                }
-                .foregroundStyle(HomeTheme.forest)
-                .frame(minHeight: max(44, 48.zoom()))
-                .padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
-                .contentShape(Rectangle())
-            }
-            .accessibilityIdentifier("mine.switchClub")
-        }
-        .background(HomeTheme.mintSurface, in: cardShape)
-        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
-    }
-
     private var accountServices: some View {
         VStack(spacing: 0) {
             NavigationLink(value: SafetyRoute.blacklist) { menuRow("黑名单", symbol: "person.crop.circle.badge.minus") }
@@ -161,6 +102,12 @@ struct MinePageContent<Avatar: View>: View {
             divider
             Button(action: openComplaint) { menuRow("投诉与支持", symbol: "headphones") }
                 .accessibilityIdentifier("mine.complaint")
+            divider
+            NavigationLink(value: MineSupportRoute.network) { menuRow("网络检测", symbol: "network") }
+                .accessibilityIdentifier("mine.network")
+            divider
+            NavigationLink(value: MineSupportRoute.about) { menuRow("关于我们", symbol: "info.circle") }
+                .accessibilityIdentifier("mine.about")
         }
         .padding(.horizontal, 16.zoom())
         .background(HomeTheme.surface, in: cardShape)
@@ -173,24 +120,6 @@ struct MinePageContent<Avatar: View>: View {
                 .foregroundStyle(HomeTheme.secondaryText).padding(.leading, 4.zoom())
                 .accessibilityAddTraits(.isHeader)
             content()
-        }
-    }
-
-    private func record(_ kind: RecordKind, symbol: String) -> some View {
-        NavigationLink(value: kind) {
-            HStack(spacing: 10.zoom()) {
-                Image(systemName: symbol).font(.system(size: 19.zoom()))
-                    .foregroundStyle(HomeTheme.forest)
-                    .frame(width: 34.zoom(), height: 34.zoom())
-                    .background(HomeTheme.mintSurface, in: RoundedRectangle(cornerRadius: 11.zoom()))
-                    .accessibilityHidden(true)
-                Text(kind.rawValue).font(.subheadline.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 8.zoom()).padding(.vertical, 12.zoom())
-            .frame(maxWidth: .infinity, minHeight: max(44, 64.zoom()), alignment: .leading)
-            .contentShape(Rectangle())
         }
     }
 

@@ -15,6 +15,7 @@ def block(source, marker):
 source=(root/'ddlNew/Network/IM/Conversations/SDKConversationsClient.swift').read_text()
 load=block(source,'    func loadConversations(')
 title=block(source,'    nonisolated static func displayTitle(')
+snapshot=block(source,'    nonisolated private static func readSnapshot(')
 kinds=block(source,'private extension ConversationKind')
 view=(root/'ddlNew/Features/Message/Views/MessageView.swift').read_text()
 label=block(view,'    private func accessibilityLabel(').replace('private func','func')
@@ -24,6 +25,7 @@ label=block(view,'    private func accessibilityLabel(').replace('private func',
  func observe(for userUID: String, _ onChange: @escaping @MainActor (ConversationsChange) -> Void) { changed = onChange }
  func stopObserving() { changed = nil }
 LOAD
+SNAPSHOT
 TITLE
 }
 KINDS
@@ -31,7 +33,7 @@ struct ProductionRow {
 LABEL
  static func displayTime(_ date: Date) -> String { "12:00" }
 }
-'''.replace('LOAD',load).replace('TITLE',title).replace('KINDS',kinds).replace('LABEL',label))
+'''.replace('LOAD',load).replace('SNAPSHOT',snapshot).replace('TITLE',title).replace('KINDS',kinds).replace('LABEL',label))
 PY
 swiftc -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/"*.swift \
  "$TASK_ROOT/ddlNew/Features/Message/Services/ConversationsStore.swift" \

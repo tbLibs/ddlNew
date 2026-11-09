@@ -81,6 +81,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param userID 用户的id
 - (BOOL)configDBWith:(NSString *)userToken userID:(NSString *)userID;
 
+/// 本地快照专用：只打开已有库，不建表、不恢复或删除文件；无库时成功且 noaChatDB 为 nil。
+- (BOOL)openLocalSnapshotForUserID:(NSString *)userID;
+/// 释放临时本地库和身份。
+- (void)closeLocalSnapshot;
+
 /// 获得我的ID
 - (NSString *)myUserID;
 /// 获得我的token

@@ -27,7 +27,7 @@ struct ddlNewApp: App {
 
     /// 本地恢复只执行一次，避免页面重建时覆盖用户当前路由。
     @State private var hasRestoredLocalEntry = false
-    /// 缓存恢复期间在启动等待页展示连接进度，不提前创建登录页面。
+    /// 连接对象只用于取消尚未完成的根任务；启动页不发起网络连接。
     @ObservedObject private var connection = IMConnectionCoordinator.shared
     
     var body: some Scene {
@@ -42,18 +42,16 @@ struct ddlNewApp: App {
                     case .tabbar:
                         TabbarView()
                             .id(UserSessionStore.shared.currentUser?.userUID)
-                            .accessibilityIdentifier("authenticatedMain")
+                            .accessibilityIdentifier("mainTabs")
                     }
                 } else {
-                    // 复用系统启动页外观，缓存连接就绪后才退出。
+                    // 只等待本地入口校验，不等待 TCP 或 AUTH。
                     LaunchWaitingView()
                         .ignoresSafeArea()
                         .overlay(alignment: .bottom) {
                             VStack(spacing: 10) {
                                 ProgressView()
-                                Text(authentication.state == .authenticating
-                                     ? "正在恢复登录状态…"
-                                     : connection.phase == .idle ? "正在恢复本地入口…" : connection.phase.message)
+                                Text("正在恢复本地入口…")
                                     .font(.footnote)
                                     .multilineTextAlignment(.center)
                             }
@@ -69,6 +67,7 @@ struct ddlNewApp: App {
                 PasswordChangeView(request: request, coordinator: loginSecurity)
             }
             .onChange(of: scenePhase) { phase in
+                MessageConnectionMonitor.shared.setForeground(phase == .active)
                 PushCoordinator.shared.setForeground(phase == .active)
                 loginSecurity.setForegroundActive(phase == .active)
                 SessionMaintenanceCoordinator.shared.setForegroundActive(phase == .active)
@@ -76,6 +75,7 @@ struct ddlNewApp: App {
             }
             .task {
                 guard !hasRestoredLocalEntry else { return }
+                MessageConnectionMonitor.shared.setForeground(scenePhase == .active)
                 PushCoordinator.shared.setForeground(scenePhase == .active)
                 loginSecurity.setForegroundActive(scenePhase == .active)
                 SessionMaintenanceCoordinator.shared.setForegroundActive(scenePhase == .active)
@@ -83,13 +83,7 @@ struct ddlNewApp: App {
                 do {
                     let page = try await AppStartupCoordinator.restoreLocalEntry()
                     try Task<Never, Never>.checkCancellation()
-                    if page == .tabbar {
-                        // 返回启动结果到发布路由之间仍可能收到下线回调，入口再核对真实 AUTH。
-                        router.showAppPage = .login
-                        AppSessionRouter.enterMain()
-                    } else {
-                        router.showAppPage = page
-                    }
+                    router.showAppPage = page
                     hasRestoredLocalEntry = true
                     LoginSessionService.shared.finishStartupRestoration()
                 } catch is CancellationError {

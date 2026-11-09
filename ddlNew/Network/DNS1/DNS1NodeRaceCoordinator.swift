@@ -32,7 +32,7 @@ import NoaChatCore
         return OSSRaceWinner(source: .dns1, node: DNSResolvedHost(urlString: selection.node.address, type: "DNS1"), navigation: navigation)
     }
 
-    private static func load(_ source: DNS1Source, license: String) async throws -> DNS1Payload {
+    static func load(_ source: DNS1Source, license: String) async throws -> DNS1Payload {
         if source.kind == .bin {
             guard let url = URL(string: source.address), url.scheme == "https" else { throw DNS1Error.invalidPayload }
             let configuration = URLSessionConfiguration.ephemeral
@@ -51,7 +51,7 @@ import NoaChatCore
         return try DNS1Payload.records(records)
     }
 
-    private static func probe(_ node: DNS1TCPNode) async throws -> Bool {
+    static func probe(_ node: DNS1TCPNode) async throws -> Bool {
         let waiter = DNS1CallbackWaiter<Bool>()
         return try await waiter.run(seconds: 4) {
             NoaIMSDKManager.sharedTool().probeECDHConnectivity(withHost: node.host, port: node.port, timeout: 4, type: 0) { success, _ in

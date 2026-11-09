@@ -1,5 +1,103 @@
 # ddlNew 项目交接文档
 
+## 2026-11-09 用户资料加入完整 userSettings
+
+按用户提供的 `/biz/user/userInfo` 返回结构新增 `Common/User/UserSettings.swift`，覆盖全部56个字段，并由 `UserInfo.userSettings` 持有。沿现有 ObjectMapper 接入登录响应、资料刷新与用户资料 JSON 缓存；旧缓存缺少该字段仍可读取。属性采用 Swift 命名，序列化沿用服务端原键名，包括历史拼写 `android_kepplive_url`、`groupMangerMessageRecallTime` 等。
+
+设置值保持接口的字符串合同，直接下发的布尔值和数字可转成字符串，`systemSecurity` 保留原 JSON 字符串。部分资料刷新逐项合并设置，省略／null 保留已有值，空字符串允许显式清空；不会因单个设置更新丢失其它配置。资料兼容 `userUid`／`userUID`，刷新同时核验两种拼写，拒收不同用户或相互冲突的身份。模型接入不自动覆盖本地 SDK／消息／通话配置，不新增网络请求或配置日志；测试仅包含合成值，不保存用户提供的真实响应。
+
+验证：先复现原模型丢弃 userSettings 的失败，再通过会话维护入口的调度17项、模型／权限37项及SDK会话隔离7项检查，覆盖56字段往返、登录解析、部分更新、旧缓存、布尔数字和UID校验，日志 `/tmp/ddlNew-user-settings-final-checks.log`。无签名 generic iOS workspace 构建 exit0、BUILD SUCCEEDED（`/tmp/ddlNew-user-settings-build.log`），构建 PATH 排除 sentry-cli，git diff --check 通过。未操作设备、提交或推送；真实响应的设备缓存验收尚未执行。
+
+## 2026-11-09 断线仍可点击会话
+
+按用户要求，消息列表行不再因 `isAuthenticated == false` 整行禁用，断线、重连及冷启动恢复期间都可进入聊天页。在线资格只限制列表的置顶、免打扰、未读和删除操作；原有操作忙碌状态仍按会话控制。已登录后断线沿用 ChatRuntime 的稳定身份与 SDK 本地历史读取；冷启动尚未建立聊天身份时仍等待原 AUTH 激活流程，未提前授予发送资格。
+
+聊天 Store 回归通过（`/tmp/ddlNew-offline-chat-checks.log`）；无签名 generic iOS 构建 exit0、BUILD SUCCEEDED（`/tmp/ddlNew-offline-chat-build.log`），构建 PATH 排除 sentry-cli，git diff --check 通过。未操作设备，断线点击的真机交互尚待验证；未提交或推送。
+
+## 2026-11-09 消息列表先展示本地缓存
+
+用户追加要求：App 启动进入消息页即显示已有列表，不等待连接／AUTH 成功。MessageSessionRecovery 在网络可用门禁之前执行一次本地快照读取，因此断网冷启动也能展示上次的会话、草稿、预览及未读数；连接状态独立显示，连接与 AUTH 成功后沿原有同步回调刷新列表。
+
+SDK 增加锁内的临时本地数据库读取入口；只临时设置 UID，不设置 SDK 用户 Token、不发送 AUTH、不配置 Socket 或 MMKV，读取结束清理临时数据库及身份。NoaIMDBTool 使用专用已有库打开路径，不进入正常建库的恢复／删除／重建分支，不执行预览表迁移；没有缓存文件时返回空快照，不创建文件。读取失败可在消息页离线重试，重试与 AUTH 由同一恢复任务串行调度。
+
+ConversationsStore 在同账号恢复 AUTH 和暂时连接失败时保留快照，停止旧观察与读写轮次；AUTH 成功后刷新，不因重试闪成空列表。退出、明确认证拒绝和换号仍清空；旧读取与回调按 generation 拒收。缓存仅用于展示，聊天操作、来电、Push 与其他业务仍受真实 AUTH 门禁保护。本节覆盖原设计“不在 AUTH 前读消息缓存”的边界。
+
+验证：本轮8组相关入口通过，覆盖 Conversations／online、SessionRestore／recovery／local-cache、Login、AccountLifecycle、Push；包含离线先读缓存、认证前保留、同步后替换、临时失败与本地重读保留、退出后的迟到读取拒收。生产 SDK／DB 打开方法提取测试以 WCDB 边界替身模拟失败，并确认临时样本的 DB／WAL／SHM 文件字节不变、无表创建及无缓存目录创建。独立复核确认两项发现（误入旧删库重建路径、离线无法重读）修复后无剩余阻断问题。最终无签名 generic iOS workspace 构建 exit0、BUILD SUCCEEDED，日志 `/tmp/ddlNew-local-conversation-final-build.log`，构建 PATH 排除 sentry-cli；git diff --check 通过。这些不是实际 WCDB 文件或设备冷启动验收，真机离线启动与恢复后更新仍待验证。未操作实体设备、真实账号或 xgd，未提交／推送。
+
+
+## 2026-11-09 冷启动恢复移到消息页与连接状态对齐
+
+用户批准设计并要求实施；本节覆盖下方历史“启动等待 TCP/ECDH 和 AUTH 后进入主界面”的边界。启动仅校验本地入口与成对账号／企业凭据：无入口显示邀请码，有入口无账号显示登录，有有效缓存先显示默认消息 Tab。启动路由不发 DNS/BIN、TCP 探测、正式连接或 AUTH。登录页出现后幂等准备原访客连接，首次登录／注册及协议确认合同保持。
+
+新增 MessageSessionRecovery，由消息页出现触发、会话服务持有任务。恢复沿现有 DNS1 缓存／主备／BIN与正式连接→本地租户参数→缓存 AUTH；单轮连接入口避免访客无限循环与页面恢复循环并行。切 Tab／进入聊天不取消；无网络／后台暂停新尝试及退避计时，已在途尝试可结束，随后等待可用；SDK已登录重连仍由原所有者执行。暂时失败保留本地展示身份及凭据，明确认证拒绝清理返回登录，本地存储／数据库失败停止自动重试并提供重试入口。恢复UUID、账号、企业、SDK代理generation和真实Socket身份隔离旧回包。冷启动消息页先读取本地会话快照，再后台恢复连接，真实业务、来电与Push仍在AUTH之后激活。
+
+消息页顶部固定状态行按xgd实际代码显示：正在连接…、在线、重连中、连接失败正在重连、网络不可用；无固定次数上限。文本与彩点并用，真实用户AUTH才允许在线；好友头像在线圆点不变。前台可见且已认证时每20秒探测当前正式节点，3秒超时，同一时间一轮，与网络质量择优互斥；失败经新增SDK原子身份／Socket核验入口交回原重连。离页／后台取消探测业务等待与结果资格，底层临时探测仍按自身超时回收。
+
+独立复核发现并修复两项竞态：恢复AUTH取消清理会使同轮主动退出漏删凭据，现恢复catch避让pendingSignOut，由主动退出完成清理；首次恢复超时调用通用Push.close会清除排队点击及未知角标，现临时恢复清理保留尚未激活的Push状态。两项已先以真实LoginSessionService加边界替身复现失败，再通过新回归，复核确认无剩余重要发现。
+
+验证：最终14组专项入口全部exit0，覆盖SessionRestore五入口、Login、AccountLifecycle、Network与ECDH、NetworkQuality、Conversations两入口、Push、SessionMaintenance，汇总 `/tmp/ddlNew-message-final-checks.json`。启动零连接断言先RED后GREEN；恢复幂等、离线、超时、同UID新轮次、本地错误、状态优先级、探测迟到隔离及生产ObjC方法6场景通过。最终无签名generic iOS workspace构建exit0、BUILD SUCCEEDED，日志 `/tmp/ddlNew-message-connection-reviewed-build.log`，构建PATH排除sentry-cli。git diff --check通过。六种状态的生产视图匿名macOS ImageRenderer预览在 `/tmp/ddlNew-message-state-preview/`，已目视核对在线、失败与重试布局；不是iOS触控／辅助字号／VoiceOver验收。
+
+未操作实体设备、真实账号或修改xgd，未提交推送；当前工作区既有首页／我的／网络检测改动保留。真机仍需Run后验收有缓存冷启动、断网与恢复、AUTH期间退出、通知点击后首次恢复超时、切Tab／进入聊天及持续认证恢复；离线与编译不代表这些服务器及设备行为已通过。设计与实施记录：`Docs/superpowers/specs/2026-11-09-message-connection-design.md`、`Docs/superpowers/plans/2026-11-09-message-connection.md`。
+
+
+2026-11-09 展示微调：按用户要求，“当前企业”移至网络检测滚动内容最上方、状态摘要之前；删除底部“节点地址已脱敏。结果仅代表本轮检测，不代表登录成功或消息已送达。”整段说明及空页尾。节点脱敏逻辑继续保留。本次仅调整展示顺序与文案。
+
+## 2026-11-09 网络检测节点脱敏
+
+按用户要求，当前目标、外网请求、DNS主／备／BIN来源、返回节点、服务器详情和未执行地址统一通过 `NetworkDiagnosticAddress.masked` 展示。IPv4保留首尾段，IPv6仅保留首段；域名每段保留首尾字符（短段全隐藏），端口保留。URL路径统一隐藏，账号／密码／查询参数／片段不展示；无效输入返回星号，不回显原文。可复制Text及无障碍文本均由脱敏字符串构成，页尾标明节点地址已脱敏。真实地址仍用于请求及匹配，检测策略不变。
+
+新增15种地址输入检查，连同原专项共19组通过（`/tmp/ddlNew-address-checks.log`）；最终无签名iOS构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-address-build.log`），构建PATH排除sentry-cli。匿名模拟器截图同步更新，验证范围仍为展示布局，不代表真实网络或VoiceOver验收。此节覆盖此前完整地址展示的约定；未提交或推送。
+
+## 2026-11-09 网络检测可读性与实际节点展示
+
+按用户选择“结果更易懂、当前步骤和异常更清楚”，使用Impeccable与Superpowers细化已有诊断工作台。移除重复眉题和说明，步骤标题整行可展开；当前步骤、已有结果、全部通过、部分通过、未通过与未执行分别显示，运行期间不提前判断整步最终失败。失败结果自动展开，文字状态与图标并用，地址使用可选择的等宽文本，支持长地址和IPv6换行；浅深色、辅助字号布局及48pt主操作触点保留。装饰步骤图标固定其字号，避免辅助字号溢出圆形标记。
+
+用户追加要求三部分显示节点，现已接线真实本轮数据：设备检查明确为网络接口检查、无远端节点；外网四地址逐次显示实际请求目标、结果、毫秒耗时，成功后后续地址立即标未请求。DNS主／备／BIN显示实际来源地址和返回的全部TCP候选节点；连接服务器显示实际host:port，IPv6保留方括号。正在请求／探测的目标也实时显示。数据仅用于当前页面，未添加公网IP提取或上报；四地址回退、DNS1顺序和正式连接策略不变，不恢复旧五路。
+
+独立复核提出的立即取消后旧Task回填来源，以及外网成功后剩余地址仍显示待检测，两项均复现／修复并补检查。模拟器渲染又发现完成时自动展开未生效，已改为以completed驱动的任务并重新截图验证。专项18组检查通过（`/tmp/ddlNew-clarity-checks-final.log`），覆盖地址传播、IPv6、回退、取消迟到回调、新旧轮次隔离和展示状态。最终无签名iOS构建及截图证据见 `.impeccable/review/network-diagnostics/README.md`。
+
+本轮仅在匿名iPhone SE 375pt模拟器宿主编译实际展示组件、模型和主题，核对准备／运行／部分失败／深色／辅助字号及滚动到底的布局；截图使用示例域名与文档IPv6地址，不代表真实网络结果。没有操作实体设备或真实账号；触控自动化工具未返回可用结果，未完成真实点击、VoiceOver和横屏验收。未提交或推送。
+
+## 2026-11-09 网络检测改为诊断工作台
+
+用户明确放弃xgd同款UI，并选择“诊断工作台：突出当前步骤、结果和耗时”。本节取代下方“网络检测UI对齐xgd”的视觉方案：改为森林绿主题、左对齐状态摘要与卡片内开始／停止／重测操作，下方以纵向三步骤展示设备与外网、获取服务节点、连接服务器。移除页面对原盾牌插画、邀请码胶囊、居中百分比和底部固定按钮的使用。步骤支持就地展开记录与实际毫秒耗时；当前检测步骤自动展开，完成时自动展开含失败记录的步骤；可用服务器与局部检查失败分别说明，未运行来源显示未检测。
+
+保留四地址外网顺序回退、新端DNS1主／备／BIN、独立探测及取消／重试／换号隔离，不恢复旧五路。辅助字号切换纵向操作与步骤标题布局，按钮触点至少44pt，收展动画遵循减少动态效果设置。设计记录见 `Docs/superpowers/specs/2026-11-09-network-diagnostic-workbench.md`。
+
+验证：14组离线诊断／外网检查通过（`/tmp/ddlNew-diagnostic-workbench-checks.log`）；最终generic iOS Debug无签名workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-diagnostic-workbench-build.log`），构建PATH排除sentry-cli，`git diff --check`通过。已目视检查准备态、部分失败但找到可用服务器、深色和辅助字号布局分支的静态组件预览（`/tmp/ddlNew-diagnostic-workbench-preview/`）。预览为macOS ImageRenderer、匿名数据和静态容器，不能替代iOS实际字号缩放、滚动、安全区、触控与VoiceOver验证。本轮未操作设备、未做真实网络验收、未提交或推送。
+
+## 2026-11-09 外网连通性恢复xgd四地址回退
+
+用户指出此前仅请求Google 204与xgd不一致。本次以xgd `checkInternetConnectivityAtIndex:generation:completion:` 为准，顺序尝试 `https://ipinfo.io/json`、`https://ipapi.co/json/`、`https://api.ip.sb/geoip`、`https://www.google.com/generate_204`。任一通过即停止，不要求每次发满四次；全部失败才返回不可达。前三项要求HTTP 2xx和JSON字典内非空字符串country／country_code，最后一项接受200或204。请求超时5秒、资源超时8秒，临时Session禁用缓存／Cookie／凭据；不提取、保存或上报响应中的公网IP。取消后不继续下个地址，迟到成功不可写新轮次。
+
+此节取代上文“仅Google地址”的实现边界；DNS1主／备／BIN与正式连接不受影响。新增五组外网策略检查覆盖四个成功位置、顺序与提前停止、非法字段、HTML、HTTP失败和取消迟到回包，连同既有九组诊断检查全部通过（`/tmp/ddlNew-four-address-checks.log`）。最终generic iOS Debug无签名构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-four-address-build.log`），`git diff --check`通过，构建PATH排除sentry-cli；未对真实地址执行网络验收，未操作设备、未提交或推送。
+
+## 2026-11-09 网络检测UI对齐xgd
+
+按用户追加要求，对照xgd的 `NoaNetworkDetectionTopHeaderView`、`NoaNetworkDetectionView` 和主／子结果Cell重做展示。使用原版88pt状态插画、居中标题／阶段百分比／异常数量、邀请码胶囊、12pt圆角连续分组列表和底部固定44pt蓝紫色按钮；分组默认收起，等待状态不可展开，检测中显示进度指示，完成显示原版成功／失败图标，展开查看结果及耗时。浅深色背景对照原页，小号结果文字的红绿值加深以保证可读性；长文和辅助字号可换行，不复制固定行高裁切。
+
+进入页现为准备态，点击“开始检测”才运行；运行时“退出检测”取消并清空结果回到准备态，完成后“重新检测”。Store只增加展示用阶段进度、完成状态与reset，DNS1主／备／BIN读取、独立ECDH、取消／换号隔离不变，旧五路不恢复。xgd项目只读；关于我们与上一轮活动迁移保留。
+
+验证：检测离线9项通过，新增reset恢复准备态以及完成时100%检查。浅色准备态、异常态及深色匿名组件预览已目视核对，文件在 `/tmp/ddlNew-network-ui-preview/`；预览使用macOS ImageRenderer并将不支持的ScrollView替换为静态容器，不能当作iOS滚动、安全区、触控或VoiceOver验收。最终generic iOS Debug无签名workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-network-ui-final.log`），`git diff --check`通过；构建PATH排除sentry-cli。未操作设备、未提交或推送。
+
+## 2026-11-09 我的新增网络检测与关于我们
+
+按用户确认的方案对照xgd可见功能，新增“我的 → 账户与支持 → 网络检测／关于我们”，使用现有Tab值路由和森林绿主题。保留此前活动／俱乐部迁入首页的工作区修改，未修改xgd。
+
+网络检测读取当前AUTH上下文中的企业邀请码，独立检查设备网络、外网检测地址、DNS1主域／备域／BIN和本轮TCP节点密钥交换；逐项显示耗时和结果，未运行来源标记未检测。某来源全部节点失败继续下一来源，找到可用来源后停止后续来源。复用生产DNS1加载和临时ECDH探测，不使用导航缓存掩盖失败，不保存节点、不切换正式Socket或发起AUTH，不恢复旧五路／OSS Auth或公网IP采集。外网项仅检测Google 204地址，失败文案明确为检测地址不可达，不能据此断言所有外网不可用。SDK临时ECDH无取消句柄：取消立即结束Swift等待并拒绝迟到回执，底层临时探测仍依其4秒超时收口。
+
+页面支持取消和重新检测；离页及ChatRuntime清理取消任务。轮次UUID、Task取消和完整AUTH上下文共同隔离重试、换号及同UID重登。关于页读取实际Bundle图标、版本和build，图标读取失败显示系统兜底；使用本产品现有“使用支持／隐私政策”，不复制xgd域名，不引入Flutter或旧版未显示的更新／评分／日志上传入口。
+
+验证：新增 `Tests/Mine/run-diagnostic-checks.sh` 8项通过（来源失败回退、探测失败回退、成功停止、缓存不参与、源／探测取消、真实Store重试迟到隔离、同UID新AUTH、退出禁止检测）；DNS1原有43项及DoH专项通过。独立只读复核未发现重要问题，按钮44pt实际触点和缺失图标兜底已补正。最终无签名generic iOS Debug workspace构建exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-mine-support-final.log`），`git diff --check`通过；构建PATH排除sentry-cli。未操作设备或连接真实账号进行检测；小屏／大字号／浅深色实际渲染、VoiceOver、触控及真实网络结果尚待设备验收。未提交或推送。
+
+## 2026-11-09 我的活动与俱乐部迁入首页
+
+按用户要求，将“我的”中的我的报名、候补记录、签到记录、已参加活动及当前俱乐部／更换俱乐部全部迁入首页。首页原“我的户外日程”合并为“我的活动”四项记录，保留独立活动签到入口；原顶部重复俱乐部入口移除，由迁入的薄荷绿俱乐部卡统一承载。活动大厅、推荐活动和公告保留。普通字号活动两列、辅助字号单列，复用原主题与按压反馈、至少44pt点击区域。
+
+`MinePageContent` 仅保留真实个人资料、二维码与账户支持；`MineView` 移除俱乐部切换状态和回调。确认弹框迁至 `ClubHomeView`，仍仅在确认后调用原 `store.signOut(changeClub: true)`；记录和俱乐部详情继续使用首页既有 `ActivityNavigationScope` 值路由，不修改数据、登录或SDK行为。当前俱乐部名称仍为既有演示内容，没有新增服务端接线。
+
+验证：最终无签名 generic iOS Debug workspace 构建 exit0、`BUILD SUCCEEDED`（`/tmp/ddlNew-home-migration-build-final.log`），`git diff --check`通过。构建环境排除sentry-cli。已核对首页注册全部迁入值路由、我的页不再含活动和俱乐部入口；本轮未操作设备、未实际更换俱乐部，视觉与触控尚未真机验收。未提交或推送。
+
 ## 2026-11-09 xgd 推送完整迁移到 ddlNew
 
 用户确认完整迁移，并明确 xgd 项目代码不得修改。本轮只在 ddlNew 实现；xgd 的 git status 和 git diff HEAD 二进制摘要开工/收尾一致，原有 project.pbxproj、Podfile.lock 修改未动。保留当前 feature-all-5 工作区中既有补发、TLS、MiniApps 和用户签名设置，不提交或推送。

@@ -108,6 +108,9 @@ typedef void (^NoaTcpRaceCompletion)(NSString * _Nullable host, NSInteger port, 
                               completion:(void (^)(BOOL accepted))completion
     NS_SWIFT_NAME(switchAuthenticatedSocket(host:port:userID:liceseId:completion:));
 
+/// 探测失败只重连该次探测绑定的 Socket；旧探测不能中断替换后的连接。
+- (void)reconnectIfCurrentSocket:(GCDAsyncSocket *)socket userID:(NSString *)userID liceseId:(NSString *)liceseId;
+
 /// 当前socket连接状态
 - (BOOL)currentSocketConnectStatus;
 

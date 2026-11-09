@@ -11,17 +11,20 @@ import NoaChatCore
 /// 代理只转发事件；每轮创建独立代理，让旧代理的迟到回调失效。
 @MainActor
 final class IMUserAuthenticationDelegate: NSObject, NoaToolUserDelegate, NoaToolConnectDelegate {
+    private let connectionEvent: @MainActor @Sendable (IMConnectionEvent) -> Void
     private let authenticated: @MainActor @Sendable () -> Void
     private let disconnected: @MainActor @Sendable () -> Void
     private let rejected: @MainActor @Sendable (Int, String) -> Void
     private let tokenRefreshed: @MainActor @Sendable (String) -> Void
     private let httpNodeUpdated: @MainActor @Sendable (String) -> Void
 
-    init(authenticated: @escaping @MainActor @Sendable () -> Void,
+    init(connectionEvent: @escaping @MainActor @Sendable (IMConnectionEvent) -> Void = { _ in },
+         authenticated: @escaping @MainActor @Sendable () -> Void,
          disconnected: @escaping @MainActor @Sendable () -> Void,
          rejected: @escaping @MainActor @Sendable (Int, String) -> Void,
          tokenRefreshed: @escaping @MainActor @Sendable (String) -> Void,
          httpNodeUpdated: @escaping @MainActor @Sendable (String) -> Void) {
+        self.connectionEvent = connectionEvent
         self.authenticated = authenticated
         self.disconnected = disconnected
         self.rejected = rejected
@@ -34,15 +37,15 @@ final class IMUserAuthenticationDelegate: NSObject, NoaToolUserDelegate, NoaTool
     }
 
     nonisolated func cimToolDisconnect() {
-        Task { @MainActor in disconnected() }
+        Task { @MainActor in connectionEvent(.disconnected); disconnected() }
     }
 
     nonisolated func cimToolConnecting() {
-        Task { @MainActor in disconnected() }
+        Task { @MainActor in connectionEvent(.connecting); disconnected() }
     }
 
     nonisolated func cimToolConnectFail(with error: Error) {
-        Task { @MainActor in disconnected() }
+        Task { @MainActor in connectionEvent(.failed); disconnected() }
     }
 
     nonisolated func imSdkUserForceLogout(_ type: Int, message: String) {

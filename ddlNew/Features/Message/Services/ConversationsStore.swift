@@ -8,7 +8,7 @@
 import Combine
 import Foundation
 
-/// SDK 会话数据库的展示快照。AUTH 前订阅事件，AUTH 后加载缓存。
+/// SDK 会话数据库的展示快照。冷启动先读本地缓存，AUTH 与同步更新同一列表。
 @MainActor
 final class ConversationsStore: ObservableObject {
     @Published private(set) var conversations: [ConversationRecord] = []
@@ -30,13 +30,15 @@ final class ConversationsStore: ObservableObject {
     private var reloadRequested = false
     private var allConversations: [ConversationRecord] = []
     private var fileAssistantVisible = false
+    private var sessionPrepared = false
 
     /// 注入数据与操作客户端，便于隔离 SDK 和离线回归。
     init(client: any ConversationsClient) { self.client = client }
 
     /// AUTH 前绑定当前账号，丢弃旧轮次回调。
-    func prepare(for userUID: String) {
-        reset()
+    func prepare(for userUID: String, preservingSnapshot: Bool = false) {
+        if preservingSnapshot, self.userUID == userUID { suspend() } else { reset() }
+        sessionPrepared = true
         self.userUID = userUID
         isSyncing = true
         let runID = generation
@@ -61,9 +63,46 @@ final class ConversationsStore: ObservableObject {
         }
     }
 
+    /// 不依赖网络或 AUTH；异步结果仍受账号及轮次隔离。
+    func loadLocalSnapshot(for userUID: String,
+                           load: @MainActor () async throws -> [ConversationRecord]) async {
+        if self.userUID == userUID { suspend() } else { reset() }
+        self.userUID = userUID
+        let runID = generation
+        do {
+            let records = try await load()
+            let snapshot = await Task.detached { ConversationSorter.sorted(records) }.value
+            guard !Task.isCancelled, generation == runID else { return }
+            allConversations = snapshot
+            publishVisibleConversations()
+            hasLoadedSnapshot = true
+            cacheError = nil
+            updateError()
+        } catch {
+            guard !Task.isCancelled, generation == runID else { return }
+            cacheError = "会话缓存读取失败：\(error.localizedDescription)"
+            updateError()
+        }
+    }
+
+    /// 暂时恢复失败只停止旧轮次的读写与订阅，屏幕上的同账号快照继续保留。
+    func suspend() {
+        generation = UUID()
+        reloadTask?.cancel()
+        reloadTask = nil
+        reloadRequested = false
+        client.stopObserving()
+        sessionPrepared = false
+        isSyncing = false
+        busyConversationIDs = []
+        operationError = nil
+        syncError = nil
+        updateError()
+    }
+
     /// 合并同时到达的缓存读取请求，保留同步失败时的已有数据。
     func reload() async {
-        guard let userUID else { return }
+        guard sessionPrepared, let userUID else { return }
         if let reloadTask { await reloadTask.value; return }
         let runID = generation
         let task = Task { [weak self] in
@@ -122,7 +161,7 @@ final class ConversationsStore: ObservableObject {
 
     /// 操作按会话去重；退出或换账号后不能写入旧请求的结果与错误。
     func perform(_ action: ConversationAction, conversationID: String) async {
-        guard let userUID, !busyConversationIDs.contains(conversationID),
+        guard sessionPrepared, let userUID, !busyConversationIDs.contains(conversationID),
               let conversation = conversations.first(where: { $0.id == conversationID }),
               ConversationActionPolicy.allowed(for: conversation).contains(action),
               let operations = client as? any ConversationOperationsClient else { return }
@@ -147,12 +186,8 @@ final class ConversationsStore: ObservableObject {
 
     /// 登出释放订阅和正在运行的读取，移除所有用户快照。
     func reset() {
+        suspend()
         hasLoadedSnapshot = false
-        generation = UUID()
-        reloadTask?.cancel()
-        reloadTask = nil
-        reloadRequested = false
-        client.stopObserving()
         userUID = nil
         allConversations = []
         fileAssistantVisible = false

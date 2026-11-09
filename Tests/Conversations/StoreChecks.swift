@@ -45,7 +45,14 @@ private struct StoreChecks {
         client.callback?(.syncFinished)
         precondition(!store.isSyncing)
 
-        store.prepare(for: "B")
+        store.prepare(for: "A", preservingSnapshot: true)
+        precondition(store.conversations.count == 2 && store.hasLoadedSnapshot, "same-account AUTH retains cached rows")
+        store.suspend()
+        precondition(store.conversations.count == 2 && client.callback == nil, "transient failure retains rows but detaches callbacks")
+        store.prepare(for: "A", preservingSnapshot: true)
+        precondition(store.conversations.count == 2, "retry retains cached rows")
+        store.prepare(for: "B", preservingSnapshot: true)
+        precondition(store.conversations.isEmpty, "preservation never crosses users")
         oldCallback?(.syncFailed("旧账号错误"))
         await store.reload()
         precondition(store.conversations.isEmpty && store.totalUnreadCount == 0)
@@ -66,6 +73,28 @@ private struct StoreChecks {
         store.prepare(for: "B")
         await store.reload()
         precondition(store.conversations.isEmpty && store.totalUnreadCount == 0, "另一账号不保留文件助手权限或快照")
+        await store.loadLocalSnapshot(for: "A") { [first] }
+        precondition(store.conversations.map(\.id) == ["a"] && store.hasLoadedSnapshot && !store.isSyncing,
+                     "local rows appear without AUTH or sync")
+        precondition(client.callback == nil, "local snapshot does not subscribe to online changes")
+        store.prepare(for: "A", preservingSnapshot: true)
+        precondition(store.conversations.map(\.id) == ["a"], "AUTH starts with the local rows still visible")
+        client.recordsByUser["A"] = [second]
+        await store.reload()
+        precondition(store.conversations.map(\.id) == ["b"], "successful connection refresh replaces local snapshot")
+        await store.loadLocalSnapshot(for: "A") { throw NSError(domain: "fixture", code: 1) }
+        precondition(store.conversations.map(\.id) == ["b"] && store.errorMessage != nil, "failed local reread preserves existing rows")
+        await store.loadLocalSnapshot(for: "A") { [first] }
+        precondition(store.errorMessage == nil, "successful local reread clears cache error")
+        var completion: CheckedContinuation<[ConversationRecord], Error>?
+        let staleRead = Task { await store.loadLocalSnapshot(for: "A") {
+            try await withCheckedThrowingContinuation { completion = $0 }
+        } }
+        while completion == nil { await Task.yield() }
+        store.reset()
+        completion?.resume(returning: [first])
+        await staleRead.value
+        precondition(store.conversations.isEmpty && !store.hasLoadedSnapshot, "logout rejects late local cache")
         print("ConversationsStore checks passed")
     }
 }

@@ -72,7 +72,10 @@ struct LoginView: View {
             Text("请阅读并同意《隐私政策》和《使用支持》")
         }
         .onChange(of: verification.request?.id) { _ in dismissKeyboard() }
-        .onAppear(perform: restoreRememberedLogin)
+        .onAppear {
+            restoreRememberedLogin()
+            connection.ensureCachedReconnect()
+        }
         .onChange(of: rememberPassword) { enabled in
             if !enabled { viewModel.clearRememberedLogin() }
         }

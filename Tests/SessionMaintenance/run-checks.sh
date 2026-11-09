@@ -28,6 +28,8 @@ swiftc -swift-version 5 -emit-library -emit-module -module-name ObjectMapper \
 xcrun swiftc -swift-version 6 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
  "$task_root/ddlNew/Common/User/UserRoleAuthority.swift" \
  "$task_root/ddlNew/Common/User/UserInfo.swift" \
+ "$task_root/ddlNew/Common/User/UserSettings.swift" \
+ "$task_root/ddlNew/Features/Login/Models/AccountLoginResponse.swift" \
  "$task_root/Tests/SessionMaintenance/RoleProfileChecks.swift" -o "$task_output/role-checks"
 DYLD_LIBRARY_PATH="$task_output" "$task_output/role-checks"
 

@@ -50,37 +50,56 @@ final class SDKConversationsClient: ConversationsClient {
             objc_sync_enter(sdk)
             defer { objc_sync_exit(sdk) }
             guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady() else { throw UserSessionError.databaseNotReady }
-            guard let models = sdk.toolGetMySessionListExcept("") as? [LingIMSessionModel] else {
-                throw ConversationsClientError.cacheReadFailed
-            }
-            return models.compactMap { model -> ConversationRecord? in
-                // SDK 查询没有过滤展示状态，未知类型也不应进入当前只读列表。
-                guard model.sessionStatus == 1, let id = model.sessionID, !id.isEmpty,
-                      let kind = ConversationKind(sdkType: Int(model.sessionType.rawValue)) else { return nil }
-                let draft = (model.draftDict as? [String: Any])?["draftContent"] as? String ?? ""
-                let isDraft = !draft.isEmpty
-                // 最新消息不随会话模型入库；同步预览写入消息表后从该表补读。
-                let message = model.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: id)
-                let preview = isDraft ? draft : ConversationPreview.text(for: message, kind: kind, userUID: userUID, sdk: sdk)
-                let millis = model.sessionLatestTime
-                // 旧项目单聊优先读好友库最新头像；会话头像只在好友记录缺失时兜底。
-                let avatar: String
-                let friend = kind == .single ? sdk.toolCheckMyFriend(with: id) : nil
-                if let friend {
-                    avatar = friend.disableStatus == 4 ? "" : (friend.avatar ?? "")
-                } else {
-                    avatar = model.sessionAvatar ?? ""
-                }
-                return ConversationRecord(
-                    id: id, title: Self.displayTitle(model, id: id, kind: kind, sdk: sdk),
-                    avatarURL: avatar, kind: kind,
-                    preview: preview, latestTime: millis > 0 ? Date(timeIntervalSince1970: TimeInterval(millis) / 1000) : nil,
-                    unreadCount: max(0, model.sessionUnreadCount), isMarkedUnread: model.readTag > 0,
-                    isPinned: model.sessionTop, isMuted: model.sessionNoDisturb, isDraft: isDraft,
-                    isOnline: friend?.onlineStatus == true && friend?.disableStatus != 4
-                )
-            }
+            return try Self.readSnapshot(userUID: userUID, sdk: sdk)
         }.value
+    }
+
+    /// 只读本地账号缓存；SDK 临时数据库在同一锁内打开、映射、关闭，不参与正式认证。
+    static func loadLocalSnapshot(userUID: String, token: String) async throws -> [ConversationRecord] {
+        let task = Task.detached {
+            try Task.checkCancellation()
+            let sdk = NoaIMSDKManager.sharedTool()
+            var result: Result<[ConversationRecord], Error>?
+            let opened = sdk.readLocalUserDatabase(userUID, token: token) { hasCache in
+                result = hasCache ? Result { try Self.readSnapshot(userUID: userUID, sdk: sdk) } : .success([])
+            }
+            guard opened, let result else { throw UserSessionError.databaseNotReady }
+            return try result.get()
+        }
+        return try await withTaskCancellationHandler(operation: { try await task.value }, onCancel: { task.cancel() })
+    }
+
+    nonisolated private static func readSnapshot(userUID: String, sdk: NoaIMSDKManager) throws -> [ConversationRecord] {
+        guard let models = sdk.toolGetMySessionListExcept("") as? [LingIMSessionModel] else {
+            throw ConversationsClientError.cacheReadFailed
+        }
+        return models.compactMap { model -> ConversationRecord? in
+            // SDK 查询没有过滤展示状态，未知类型也不应进入当前只读列表。
+            guard model.sessionStatus == 1, let id = model.sessionID, !id.isEmpty,
+                  let kind = ConversationKind(sdkType: Int(model.sessionType.rawValue)) else { return nil }
+            let draft = (model.draftDict as? [String: Any])?["draftContent"] as? String ?? ""
+            let isDraft = !draft.isEmpty
+            // 最新消息不随会话模型入库；同步预览写入消息表后从该表补读。
+            let message = model.sessionLatestMessage ?? sdk.toolGetLatestChatMessage(withSessionID: id)
+            let preview = isDraft ? draft : ConversationPreview.text(for: message, kind: kind, userUID: userUID, sdk: sdk)
+            let millis = model.sessionLatestTime
+            // 旧项目单聊优先读好友库最新头像；会话头像只在好友记录缺失时兜底。
+            let avatar: String
+            let friend = kind == .single ? sdk.toolCheckMyFriend(with: id) : nil
+            if let friend {
+                avatar = friend.disableStatus == 4 ? "" : (friend.avatar ?? "")
+            } else {
+                avatar = model.sessionAvatar ?? ""
+            }
+            return ConversationRecord(
+                id: id, title: Self.displayTitle(model, id: id, kind: kind, sdk: sdk),
+                avatarURL: avatar, kind: kind,
+                preview: preview, latestTime: millis > 0 ? Date(timeIntervalSince1970: TimeInterval(millis) / 1000) : nil,
+                unreadCount: max(0, model.sessionUnreadCount), isMarkedUnread: model.readTag > 0,
+                isPinned: model.sessionTop, isMuted: model.sessionNoDisturb, isDraft: isDraft,
+                isOnline: friend?.onlineStatus == true && friend?.disableStatus != 4
+            )
+        }
     }
     /// 单聊名称随好友库的已确认备注变化，旧会话快照不能覆盖新备注或清空结果。
     nonisolated static func displayTitle(_ model: LingIMSessionModel, id: String, kind: ConversationKind, sdk: NoaIMSDKManager) -> String {

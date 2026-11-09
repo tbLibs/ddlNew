@@ -81,7 +81,7 @@ final class UserSessionStore: ObservableObject {
         return (user, record)
     }
 
-    /// 认证期间允许保存 SDK 刷新的 Token；根路由仍须等待 AUTH 成功。
+    /// 本地恢复可提前展示资料，业务资格仍必须等待 AUTH 成功。
     func activateCachedUser(_ user: UserInfo) {
         currentUser = user
     }

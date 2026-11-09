@@ -77,6 +77,12 @@ struct TabbarView: View {
                     ContactsPageDestination(route: route, businessStore: contactBusiness,
                         fileHost: connection.current?.getFileHost)
                 }
+                .navigationDestination(for: MineSupportRoute.self) { route in
+                    switch route {
+                    case .network: NetworkDiagnosticScreen()
+                    case .about: AboutUsScreen()
+                    }
+                }
                 .navigationDestination(for: SafetyRoute.self) { _ in BlacklistView(businessStore: contactBusiness) }
         }
         .tabItem {

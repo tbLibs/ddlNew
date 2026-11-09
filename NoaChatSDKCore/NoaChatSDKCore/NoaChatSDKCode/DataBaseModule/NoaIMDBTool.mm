@@ -17,6 +17,7 @@ static dispatch_once_t onceToken;
 
 @property (nonatomic, copy) NSString *userToken;
 @property (nonatomic, copy) NSString *userID;
+@property (nonatomic, assign) BOOL readingLocalSnapshot;
 
 /// 已创建/检查过的表名缓存（避免重复调用 createTable）
 @property (nonatomic, strong) NSMutableSet<NSString *> *checkedTables;
@@ -97,6 +98,51 @@ static dispatch_once_t onceToken;
     
     
 }
+/// 快照读取不进入 createDB 的损坏恢复／重建分支，也不执行表迁移。
+- (BOOL)openLocalSnapshotForUserID:(NSString *)userID {
+    if (userID.length == 0) return NO;
+    self.readingLocalSnapshot = YES;
+    _userID = userID;
+    _userToken = nil;
+    self.noaChatDB = nil;
+    NSString *documentPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+
+    //这行代码 很重要！
+    //---------begin----------//
+    NSString *dbPath = [documentPath stringByAppendingString:[NSString stringWithFormat:@"/NoaChatSDK/DataBase/%@/%@",_userID,NoaChatDBName]];
+    //---------end----------//
+    CIMLog(@"数据库地址:%@",dbPath);
+    if (![[NSFileManager defaultManager] fileExistsAtPath:dbPath]) return YES;
+    self.noaChatDB = [[WCTDatabase alloc] initWithPath:dbPath];
+    // 使用更安全的加密密钥生成方式
+    NSString *key = @"75367587e7d59d7ff03d3158febfe38d";
+    NSData *keyData = [key dataUsingEncoding:NSUTF8StringEncoding];
+
+    // 确保密钥长度为32字节（AES-256）
+    if (keyData.length < 32) {
+        NSMutableData *extendedKey = [keyData mutableCopy];
+        [extendedKey setLength:32];
+        keyData = extendedKey;
+    } else if (keyData.length > 32) {
+        keyData = [keyData subdataWithRange:NSMakeRange(0, 32)];
+    }
+
+    [self.noaChatDB setCipherKey:keyData];
+
+    //数据库标记，默认0.(具有相同路径的WCTCore对象共享这个标签，即使他们不是同一个对象)
+    self.noaChatDB.tag = 3000;
+
+    return [self.noaChatDB canOpen];
+}
+
+- (void)closeLocalSnapshot {
+    [self closeDB];
+    self.noaChatDB = nil;
+    _userID = nil;
+    _userToken = nil;
+    self.readingLocalSnapshot = NO;
+}
+
 #pragma mark - 获得我的ID
 - (NSString *)myUserID {
     return _userID;
@@ -187,6 +233,8 @@ static dispatch_once_t onceToken;
 
 #pragma mark - 判断某数据库表是否正常(用于自检数据表)
 - (BOOL)isTableStateOkWithName:(NSString *)tableName model:(Class)model {
+    // 本地快照只查询；缺表按没有该预览处理，不能在 AUTH 前迁移或新建表。
+    if (self.readingLocalSnapshot) return NO;
     // 性能优化：先检查缓存，避免重复调用 createTable
     __block BOOL isChecked = NO;
     

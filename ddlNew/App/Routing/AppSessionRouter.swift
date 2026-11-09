@@ -23,6 +23,7 @@ enum AppSessionRouter {
         guard RouterTool.shared.showAppPage == .tabbar else { return }
         switch state {
         case .idle, .failed:
+            guard !MessageSessionRecovery.shared.hasPendingIdentity else { return }
             RouterTool.shared.resetTabNavigation()
             RouterTool.shared.showAppPage = .login
         case .authenticating, .ready, .reconnecting:

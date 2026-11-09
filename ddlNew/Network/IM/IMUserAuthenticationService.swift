@@ -14,6 +14,8 @@ import NoaChatCore
 final class IMUserAuthenticationService: ObservableObject {
     static let shared = IMUserAuthenticationService()
 
+    @Published private(set) var connectionEvent: IMConnectionEvent = .connecting
+    @Published private(set) var connectionRevision = UUID()
     @Published private(set) var state: IMUserAuthenticationState = .idle
 
     private var sdk: NoaIMSDKManager { NoaIMSDKManager.sharedTool() }
@@ -83,6 +85,8 @@ final class IMUserAuthenticationService: ObservableObject {
 
     func reset() {
         generation = UUID()
+        connectionRevision = UUID()
+        connectionEvent = .connecting
         // 先撤销业务竞速与迟到回调，再清理 SDK，避免退出后旧任务重新连接。
         IMLoggedInReconnectCoordinator.shared.stop()
         if let delegate {
@@ -109,6 +113,11 @@ final class IMUserAuthenticationService: ObservableObject {
 
     private func installDelegate(runID: UUID) {
         let delegate = IMUserAuthenticationDelegate(
+            connectionEvent: { [weak self] event in
+                guard let self, self.generation == runID else { return }
+                self.connectionRevision = UUID()
+                self.connectionEvent = event
+            },
             authenticated: { [weak self] in self?.didAuthenticate(runID: runID) },
             disconnected: { [weak self] in
                 guard let self, self.generation == runID, !self.isAuthenticated else { return }
@@ -136,6 +145,8 @@ final class IMUserAuthenticationService: ObservableObject {
 
     private func didAuthenticate(runID: UUID) {
         guard generation == runID, isAuthenticated else { return }
+        connectionRevision = UUID()
+        connectionEvent = .authenticated
         state = .ready
         waiter?.finish(.success(()))
     }

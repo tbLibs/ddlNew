@@ -747,6 +747,29 @@ static void NoaTraceCloseRequest(GCDAsyncSocket *socket, NSString *reason) {
     });
 }
 
+- (void)reconnectIfCurrentSocket:(GCDAsyncSocket *)socket userID:(NSString *)userID liceseId:(NSString *)liceseId {
+    NSAssert([NSThread isMainThread], @"Message probe completion must run on main thread");
+    NoaIMSDKManager *sdk = [NoaIMSDKManager sharedTool];
+    if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive ||
+        ![[sdk myUserID] isEqualToString:userID] || ![[sdk currentLiceseId] isEqualToString:liceseId]) return;
+    dispatch_sync(self.internalQueue, ^{
+        if (!socket || self->_gcdSocket != socket || !self.isCanReconnect || self.isTcpRacing ||
+            self.reconnectScheduled || !SOCKETMANAGERTOOL.isAuth ||
+            ![self.socketUserID isEqualToString:userID]) return;
+        // 核对与断开必须在同一个串行队列区间完成，不能再异步读取全局当前 Socket。
+#if DEBUG
+        NoaTraceCloseRequest(socket, @"message_connectivity_probe");
+#endif
+        [self stopSocketHeartbeat];
+        [self stopSocketReconnectWithReason:@"message_connectivity_probe"];
+        [self cancelAuthPhase];
+        [self stopKeyExchangeTimer];
+        [socket disconnect];
+        [self updateConnectState:LingIMSocketConnectStateDisconnected];
+        [self startingSocketReconnect];
+    });
+}
+
 /// 主线程核对邀请码与前台状态，串行队列原子核对连接所有权并替换 Socket。
 - (void)switchAuthenticatedSocketWithHost:(NSString *)host port:(uint16_t)port
                                   userID:(NSString *)userID liceseId:(NSString *)liceseId

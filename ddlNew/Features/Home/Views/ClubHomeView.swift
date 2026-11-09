@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import UIAdapter
 
 /// 会员首页：活动、俱乐部入口在首页聚合，业务页面和报名状态继续复用现有实现。
 struct ClubHomeView: View {
     @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var navigation: ActivityNavigation
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var showSwitch = false
     @State private var information: InformationPage?
 
     /// 由主界面传入已认证用户昵称，预览不需要读取真实会话或 Keychain。
@@ -32,6 +34,10 @@ struct ClubHomeView: View {
                     }
                 }
                 quickEntries
+                VStack(alignment: .leading, spacing: 12) {
+                    sectionTitle("俱乐部")
+                    club
+                }
                 recommendations
                 announcement
                 Text("去山野，遇见同路人。")
@@ -60,6 +66,10 @@ struct ClubHomeView: View {
         .toolbarBackground(HomeTheme.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .sheet(item: $information) { InformationSheet(page: $0) }
+        .alert("更换俱乐部？", isPresented: $showSwitch) {
+            Button("取消", role: .cancel) { }
+            Button("更换", role: .destructive) { Task { await store.signOut(changeClub: true) } }
+        } message: { Text("将退出当前会员空间，已保存的活动记录会保留。") }
         .accessibilityIdentifier("clubHome")
     }
 
@@ -76,47 +86,115 @@ struct ClubHomeView: View {
     }
 
     private var hubEntries: some View {
-        // 大字体时改为纵排，保证两个入口的名称与说明完整可见。
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            NavigationLink(value: ClubHomeDestination.activities) {
-                HomeHubCard(destination: .activities, detail: "发现下一场精彩")
-            }
-            .accessibilityHint("浏览、筛选与报名活动")
-            .accessibilityIdentifier("home.activities")
-            NavigationLink(value: ClubHomeDestination.club) {
-                HomeHubCard(destination: .club, detail: "了解我们的俱乐部")
-            }
-            .accessibilityHint("查看俱乐部介绍与会员权益")
-            .accessibilityIdentifier("home.club")
+        NavigationLink(value: ClubHomeDestination.activities) {
+            HomeHubCard(destination: .activities, detail: "发现下一场精彩")
         }
+        .accessibilityHint("浏览、筛选与报名活动")
+        .accessibilityIdentifier("home.activities")
         .buttonStyle(HomePressStyle())
     }
 
     private var quickEntries: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
-        return VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("我的户外日程")
-            layout {
-                NavigationLink(value: RecordKind.registered) {
-                    HomeQuickEntry(title: "我的报名", symbol: "calendar",
-                                   detail: "\(store.activities(with: [.registered]).count) 场待参加")
-                }
-                .accessibilityIdentifier("home.registrations")
-                NavigationLink(value: RecordKind.waiting) {
-                    HomeQuickEntry(title: "候补记录", symbol: "clock",
-                                   detail: "\(store.activities(with: [.waiting]).count) 项等待中")
-                }
-                .accessibilityIdentifier("home.waiting")
-                NavigationLink(value: ActivityRoute.checkInSelection) {
-                    HomeQuickEntry(title: "活动签到", symbol: "qrcode.viewfinder", detail: "到场后签到")
-                }
-                .accessibilityIdentifier("home.checkIn")
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("我的活动")
+            activityRecords
+            NavigationLink(value: ActivityRoute.checkInSelection) {
+                Label("活动签到", systemImage: "qrcode.viewfinder")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(HomeTheme.forest)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .padding(8)
+                    .background(HomeTheme.surface, in: RoundedRectangle(cornerRadius: 16))
             }
-            .buttonStyle(HomePressStyle())
+            .accessibilityIdentifier("home.checkIn")
         }
+        .buttonStyle(HomePressStyle())
+    }
+
+    /// 四个既有记录入口不再展示本地演示计数；辅助字号按单列排布。
+    private var activityRecords: some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 8.zoom()),
+                            count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: 8.zoom()) {
+            record(.registered, symbol: "calendar")
+                .accessibilityIdentifier("home.registrations")
+            record(.waiting, symbol: "clock")
+                .accessibilityIdentifier("home.waiting")
+            record(.checkedIn, symbol: "checkmark.square")
+                .accessibilityIdentifier("home.checkedIn")
+            record(.past, symbol: "flag")
+                .accessibilityIdentifier("home.past")
+        }
+        .padding(8.zoom())
+        .background(HomeTheme.surface, in: cardShape)
+        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+    }
+
+    /// 当前俱乐部与更换操作分离，切换由首页确认。
+    private var club: some View {
+        VStack(spacing: 0) {
+            NavigationLink(value: ClubHomeDestination.club) {
+                HStack(spacing: 12.zoom()) {
+                    Image(systemName: "mountain.2")
+                        .font(.system(size: 26.zoom()))
+                        .foregroundStyle(HomeTheme.background)
+                        .frame(width: 44.zoom(), height: 44.zoom())
+                        .background(HomeTheme.forest, in: RoundedRectangle(cornerRadius: 14.zoom()))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4.zoom()) {
+                        Text("远山户外").font(.headline)
+                        Text("当前俱乐部").font(.caption).foregroundStyle(HomeTheme.secondaryText)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    chevron
+                }
+                .padding(16.zoom()).contentShape(Rectangle())
+            }
+            .accessibilityIdentifier("home.club")
+            divider.padding(.horizontal, 16.zoom())
+            Button { showSwitch = true } label: {
+                HStack(spacing: 12.zoom()) {
+                    Text("更换俱乐部").font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    chevron
+                }
+                .foregroundStyle(HomeTheme.forest)
+                .frame(minHeight: max(44, 48.zoom()))
+                .padding(.horizontal, 16.zoom()).padding(.vertical, 4.zoom())
+                .contentShape(Rectangle())
+            }
+            .accessibilityIdentifier("home.switchClub")
+        }
+        .buttonStyle(HomePressStyle())
+        .background(HomeTheme.mintSurface, in: cardShape)
+        .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+    }
+
+    private func record(_ kind: RecordKind, symbol: String) -> some View {
+        NavigationLink(value: kind) {
+            HStack(spacing: 10.zoom()) {
+                Image(systemName: symbol).font(.system(size: 19.zoom()))
+                    .foregroundStyle(HomeTheme.forest)
+                    .frame(width: 34.zoom(), height: 34.zoom())
+                    .background(HomeTheme.mintSurface, in: RoundedRectangle(cornerRadius: 11.zoom()))
+                    .accessibilityHidden(true)
+                Text(kind.rawValue).font(.subheadline.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8.zoom()).padding(.vertical, 12.zoom())
+            .frame(maxWidth: .infinity, minHeight: max(44, 64.zoom()), alignment: .leading)
+            .contentShape(Rectangle())
+        }
+    }
+
+    private var cardShape: RoundedRectangle { RoundedRectangle(cornerRadius: 22.zoom(), style: .continuous) }
+    private var divider: some View { Rectangle().fill(HomeTheme.border).frame(height: 0.5).accessibilityHidden(true) }
+    private var chevron: some View {
+        Image(systemName: "chevron.right").font(.caption.weight(.medium))
+            .foregroundStyle(HomeTheme.secondaryText).accessibilityHidden(true)
     }
 
     private var recommendations: some View {

@@ -76,6 +76,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// 3.SDK user 相关信息 配置/更新
 /// @param userOptions 用户信息
 - (void)configSDKUserWith:(NoaIMSDKUserOptions *)userOptions;
+/// 冷启动专用：在锁内临时打开本地用户库并同步读取，结束即关闭；不配置 Socket、AUTH 或 MMKV。
+/// 仅接受尚未绑定用户的 SDK，不能覆盖正在使用的账号；reader 不得发起异步任务。
+- (BOOL)readLocalUserDatabase:(NSString *)userID token:(NSString *)token reader:(void (^)(BOOL hasCache))reader;
 /// 当前用户数据库已绑定且可打开；供业务层检查首次用户配置是否成功。
 - (BOOL)isUserDatabaseReady;
 /// 正式 Socket 的用户 AUTH 已通过；ECDH 就绪或收到心跳不等于通过 AUTH。

@@ -13,6 +13,8 @@ final class IMLoggedInReconnectCoordinator {
     private var httpPreference: IMHTTPNodePreferenceEngine?
     private var foregroundGate = IMForegroundSessionGate(isInBackground: false)
     private var reconnectRacing = false
+    private var messageProbeVisible = false
+    private let messageProbe = MessageConnectivityProbe()
     private var observers: [NSObjectProtocol] = []
     private var installation = UUID()
     private init() {}
@@ -181,6 +183,7 @@ final class IMLoggedInReconnectCoordinator {
     /// 先撤销回调和竞速，退出后迟到的结果不能更新下一次登录。
     func stop() {
         installation = UUID()
+        messageProbe.cancel()
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         observers.removeAll()
         quality?.cancel(); quality = nil
@@ -192,8 +195,45 @@ final class IMLoggedInReconnectCoordinator {
         engine = nil
     }
 
+    /// 消息页探测与质量择优互斥；它只验证当前节点，不运行全节点竞速。
+    func setMessageProbeVisible(_ visible: Bool) {
+        guard messageProbeVisible != visible else { return }
+        messageProbeVisible = visible
+        if visible { quality?.cancel() }
+        else {
+            messageProbe.cancel()
+            if UIApplication.shared.applicationState == .active { quality?.start() }
+        }
+    }
+
+    func probeMessageConnection() async {
+        let installID = installation
+        let session = IMReconnectSession(userUID: sdk.myUserID(), lastLiceseId: sdk.currentLiceseId())
+        let connection = socket.gcdSocket
+        let revision = IMUserAuthenticationService.shared.connectionRevision
+        let host = socket.socketHostValue()
+        guard let port = UInt16(exactly: socket.socketPortValue()), port > 0, !host.isEmpty else { return }
+        await messageProbe.run(isCurrent: { [weak self] in
+            guard let self else { return false }
+            return self.messageProbeVisible && !self.reconnectRacing && self.quality?.isProbing != true
+                && UIApplication.shared.applicationState == .active
+                && self.owns(session, installation: installID) && self.sdk.isUserAuthenticated()
+                && self.socket.gcdSocket === connection
+                && IMUserAuthenticationService.shared.connectionRevision == revision
+        }, probe: {
+            let waiter = IMHandshakeWaiter()
+            return try await waiter.run(timeout: 3) {
+                self.sdk.probeECDHConnectivity(withHost: host, port: port, timeout: 3, type: 1) { success, _ in
+                    Task { @MainActor in waiter.finish(.success(success)) }
+                }
+            }
+        }, reconnect: {
+            self.socket.reconnectIfCurrentSocket(connection, userID: session.userUID, liceseId: session.lastLiceseId)
+        })
+    }
+
     private func qualityEligible(_ session: IMReconnectSession, installation: UUID) -> Bool {
-        guard owns(session, installation: installation), !reconnectRacing,
+        guard owns(session, installation: installation), !reconnectRacing, !messageProbeVisible,
               UIApplication.shared.applicationState == .active, sdk.isUserAuthenticated(),
               let snapshot = try? OSSNavigationStore.shared.load(), snapshot.lastLiceseId == session.lastLiceseId else { return false }
         return snapshot.configuration?.enableNetworkDetect == true
