@@ -313,6 +313,31 @@ struct SDKConversationsClient {}
         reply(96305, "旧轮次")
         expect(SDKSessionMaintenanceClient.curfewCallbacks.count == 2 && service.curfewMessage == nil,
                "缓存 AUTH 成功发一次检查，同 UID 重登不显示旧回包")
+        let loginCurfewText = "当前为宵禁时段，禁止发送消息"
+        SDKSessionMaintenanceClient.curfewCallbacks.last!(96305, loginCurfewText)
+        expect(service.curfewMessage == loginCurfewText, "登录弹框收到服务端宵禁原文")
+        service.dismissCurfew()
+        let checksBeforeSendFailure = SDKSessionMaintenanceClient.curfewCallbacks.count
+        NotificationCenter.default.post(name: Notification.Name("IMMessagePushRejected"), object: nil,
+            userInfo: ["userID": "other", "message": "其他账号"])
+        try await Task.sleep(nanoseconds: 20_000_000)
+        expect(service.curfewMessage == nil, "其他账号的发送拒绝不弹窗")
+        NotificationCenter.default.post(name: Notification.Name("IMMessagePushRejected"), object: nil,
+            userInfo: ["userID": "user", "message": loginCurfewText])
+        try await Task.sleep(nanoseconds: 20_000_000)
+        expect(service.curfewMessage == loginCurfewText, "发送拒绝复用登录宵禁弹框的数据入口和服务端原文")
+        service.dismissCurfew()
+        NotificationCenter.default.post(name: Notification.Name("IMMessagePushRejected"), object: nil,
+            userInfo: ["userID": "user", "message": loginCurfewText])
+        try await Task.sleep(nanoseconds: 20_000_000)
+        expect(service.curfewMessage == loginCurfewText, "关闭后再次发送被拒绝仍能展示同一条宵禁文案")
+        expect(SDKSessionMaintenanceClient.curfewCallbacks.count == checksBeforeSendFailure,
+               "与 xgd 一致，发送拒绝采用 pushMsg 原文，不额外查询登录宵禁接口")
+        try service.clearSession()
+        NotificationCenter.default.post(name: Notification.Name("IMMessagePushRejected"), object: nil,
+            userInfo: ["userID": "user", "message": "退出后的通知"])
+        try await Task.sleep(nanoseconds: 20_000_000)
+        expect(service.curfewMessage == nil, "退出后释放发送拒绝观察并清空提示")
         print("Session restore checks passed")
     }
 }

@@ -81,6 +81,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// 发送消息处理
 /// - Parameter sendMessage: 发送的消息
 - (void)sendMessageDealWith:(IMMessage *)sendMessage;
+/// TCP 提交失败立即进入消息补发。
+- (void)trackChatMessage:(IMMessage *)message tcpSendFailed:(BOOL)tcpSendFailed;
 
 /// 接收消息处理
 /// - Parameter receiveMessage: 接收的消息

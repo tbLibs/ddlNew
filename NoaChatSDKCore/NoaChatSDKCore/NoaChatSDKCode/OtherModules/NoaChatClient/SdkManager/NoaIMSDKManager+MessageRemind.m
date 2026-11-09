@@ -20,8 +20,16 @@ static const void *lastMessageKey = &lastMessageKey;
 
 @implementation NoaIMSDKManager (MessageRemind)
 
+- (void)setApplicationManagesMessageAlerts:(BOOL)managed {
+    objc_setAssociatedObject(self, @selector(applicationManagesMessageAlerts), @(managed), OBJC_ASSOCIATION_RETAIN);
+}
+- (BOOL)applicationManagesMessageAlerts {
+    return [objc_getAssociatedObject(self, _cmd) boolValue];
+}
+
 #pragma mark - 消息提醒
 - (void)toolMessageReceiveRemindWith:(IMMessage *)message {
+    if ([self applicationManagesMessageAlerts]) return;
     //聊天消息
     if (message.dataType == IMMessage_DataType_ImchatMessage) {
         
@@ -42,6 +50,7 @@ static const void *lastMessageKey = &lastMessageKey;
 }
 #pragma mark - 消息提醒
 - (void)toolMessageReceiveRemindWithChatMessage:(NoaIMChatMessageModel *)message {
+    if ([self applicationManagesMessageAlerts]) return;
     switch (message.messageType) {
         case CIMChatMessageType_TextMessage:
         case CIMChatMessageType_ImageMessage:

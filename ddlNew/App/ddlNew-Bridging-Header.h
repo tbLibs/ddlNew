@@ -15,3 +15,6 @@
 // 应用层透明观察GroupMemberNick，原SDK消息代理保持完整转发。
 #import <NoaChatCore/NoaIMSocketManagerTool.h>
 //#import "NoaIMSDKCore.h"
+
+// 通知设置直接使用现有运输接口，避免旧会话回包写全局偏好。
+#import <NoaChatCore/NoaIMHttpManager+User.h>

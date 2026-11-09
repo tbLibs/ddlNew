@@ -52,7 +52,7 @@ nonisolated let dns1BackupDomain = ""
 nonisolated let dns1AccountId = "899981"
 nonisolated let dns1AccessKey = "899981_32929921960122368"
 nonisolated let dns1AccessKeySecret = "d298cd440c204fc28f9170a01f7d45e6"
-nonisolated let dns1BinURLTemplate = "https://nav-sg.oss-cn-hongkong.aliyuncs.com/nav_%s/npoint.bin"
+nonisolated let dns1BinURLTemplate = "https://nav-sg.oss-accelerate.aliyuncs.com/nav_%s/npoint.bin"
 nonisolated let dns1NavigationCacheKey = "ddlNew.dns1Navigation.v2"
 
 let userRoleAuthorityAppStorageKey = "ddlNew.userRoleAuthority.v1"

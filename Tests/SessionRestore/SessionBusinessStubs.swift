@@ -56,3 +56,13 @@ struct SDKGlobalSearchClient {}
     /// 无论清凭据是否成功，都先撤销聊天资格。
     func close() { userUID = nil; sessionID = nil }
 }
+
+// 推送运输单独由Tests/Push验证，此夹具只记录会话边界。
+struct PushIdentity { let userUID: String; let tenantID: String; let sessionID: UUID }
+@MainActor final class PushCoordinator {
+    static let shared = PushCoordinator()
+    private(set) var identity: PushIdentity?
+    func activate(identity: PushIdentity) { self.identity = identity }
+    func prepareSignOut() async {}
+    func close() { identity = nil }
+}

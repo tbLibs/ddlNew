@@ -21,6 +21,8 @@ nonisolated struct OSSConnectionPlan: Sendable {
     let lastLiceseId: String
     /// 旧项目的 apiHost。
     let apiHost: URL?
+    /// DNS1 明确下发的 HTTP 候选，供补发握手失败时有限切换。
+    var httpCandidates: [URL] = []
     /// 旧项目的 getFileHost，与 API Host 相同。
     let getFileHost: URL?
     /// 旧项目的 uploadfileHost，在 API Host 后追加 /oss。
@@ -67,6 +69,7 @@ final class OSSConnectionBootstrap: ObservableObject {
         var plan = OSSConnectionPlan(lastLiceseId: navigation.lastLiceseId, apiHost: apiHost,
             getFileHost: apiHost, uploadFileHost: apiHost?.appending(path: "oss"),
             tcpCandidates: payload.tcp.map { OSSIMTCPNode(host: $0.host, port: $0.port) })
+        plan.httpCandidates = payload.http
         if let address = probedTCPAddress, let selected = DNS1TCPNode(address), payload.tcp.contains(selected) {
             plan.probedTCPNode = OSSIMTCPNode(host: selected.host, port: selected.port)
         }
@@ -91,9 +94,11 @@ final class OSSConnectionBootstrap: ObservableObject {
               let apiHost = DNS1Payload.httpURL(address), payload.http.contains(apiHost),
               plan.apiHost != apiHost else { return }
         httpHostRevision += 1
-        current = OSSConnectionPlan(lastLiceseId: plan.lastLiceseId, apiHost: apiHost,
+        var updated = OSSConnectionPlan(lastLiceseId: plan.lastLiceseId, apiHost: apiHost,
             getFileHost: apiHost, uploadFileHost: apiHost.appending(path: "oss"),
             tcpCandidates: plan.tcpCandidates, probedTCPNode: plan.probedTCPNode)
+        updated.httpCandidates = payload.http
+        current = updated
         OSSSelectedHTTPHostStorage().value = apiHost.absoluteString
     }
 

@@ -27,6 +27,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
 
     func dismissCurfew() { curfewMessage = nil }
 
+    private var pushRejectionObserver: NSObjectProtocol?
     private var sessionID: UUID?
     private var pendingID: UUID?
     /// 启动 AUTH 已成功但根页面尚未接收结果时，仍需允许取消并释放运行时会话。
@@ -166,6 +167,21 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
             throw AccountLoginError.connectionChanged
         }
         pendingID = nil
+        if let pushRejectionObserver { NotificationCenter.default.removeObserver(pushRejectionObserver) }
+        let expectedUID = user.userUID
+        pushRejectionObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("IMMessagePushRejected"), object: nil, queue: nil
+        ) { [weak self] notification in
+            let uid = notification.userInfo?["userID"] as? String
+            let message = notification.userInfo?["message"] as? String
+            Task { @MainActor in
+                guard let self, self.sessionID == runID, uid == expectedUID,
+                      self.store.currentUser?.userUID == expectedUID,
+                      self.pendingSignOut?.sessionID != runID,
+                      let message, !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                self.curfewMessage = message
+            }
+        }
         let userUID = user.userUID
         SDKSessionMaintenanceClient().checkCurfew { [weak self] code, message in
             guard code == 96305, !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -174,6 +190,7 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
             self.curfewMessage = message
         }
         ChatRuntime.shared.activate(userUID: user.userUID, tenantID: credentials.lastLiceseId, sessionID: runID)
+        PushCoordinator.shared.activate(identity: PushIdentity(userUID: user.userUID, tenantID: credentials.lastLiceseId, sessionID: runID))
         // 业务 HTTP 列表不能阻塞登录；已有会话轮次在完成后再次核验，退出时 Store 会失效。
         Task { [weak self] in
             guard let self, self.sessionID == runID else { return }
@@ -197,6 +214,8 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         if let existing = pendingSignOut, existing.sessionID == run { return try await existing.task.value }
         let task = Task { @MainActor [self] in
             SessionMaintenanceCoordinator.shared.stop()
+            await PushCoordinator.shared.prepareSignOut()
+            guard sessionID == run else { return }
             if authentication.isAuthenticated, let snapshot = try? store.cachedSession() {
                 await SDKSessionMaintenanceClient().logout(userUID: snapshot.credentials.userUID,
                                                            token: snapshot.credentials.token)
@@ -211,7 +230,10 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
 
     /// 撤销全部业务资格后再关闭数据库及清理本地凭据。
     func clearSession() throws {
+        PushCoordinator.shared.close()
         sessionID = nil
+        if let pushRejectionObserver { NotificationCenter.default.removeObserver(pushRejectionObserver) }
+        pushRejectionObserver = nil
         curfewMessage = nil
         pendingID = nil
         startupRestoreID = nil
@@ -235,7 +257,10 @@ final class LoginSessionService: ObservableObject, LoginSessionServicing {
         if case UserSessionError.authenticationRejected = error {
             LoginSecurityNoticeStore.shared.record(message: error.localizedDescription)
         }
+        PushCoordinator.shared.close()
         sessionID = nil
+        if let pushRejectionObserver { NotificationCenter.default.removeObserver(pushRejectionObserver) }
+        pushRejectionObserver = nil
         curfewMessage = nil
         pendingID = nil
         startupRestoreID = nil

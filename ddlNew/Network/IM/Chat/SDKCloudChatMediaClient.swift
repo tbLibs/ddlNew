@@ -28,7 +28,7 @@ import UniformTypeIdentifiers
         let filename = UUID().uuidString + "-" + (attachment.name as NSString).lastPathComponent
             .components(separatedBy: .controlCharacters).joined()
         // 头像沿用旧端独立目录，不能写入聊天附件目录或套用聊天发送配额。
-        let key = attachment.type == ChatAttachment.complaintEvidenceType ? "universal/\(filename)" : attachment.type == 101 ? "avatar_group/\(filename)" : attachment.type == ChatAttachment.userAvatarType ? "avatar/\(filename)" : "chat/\(day.string(from: Date()))/\(directory)/\(filename)"
+        let key = attachment.type == ChatAttachment.complaintEvidenceType ? "universal/\(filename)" : attachment.type == 101 ? "avatar_group/\(filename)" : attachment.type == ChatAttachment.miniAppIconType ? "miniApp/\(filename)" : attachment.type == ChatAttachment.userAvatarType ? "avatar/\(filename)" : "chat/\(day.string(from: Date()))/\(directory)/\(filename)"
         let bucket = provider == .huawei ? LocalMediaSettings.ossOBSBucketName : LocalMediaSettings.ossConfigBucketName
         let endpoint = provider == .huawei ? LocalMediaSettings.ossOBSEndPoint : LocalMediaSettings.ossConfigEndPoint
         let uploadURL = try objectURL(endpoint: provider == .huawei && !LocalMediaSettings.ossOBSUploadDomain.isEmpty ? LocalMediaSettings.ossOBSUploadDomain : endpoint,
@@ -103,7 +103,7 @@ import UniformTypeIdentifiers
     /// 上传配额在准备、签名和最终提交前各校验一次，计算采用溢出检查。
     private func checkPermission(_ attachment: ChatAttachment) throws {
         guard attachment.bytes > 0 else { throw ChatClientError.permission("上传文件为空") }
-        if attachment.type == ChatAttachment.userAvatarType {
+        if attachment.type == ChatAttachment.userAvatarType || attachment.type == ChatAttachment.miniAppIconType {
             guard attachment.bytes <= 50 * 1024 else { throw ChatClientError.permission("头像图片过大") }
             return
         }

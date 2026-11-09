@@ -15,6 +15,7 @@ final class ConversationsStore: ObservableObject {
     @Published private(set) var isSyncing = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var totalUnreadCount = 0
+    @Published private(set) var hasLoadedSnapshot = false
     @Published private(set) var busyConversationIDs: Set<String> = []
     @Published private(set) var operationError: String?
 
@@ -76,6 +77,7 @@ final class ConversationsStore: ObservableObject {
                     guard !Task.isCancelled, self.generation == runID else { return }
                     self.allConversations = snapshot
                     self.publishVisibleConversations()
+                    self.hasLoadedSnapshot = true
                     self.cacheError = nil
                 } catch {
                     guard !Task.isCancelled, self.generation == runID else { return }
@@ -145,6 +147,7 @@ final class ConversationsStore: ObservableObject {
 
     /// 登出释放订阅和正在运行的读取，移除所有用户快照。
     func reset() {
+        hasLoadedSnapshot = false
         generation = UUID()
         reloadTask?.cancel()
         reloadTask = nil

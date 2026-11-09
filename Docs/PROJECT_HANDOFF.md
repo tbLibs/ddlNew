@@ -1,5 +1,112 @@
 # ddlNew 项目交接文档
 
+## 2026-11-09 xgd 推送完整迁移到 ddlNew
+
+用户确认完整迁移，并明确 xgd 项目代码不得修改。本轮只在 ddlNew 实现；xgd 的 git status 和 git diff HEAD 二进制摘要开工/收尾一致，原有 project.pbxproj、Podfile.lock 修改未动。保留当前 feature-all-5 工作区中既有补发、TLS、MiniApps 和用户签名设置，不提交或推送。
+
+新增 Features/Notifications 与 Network/IM/Notifications：AppDelegate 启动即设置通知中心 delegate，首次真实登录后申请系统权限；APNs Token 与完整 UID/租户/登录轮次任一就绪时协调绑定，回前台可重试，主动退出先停止提醒并尝试解绑。SDK普通消息自动声音通过当前仓库新增的 applicationManagesMessageAlerts 开关交给 Swift 协调器，SDK默认行为及独立通话入口保留；不会复制到 xgd。用户既有 Bundle ID com.sigua.ddlNewapp、entitlement 和后台模式未由本轮改写。
+
+前台消息统一检查总开关、声音/震动偏好、会话免打扰、本人消息、重复消息、可见聊天及音频占用；后台在线消息生成带稳定标识的本地通知。单群聊摘要、好友备注/群内显示名、群公告和好友申请接入真实SDK快照；@其他人显示实际正文，@本人/全体显示提醒，群公告另检查 groupInformStatus。好友hashKey仅标识用户对，短5秒窗口合并重复回调，不能永久阻止后续重新申请。历史回读和更新回调不生成新通知。
+
+设置页新增“通知设置”，三个开关沿用服务器 isNewMsgNotify/isVoiceNotice/isShakeNotice，保存必须收到肯定回执，失败保留已确认设置；缓存按租户/UID区分，迟到回包受登录轮次隔离。推送写操作由 PushRequestLane 等待SDK实际终态后串行，取消Swift任务不能让旧服务器写提前让位；偏好读取先等写入屏障，避免短等待超时引入的乱序。运输超时并不证明服务端未处理，服务端无版本协议时不承诺网络极端情形下绝对操作顺序；解绑失败也不宣称服务器绑定已清除。
+
+点击复用现有 ActivityNavigationScope 和 ClubStore.selectedTab，真实 AUTH、数据库及Tab导航就绪后消费；已在同会话不重复push，好友申请进入新朋友。payload严格验证类型；无可靠身份或会话未验证时落列表，不把远程标题/ID当访问资格。本地通知包含进程与登录轮次，同进程旧轮次迟到点击拒绝，跨进程冷恢复仍核对账号与租户。角标等待会话和好友申请真实快照，未知初始值不覆盖系统角标；保留当前 ChatStore.open 会话提醒清理和正文已读规则，通知模块不重复发送已读。
+
+验证：Push策略29项、真实协调器13项和真实运输串行器2项通过（含取消、重复回执、请求期间换号、同UID新登录、偏好失败、冷启动等待及旧通知点击）。首次编译暴露SDK头文件显式导入和ObjC非空标注适配问题，均已修正；最终无签名generic iOS Debug workspace build exit0、BUILD SUCCEEDED，日志 /tmp/ddlNew-push-build-verified.log，构建PATH排除sentry-cli，未上传符号。独立代码复核提出的四项问题均已补检查并修复。全量离线脚本112/113通过，/tmp/ddlNew-push-full-qa/summary.json；唯一失败 Tests/MigrationAcceptance/run-log-redaction-checks.sh 为旧日志夹具未声明Socket诊断trace/NoaElapsed/网络状态替身而编译失败，本轮未改该生产Socket诊断或此夹具，不将全套记为全绿。git diff --check通过。
+
+尚未安装或操作真实设备、发送业务消息、访问APNs服务端配置或读取/上传cer私钥。正式离线推送依赖服务端为当前Bundle ID配置正确topic/环境和凭据；前后台/锁屏/杀进程送达、点击与已有弹层、账号切换仍需真机验收。后台声音/震动受iOS系统设置控制，服务端APNs内容和开关需服务器执行；旧payload缺共同消息ID时无法保证系统APNs与本地通知严格跨通道去重。没有新增PushKit/CallKit。设计、计划及真机清单见 Docs/superpowers/specs/2026-11-09-push-notifications-design.md、Docs/superpowers/plans/2026-11-09-push-notifications.md、Docs/superpowers/specs/2026-11-09-push-notifications-qa.md。
+
+## 2026-11-09 我的应用状态动画重接与网址自动补全
+
+用户确认上一版箭头仍跳动、状态变化无动画。旧实现把标题和展开内容放在同一个自适应 List 行，同时清除状态事务的动画；局部按压动画不能解决这一问题。本次增加 `MiniAppsDisclosure` 独立标题行，24pt固定符号框在44pt区域内中心旋转；`MessageView` 持有展开状态，应用内容为其下方独立条件行，稳定ID区分标题／内容。移除清空 animation 的事务，展开／收起实际使用0.25秒状态动画，内容行透明度过渡。
+
+管理／完成实际使用0.22秒状态动画；Grid两种字号布局始终预留角标空间，删除角标淡入淡出及轻微缩放，切换时不再改变图标顶部间距。初次加载由消息页稳定外层的 `.task(id: store identity)` 持有，使展开／收起不再取消列表加载；复核提出的取消重入竞态未经触摸复现，SDK已有取消处理，此处为生命周期收敛；密码、删除、编辑和网页打开链路继续复用原有所有者。
+
+用户追加网址输入无需手动填写协议：`MiniAppWebPolicy.entryURL` 接受裸域名、域名端口及协议相对地址，默认补 HTTPS，已有 HTTP(S)直接使用。Draft校验、SDK保存和Feature打开共用此规则；保存请求提交补全地址，兼容后端已有网址字段。编辑框示例改为 `example.com`。网页内部导航仍调用严格 `url` 校验，不将 javascript/file/data 等协议当作网站。
+
+验证：无协议网址在旧模型回归中先复现失败，再在新模型、URL策略及Feature检查通过；原有MiniApps离线套件通过。匿名模拟器宿主编译真实Disclosure／Panel／Grid，自动驱动展开→管理→完成→收起并录制连续帧；观察到标题／箭头区域固定，内容存在中间展开帧，管理角标出现和消失。宿主只有定时状态驱动与边界替身，不是真实手指操作或服务端验收。录屏 `/tmp/ddlNew-miniapps-state-motion.mov`，关键帧见 `.impeccable/review/miniapps/state-motion/`。最终无签名 generic iOS Debug workspace 构建 exit 0、`BUILD SUCCEEDED`（`/tmp/ddlNew-miniapps-state-url-reviewed.log`）；Feature新增无协议入口及规范化后复用原会话检查通过，`git diff --check` 通过。构建未上传符号，未提交或推送。
+
+2026-11-09 追加：按用户要求移除“我的应用”点击网站时的“正在打开应用”行，不再因该提示增加面板高度；请求期间的重复点击防护、密码验证和失败提示保留。本次仅移除展示行，Swift 语法检查及 diff 空白检查通过，未重跑完整构建。
+
+## 2026-11-09 我的应用局部按压与浮窗松手动画
+
+按用户追加要求，为“我的应用”、管理／完成、刷新／重试及应用网格按钮使用独立 `MiniAppButtonStyle`：按压时透明度和背景色以0.16秒过渡，不改变布局尺寸；展开箭头以0.2秒旋转。消息列表行仍清除外层布局动画，但不再全局禁止子视图动画，展开只在无动画事务中切换，不重新给 List 行高加动画。显式自定义按钮样式继续避免同行操作串联。
+
+浮窗拖动中的位置仍即时更新，松手后仅停靠位置使用0.32秒弹簧过渡；拖动松手不打开列表，独立轻点才打开。系统“减少动态效果”开启时关闭按钮过渡、箭头和贴边动画。没有调整应用接口、密码或删除权限。
+
+消息列表的群名称按追加要求限制为单行，超长尾部省略；原始名称、搜索与无障碍完整摘要保持。单聊名称保留原有行数。
+
+验证：浮窗位置／拖动与点击区分的离线回归通过；含最终群名称单行和禁用态样式的无签名 generic iOS workspace build 为 BUILD SUCCEEDED（`/tmp/ddlNew-miniapps-motion-title-final.log`），`git diff --check` 通过。此前触摸自动化工具不可用的边界仍有效，实际动画观感待真机确认。
+
+## 2026-11-09 我的应用展开、拖动与删除入口交互修正
+
+本轮按用户后续反馈：消息页应用面板展开不再给 List 自适应行高施加动画，应用行事务也关闭动画，避免标题随插入内容上下跳动。浮窗使用单一触摸序列和 `MiniAppFloatingPosition`，拖动时横纵位置跟随位移，松手才贴边；移动超过8pt后，即使拖回原点也不能当作点击，只有独立轻点打开列表。无障碍打开和移动操作保留。
+
+管理模式的删除入口改为应用图标右上角的减号角标，44pt独立触点，无下方“删除”文字；辅助字号也放在图标右上角。Panel 显式使用 borderless 按钮，删除用 plain，禁止同一 List 行的 automatic 按钮行为将管理／完成点击分派给删除。切换管理状态清空待删除项，删除确认仍只由角标触发。
+
+应用密码没有位数限制，开启时只判非空；新增1字符、中文和2048字符的模型检查。核对发现 SDK 保存请求仍裁掉密码首尾空白，现改为与验证、旧密码字段一样传原文，避免创建与验证不一致。
+
+验证：MiniApps 离线套件含跟手位置、松手不打开、拖回原点、轻点、贴边和屏幕边界检查。匿名宿主编译真实 Panel／Grid／Presentation，管理展开状态仅为截图初始化夹具，不是点击测试。Mobile MCP 的 Simulator agent 下载超时，CUA 未提供 Simulator，未完成实际触摸复测；管理→完成无弹框及完整列表展开稳定性仍须真机确认。最终无签名 generic iOS workspace build 为 BUILD SUCCEEDED（`/tmp/ddlNew-miniapps-interactions-final.log`）；`git diff --check` 通过。管理模式角标截图为 `.impeccable/review/miniapps/interaction-delete-corner.png`，已目视确认位置和下方文字移除。
+
+## 2026-11-09 消息页“我的应用”完整功能迁移
+
+用户确认完整移植 xgd 的应用管理、网页和浮窗。当前接手分支 `feature-all-5`，保留原有补发／TLS／登录改动，未提交或推送。
+
+- 消息页搜索与筛选下方新增默认收起的“我的应用”：展开读取真实 SDK 分页（每页50条），支持刷新、加载更多、管理和添加。系统应用不可编辑，删除遵循 `appType / allowUserDelete`；自定义应用支持名称、HTTP(S)网址、相册／相机图标及访问密码，受保护应用先验证再打开或编辑。删除确认、失败重试和编辑草稿保留。
+- `MiniAppsStore` 通过 `SDKMiniAppClient` 复用现有列表／详情／新增／修改／删除接口；当前完整认证上下文和请求轮次隔离旧回包。保存／删除从提交到回读一直保持忙碌；服务端已受理但刷新失败明确提示，避免重复创建。图标沿旧端 type104、50KiB、`miniApp/` 目录，复用媒体上传，不生成聊天消息或占用聊天发送配额。
+- `MiniAppsFeature` 统一持有 WKWebView、浮窗和呈现状态，主 Tab 提供可拖动贴边入口、浮窗列表、移除及清空。网页支持前进／后退、刷新、失败重试、复制链接、外部浏览器及下载响应确认。最小化保留当前网页实例和历史（最多5个），冷恢复使用 SDK 本地浮窗记录；恢复时重新确认当前应用及密码，不直接信任旧记录。配置入口与浏览子路径分开保存，避免恢复子路径后错误销毁缓存。
+- 浮窗数据复用 SDK 表并在记录 ID 加租户命名空间；退出与同 UID 重新认证通过 `ChatRuntime.registerCleanup` 销毁 Store、网页和非持久 WebKit 数据空间。没有新增登录链路或网页原生业务桥，密码仅保留当前操作内存。仅允许无账号口令的 HTTP(S) 链接；冷恢复只恢复同源地址。
+- UI 继承 `MessagingTheme / HomeTheme`，原生表单、浅深色、辅助字号列表和独立44pt删除操作。匿名模拟器的手机／iPad 网格、编辑、密码和 AX3 截图确认后修正管理网格顶部对齐；表单说明与输入占位统一使用现有次级文字色，修正浅色低对比；验证密码保留原始空格，与创建输入保持一致。截图与独立审查见 `.impeccable/review/miniapps/`。
+
+验证：`bash Tests/MiniApps/run-checks.sh` 的模型、Store、网页URL及浮窗协调测试通过；涵盖旧分页与删除竞争、上传期间退出、重复提交、密码恢复、同UID换认证和浏览子路径实例复用。`Tests/Chat/run-media-checks.sh`、`run-avatar-checks.sh` 及 `Tests/MigrationAcceptance/run-cloud-policy-checks.sh` 通过。完整 `ddlNew.xcworkspace` / `ddlNew` / Debug / generic iOS 无签名 build 为 `BUILD SUCCEEDED`，日志 `/tmp/ddlNew-miniapps-build-final3.log`。
+
+验收边界：离线测试使用真实业务源码加边界替身，截图为匿名组件宿主，未操作真实账号或设备。服务端增删改／密码回执、真实图标云端上传、相机权限、网页下载及全 App 浮窗实际操作仍需账号与真机验收，不将编译和夹具检查当作这些结果。详细范围与计划见 `Docs/superpowers/specs/2026-11-09-my-apps-design.md`、`Docs/superpowers/plans/2026-11-09-my-apps.md`。
+
+## 2026-11-09 补发 TLS 失败切换 DNS1 HTTP 候选与跨文件会话隔离
+
+本轮真机控制台确认 `/biz/message/pushMsg` 在首选 HTTP 节点握手返回 -1200，因此没有可供弹框展示的业务文案。只读手机导航缓存确认 DNS1 元数据实际有 4 个 HTTP 候选，旧 `ossRacingModel.httpArr` 为空；现有 HTTP 周期择优读取旧字段且合并版本开关未开启。对候选执行不带账号或消息的探测：首选节点失败，其他候选可以返回 HTTP 401；这仅证明 HTTP 运输可达，不代表已收到真实宵禁响应。
+
+保留 xgd 的 HTTP protobuf 补发与拒绝文案通知。`OSSConnectionPlan` 现在携带 DNS1 的真实 HTTP 候选，首次连接和刷新导航时同步给 SDK。消息补发捕获本轮候选；仅当前 HTTP 尝试返回 -1200 时，依次尝试其他 HTTPS 候选（去重、最多 16 次含首节点，共用原 60 秒截止）。不推算 TCP 端口、不改全局 API Host、不增加宵禁查询、不用登录旧文案推算状态；收到业务回包后仍按原流程展示服务端文案。每个 HTTP 尝试有独立标识，旧尝试的重复回执、已成功 ACK 和已退出会话不能启动下个候选或覆盖终态。
+
+指定 HTTP 节点的请求仍保留原始消息载荷、账号头和路径签名，使用本次 request 的 ZTID；没有改动证书策略或 TCP 编码器。退出隔离另复现一项实际缺陷：`NoaIMRequestSessionFence.h` 内 static 关联键在 Socket 实现和请求分类两个编译单元里地址不同，退出失效不能覆盖消息回调。关联键改为运行时统一键，跨编译单元回归先在旧代码复现迟到提示，再验证修复。
+
+验证覆盖 TLS 后取得 96305 原文通知、候选耗尽、去重、无降级、旧候选快照、重复回执、有效 ACK 优先、请求 URL/载荷/签名及跨文件退出隔离。补发专项、DNS1 集成（28 项）、会话恢复、会话维护专项通过；无签名 generic iOS Debug 构建成功（`/tmp/ddlNew-push-final-build.log`）。本轮只读检查真机，未向真实聊天发送测试消息、未覆盖安装。真机的实际拒绝回包及弹框仍需用修复包重发复验；候选切换不保证服务端一定返回 96305。
+
+## 2026-11-09 宵禁弹框按 xgd 补齐 HTTP 拒绝原文
+
+用户明确要求发送失败提示对齐 xgd：通用失败继续使用原始 protobuf 调用 HTTP `/biz/message/pushMsg`，收到正数错误码及有效文案时，经 `IMMessagePushRejected` 展示服务端原文。宵禁拒绝复用登录的 `curfewMessage` 和“提示／我知道了”弹框，发送失败不额外查询登录宵禁接口，也不缓存登录时的宵禁文案来推断当前状态。当前登录查询路径与 xgd 源码均为 `/auth/account/curfew`。
+
+本轮发现并修复的差异：新端在 pushMsg 收到 HTTP 4xx/5xx 时传递空文案，xgd 会从响应字典或 AFNetworking 保存的原始响应体读取 `message`。已移植其解析和类型检查；空值、HTML 或非字典 JSON 不产生伪造提示，TLS 等无业务响应的失败保持原分类。
+
+生产 HTTP 分支与 Socket 回调组合测试先在旧实现复现通知缺失，再验证字典/原始 JSON 中的宵禁文案可到达弹框通知。补发专项、会话恢复专项及无签名 generic iOS Debug 构建通过（构建日志 `/tmp/ddlNew-curfew-xgd-build.log`）。会话回归验证登录和发送共用提示状态、关闭后再次拒绝可重新展示、无额外宵禁查询及退出隔离。真机是否收到业务拒绝响应与弹框显示仍待复验；此前观察到的 TLS -1200 本身没有宵禁文案，本次解析修复不代表该节点的 TLS 已恢复。
+
+## 2026-11-09 修复补发转 TCP 引入的请求头崩溃
+
+Xcode 真机停在 LingIMTcpRequestModel.m 原第 397 行，Thread 17 抛出 `-[__NSFrozenDictionaryM setObject:forKeyedSubscript:]: unrecognized selector`。configHttpHeaderWithFullUrl 实际返回字典 copy，上一轮新增的 protobuf Content-Type 写入对不可变对象执行修改，直接造成崩溃。原离线夹具返回 mutable 字典，未覆盖这一运行时差异。
+
+按用户要求逐段对照 xgd，MessagePushMsg 已恢复老端固定 HTTP 的实现，撤销上一轮在通用 TCP 请求编码器中新增的 protobuf 分支调整。通用发送失败补发、原消息载荷、拒绝回包提示、同轮去重和会话隔离继续生效。新增生产入口回归在旧实现复现走错 TCP 通道，修复后 8 种配置/连接/认证组合均只调用 HTTP，并保持原始二进制和服务端拒绝回调。
+
+此节取代下文“已认证连接可用时补发走 TCP”的实现描述。此前真机 HTTP TLS -1200 是另一项已观察到的连通性问题，恢复 HTTP 本身不能证明该节点已能返回拒绝文案。修复包真机重发及实际 HTTP 响应待验。
+
+
+## 2026-11-09 通用发送失败补发与 TLS 超时误分类
+
+只读 Xcode 真机控制台确认消息补发已调用，但 HTTPS 握手连续返回 NSURLErrorSecureConnectionFailed（-1200），未取得业务拒绝响应。旧分类把此错误归为 Timeout，导致“发送超时，可重新发送”。新增末尾 SDK 枚举值 16 表示安全连接失败，UI 映射为“消息补发安全连接失败，请稍后重试”，历史枚举值保留。
+
+按用户明确要求，pushMsg 是通用消息补发。对照 xgd 接入 trackChatMessage，TCP 密钥/认证未就绪、帧构建失败、提交时 Socket 断开、等待 ACK 超时、无效 ACK 均进入共用补发；有外网时尝试接口，无网络仍明确失败，同轮只提交一次。当前配置使用 HTTP 转 TCP，且已认证连接可用时，补发沿用该通道的 bytesBody；失去认证或连接时沿用 HTTP 补发。二进制请求跳过 JSON 序列化并明确 protobuf Content-Type，普通 JSON 请求行为保留。
+
+生产方法离线回归覆盖通用失败入口、原始载荷、通道选择、服务器拒绝码/文案、ACK 优先及会话隔离。真机修复版是否收到 pushMsg 的实际拒绝响应仍待复验。
+
+
+## 2026-11-09 宵禁发送拒绝提示对齐 xgd
+
+对照老端 NoaIMSocketManagerTool 和 AppDelegate，聊天消息收到带本地消息 ID、缺少有效服务器消息 ID 的 ACK 时，立即复用原始 protobuf 调用 SDK 的 MessagePushMsg，实际路径沿用老端 `/biz/message/pushMsg`。超时后的补发复用同一个入口，同轮仅提交一次；补发期间已有超时检查不再重发 TCP。服务端失败码继续映射消息失败原因，96305 映射服务器拒绝；正数错误码附带非空文案时通过 IMMessagePushRejected 发布原文，登录会话接收后复用现有提示弹窗。
+
+发送任务绑定已有 SDK 请求会话标识，退出及同 UID 重登后旧补发回执失效；有效 TCP ACK 和新重试也会撤销旧补发回调。观察者绑定登录轮次及 UID，退出清理，迟到通知不能覆盖下一账号提示。没有本地推算宵禁时段，真实结果以服务端为准。
+
+新增生产方法提取测试覆盖异常 ACK 立即补发、同轮去重、96305 失败分类与原文通知、有效 ACK 优先以及同 UID 重登隔离；会话恢复、聊天基础、SDK 消息协议回归通过。真实宵禁账号发送、服务端返回和真机弹窗待验。
+
+
 ## 2026-11-03 登录成功后的宵禁提示
 
 手动登录、注册后自动登录和缓存恢复共用 LoginSessionService 的 AUTH 成功入口，每轮会话在这里发起一次空参数 POST `/account/curfew`，由 SDK Auth 模块沿用现有 HTTP 或 HTTP 转 TCP 通道。首页进入不等待该接口返回。当前登录轮次和 UID 匹配且业务码为 96305、message 含非空白字符时，主界面弹窗展示服务端原文，点击“我知道了”关闭。清理会话时清除待展示消息。普通掉线重连不重新发起检查。

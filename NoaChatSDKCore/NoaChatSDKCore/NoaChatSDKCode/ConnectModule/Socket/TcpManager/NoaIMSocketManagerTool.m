@@ -6,6 +6,7 @@
 //
 
 #import "NoaIMSocketManagerTool.h"
+#import "../../HttpToTcpRequest/NoaIMRequestSessionFence.h"
 #import "NoaLocalLogger.h"
 #import "ThreadSafeMutableDictionary.h"//线程安全的字典
 #import "NoaIMSocketManager.h"//长连接工具单例
@@ -15,6 +16,7 @@
 #import "NoaIMLoganManager.h"//日志
 #import "NoaIMSDKManager+Logan.h"
 #import "NoaIMHttpManager.h"
+#import "NoaIMHttpManager+Message.h"
 
 // 短连接转长连接分类
 #import "NoaIMSocketManagerTool+LingImTcpReplaceHttp.h"
@@ -194,81 +196,140 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
 
 #pragma mark - <<<<<<发送消息处理>>>>>>
 - (void)sendMessageDealWith:(IMMessage *)sendMessage {
-    __weak typeof(self) weakSelf = self;
+    [self trackChatMessage:sendMessage tcpSendFailed:NO];
+}
+
+- (void)trackChatMessage:(IMMessage *)message tcpSendFailed:(BOOL)tcpSendFailed {
+    if (message.dataType != IMMessage_DataType_ImchatMessage ||
+        message.chatMessage.mType == IMChatMessage_MessageType_HaveReadMessage) return;
+    NSString *msgID = message.chatMessage.msgId;
+    if (msgID.length == 0) return;
+
     dispatch_async(self.sendMessageQueue, ^{
-        NSString *msgID;
-        if (sendMessage.dataType == IMMessage_DataType_ImchatMessage && sendMessage.chatMessage.mType != IMChatMessage_MessageType_HaveReadMessage) {
-            //发送的是 IMChatMessage 聊天消息
-            msgID = sendMessage.chatMessage.msgId;
+        NSMutableDictionary *pending = self.sendMessageDic[msgID];
+        if ([pending[@"pushing"] boolValue]) return;
+        if (![NetWorkStatusManager shared].getConnectStatus) {
+            [self messageSendFailLoganWith:@"timeout" messageId:msgID];
+            [self notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonNetworkUnavailable];
+            return;
         }
-        if(msgID){
-            if (![NetWorkStatusManager shared].getConnectStatus) {
-                // 无外网
-                [weakSelf messageSendFailLoganWith:@"timeout" messageId:msgID];
-                [weakSelf notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonNetworkUnavailable];
-                return;
-            }
-            
-            if (!weakSelf.isAuth) {
-                // 未认证成功，认为失败
-                [weakSelf messageSendFailLoganWith:@"authNotSuccess" messageId:msgID];
-                [weakSelf notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonConnectionNotReady];
-                return;
-            }
-            
-            NSMutableDictionary * dic = weakSelf.sendMessageDic[msgID];
-            NSInteger reSendCount;
-            if(dic == nil){
-                dic = [NSMutableDictionary dictionary];
-                reSendCount = 1;
-                [dic setValue:@(reSendCount) forKey:@"count"];
-                [dic setValue:sendMessage forKey:@"message"];
-                [weakSelf.sendMessageDic setValue:dic forKey:msgID];
-            }else{
-                reSendCount = [dic[@"count"] integerValue];
-                reSendCount += 1;
-                [dic setValue:@(reSendCount) forKey:@"count"];
-            }
-            if(reSendCount <= 3){
-                //三秒后检查是否已经 收到这个消息的ACK
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(LingIMMessageTimeout * NSEC_PER_SEC)), weakSelf.sendMessageQueue, ^{
-                    if (weakSelf.sendMessageDic[msgID] == dic) [weakSelf checkMessageSendAckStatus:msgID];
-                });
-            }else{
-                [weakSelf messageSendFailLoganWith:@"timeout" messageId:msgID];
-                [weakSelf sendPingMessageForChatMessageSendFail];
-                // HTTP 节点切换/刷新也可能不返回；独立收尾，避免永久显示发送中。
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC), weakSelf.sendMessageQueue, ^{
-                    if (weakSelf.sendMessageDic[msgID] != dic) return;
-                    CIMMessageSendFailureReason reason = [NetWorkStatusManager shared].getConnectStatus ?
-                        CIMMessageSendFailureReasonTimeout : CIMMessageSendFailureReasonNetworkUnavailable;
-                    [weakSelf notifyMessageSendFail:msgID reason:reason];
-                });
-                [IMSDKManager MessagePushMsg:[sendMessage data] onSuccess:^(id data, NSString *traceId) {
-                    dispatch_async(weakSelf.sendMessageQueue, ^{
-                        // ACK 或新一轮重发已经结束/替换该任务时，不再覆盖消息状态。
-                        if (weakSelf.sendMessageDic[msgID] != dic) return;
-                        IMMessage *imMessage = [data isKindOfClass:NSDictionary.class] ? [IMMessage mj_objectWithKeyValues:data] : nil;
-                        IMChatMessageACK *ack = imMessage.chatMessageAck;
-                        if (![weakSelf isValidMessageACK:ack forMessageID:msgID]) {
-                            [weakSelf notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonInvalidResponse];
-                            return;
-                        }
-                        [weakSelf.sendMessageDic removeObjectForKey:msgID];
-                        if ([weakSelf.messageDelegate respondsToSelector:@selector(noaMessageSendSuccess:)]) {
-                            [weakSelf.messageDelegate noaMessageSendSuccess:ack];
-                        }
-                    });
-                } onFailure:^(NSInteger code, NSString *msg, NSString *traceId) {
-                    dispatch_async(weakSelf.sendMessageQueue, ^{
-                        if (weakSelf.sendMessageDic[msgID] != dic) return;
-                        CIMMessageSendFailureReason reason = [weakSelf pushFailureReasonForCode:code networkAvailable:[NetWorkStatusManager shared].getConnectStatus];
-                        [weakSelf notifyMessageSendFail:msgID reason:reason];
-                    });
-                }];
-            }
+        if (!pending) {
+            pending = [@{@"message": message, @"session": NoaIMRequestSession(self)} mutableCopy];
+            self.sendMessageDic[msgID] = pending;
         }
+        if (tcpSendFailed || !self.isAuth || !SOCKETMANAGER.currentSocketConnectStatus) {
+            [self pushPendingMessageWithID:msgID];
+            return;
+        }
+        NSInteger count = [pending[@"count"] integerValue] + 1;
+        pending[@"count"] = @(count);
+        if (count > 3) {
+            [self messageSendFailLoganWith:@"timeout" messageId:msgID];
+            [self sendPingMessageForChatMessageSendFail];
+            [self pushPendingMessageWithID:msgID];
+            return;
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, LingIMMessageTimeout * NSEC_PER_SEC), self.sendMessageQueue, ^{
+            if (self.sendMessageDic[msgID] == pending) [self checkMessageSendAckStatus:msgID];
+        });
     });
+}
+
+// 同一发送轮次仅补发一次，成功 ACK 和后续重试使旧回执失效。
+- (void)pushPendingMessageWithID:(NSString *)msgID {
+    NSMutableDictionary *dic = self.sendMessageDic[msgID];
+    IMMessage *sendMessage = dic[@"message"];
+    if (!sendMessage || [dic[@"pushing"] boolValue]) return;
+    if (![NetWorkStatusManager shared].getConnectStatus) {
+        [self notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonNetworkUnavailable];
+        return;
+    }
+    if (sendMessage.chatMessage.from.length == 0 || ![sendMessage.chatMessage.from isEqualToString:IMSDKManager.myUserID]) {
+        [self notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonConnectionNotReady];
+        return;
+    }
+    NSUUID *session = dic[@"session"];
+    if (![session isEqual:NoaIMRequestSession(self)]) return;
+    dic[@"pushing"] = @YES;
+    // 快照属于本轮消息；候选去重且有上限，不能让旧请求读取下一企业的节点。
+    NSMutableOrderedSet *hosts = [NSMutableOrderedSet orderedSet];
+    for (NSString *host in IMSDKHTTPTOOL.messagePushHTTPHosts) {
+        if (![host isKindOfClass:NSString.class] || [host isEqualToString:IMSDKManager.apiHost]) continue;
+        NSURLComponents *url = [NSURLComponents componentsWithString:host];
+        if (![url.scheme.lowercaseString isEqualToString:@"https"] || url.host.length == 0 ||
+            url.user || url.password || url.query || url.fragment) continue;
+        [hosts addObject:host];
+        if (hosts.count == 15) break;
+    }
+    dic[@"remainingHTTPHosts"] = hosts.array;
+    // HTTP 节点切换/刷新也可能不返回；独立收尾，避免永久显示发送中。
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC), self.sendMessageQueue, ^{
+        if (self.sendMessageDic[msgID] != dic || ![session isEqual:NoaIMRequestSession(self)]) return;
+        CIMMessageSendFailureReason reason = [NetWorkStatusManager shared].getConnectStatus ?
+            CIMMessageSendFailureReasonTimeout : CIMMessageSendFailureReasonNetworkUnavailable;
+        [self notifyMessageSendFail:msgID reason:reason];
+    });
+    [self submitPendingMessageWithID:msgID pending:dic];
+}
+
+// 只有 TLS 握手失败才换候选；HTTP 回包、超时或已提交后的断线均不在此重放。
+- (void)submitPendingMessageWithID:(NSString *)msgID pending:(NSMutableDictionary *)dic {
+    NSUUID *session = dic[@"session"];
+    IMMessage *sendMessage = dic[@"message"];
+    if (self.sendMessageDic[msgID] != dic || ![session isEqual:NoaIMRequestSession(self)] ||
+        ![sendMessage.chatMessage.from isEqualToString:IMSDKManager.myUserID]) return;
+    if (![NetWorkStatusManager shared].getConnectStatus) {
+        [self notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonNetworkUnavailable];
+        return;
+    }
+    NSUUID *attempt = [NSUUID UUID];
+    dic[@"pushAttempt"] = attempt;
+    LingIMSuccessCallback success = ^(id data, NSString *traceId) {
+        dispatch_async(self.sendMessageQueue, ^{
+            // ACK 或新一轮重发已经结束/替换该任务时，不再覆盖消息状态。
+            if (self.sendMessageDic[msgID] != dic || dic[@"pushAttempt"] != attempt || ![session isEqual:NoaIMRequestSession(self)]) return;
+            IMMessage *imMessage = [data isKindOfClass:NSDictionary.class] ? [IMMessage mj_objectWithKeyValues:data] : nil;
+            IMChatMessageACK *ack = imMessage.chatMessageAck;
+            if (![self isValidMessageACK:ack forMessageID:msgID]) {
+                [self notifyMessageSendFail:msgID reason:CIMMessageSendFailureReasonInvalidResponse];
+                return;
+            }
+            [self.sendMessageDic removeObjectForKey:msgID];
+            if ([self.messageDelegate respondsToSelector:@selector(noaMessageSendSuccess:)]) {
+                [self.messageDelegate noaMessageSendSuccess:ack];
+            }
+        });
+    };
+    LingIMFailureCallback failure = ^(NSInteger code, NSString *msg, NSString *traceId) {
+        dispatch_async(self.sendMessageQueue, ^{
+            if (self.sendMessageDic[msgID] != dic || dic[@"pushAttempt"] != attempt || ![session isEqual:NoaIMRequestSession(self)]) return;
+            NSArray *remaining = dic[@"remainingHTTPHosts"];
+            if (code == NSURLErrorSecureConnectionFailed && remaining.count > 0) {
+                dic[@"nextHTTPHost"] = remaining.firstObject;
+                dic[@"remainingHTTPHosts"] = [remaining subarrayWithRange:NSMakeRange(1, remaining.count - 1)];
+#if DEBUG
+                NSLog(@"[消息补发] event=tls_failover code=%ld remaining=%lu", (long)code, (unsigned long)(remaining.count - 1));
+#endif
+                [self submitPendingMessageWithID:msgID pending:dic];
+                return;
+            }
+#if DEBUG
+            NSLog(@"[消息补发] event=failed code=%ld hasMessage=%d", (long)code, [msg isKindOfClass:NSString.class] && msg.length > 0);
+#endif
+            CIMMessageSendFailureReason reason = [self pushFailureReasonForCode:code networkAvailable:[NetWorkStatusManager shared].getConnectStatus];
+            [self notifyMessageSendFail:msgID reason:reason];
+            if (code > 0 && [msg isKindOfClass:NSString.class] && msg.length > 0) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"IMMessagePushRejected"
+                    object:nil userInfo:@{@"message": msg, @"userID": sendMessage.chatMessage.from}];
+            }
+        });
+    };
+    NSString *host = dic[@"nextHTTPHost"];
+    if (host.length > 0) {
+        [IMSDKHTTPTOOL netRequestMessagePushWithPath:Message_Push_Msg_Url httpHost:host paramData:[sendMessage data] onSuccess:success onFailure:failure];
+    } else {
+        [IMSDKManager MessagePushMsg:[sendMessage data] onSuccess:success onFailure:failure];
+    }
 }
 
 /// 通知消息发送失败；新代理可接收结构化原因，旧代理继续获得原有消息 ID 回调。
@@ -298,6 +359,7 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
 /// 仅根据明确状态分类，不能把所有 HTTP/网络失败都标为服务端拒绝。
 - (CIMMessageSendFailureReason)pushFailureReasonForCode:(NSInteger)code networkAvailable:(BOOL)networkAvailable {
     if (!networkAvailable || code == NSURLErrorNotConnectedToInternet) return CIMMessageSendFailureReasonNetworkUnavailable;
+    if (code <= NSURLErrorSecureConnectionFailed && code >= NSURLErrorClientCertificateRequired) return CIMMessageSendFailureReasonSecureConnection;
     if (code == 413) return CIMMessageSendFailureReasonFileTooLarge;
     if (code == 429) return CIMMessageSendFailureReasonRateLimited;
     if (code == NSURLErrorNetworkConnectionLost) return CIMMessageSendFailureReasonConnectionLost;
@@ -322,12 +384,13 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
     
     NSMutableDictionary * dic = self.sendMessageDic[messageId];
     if(dic){
+        if ([dic[@"pushing"] boolValue]) return;
         IMMessage * message = dic[@"message"];
         if(message){
             if (![NetWorkStatusManager shared].getConnectStatus) {
                 [self notifyMessageSendFail:messageId reason:CIMMessageSendFailureReasonNetworkUnavailable];
             } else if (!SOCKETMANAGER.currentSocketConnectStatus) {
-                [self notifyMessageSendFail:messageId reason:CIMMessageSendFailureReasonConnectionLost];
+                [self pushPendingMessageWithID:messageId];
             } else {
                 [SOCKETMANAGER sendSocketMessage:message tag:LingIMMessageTag];
             }
@@ -978,7 +1041,7 @@ typedef NS_ENUM(NSUInteger, LingIMUserAuthStatus) {
     dispatch_async(self.sendMessageQueue, ^{
         if (![self isValidMessageACK:ack forMessageID:ack.ackMsgId]) {
             if (ack.ackMsgId.length > 0 && self.sendMessageDic[ack.ackMsgId]) {
-                [self notifyMessageSendFail:ack.ackMsgId reason:CIMMessageSendFailureReasonInvalidResponse];
+                [self pushPendingMessageWithID:ack.ackMsgId];
             }
             return;
         }

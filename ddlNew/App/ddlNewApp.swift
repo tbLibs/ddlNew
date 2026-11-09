@@ -69,12 +69,14 @@ struct ddlNewApp: App {
                 PasswordChangeView(request: request, coordinator: loginSecurity)
             }
             .onChange(of: scenePhase) { phase in
+                PushCoordinator.shared.setForeground(phase == .active)
                 loginSecurity.setForegroundActive(phase == .active)
                 SessionMaintenanceCoordinator.shared.setForegroundActive(phase == .active)
                 CallCoordinator.shared.setForeground(phase == .active)
             }
             .task {
                 guard !hasRestoredLocalEntry else { return }
+                PushCoordinator.shared.setForeground(scenePhase == .active)
                 loginSecurity.setForegroundActive(scenePhase == .active)
                 SessionMaintenanceCoordinator.shared.setForegroundActive(scenePhase == .active)
                 CallCoordinator.shared.setForeground(scenePhase == .active)

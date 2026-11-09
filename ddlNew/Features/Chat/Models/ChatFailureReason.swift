@@ -9,12 +9,13 @@ import Foundation
 
 enum ChatFailureReason: Int, Sendable {
     case unknown = 0, networkUnavailable, connectionNotReady, timeout, serverRejected, rateLimited, fileTooLarge, invalidResponse, connectionLost
-    case blockedByMe, blockedByPeer
+    case blockedByMe, blockedByPeer, secureConnection
     nonisolated var isBlacklistRejection: Bool { self == .blockedByMe || self == .blockedByPeer }
     var message: String {
         switch self {
         case .networkUnavailable: return "网络不可用，请连接网络后重试"
         case .connectionNotReady: return "连接尚未就绪，请稍后重试"
+        case .secureConnection: return "消息补发安全连接失败，请稍后重试"
         case .timeout: return "发送超时，可重新发送"
         case .serverRejected: return "服务器拒绝了这条消息"
         case .rateLimited: return "发送过于频繁，请稍后重试"

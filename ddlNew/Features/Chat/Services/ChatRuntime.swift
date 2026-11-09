@@ -129,6 +129,15 @@ import Combine
         return store
     }
 
+    /// 消息提示不抢占当前录音或媒体预览的音频。
+    var hasActiveNotificationAudio: Bool {
+        cleanupOwners.contains { item in
+            if let recorder = item.owner as? ChatVoiceRecorder { return recorder.isRecording }
+            if let preview = item.owner as? ChatMediaPreviewStore { return preview.playing || preview.file != nil }
+            return false
+        }
+    }
+
     /// 来电/呼出接管音频前关闭播放器与未发送录音，不取消附件上传。
     func prepareForCall() {
         for reference in cleanupOwners {

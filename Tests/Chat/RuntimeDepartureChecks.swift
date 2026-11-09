@@ -31,8 +31,10 @@ import Foundation
     init(client: SDKChatMediaClient) {}
     func cancel() {}
 }
-@MainActor final class ChatVoiceRecorder { func cancel() {} }
+@MainActor final class ChatVoiceRecorder { var isRecording = false; func cancel() {} }
 @MainActor final class ChatMediaPreviewStore {
+    var playing = false
+    var file: URL?
     static func clearCache(context: ChatContext) throws {}
     func close() {}
     func invalidateMessage(_ message: ChatMessageRecord?, context: ChatContext) {}

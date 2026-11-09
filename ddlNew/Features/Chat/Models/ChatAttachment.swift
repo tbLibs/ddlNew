@@ -12,6 +12,7 @@ struct ChatAttachment: Sendable {
     static let complaintEvidenceType = 102
     /// 个人头像专用上传类型，不属于聊天消息类型。
     static let userAvatarType = 103
+    static let miniAppIconType = 104
     let file: URL
     let type: Int
     let name: String

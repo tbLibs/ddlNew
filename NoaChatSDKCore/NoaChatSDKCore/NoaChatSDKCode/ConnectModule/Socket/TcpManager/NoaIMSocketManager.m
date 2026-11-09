@@ -1066,21 +1066,21 @@ static void NoaTraceCloseRequest(GCDAsyncSocket *socket, NSString *reason) {
         if (!self.isECDHCompleted) {
             [NoaLocalLogger error:@"[socket] 消息未发送，原因:ecdh密钥交换未成功"];
             // TODO: 避免对发送的聊天消息进行拦截，导致无法超时
-            [SOCKETMANAGERTOOL sendMessageDealWith:imMsg];
+            [SOCKETMANAGERTOOL trackChatMessage:imMsg tcpSendFailed:YES];
             return;
         }
         
         if (!self.novDecryptorManager.shareKey || self.novDecryptorManager.shareKey.length == 0) {
             [NoaLocalLogger error:@"[socket] 消息未发送，原因: shareKey未生成"];
             // TODO: 避免对发送的聊天消息进行拦截，导致无法超时
-            [SOCKETMANAGERTOOL sendMessageDealWith:imMsg];
+            [SOCKETMANAGERTOOL trackChatMessage:imMsg tcpSendFailed:YES];
             return;
         }
         
         if (!SOCKETMANAGERTOOL.isAuth) {
             if (imMsg.dataType == IMMessage_DataType_ImchatMessage && imMsg.chatMessage.mType != IMChatMessage_MessageType_HaveReadMessage) {
                 // TODO: auth未成功时，聊天消息无法发送，需要对发送的聊天消息进行拦截
-                [SOCKETMANAGERTOOL sendMessageDealWith:message];
+                [SOCKETMANAGERTOOL trackChatMessage:message tcpSendFailed:YES];
                 return;
             }
         }
@@ -1101,7 +1101,7 @@ static void NoaTraceCloseRequest(GCDAsyncSocket *socket, NSString *reason) {
             [NoaLocalLogger error:@"[socket] ❌ 消息加密失败，无法发送"];
             if (sendMessage.dataType == IMMessage_DataType_ImchatMessage &&
                 sendMessage.chatMessage.mType != IMChatMessage_MessageType_HaveReadMessage) {
-                [SOCKETMANAGERTOOL notifyMessageSendFail:sendMessage.chatMessage.msgId reason:CIMMessageSendFailureReasonEncryption];
+                [SOCKETMANAGERTOOL trackChatMessage:sendMessage tcpSendFailed:YES];
             }
             return;
         }
@@ -1156,6 +1156,10 @@ static void NoaTraceCloseRequest(GCDAsyncSocket *socket, NSString *reason) {
         trace.pingAt = NSProcessInfo.processInfo.systemUptime;
     }
 #endif
+    if (!socket.isConnected) {
+        [SOCKETMANAGERTOOL trackChatMessage:message tcpSendFailed:YES];
+        return;
+    }
     [socket writeData:frame withTimeout:timeout tag:tag];
 }
 

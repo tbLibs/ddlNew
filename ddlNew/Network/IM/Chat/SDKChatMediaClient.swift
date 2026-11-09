@@ -131,7 +131,7 @@ import UniformTypeIdentifiers
             guard attachment.bytes > 0 else { throw ChatClientError.unavailable("证据图片为空") }
             return
         }
-        if attachment.type == ChatAttachment.userAvatarType {
+        if attachment.type == ChatAttachment.userAvatarType || attachment.type == ChatAttachment.miniAppIconType {
             guard attachment.bytes > 0, attachment.bytes <= 50 * 1024 else { throw ChatClientError.unavailable("头像图片无效") }
             return
         }
@@ -190,6 +190,7 @@ import UniformTypeIdentifiers
     private func bucketName(type: Int) -> String {
         if type == ChatAttachment.complaintEvidenceType { return "/zim/universal/" }
         if type == 101 { return "/zim/avatar_group/" }
+        if type == ChatAttachment.miniAppIconType { return "/zim/miniApp/" }
         if type == ChatAttachment.userAvatarType { return "/zim/avatar/" }
         let formatter = DateFormatter(); formatter.dateFormat = "yyyyMMdd"
         let date = formatter.string(from: Date())

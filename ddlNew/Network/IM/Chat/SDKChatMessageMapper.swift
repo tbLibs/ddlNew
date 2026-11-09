@@ -253,6 +253,7 @@ enum SDKChatMessageMapper {
         case 8: return .connectionLost
         case 10: return .fileTooLarge
         case 11: return .rateLimited
+        case 16: return .secureConnection
         default: return .unknown
         }
     }

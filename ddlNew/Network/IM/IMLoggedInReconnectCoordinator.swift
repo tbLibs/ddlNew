@@ -228,6 +228,7 @@ final class IMLoggedInReconnectCoordinator {
         guard plan.lastLiceseId == session.lastLiceseId else { throw CancellationError() }
         // 更新导航沿用重连已有行为；不调用访客连接或重新配置用户、Token、数据库。
         sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
+        NoaIMHttpManager.shared().messagePushHTTPHosts = plan.httpCandidates.map(\.absoluteString)
         SessionMaintenanceCoordinator.shared.refreshAfterNodeChange()
         return IMReconnectNodes(
             nodes: plan.tcpCandidates.map { OSSLegacyEndpoint(host: $0.host, port: $0.port) },

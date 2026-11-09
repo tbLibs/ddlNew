@@ -15,6 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// 消息提醒 
 /// @param message 接收到的消息
+/// App统一负责普通消息提醒时关闭SDK自动声音，通话提醒保持独立。
+- (void)setApplicationManagesMessageAlerts:(BOOL)managed;
+
 - (void)toolMessageReceiveRemindWith:(IMMessage *)message;
 
 /// 消息提醒

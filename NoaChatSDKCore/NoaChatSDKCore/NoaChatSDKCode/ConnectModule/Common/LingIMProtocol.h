@@ -32,6 +32,7 @@ typedef NS_ENUM(NSInteger, CIMMessageSendFailureReason) {
     CIMMessageSendFailureReasonGroupMuted,
     CIMMessageSendFailureReasonGroupUnavailable,
     CIMMessageSendFailureReasonNotGroupMember,
+    CIMMessageSendFailureReasonSecureConnection,
 };
 
 #pragma mark - 服务器连接回调

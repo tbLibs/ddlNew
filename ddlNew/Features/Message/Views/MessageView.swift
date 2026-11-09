@@ -17,6 +17,8 @@ struct MessageView: View {
     @ObservedObject private var permissions = UserRoleAuthorityStore.shared
     @ObservedObject private var groups = LoginSessionService.shared.groups
     @ObservedObject private var chatRuntime = ChatRuntime.shared
+    @ObservedObject private var miniApps = MiniAppsFeature.shared
+    @State private var miniAppsExpanded = false
     @State private var query = ""
     @State private var filter: ConversationFilter = .all
     @FocusState private var searchFocused: Bool
@@ -56,6 +58,19 @@ struct MessageView: View {
             }
             .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 12.zoom(), trailing: 16.zoom()))
             .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            if let apps = miniApps.store {
+                MiniAppsDisclosure(expanded: $miniAppsExpanded)
+                    .id("miniApps.disclosure")
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(MessagingTheme.surface).listRowSeparator(.hidden)
+                if miniAppsExpanded {
+                    MiniAppsPanel(store: apps, feature: miniApps, expanded: $miniAppsExpanded)
+                        .id("miniApps.content")
+                        .transition(.opacity)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 12, trailing: 0))
+                        .listRowBackground(MessagingTheme.surface).listRowSeparator(.hidden)
+                }
+            }
             if visibleConversations.isEmpty {
                 emptyState.listRowBackground(Color.clear).listRowSeparator(.hidden)
             } else {
@@ -91,6 +106,9 @@ struct MessageView: View {
         .messagingFeedbackToast(store.operationError ?? store.errorMessage ?? chatRuntime.conversationCleanupWarning, isEnabled: !selectingMembers)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .task { await store.reload() }
+        .task(id: miniApps.store.map(ObjectIdentifier.init)) {
+            if let apps = miniApps.store, !apps.hasLoaded { await apps.refresh() }
+        }
         .refreshable { await store.reload() }
         .sheet(isPresented: $selectingMembers) {
             GroupMemberPickerView(contacts: LoginSessionService.shared.contacts.contacts,
@@ -238,7 +256,8 @@ struct MessageView: View {
                 }
             VStack(alignment: .leading, spacing: 6.zoom()) {
                 Text(conversation.title.isEmpty ? "未命名会话" : conversation.title)
-                    .font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text).lineLimit(2)
+                    .font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text)
+                    .lineLimit(conversation.kind == .group ? 1 : 2).truncationMode(.tail)
                 preview(for: conversation)
             }.frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: 10.zoom()) {

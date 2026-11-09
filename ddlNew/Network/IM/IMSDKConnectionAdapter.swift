@@ -25,6 +25,7 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
     }
 
     func reset() {
+        NoaIMHttpManager.shared().messagePushHTTPHosts = []
         generation = UUID()
         selectedNode = nil
         let pending = Array(waiters.values)
@@ -54,6 +55,7 @@ final class IMSDKConnectionAdapter: IMSDKConnectionDriving {
         sdk.configSDKApi(with: options)
         // TCP-only 导航显式清除上一企业的 HTTP Host。
         sdk.configApiHost(plan.apiHost?.absoluteString ?? "")
+        NoaIMHttpManager.shared().messagePushHTTPHosts = plan.httpCandidates.map(\.absoluteString)
         sdk.configSDKLiceseId(plan.lastLiceseId)
         sdk.configSDKSsoInfo(plan.lastLiceseId)
         sdk.configSDKTenantCode("")

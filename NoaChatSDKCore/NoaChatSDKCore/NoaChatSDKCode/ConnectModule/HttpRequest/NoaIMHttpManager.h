@@ -48,6 +48,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (atomic, strong, nullable) NSBlockOperation * refreshTokenOpeartion;
 @property (atomic, strong, nullable) NSBlockOperation * updateBaseHostOpeartion;
+/// 仅由当前 DNS1 导航提供；消息补发握手失败时使用，不从 TCP 推算 HTTP 地址。
+@property (atomic, copy) NSArray<NSString *> *messagePushHTTPHosts;
 
 @property (nonatomic, strong, nullable)NSData * cerData;
 @property (nonatomic, strong, nullable)NSData * p12Data;
@@ -85,6 +87,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param onSuccess 数据请求成功回调
 /// @param onFailure 数据请求失败回调
 - (void)netRequestMessagePushWithPath:(NSString *)path paramData:(NSData *)paramData onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
+/// 指定本次补发的 HTTP 节点，签名仍使用原接口路径，不修改全局 Host。
+- (void)netRequestMessagePushWithPath:(NSString *)path httpHost:(NSString *)httpHost paramData:(NSData *)paramData onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure;
 
 /// 通用带有服务器时间返回的数据请求接口
 /// @param type 数据请求类型：POST / GET

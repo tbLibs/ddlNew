@@ -41,6 +41,12 @@ struct TabbarView: View {
         } message: {
             Text(verbatim: session.curfewMessage ?? "")
         }
+        .modifier(MiniAppPresentation(feature: MiniAppsFeature.shared))
+        .onAppear { updatePushBadge() }
+        .onReceive(conversations.$totalUnreadCount) { _ in Task { @MainActor in updatePushBadge() } }
+        .onReceive(conversations.$hasLoadedSnapshot) { _ in Task { @MainActor in updatePushBadge() } }
+        .onReceive(contactBusiness.$unreadCount) { _ in Task { @MainActor in updatePushBadge() } }
+        .onReceive(contactBusiness.$hasUnreadSnapshot) { _ in Task { @MainActor in updatePushBadge() } }
         .tint(HomeTheme.forest)
         .environmentObject(community)
         .onChange(of: contacts.contacts) { _ in
@@ -49,10 +55,17 @@ struct TabbarView: View {
         }
     }
 
+    private func updatePushBadge() {
+        PushCoordinator.shared.updateBadge(
+            messages: conversations.hasLoadedSnapshot ? conversations.totalUnreadCount : nil,
+            friends: contactBusiness.hasUnreadSnapshot ? contactBusiness.unreadCount : nil)
+    }
+
     /// 四栏首页统一使用系统导航工具栏，各自原导航栈和稳定ID路由保持不变。
     private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
         ActivityNavigationScope {
             content()
+                .modifier(PushNavigationHandler(tab: tab))
                 .toolbar(.visible, for: .navigationBar)
                 .navigationDestination(for: ChatRoute.self) { route in ChatRoomView(route: route) }
                 .navigationDestination(for: ContactsRoute.self) { route in

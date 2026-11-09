@@ -44,7 +44,7 @@ import Combine
     private var hidden: Set<String> = []
     private var unreadVersions: [String: String] = [:]
     private var hiddenUnreadHashes = Set<String>()
-    private var hasUnreadSnapshot = false
+    @Published private(set) var hasUnreadSnapshot = false
     private var read: Set<String> = []
     private var pendingApplicationSnapshots: [String: [FriendApplicationRecord]] = [:]
     private var firstVisibleVersions: [String: String] = [:]

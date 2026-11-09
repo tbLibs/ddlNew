@@ -14,6 +14,15 @@ struct SettingsPageContent<DeleteDestination: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28.zoom()) {
             accountSummary
+            section("消息通知") {
+                NavigationLink(destination: PushSettingsView()) {
+                    row("通知设置", detail: "新消息通知、声音与震动", symbol: "bell")
+                        .padding(.horizontal, 16.zoom())
+                }
+                .accessibilityIdentifier("settings.notifications")
+                .background(HomeTheme.surface, in: cardShape)
+                .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+            }
             section("隐私与支持") {
                 VStack(spacing: 0) {
                     Button(action: openPrivacyPolicy) {

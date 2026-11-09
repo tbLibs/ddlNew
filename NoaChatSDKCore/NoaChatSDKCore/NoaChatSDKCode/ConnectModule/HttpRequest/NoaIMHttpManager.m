@@ -57,6 +57,7 @@ static NoaIMHttpManager *manager = nil;
     // 注意：设置为 NO 会降低安全性，仅在开发/测试环境或使用 IP 访问时使用
     securityPolicy.validatesDomainName = NO;
     httpManager.securityPolicy = securityPolicy;
+    httpManager.messagePushHTTPHosts = @[];
     
     //JSON解析
     httpManager.requestSerializer = [AFJSONRequestSerializer serializer];
@@ -1165,9 +1166,13 @@ static NoaIMHttpManager *manager = nil;
 #pragma mark - ******** 5 长链接失败后, 发送消息接口 ******
 /// 诊断仅记录类型、身份、状态和长度，避免正文、认证凭据、密钥或资源位置进入日志。
 - (void)netRequestMessagePushWithPath:(NSString *)path paramData:(NSData *)paramData onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
+    [self netRequestMessagePushWithPath:path httpHost:IMSDKManager.apiHost paramData:paramData onSuccess:onSuccess onFailure:onFailure];
+}
+
+- (void)netRequestMessagePushWithPath:(NSString *)path httpHost:(NSString *)httpHost paramData:(NSData *)paramData onSuccess:(LingIMSuccessCallback)onSuccess onFailure:(LingIMFailureCallback)onFailure {
     
     //判断是否设置了请求域名
-    if (!(IMSDKManager.apiHost.length > 0)) {
+    if (!(httpHost.length > 0)) {
         NSLog(@"请设置SDK的请求域名信息!!!");
         return;
     }
@@ -1177,7 +1182,7 @@ static NoaIMHttpManager *manager = nil;
     if ([path containsString:@"http"]) {
         fullPath = path;
     } else {
-        fullPath = [NSString stringWithFormat:@"%@%@",IMSDKManager.apiHost,path];
+        fullPath = [NSString stringWithFormat:@"%@%@",httpHost,path];
     }
     
     NSMutableURLRequest *request = [[AFJSONRequestSerializer serializer] requestWithMethod:@"POST" URLString:fullPath parameters:nil error:nil];
@@ -1213,7 +1218,7 @@ static NoaIMHttpManager *manager = nil;
     //timestamp
     [request setValue:[NSString stringWithFormat:@"%lld", timeStamp] forHTTPHeaderField:@"timestamp"];
     //signature
-    NSString *signature = [self getUrlSignature:timeStamp url:path];
+    NSString *signature = [self getUrlSignature:timeStamp url:[NSURL URLWithString:fullPath].path];
     [request setValue:signature forHTTPHeaderField:@"signature"];
     
     __weak typeof(self) weakSelf = self;
@@ -1221,7 +1226,7 @@ static NoaIMHttpManager *manager = nil;
     [_interfaceTimeConsumingCatche setObject:[NSNumber numberWithDouble:start] forKey:ztid];
     
     __block NSURLSessionDataTask *task =  [self dataTaskWithRequest:request uploadProgress:nil downloadProgress:nil completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
-        NSString * ztid = [weakSelf.requestSerializer.HTTPRequestHeaders objectForKey:@"ZTID"];
+        NSString * ztid = [request valueForHTTPHeaderField:@"ZTID"];
         __strong typeof(weakSelf) strongSelf = weakSelf;
         CFTimeInterval start = [[strongSelf->_interfaceTimeConsumingCatche objectForKey:ztid] doubleValue];
         CFTimeInterval total = CACurrentMediaTime() - start;
@@ -1230,10 +1235,15 @@ static NoaIMHttpManager *manager = nil;
         if (error) {
             NSInteger httpStatus = [response isKindOfClass:NSHTTPURLResponse.class] ? [(NSHTTPURLResponse *)response statusCode] : 0;
             if (httpStatus >= 400 && httpStatus < 600) {
-                if (onFailure) onFailure(httpStatus, @"", ztid);
-                return;
-            }
-            if (error.code == NSURLErrorTimedOut || error.code == NSURLErrorCannotConnectToHost || error.code == NSURLErrorNetworkConnectionLost) {
+                // 与 xgd 一致：非 2xx 回包仍可能携带宵禁等业务拒绝原文。
+                id body = responseObject;
+                NSData *data = error.userInfo[AFNetworkingOperationFailingURLResponseDataErrorKey];
+                if (![body isKindOfClass:NSDictionary.class] && [data isKindOfClass:NSData.class]) {
+                    body = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                }
+                NSString *message = [body isKindOfClass:NSDictionary.class] ? body[@"message"] : nil;
+                if (onFailure) onFailure(httpStatus, [message isKindOfClass:NSString.class] ? message : nil, ztid);
+            } else if (error.code == NSURLErrorTimedOut || error.code == NSURLErrorCannotConnectToHost || error.code == NSURLErrorNetworkConnectionLost) {
                 if (strongSelf.updateBaseHostOpeartion == nil) {
                     //开始自动更新toke
                     strongSelf.updateBaseHostOpeartion = [NSBlockOperation blockOperationWithBlock:^{
@@ -1293,7 +1303,7 @@ static NoaIMHttpManager *manager = nil;
                         strongSelf.updateBaseHostOpeartion = nil;
                     }];
                     NSBlockOperation * networkOpeatrion = [NSBlockOperation blockOperationWithBlock:^{
-                        [strongSelf netRequestMessagePushWithPath:path paramData:paramData onSuccess:onSuccess onFailure:onFailure];
+                        [strongSelf netRequestMessagePushWithPath:path httpHost:httpHost paramData:paramData onSuccess:onSuccess onFailure:onFailure];
                     }];
                     [networkOpeatrion addDependency:strongSelf.updateBaseHostOpeartion];
                     [strongSelf.netWorkingQueue addOperation:strongSelf.updateBaseHostOpeartion];
@@ -1311,7 +1321,7 @@ static NoaIMHttpManager *manager = nil;
         } else {
             strongSelf.updateBaseHostOpeartion = nil;
             if (responseObject) {
-                NSString * ztid = [weakSelf.requestSerializer.HTTPRequestHeaders objectForKey:@"ZTID"];
+                NSString * ztid = [request valueForHTTPHeaderField:@"ZTID"];
                 NoaIMHttpResponse *resp = [NoaIMHttpResponse mj_objectWithKeyValues:responseObject];
                 if (resp.isHttpSuccess) {
                     if (resp.data == nil) {
@@ -1351,14 +1361,14 @@ static NoaIMHttpManager *manager = nil;
                                 weakSelf.refreshTokenOpeartion = nil;
                             }];
                             NSBlockOperation * networkOpeatrion = [NSBlockOperation blockOperationWithBlock:^{
-                                [weakSelf netRequestMessagePushWithPath:fullPath paramData:paramData onSuccess:onSuccess onFailure:onFailure];
+                                [weakSelf netRequestMessagePushWithPath:path httpHost:httpHost paramData:paramData onSuccess:onSuccess onFailure:onFailure];
                             }];
                             [networkOpeatrion addDependency:weakSelf.refreshTokenOpeartion];
                             [weakSelf.netWorkingQueue addOperation:weakSelf.refreshTokenOpeartion];
                             [weakSelf.netWorkingQueue addOperation:networkOpeatrion];
                         } else {
                             NSBlockOperation * networkOpeatrion = [NSBlockOperation blockOperationWithBlock:^{
-                                [weakSelf netRequestMessagePushWithPath:fullPath paramData:paramData onSuccess:onSuccess onFailure:onFailure];
+                                [weakSelf netRequestMessagePushWithPath:path httpHost:httpHost paramData:paramData onSuccess:onSuccess onFailure:onFailure];
                             }];
                             [networkOpeatrion addDependency:weakSelf.refreshTokenOpeartion];
                             [weakSelf.netWorkingQueue addOperation:networkOpeatrion];
@@ -1374,7 +1384,7 @@ static NoaIMHttpManager *manager = nil;
                             [weakSelf.userDelegate noaSdkUserForceLogout:LingIMHttpResponseCodeUsedIpDisabled message:resp.message];
                         }
                     } else {
-                        NSString * ztid = [weakSelf.requestSerializer.HTTPRequestHeaders objectForKey:@"ZTID"];
+                        NSString * ztid = [request valueForHTTPHeaderField:@"ZTID"];
                         if (onFailure) {
                             onFailure(resp.code, resp.message, ztid);
                         }

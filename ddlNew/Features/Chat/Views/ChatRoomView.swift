@@ -240,7 +240,8 @@ struct ChatRoomView: View {
         .onChange(of: calls.session?.id) { id in
             if id != nil { composerFocused = false; voicePlayback.stop() }
         }
-        .onDisappear { voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker && !calls.isPresented && calls.selection == nil { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
+        .onAppear { PushCoordinator.shared.visibleConversation = .chat(id: route.id, group: route.kind == .group) }
+        .onDisappear { if PushCoordinator.shared.visibleConversation == .chat(id: route.id, group: route.kind == .group) { PushCoordinator.shared.visibleConversation = nil }; voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker && !calls.isPresented && calls.selection == nil { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
     }
 
     /// 弹层仍使用原状态和上下文，不重新创建聊天Store。
