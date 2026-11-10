@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 browser_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 browser_temp=$(mktemp -d)
@@ -24,5 +25,5 @@ harness = """@MainActor final class PresentationBridgeHarness {
 method = s[start:end].replace('context: chatContext)) {', 'context: chatContext)) { [self] in')
 (out/'Bridge.swift').write_text(harness + method + '\n}\n')
 PY
-swiftc -parse-as-library "$browser_temp/"*.swift "$browser_root/Tests/Chat/PhotoBrowserPresentationChecks.swift" -o "$browser_temp/checks"
+swiftc "$localization_source" -parse-as-library "$browser_temp/"*.swift "$browser_root/Tests/Chat/PhotoBrowserPresentationChecks.swift" -o "$browser_temp/checks"
 "$browser_temp/checks"

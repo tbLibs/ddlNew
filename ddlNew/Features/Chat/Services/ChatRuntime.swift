@@ -172,7 +172,7 @@ import Combine
     /// 离群已经受理，后续清理失败只提示重读会话，不误报退出失败。
     func reportConversationCleanupFailure(context: ChatContext) {
         guard isCurrent(context), closedConversationContext == context else { return }
-        conversationCleanupWarning = "群操作已受理，会话清理失败，请刷新消息列表"
+        conversationCleanupWarning = L10n.tr("群操作已受理，会话清理失败，请刷新消息列表")
     }
 
     /// 删除好友保留原ID入口；群退出使用携带认证轮次的事件入口。

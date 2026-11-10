@@ -8,6 +8,7 @@ import SwiftUI
 
 /// 标题独立占据固定高度的List行，内容展开只改变其下方的行。
 struct MiniAppsDisclosure: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var expanded: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -17,7 +18,7 @@ struct MiniAppsDisclosure: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "square.grid.2x2").foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
-                Text("我的应用").font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text)
+                Text(L10n.tr("我的应用")).font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text)
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold)).foregroundStyle(MessagingTheme.secondaryText)
@@ -28,7 +29,7 @@ struct MiniAppsDisclosure: View {
             }.frame(minHeight: 44).contentShape(Rectangle())
         }
         .buttonStyle(MiniAppButtonStyle())
-        .accessibilityValue(expanded ? "已展开" : "已收起")
+        .accessibilityValue(expanded ? L10n.tr("已展开") : L10n.tr("已收起"))
         .padding(.horizontal, 16).padding(.vertical, 4)
     }
 }

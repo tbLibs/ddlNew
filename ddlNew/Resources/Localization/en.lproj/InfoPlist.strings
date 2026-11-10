@@ -1,0 +1,5 @@
+/* App-owned UI text. Chinese keys remain stable; interpolated values use %@. */
+"NSCameraUsageDescription" = "Allow camera access to scan QR codes, take profile and chat photos, and make video calls.";
+"NSMicrophoneUsageDescription" = "Allow microphone access to record voice messages and make voice and video calls.";
+"NSPhotoLibraryAddUsageDescription" = "Allow saving chat photos, videos and QR codes to your photo library.";
+"NSPhotoLibraryUsageDescription" = "Allow photo library access to select and crop your profile photo.";

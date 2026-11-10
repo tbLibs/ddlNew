@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -33,7 +34,7 @@ helper = '''
 '''
 (out/'ProductionPreview.swift').write_text(prefix + methods + helper)
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift "$TMP_DIR/ProductionPreview.swift" \
  "$ROOT_DIR/Tests/Chat/PreviewInvalidationChecks.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

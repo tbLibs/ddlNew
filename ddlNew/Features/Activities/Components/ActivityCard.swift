@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ActivityCard: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var store: ClubStore
     @EnvironmentObject private var navigation: ActivityNavigation
     let activity: ClubActivity
@@ -19,15 +20,15 @@ struct ActivityCard: View {
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 7) {
                         ClubBadge(text: store.status(activity).title)
-                        Text(activity.title).font(.system(size: 14, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
-                        metadata(icon: "clock", text: activity.date)
-                        metadata(icon: "map", text: activity.place)
+                        Text(activity.displayTitle).font(.system(size: 14, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+                        metadata(icon: "clock", text: activity.displayDate)
+                        metadata(icon: "map", text: activity.displayPlace)
                         HStack(spacing: 6) {
                             ClubIcon(name: "users", size: 14)
-                            Text("伙伴已加入").font(.system(size: 11))
+                            Text(L10n.tr("伙伴已加入")).font(.system(size: 11))
                             Spacer(minLength: 2)
                             ClubIcon(name: "chevron", size: 10)
-                            Text("查看").font(.system(size: 11, weight: .semibold))
+                            Text(L10n.tr("查看")).font(.system(size: 11, weight: .semibold))
                         }.foregroundColor(ClubTheme.darkTeal)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }

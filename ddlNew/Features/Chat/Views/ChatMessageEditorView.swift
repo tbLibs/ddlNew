@@ -9,6 +9,7 @@ import SwiftUI
 import UIAdapter
 
 struct ChatMessageEditorView: View {
+    @Environment(\.locale) private var localizationLocale
     let message: ChatMessageRecord
     let context: ChatContext
     @ObservedObject var store: ChatStore
@@ -27,22 +28,22 @@ struct ChatMessageEditorView: View {
     var body: some View {
         MessagingScroll {
             VStack(alignment: .leading, spacing: 16.zoom()) {
-                Text("修改已发送的消息").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                Text(L10n.tr("修改已发送的消息")).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                 MessagingCard {
                     TextEditor(text: $input).font(.body).scrollContentBackground(.hidden)
-                        .frame(minHeight: 240.zoom()).focused($editorFocused).accessibilityLabel("编辑消息正文")
+                        .frame(minHeight: 240.zoom()).focused($editorFocused).accessibilityLabel(L10n.tr("编辑消息正文"))
                 }
             }.padding(16.zoom())
         }
-        .navigationTitle("编辑消息").modifier(MessagingPageChrome())
+        .navigationTitle(L10n.tr("编辑消息")).modifier(MessagingPageChrome())
         .messagingFeedbackToast(error)
-        .messagingLoadingToast(busy, title: "正在保存").navigationBarBackButtonHidden(true)
+        .messagingLoadingToast(busy, title: L10n.tr("正在保存")).navigationBarBackButtonHidden(true)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("取消") { cancel() }.frame(minHeight: 44).disabled(busy) }
-            ToolbarItem(placement: .confirmationAction) { Button("保存") { editorFocused = false; Task { await save() } }.buttonStyle(MessagingActionButtonStyle()).disabled(busy || input == message.text || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+            ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { cancel() }.frame(minHeight: 44).disabled(busy) }
+            ToolbarItem(placement: .confirmationAction) { Button(L10n.tr("保存")) { editorFocused = false; Task { await save() } }.buttonStyle(MessagingActionButtonStyle()).disabled(busy || input == message.text || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
         }
         .interactiveDismissDisabled(busy || input != message.text)
-        .confirmationDialog("放弃修改？", isPresented: $confirmDiscard, titleVisibility: .visible) { Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {} }
+        .confirmationDialog(L10n.tr("放弃修改？"), isPresented: $confirmDiscard, titleVisibility: .visible) { Button(L10n.tr("放弃修改"), role: .destructive) { dismiss() }; Button(L10n.tr("继续编辑"), role: .cancel) {} }
         .task { editorFocused = true }
         .onChange(of: input) { value in
             guard previousInput != value else { return }

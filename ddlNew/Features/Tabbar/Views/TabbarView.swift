@@ -9,6 +9,7 @@ import SwiftUI
 
 /// 主界面唯一的四栏容器，每个 Tab 保留独立的导航栈。
 struct TabbarView: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var store: ClubStore
     /// 角标随真实 SDK 会话快照变化；ClubCommunity 仍供其他演示页面使用。
     @ObservedObject private var conversations = LoginSessionService.shared.conversations
@@ -33,11 +34,11 @@ struct TabbarView: View {
             }
             tab(.profile) { MineView() }
         }
-        .alert("提示", isPresented: Binding(
+        .alert(L10n.tr("提示"), isPresented: Binding(
             get: { session.curfewMessage != nil && loginSecurity.request == nil },
             set: { if !$0 { session.dismissCurfew() } }
         )) {
-            Button("我知道了", role: .cancel) { }
+            Button(L10n.tr("我知道了"), role: .cancel) { }
         } message: {
             Text(verbatim: session.curfewMessage ?? "")
         }
@@ -86,7 +87,7 @@ struct TabbarView: View {
                 .navigationDestination(for: SafetyRoute.self) { _ in BlacklistView(businessStore: contactBusiness) }
         }
         .tabItem {
-            Label(tab.rawValue, systemImage: tab.icon)
+            Label(tab.displayName, systemImage: tab.icon)
         }
         .badge(tab == .messages ? conversations.totalUnreadCount : (tab == .contacts ? contactBusiness.unreadCount : 0))
         .tag(tab)

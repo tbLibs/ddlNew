@@ -8,6 +8,7 @@
 import Foundation
 
 enum MemberTab: String, CaseIterable, Identifiable {
+    var displayName: String { L10n.lookup(rawValue) }
     // 活动与俱乐部下沉为首页内的导航页面，不再占用底部 Tab。
     case home = "首页", messages = "消息", contacts = "通讯录", profile = "我的"
     var id: Self { self }

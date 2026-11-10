@@ -9,6 +9,7 @@ import Kingfisher
 
 /// 页面只展示当前通话，房间和设备始终由根协调器持有。
 struct CallRoomView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var coordinator: CallCoordinator
     @ObservedObject var layout: CallLayoutPreferences
 
@@ -40,24 +41,24 @@ struct CallRoomView: View {
         HStack(alignment: .top) {
             Button { coordinator.minimize() } label: {
                 Image(systemName: "arrow.down.right.and.arrow.up.left").frame(width: 44, height: 44)
-            }.accessibilityLabel("缩小通话")
+            }.accessibilityLabel(L10n.tr("缩小通话"))
             VStack(spacing: 6.zoom()) {
                 Text(call.title).font(.title3.weight(.semibold)).lineLimit(2)
                 if let started = call.connectedAt, call.phase == .connected {
                     Text(started, style: .timer).monospacedDigit().font(.subheadline)
-                        .accessibilityLabel("通话时长")
+                        .accessibilityLabel(L10n.tr("通话时长"))
                 } else {
                     Text(status(call)).font(.subheadline).foregroundStyle(.white.opacity(0.75))
                 }
                 if call.isIncoming && call.context.route.kind == .group && call.phase == .incoming {
-                    Text((call.participants.first(where: { $0.id == call.callerID })?.name ?? "群成员") + " 邀请你加入")
+                    Text((call.participants.first(where: { $0.id == call.callerID })?.name ?? L10n.tr("群成员")) + L10n.tr(" 邀请你加入"))
                         .font(.subheadline).foregroundStyle(.white.opacity(0.75)).lineLimit(2)
                 }
             }.frame(maxWidth: .infinity)
             if call.context.route.kind == .group && call.phase == .connected {
                 Button { Task { await coordinator.inviteMembers() } } label: {
                     Image(systemName: "person.badge.plus").frame(width: 44, height: 44)
-                }.accessibilityLabel("邀请成员").disabled(coordinator.busy)
+                }.accessibilityLabel(L10n.tr("邀请成员")).disabled(coordinator.busy)
             } else { Color.clear.frame(width: 44, height: 44) }
         }
     }
@@ -85,7 +86,7 @@ struct CallRoomView: View {
                             .frame(width: 110.zoom(), height: 160.zoom())
                             .clipShape(RoundedRectangle(cornerRadius: 14.zoom()))
                             .overlay(RoundedRectangle(cornerRadius: 14.zoom()).stroke(.white.opacity(0.3)))
-                    }.buttonStyle(.plain).padding(12.zoom()).accessibilityLabel("交换大小视频画面")
+                    }.buttonStyle(.plain).padding(12.zoom()).accessibilityLabel(L10n.tr("交换大小视频画面"))
                 }
             }.clipShape(RoundedRectangle(cornerRadius: 22.zoom()))
         } else {
@@ -93,7 +94,7 @@ struct CallRoomView: View {
                 let peer = call.participants.first(where: { !$0.isLocal })
                 CallAvatar(name: peer?.name ?? call.title, resource: peer?.avatar ?? call.context.route.avatarURL, size: 108.zoom())
                 Text(peer?.name ?? call.title).font(.title2.weight(.semibold)).multilineTextAlignment(.center)
-                Label(call.kind == .audio ? "语音通话" : "视频通话", systemImage: call.kind == .audio ? "phone.fill" : "video.fill")
+                Label(call.kind == .audio ? L10n.tr("语音通话") : L10n.tr("视频通话"), systemImage: call.kind == .audio ? "phone.fill" : "video.fill")
                     .font(.subheadline).foregroundStyle(.white.opacity(0.7))
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -104,21 +105,21 @@ struct CallRoomView: View {
             RoundedRectangle(cornerRadius: 14.zoom()).fill(.white.opacity(0.08))
             if kind == .video && person.cameraEnabled && (person.isConnected || person.isLocal) {
                 CallVideoSurface(participantID: person.id, coordinator: coordinator)
-                    .clipped().accessibilityLabel(person.name + "的视频画面")
+                    .clipped().accessibilityLabel(person.name + L10n.tr("的视频画面"))
             } else {
                 CallAvatar(name: person.name, resource: person.avatar, size: 64.zoom())
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             HStack(spacing: 4) {
-                Text(person.isLocal ? "我" : person.name).lineLimit(1)
+                Text(person.isLocal ? L10n.tr("我") : person.name).lineLimit(1)
                 Spacer(minLength: 0)
-                if !person.isConnected && !person.isLocal { Image(systemName: "clock").accessibilityLabel("等待加入") }
-                if !person.microphoneEnabled { Image(systemName: "mic.slash.fill").accessibilityLabel("麦克风已关闭") }
+                if !person.isConnected && !person.isLocal { Image(systemName: "clock").accessibilityLabel(L10n.tr("等待加入")) }
+                if !person.microphoneEnabled { Image(systemName: "mic.slash.fill").accessibilityLabel(L10n.tr("麦克风已关闭")) }
             }
             .font(.caption).padding(8.zoom())
             .background(.black.opacity(0.4))
             if !person.isConnected && !person.isLocal {
-                Text(person.stateText).font(.caption).padding(8.zoom())
+                Text(L10n.lookup(person.stateText)).font(.caption).padding(8.zoom())
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
@@ -133,12 +134,12 @@ struct CallRoomView: View {
                 }.disabled(call.phase != .connected)
             }
             HStack(spacing: 70.zoom()) {
-                action(call.phase == .incoming ? "拒绝" : call.phase == .outgoing ? "取消" : "挂断",
+                action(call.phase == .incoming ? L10n.tr("拒绝") : call.phase == .outgoing ? L10n.tr("取消") : L10n.tr("挂断"),
                        icon: "phone.down.fill", color: .red, enabled: call.phase != .ending) {
                     Task { await coordinator.hangUp() }
                 }
                 if call.phase == .incoming {
-                    action("接听", icon: call.kind == .audio ? "phone.fill" : "video.fill",
+                    action(L10n.tr("接听"), icon: call.kind == .audio ? "phone.fill" : "video.fill",
                            color: MessagingTheme.accent, enabled: !coordinator.busy) {
                         Task { await coordinator.accept() }
                     }
@@ -148,14 +149,14 @@ struct CallRoomView: View {
     }
 
     @ViewBuilder private func mediaControls(_ call: CallSession) -> some View {
-        action(call.microphoneEnabled ? "静音" : "取消静音", icon: call.microphoneEnabled ? "mic.fill" : "mic.slash.fill",
+        action(call.microphoneEnabled ? L10n.tr("静音") : L10n.tr("取消静音"), icon: call.microphoneEnabled ? "mic.fill" : "mic.slash.fill",
                selected: !call.microphoneEnabled) { coordinator.toggleMicrophone() }
-        action(call.speakerEnabled ? "扬声器已开" : "扬声器", icon: call.speakerEnabled ? "speaker.wave.2.fill" : "speaker.fill",
+        action(call.speakerEnabled ? L10n.tr("扬声器已开") : L10n.tr("扬声器"), icon: call.speakerEnabled ? "speaker.wave.2.fill" : "speaker.fill",
                selected: call.speakerEnabled) { coordinator.toggleSpeaker() }
         if call.kind == .video {
-            action(call.cameraEnabled ? "关闭摄像头" : "打开摄像头", icon: call.cameraEnabled ? "video.fill" : "video.slash.fill",
+            action(call.cameraEnabled ? L10n.tr("关闭摄像头") : L10n.tr("打开摄像头"), icon: call.cameraEnabled ? "video.fill" : "video.slash.fill",
                    selected: !call.cameraEnabled) { coordinator.toggleCamera() }
-            action("翻转摄像头", icon: "arrow.triangle.2.circlepath.camera", enabled: call.cameraEnabled) { coordinator.switchCamera() }
+            action(L10n.tr("翻转摄像头"), icon: "arrow.triangle.2.circlepath.camera", enabled: call.cameraEnabled) { coordinator.switchCamera() }
         }
     }
 
@@ -176,16 +177,17 @@ struct CallRoomView: View {
 
     private func status(_ call: CallSession) -> String {
         switch call.phase {
-        case .incoming: return call.kind == .audio ? "邀请你进行语音通话" : "邀请你进行视频通话"
-        case .outgoing: return "等待对方接听…"
-        case .connecting: return "正在连接…"
-        case .connected: return "通话中"
-        case .ending: return "正在结束通话…"
+        case .incoming: return call.kind == .audio ? L10n.tr("邀请你进行语音通话") : L10n.tr("邀请你进行视频通话")
+        case .outgoing: return L10n.tr("等待对方接听…")
+        case .connecting: return L10n.tr("正在连接…")
+        case .connected: return L10n.tr("通话中")
+        case .ending: return L10n.tr("正在结束通话…")
         }
     }
 }
 
 struct CallAvatar: View {
+    @Environment(\.locale) private var localizationLocale
     let name: String
     let resource: String
     let size: CGFloat

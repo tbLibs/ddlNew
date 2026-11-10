@@ -19,7 +19,7 @@ import ObjectiveC
             else { sdk.groupNotificationApplyJoinGroupList(withData: params, onSuccess: success, onFailure: failure) }
         }
         try validate(userUID: userUID, groupID: groupID)
-        guard let payload = Mapper<GroupApplicationsPayload>().map(JSONString: json) else { throw ChatClientError.unavailable("群申请数据无效，请刷新重试") }
+        guard let payload = Mapper<GroupApplicationsPayload>().map(JSONString: json) else { throw ChatClientError.unavailable(L10n.tr("群申请数据无效，请刷新重试")) }
         return GroupApplicationsPage(records: payload.records.map(\.record), total: payload.total, notifications: notifications)
     }
     /// 返回每条真实处理结果，缺少或失败的申请不能标为成功。
@@ -33,7 +33,7 @@ import ObjectiveC
         }
         try validate(userUID: userUID, groupID: nil)
         guard let data = json.data(using: .utf8), let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            throw ChatClientError.unavailable("群审核回执无效，请刷新确认状态")
+            throw ChatClientError.unavailable(L10n.tr("群审核回执无效，请刷新确认状态"))
         }
         var successful: Set<String> = []
         for record in records {
@@ -59,7 +59,7 @@ import ObjectiveC
                     "smsgId": messageID, "sendMsgUserUid": id]), onSuccess: { _, _ in
                     Task { @MainActor in waiter.finish(.success(true)) }
                 }, onFailure: { code, _, _ in
-                    Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable("群通知已读上报失败（\(code)），请刷新重试"))) }
+                    Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("群通知已读上报失败（\(code)），请刷新重试")))) }
                 })
             }
             try Task<Never, Never>.checkCancellation()
@@ -102,7 +102,7 @@ import ObjectiveC
             let cached: LingIMGroupModel? = sdk.toolCheckMyGroup(with: groupID)
             guard let group = cached, group.leaveGroupStatus == 0,
                   group.groupStatus == 1, [1, 2].contains(group.userGroupRole) else {
-                throw ChatClientError.permission("当前已无群管理权限，请刷新后重试")
+                throw ChatClientError.permission(L10n.tr("当前已无群管理权限，请刷新后重试"))
             }
         }
     }
@@ -118,10 +118,10 @@ import ObjectiveC
                 let json = bytes.flatMap { String(data: $0, encoding: .utf8) }
                 Task { @MainActor in
                     if let json { waiter.finish(.success(json)) }
-                    else { waiter.finish(.failure(ChatClientError.unavailable("群申请数据无效，请刷新重试"))) }
+                    else { waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("群申请数据无效，请刷新重试")))) }
                 }
             }, { code, _, _ in
-                Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable("群申请请求失败（\(code)），请稍后重试"))) }
+                Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("群申请请求失败（\(code)），请稍后重试")))) }
             })
         }
         try Task<Never, Never>.checkCancellation()

@@ -32,7 +32,7 @@ import Combine
             results = found
         } catch {
             guard generation == runID, queryVersion == version, !(error is CancellationError) else { return }
-            errorMessage = "本地搜索失败，请重试"
+            errorMessage = L10n.tr("本地搜索失败，请重试")
         }
     }
     /// 页面离开或会话失效时清空全部用户结果。

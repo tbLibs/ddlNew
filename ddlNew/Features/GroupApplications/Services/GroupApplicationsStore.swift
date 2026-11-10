@@ -80,7 +80,7 @@ import Foundation
         do {
             let outcome = try await client.review(userUID: uid, records: selected, accept: accept)
             guard generation == runID, !Task.isCancelled else { return }
-            notice = "\(outcome.successfulIDs.count) 条处理成功，\(outcome.failedIDs.count) 条未成功，请刷新后重试"
+            notice = L10n.tr("\(outcome.successfulIDs.count) 条处理成功，\(outcome.failedIDs.count) 条未成功，请刷新后重试")
             selectedIDs = []
             await reload(pendingOnly: pendingOnly)
         } catch {

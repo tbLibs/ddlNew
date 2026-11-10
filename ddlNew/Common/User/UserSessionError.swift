@@ -29,10 +29,10 @@ nonisolated enum UserSessionError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidData: return "用户会话数据不完整，请重新登录"
-        case .keychainFailure(let status): return "保存或读取登录凭据失败（\(status)），请重试"
-        case .databaseNotReady: return "用户数据库初始化失败，请重新登录"
-        case .authenticationTimedOut: return "TCP 用户认证超时，请检查网络后重新登录"
+        case .invalidData: return L10n.tr("用户会话数据不完整，请重新登录")
+        case .keychainFailure(let status): return L10n.tr("保存或读取登录凭据失败（\(status)），请重试")
+        case .databaseNotReady: return L10n.tr("用户数据库初始化失败，请重新登录")
+        case .authenticationTimedOut: return L10n.tr("TCP 用户认证超时，请检查网络后重新登录")
         case .authenticationRejected(let code, let message):
             return LoginSecurityNotice.sessionMessage(code: code, message: message)
         }

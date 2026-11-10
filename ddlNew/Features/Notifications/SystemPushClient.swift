@@ -13,11 +13,11 @@ import CryptoKit
     }
     func permissionStatus() async -> String {
         switch await center.notificationSettings().authorizationStatus {
-        case .authorized: return "已开启"
-        case .provisional, .ephemeral: return "已允许静默通知"
-        case .denied: return "系统通知已关闭"
-        case .notDetermined: return "尚未允许通知"
-        @unknown default: return "请查看系统通知设置"
+        case .authorized: return L10n.tr("已开启")
+        case .provisional, .ephemeral: return L10n.tr("已允许静默通知")
+        case .denied: return L10n.tr("系统通知已关闭")
+        case .notDetermined: return L10n.tr("尚未允许通知")
+        @unknown default: return L10n.tr("请查看系统通知设置")
         }
     }
     func registerRemote() { UIApplication.shared.registerForRemoteNotifications() }

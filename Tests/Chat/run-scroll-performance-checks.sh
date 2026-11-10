@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -61,7 +62,7 @@ if [ ! -f "$GEOMETRY_FILE" ]; then
     GEOMETRY_FILE="$TMP_DIR/Geometry.swift"
     touch "$GEOMETRY_FILE"
 fi
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Components/ChatLatestPreference.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Components/ChatLatestPreference.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatViewportPolicy.swift" "$GEOMETRY_FILE" \
  "$ROOT_DIR/Tests/Chat/ScrollPerformanceChecks.swift" "$TMP_DIR/Production.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

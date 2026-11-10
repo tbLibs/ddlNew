@@ -9,6 +9,7 @@ import Kingfisher
 import UIAdapter
 
 struct ChatGroupMemberPreview: View {
+    @Environment(\.locale) private var localizationLocale
     let group: ChatGroupDetail
     let onOpenProfile: (ChatGroupMember) -> Void
     let onInvite: () -> Void
@@ -24,8 +25,8 @@ struct ChatGroupMemberPreview: View {
                         .buttonStyle(MessagingRowStyle())
                 } else { avatar(member) }
             }
-            action("邀请", icon: "plus", perform: onInvite)
-            if [1, 2].contains(group.role) { action("移除", icon: "minus", perform: onRemove) }
+            action(L10n.tr("邀请"), icon: "plus", perform: onInvite)
+            if [1, 2].contains(group.role) { action(L10n.tr("移除"), icon: "minus", perform: onRemove) }
         }
     }
 
@@ -46,12 +47,13 @@ struct ChatGroupMemberPreview: View {
                     .foregroundStyle(MessagingTheme.secondaryText).background(MessagingTheme.pressed, in: RoundedRectangle(cornerRadius: 8.zoom())).accessibilityHidden(true)
                 Text(title).font(.caption).foregroundStyle(MessagingTheme.text)
             }.frame(maxWidth: .infinity, minHeight: 44, alignment: .top)
-        }.buttonStyle(MessagingRowStyle()).accessibilityLabel(title == "邀请" ? "邀请好友进群" : "选择移除群成员")
+        }.buttonStyle(MessagingRowStyle()).accessibilityLabel(icon == "plus" ? L10n.tr("邀请好友进群") : L10n.tr("选择移除群成员"))
     }
 }
 
 /// 群成员尚无独立头像组件，下载策略和文件 Host 与好友头像保持一致。
 struct ChatGroupMemberAvatar: View {
+    @Environment(\.locale) private var localizationLocale
     let member: ChatGroupMember
     let size: CGFloat
     @ObservedObject private var connection = OSSConnectionBootstrap.shared

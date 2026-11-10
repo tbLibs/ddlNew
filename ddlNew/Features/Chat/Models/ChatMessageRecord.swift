@@ -55,21 +55,21 @@ struct ChatMessageRecord: Identifiable, Equatable, Sendable {
     /// 名片是独立用户入口，不套用消息发送者的来源群限制。
     nonisolated var cardProfileID: String? { status == .normal && isCompatible && type == 6 && !cardUID.isEmpty ? cardUID : nil }
     nonisolated var displayText: String {
-        if !isCompatible { return "当前版本暂不支持此消息，请更新后查看" }
-        if status == .recalled || type == 8 { return "消息已撤回" }
+        if !isCompatible { return L10n.tr("当前版本暂不支持此消息，请更新后查看") }
+        if status == .recalled || type == 8 { return L10n.tr("消息已撤回") }
         switch type {
         case 0, 10, 16, 1000: return text
-        case 1: return "[图片]"
-        case 2: return "[视频]"
-        case 3, 7: return "[位置] " + text
-        case 4: return "[语音]"
-        case 5: return fileName.isEmpty ? "[文件]" : fileName
-        case 6: return "[名片] " + text
-        case 12: return "[贴纸]"
-        case 21: return gameType == 2 ? "[骰子] " + text : gameType == 1 ? "[石头剪刀布] " + text : "[游戏表情] " + text
-        case 18: return "[聊天记录]"
+        case 1: return L10n.tr("[图片]")
+        case 2: return L10n.tr("[视频]")
+        case 3, 7: return L10n.tr("[位置] ") + text
+        case 4: return L10n.tr("[语音]")
+        case 5: return fileName.isEmpty ? L10n.tr("[文件]") : fileName
+        case 6: return L10n.tr("[名片] ") + text
+        case 12: return L10n.tr("[贴纸]")
+        case 21: return gameType == 2 ? L10n.tr("[骰子] ") + text : gameType == 1 ? L10n.tr("[石头剪刀布] ") + text : L10n.tr("[游戏表情] ") + text
+        case 18: return L10n.tr("[聊天记录]")
         case 20: return text
-        default: return "当前版本暂不支持此消息"
+        default: return L10n.tr("当前版本暂不支持此消息")
         }
     }
 }

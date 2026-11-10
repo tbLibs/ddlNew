@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 真实通讯录保留好友缓存所有者，新增分组、群列表与业务入口。
 struct ContactsView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var store: ContactsStore
     @ObservedObject var businessStore: ContactsBusinessStore
     @ObservedObject var groupsStore: GroupsStore
@@ -41,7 +42,7 @@ struct ContactsView: View {
                                 VStack(alignment: .leading, spacing: 4.zoom()) {
                                 HStack(spacing: 8.zoom()) {
                                     MessagingTabs(selection: $filter)
-                                    if store.isSyncing { ProgressView().accessibilityLabel("正在同步好友") }
+                                    if store.isSyncing { ProgressView().accessibilityLabel(L10n.tr("正在同步好友")) }
                                     if !dynamicTypeSize.isAccessibilitySize { contactsCount }
                                 }
                                 if dynamicTypeSize.isAccessibilitySize {
@@ -52,7 +53,7 @@ struct ContactsView: View {
                                     }
                                 }
                                 }
-                                MessagingSearchField(placeholder: filter == .groups ? "搜索群名称" : "搜索备注、昵称、账号",
+                                MessagingSearchField(placeholder: filter == .groups ? L10n.tr("搜索群名称") : L10n.tr("搜索备注、昵称、账号"),
                                                      text: $query, focus: $searchFocused, identifier: "contactSearch")
                             }.padding(.horizontal, 16.zoom()).padding(.bottom, 12.zoom()).background(MessagingTheme.background)
                         }
@@ -69,7 +70,7 @@ struct ContactsView: View {
             .frame(maxWidth: 720).frame(maxWidth: .infinity)
             .background(MessagingTheme.background.ignoresSafeArea())
         }
-        .navigationTitle("通讯录")
+        .navigationTitle(L10n.tr("通讯录"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) { navigationActions }
@@ -99,17 +100,17 @@ struct ContactsView: View {
     @ViewBuilder private var navigationActions: some View {
         NavigationLink(value: ContactsPageRoute.globalSearch) {
             Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-        }.accessibilityLabel("全局搜索")
+        }.accessibilityLabel(L10n.tr("全局搜索"))
         if permissions.current?.allows("allowAddFriend") == true {
             NavigationLink(value: ContactsPageRoute.addFriend) {
                 Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("添加好友")
+            }.accessibilityLabel(L10n.tr("添加好友"))
         }
     }
 
     /// 数量在大字号下独立一行，不挤压三个分类按钮。
     private var contactsCount: some View {
-        Text("\(store.contacts.count) 位好友").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+        Text(L10n.tr("\(store.contacts.count) 位好友")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
             .accessibilityIdentifier("contactsCount")
     }
 
@@ -118,15 +119,15 @@ struct ContactsView: View {
         let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8.zoom())) : AnyLayout(HStackLayout(spacing: 12.zoom()))
         return layout {
             NavigationLink(value: ContactsPageRoute.newFriends) {
-                ContactShortcut(title: "新朋友", symbol: "person.crop.circle.badge.plus", unreadCount: businessStore.unreadCount)
+                ContactShortcut(title: L10n.tr("新朋友"), symbol: "person.crop.circle.badge.plus", unreadCount: businessStore.unreadCount)
             }
             if permissions.current?.allows("isShowFileAssistant") == true {
-                NavigationLink(value: ChatRoute(id: "100002", kind: .single, title: "文件助手", avatarURL: "")) {
-                    ContactShortcut(title: "文件助手", symbol: "folder")
+                NavigationLink(value: ChatRoute(id: "100002", kind: .single, title: L10n.tr("文件助手"), avatarURL: "")) {
+                    ContactShortcut(title: L10n.tr("文件助手"), symbol: "folder")
                 }
             }
             NavigationLink(value: ContactsPageRoute.groupAssistant) {
-                ContactShortcut(title: "群助手", symbol: "bubble.left.and.bubble.right")
+                ContactShortcut(title: L10n.tr("群助手"), symbol: "bubble.left.and.bubble.right")
             }
         }.buttonStyle(.plain)
     }
@@ -156,7 +157,7 @@ struct ContactsView: View {
             } label: {
                 Image(systemName: "list.bullet").font(.system(size: 18.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
                     .background(MessagingTheme.surface, in: Circle())
-            }.accessibilityLabel("按字母定位好友")
+            }.accessibilityLabel(L10n.tr("按字母定位好友"))
         }.foregroundStyle(MessagingTheme.accent).padding(.trailing, 2.zoom())
     }
 
@@ -165,9 +166,9 @@ struct ContactsView: View {
         switch filter {
         case .friends:
             if sections.isEmpty {
-                if store.isSyncing { ProgressView("正在同步好友").padding(16.zoom()) }
+                if store.isSyncing { ProgressView(L10n.tr("正在同步好友")).padding(16.zoom()) }
                 else if store.errorMessage == nil {
-                    emptyState(query.isEmpty ? "暂无好友" : "没有找到相关好友", detail: "添加好友后，可在这里查看好友资料。")
+                    emptyState(query.isEmpty ? L10n.tr("暂无好友") : L10n.tr("没有找到相关好友"), detail: L10n.tr("添加好友后，可在这里查看好友资料。"))
                         .accessibilityIdentifier("contactsEmptyState")
                 }
             }
@@ -180,10 +181,10 @@ struct ContactsView: View {
             }
         case .friendGroups:
             Button { managingGroups = true } label: {
-                Label("管理好友分组", systemImage: "slider.horizontal.3").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
+                Label(L10n.tr("管理好友分组"), systemImage: "slider.horizontal.3").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
             }.buttonStyle(MessagingRowStyle())
             if businessStore.groups.isEmpty {
-                if !businessStore.isLoading && businessStore.errorMessage == nil { emptyState("暂无好友分组", detail: "可创建分组来整理好友。") }
+                if !businessStore.isLoading && businessStore.errorMessage == nil { emptyState(L10n.tr("暂无好友分组"), detail: L10n.tr("可创建分组来整理好友。")) }
             }
             ForEach(businessStore.groups) { group in
                 Button { toggleGroup(group.id) } label: {
@@ -193,8 +194,8 @@ struct ContactsView: View {
                         Spacer()
                         Text("\(group.members.count)").foregroundStyle(MessagingTheme.secondaryText)
                     }.padding(.horizontal, 16.zoom()).frame(minHeight: 54.zoom())
-                }.buttonStyle(MessagingRowStyle()).accessibilityLabel("\(group.displayName)，\(group.members.count)位好友")
-                    .accessibilityValue(openGroups.contains(group.id) ? "已展开" : "已收起")
+                }.buttonStyle(MessagingRowStyle()).accessibilityLabel(L10n.tr("\(group.displayName)，\(group.members.count)位好友"))
+                    .accessibilityValue(openGroups.contains(group.id) ? L10n.tr("已展开") : L10n.tr("已收起"))
                 if openGroups.contains(group.id) {
                     ForEach(group.members.filter { query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query) }) { contact in contactLink(contact) }
                 }
@@ -202,12 +203,12 @@ struct ContactsView: View {
         case .groups:
             if permissions.current?.allows("createGroup") == true {
                 Button { selectingMembers = true } label: {
-                    Label("创建群聊", systemImage: "person.2.badge.plus").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
+                    Label(L10n.tr("创建群聊"), systemImage: "person.2.badge.plus").frame(maxWidth: .infinity, minHeight: 48.zoom(), alignment: .leading).padding(.horizontal, 16.zoom())
                 }.buttonStyle(MessagingRowStyle()).disabled(groupsStore.isCreating)
             }
             let visible = groupsStore.groups.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
             if visible.isEmpty {
-                if !groupsStore.isLoading && groupsStore.errorMessage == nil { emptyState(query.isEmpty ? "暂无群聊" : "没有找到群聊", detail: "加入或创建群聊后，将在这里显示。") }
+                if !groupsStore.isLoading && groupsStore.errorMessage == nil { emptyState(query.isEmpty ? L10n.tr("暂无群聊") : L10n.tr("没有找到群聊"), detail: L10n.tr("加入或创建群聊后，将在这里显示。")) }
             }
             ForEach(visible) { group in
                 NavigationLink(value: ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar)) {
@@ -215,7 +216,7 @@ struct ContactsView: View {
                         GroupRecordAvatar(group: group, fileHost: fileHost)
                         Text(group.name).foregroundStyle(MessagingTheme.text).lineLimit(2)
                         Spacer(minLength: 8)
-                        Text("\(group.memberCount)人").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                        Text(L10n.tr("\(group.memberCount)人")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                     }.padding(.horizontal, 16.zoom()).padding(.vertical, 10.zoom()).frame(maxWidth: .infinity, minHeight: 68.zoom(), alignment: .leading)
                 }.buttonStyle(MessagingRowStyle())
             }
@@ -261,6 +262,6 @@ struct ContactsView: View {
         .id(presentationIdentity)
         .accessibilityIdentifier("contact.\(contact.id)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(contact.displayName + (contact.isDeleted ? "，账号已注销" : contact.isOnline ? "，在线" : "，离线"))
+        .accessibilityLabel(contact.displayName + (contact.isDeleted ? L10n.tr("，账号已注销") : contact.isOnline ? L10n.tr("，在线") : L10n.tr("，离线")))
     }
 }

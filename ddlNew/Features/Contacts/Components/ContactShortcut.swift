@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 对齐旧通讯录顶部入口，文字可随辅助字号增高，未读不只依赖颜色。
 struct ContactShortcut: View {
+    @Environment(\.locale) private var localizationLocale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let symbol: String
@@ -27,7 +28,7 @@ struct ContactShortcut: View {
         .background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 12.zoom()))
         .overlay(RoundedRectangle(cornerRadius: 12.zoom()).stroke(MessagingTheme.divider, lineWidth: 1))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title + (unreadCount > 0 ? "，\(unreadCount)条未读申请" : ""))
+        .accessibilityLabel(title + (unreadCount > 0 ? L10n.tr("，\(unreadCount)条未读申请") : ""))
     }
     /// 图标大小不跟随正文无限放大，完整标题负责可访问语义。
     private var icon: some View {

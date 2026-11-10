@@ -89,11 +89,13 @@ struct LoginCaptchaWebView: View {
     var body: some View { Text("匿名验证") }
 }
 struct Host: View {
+    @ObservedObject private var language = AppLanguageStore.shared
     var body: some View {
         Group {
             if mode.contains("register") { AccountRegistrationView(initialKind: mode.contains("phone") ? .phone : .account) }
             else { LoginView() }
         }
+        .environment(\.locale, language.locale)
         .environment(\.dynamicTypeSize, mode.contains("ax") ? .accessibility3 : .large)
         .task {
             if mode.contains("bottom") {
@@ -109,4 +111,10 @@ struct Host: View {
         }
     }
 }
-@main struct PreviewApp: App { var body: some Scene { WindowGroup { Host() } } }
+@main struct PreviewApp: App {
+    init() {
+        if mode != "language-restore" {
+            AppLanguageStore.shared.select(mode.contains("english") ? .english : mode.contains("hant") ? .traditionalChinese : .simplifiedChinese)
+        }
+    }
+    var body: some Scene { WindowGroup { Host() } } }

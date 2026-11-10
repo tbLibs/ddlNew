@@ -11,6 +11,7 @@ import AlertToast
 
 /// 备注sheet使用编辑副本，不在拼音输入或emoji中间截断内容。
 struct ContactRemarkEditor: View {
+    @Environment(\.locale) private var localizationLocale
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var businessStore: ContactsBusinessStore
     let contactID: String
@@ -49,42 +50,42 @@ struct ContactRemarkEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("设置备注") {
-                    TextField("请填写备注", text: $remark).frame(minHeight: 44).accessibilityLabel("好友备注").disabled(isSaving)
+                Section(L10n.tr("设置备注")) {
+                    TextField(L10n.tr("请填写备注"), text: $remark).frame(minHeight: 44).accessibilityLabel(L10n.tr("好友备注")).disabled(isSaving)
                     Text("\(remark.utf16.count)/50").font(.caption).foregroundStyle(remark.utf16.count > 50 ? MessagingTheme.error : MessagingTheme.secondaryText)
-                    if remark.utf16.count > 50 { Text("备注最多50字，请缩短后保存。").font(.caption).foregroundStyle(MessagingTheme.error) }
+                    if remark.utf16.count > 50 { Text(L10n.tr("备注最多50字，请缩短后保存。")).font(.caption).foregroundStyle(MessagingTheme.error) }
                 }
-                Section("描述") {
-                    TextEditor(text: $description).font(.body).scrollContentBackground(.hidden).frame(minHeight: 160.zoom()).accessibilityLabel("备注描述").disabled(isSaving)
+                Section(L10n.tr("描述")) {
+                    TextEditor(text: $description).font(.body).scrollContentBackground(.hidden).frame(minHeight: 160.zoom()).accessibilityLabel(L10n.tr("备注描述")).disabled(isSaving)
                     Text("\(description.utf16.count)/200").font(.caption).foregroundStyle(description.utf16.count > 200 ? MessagingTheme.error : MessagingTheme.secondaryText)
-                    if description.utf16.count > 200 { Text("描述最多200字，请缩短后保存。").font(.caption).foregroundStyle(MessagingTheme.error) }
+                    if description.utf16.count > 200 { Text(L10n.tr("描述最多200字，请缩短后保存。")).font(.caption).foregroundStyle(MessagingTheme.error) }
                 }
             }
             .listRowBackground(MessagingTheme.surface)
-            .navigationTitle("备注与描述")
+            .navigationTitle(L10n.tr("备注与描述"))
             .modifier(MessagingPageChrome())
         .messagingFeedbackToast(businessStore.errorMessage)
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(isSaving) }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(isSaving) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button { Task { await save() } } label: {
-                    Text("保存").frame(maxWidth: .infinity)
+                    Text(L10n.tr("保存")).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(MessagingActionButtonStyle())
                 .disabled(isSaving || !isDirty || remark.utf16.count > 50 || description.utf16.count > 200 || (!remark.isEmpty && remark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                 .padding(16.zoom()).background(MessagingTheme.surface)
             }
             .interactiveDismissDisabled(isSaving || isDirty)
-            .confirmationDialog("放弃未保存的修改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button("继续编辑", role: .cancel) {}
-                Button("放弃修改", role: .destructive) { dismiss() }
+            .confirmationDialog(L10n.tr("放弃未保存的修改？"), isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                Button(L10n.tr("继续编辑"), role: .cancel) {}
+                Button(L10n.tr("放弃修改"), role: .destructive) { dismiss() }
             }
         }
         // 提交完成或失败时由Store关闭Toast，提示本身不能中断保存。
         .toast(isPresenting: Binding(get: { isSaving }, set: { _ in }), duration: 0, tapToDismiss: false) {
-            AlertToast(type: .loading, title: "正在保存",
+            AlertToast(type: .loading, title: L10n.tr("正在保存"),
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
         }
         .presentationDetents([.large])

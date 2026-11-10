@@ -16,7 +16,7 @@ nonisolated final class SDKContactsDelegate: NSObject, NoaToolUserDelegate {
 
     func cimToolUserConnectSuccess() { onChange(.syncStarted) }
     func imSdkUserContactsSyncFinish() { onChange(.syncFinished) }
-    func imSdkUserContactsSyncFailed(_ errorMsg: String?) { onChange(.syncFailed(errorMsg ?? "好友同步失败")) }
+    func imSdkUserContactsSyncFailed(_ errorMsg: String?) { onChange(.syncFailed(errorMsg ?? L10n.tr("好友同步失败"))) }
     func imSdkUserFriendAdd(_ friendAddModel: LingIMFriendModel) { onChange(.changed) }
     func imSdkUserFriendDelete(_ friendDeleteModel: LingIMFriendModel) { onChange(.changed) }
     func cimToolUserFriendChange(_ message: LingIMFriendModel) { onChange(.changed) }

@@ -54,7 +54,7 @@ import UIKit
         case .undetermined: microphone = await withCheckedContinuation { continuation in AVAudioSession.sharedInstance().requestRecordPermission { continuation.resume(returning: $0) } }
         @unknown default: microphone = false
         }
-        guard microphone else { throw CallError.unavailable("请在系统设置中允许麦克风权限后通话") }
+        guard microphone else { throw CallError.unavailable(L10n.tr("请在系统设置中允许麦克风权限后通话")) }
         try Task.checkCancellation()
         if kind == .video {
             let camera: Bool
@@ -63,7 +63,7 @@ import UIKit
             case .notDetermined: camera = await AVCaptureDevice.requestAccess(for: .video)
             default: camera = false
             }
-            guard camera else { throw CallError.unavailable("请在系统设置中允许相机权限后视频通话") }
+            guard camera else { throw CallError.unavailable(L10n.tr("请在系统设置中允许相机权限后视频通话")) }
         }
     }
 }

@@ -11,6 +11,7 @@ import SwiftUIIntrospect
 
 /// 保留旧演示注册与登录；当前应用入口只使用 LoginView 的真实 AUTH。
 struct OriginalLoginView: View {
+    @Environment(\.locale) private var localizationLocale
     private enum LoginNotice: String, Identifiable {
         case agreement, credentials
         var id: Self { self }
@@ -38,18 +39,18 @@ struct OriginalLoginView: View {
         ScrollView {
             VStack(spacing: 24) {
                 VStack(spacing: 16) {
-                    Text("远山").font(.system(size: 15, weight: .semibold)).foregroundColor(ClubTheme.darkTeal)
+                    Text(L10n.tr("远山")).font(.system(size: 15, weight: .semibold)).foregroundColor(ClubTheme.darkTeal)
                         .frame(width: 74, height: 74).background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 25))
-                    Text("远山户外俱乐部").font(.system(size: 25, weight: .bold))
-                    Text("会员登录").font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
+                    Text(L10n.tr("远山户外俱乐部")).font(.system(size: 25, weight: .bold))
+                    Text(L10n.tr("会员登录")).font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                 }.padding(.top, 48)
                 ClubCard(padding: 20) {
                     VStack(alignment: .leading, spacing: 10) {
-                        ClubField(title: "会员卡号或账号", placeholder: "请输入会员卡号或账号", icon: "person", text: $card, focus: $cardFocused)
-                        ClubField(title: "密码", placeholder: "请输入密码", icon: "lock", text: $password, secure: true, focus: $passwordFocused).padding(.top, 12)
+                        ClubField(title: L10n.tr("会员卡号或账号"), placeholder: L10n.tr("请输入会员卡号或账号"), icon: "person", text: $card, focus: $cardFocused)
+                        ClubField(title: L10n.tr("密码"), placeholder: L10n.tr("请输入密码"), icon: "lock", text: $password, secure: true, focus: $passwordFocused).padding(.top, 12)
                         LegalAgreement(isAccepted: $acceptedDocuments)
                             .disabled(loading).padding(.top, 6)
-                        Button(loading ? "正在登录…" : "登录") {
+                        Button(loading ? L10n.tr("正在登录…") : L10n.tr("登录")) {
                             dismissKeyboard()
                             guard acceptedDocuments else { loginNotice = .agreement; return }
                             let submittedAccount = card.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -63,7 +64,7 @@ struct OriginalLoginView: View {
                             }
                         }.buttonStyle(ClubButtonStyle()).disabled(loading)
                             .padding(.top, 10).accessibilityIdentifier("login")
-                        Button("注册账号") {
+                        Button(L10n.tr("注册账号")) {
                             dismissKeyboard()
                             showRegistration = true
                         }
@@ -75,25 +76,25 @@ struct OriginalLoginView: View {
                     }
                 }
                 HStack(spacing: 32) {
-                    Button("更换俱乐部") { dismissKeyboard(); Task { await store.signOut(changeClub: true) } }
+                    Button(L10n.tr("更换俱乐部")) { dismissKeyboard(); Task { await store.signOut(changeClub: true) } }
                 }.font(.system(size: 14)).foregroundColor(ClubTheme.darkTeal).padding(.top, 5).disabled(loading)
             }.padding(.horizontal, 24).padding(.bottom, 28).frame(maxWidth: 460).frame(maxWidth: .infinity)
         }.background(ClubBackground())
-            .messagingLoadingToast(loading, title: "正在登录")
-            .messagingFeedbackToast(invalid ? "账号或密码不正确，请重新输入。" : nil)
+            .messagingLoadingToast(loading, title: L10n.tr("正在登录"))
+            .messagingFeedbackToast(invalid ? L10n.tr("账号或密码不正确，请重新输入。") : nil)
             .introspect(.scrollView, on: .iOS(.v15, .v16, .v17, .v18, .v26, .v27)) { $0.keyboardDismissMode = .interactive }
             .modifier(ClubKeyboardDismissal(isFocused: cardFocused || passwordFocused, dismiss: dismissKeyboard))
             .alert(item: $loginNotice) { notice in
                 switch notice {
                 case .agreement:
-                    return Alert(title: Text("请先勾选协议"),
-                                 message: Text("请阅读并勾选同意《隐私政策》和《使用支持》后再登录。"),
-                                 primaryButton: .default(Text("勾选")) { acceptedDocuments = true },
-                                 secondaryButton: .cancel(Text("取消")))
+                    return Alert(title: Text(L10n.tr("请先勾选协议")),
+                                 message: Text(L10n.tr("请阅读并勾选同意《隐私政策》和《使用支持》后再登录。")),
+                                 primaryButton: .default(Text(L10n.tr("勾选"))) { acceptedDocuments = true },
+                                 secondaryButton: .cancel(Text(L10n.tr("取消"))))
                 case .credentials:
-                    return Alert(title: Text("请输入账号和密码"),
-                                 message: Text("请填写会员卡号或账号及密码后再登录。"),
-                                 dismissButton: .default(Text("知道了")))
+                    return Alert(title: Text(L10n.tr("请输入账号和密码")),
+                                 message: Text(L10n.tr("请填写会员卡号或账号及密码后再登录。")),
+                                 dismissButton: .default(Text(L10n.tr("知道了"))))
                 }
             }
             .sheet(isPresented: $showRegistration) {
@@ -107,6 +108,7 @@ struct OriginalLoginView: View {
 }
 
 struct AccountRegistrationScreen: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var store: ClubStore
     @Environment(\.dismiss) private var dismiss
     let onRegistered: (String) -> Void
@@ -126,20 +128,20 @@ struct AccountRegistrationScreen: View {
             ScrollView {
                 VStack(spacing: 22) {
                     ClubLogo(size: 60).padding(.top, 28)
-                    Text("创建账号").font(.system(size: 25, weight: .bold))
-                    Text("设置账号和密码，注册成功后返回登录页")
+                    Text(L10n.tr("创建账号")).font(.system(size: 25, weight: .bold))
+                    Text(L10n.tr("设置账号和密码，注册成功后返回登录页"))
                         .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                     ClubCard(padding: 20) {
                         VStack(alignment: .leading, spacing: 14) {
-                            ClubField(title: "账号", placeholder: "请输入账号", icon: "person", text: $account, identifier: "registerAccountField")
-                            ClubField(title: "密码", placeholder: "请输入密码", icon: "lock", text: $password, secure: true, identifier: "registerPasswordField", contentType: .newPassword)
-                            ClubField(title: "确认密码", placeholder: "请再次输入密码", icon: "lock", text: $confirmation, secure: true, identifier: "registerConfirmationField", contentType: .newPassword)
+                            ClubField(title: L10n.tr("账号"), placeholder: L10n.tr("请输入账号"), icon: "person", text: $account, identifier: "registerAccountField")
+                            ClubField(title: L10n.tr("密码"), placeholder: L10n.tr("请输入密码"), icon: "lock", text: $password, secure: true, identifier: "registerPasswordField", contentType: .newPassword)
+                            ClubField(title: L10n.tr("确认密码"), placeholder: L10n.tr("请再次输入密码"), icon: "lock", text: $confirmation, secure: true, identifier: "registerConfirmationField", contentType: .newPassword)
                             if !confirmation.isEmpty && password != confirmation {
-                                Text("两次输入的密码不一致")
+                                Text(L10n.tr("两次输入的密码不一致"))
                                     .font(.system(size: 12)).foregroundColor(ClubTheme.error)
                             }
 
-                            Button(saving ? "正在注册…" : "注册") {
+                            Button(saving ? L10n.tr("正在注册…") : L10n.tr("注册")) {
                                 guard canRegister else { return }
                                 saving = true
                                 errorMessage = nil
@@ -152,7 +154,7 @@ struct AccountRegistrationScreen: View {
                                         dismiss()
                                     }
                                     catch {
-                                        errorMessage = "注册未完成，请重试。"
+                                        errorMessage = L10n.tr("注册未完成，请重试。")
                                         saving = false
                                     }
                                 }
@@ -167,18 +169,19 @@ struct AccountRegistrationScreen: View {
                 .frame(maxWidth: 460).frame(maxWidth: .infinity)
             }
             .background(ClubBackground())
-            .navigationTitle("注册账号")
+            .navigationTitle(L10n.tr("注册账号"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(saving) } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { dismiss() }.disabled(saving) } }
         }
         .navigationViewStyle(.stack)
-        .messagingLoadingToast(saving, title: "正在注册")
+        .messagingLoadingToast(saving, title: L10n.tr("正在注册"))
         .messagingFeedbackToast(errorMessage)
         .interactiveDismissDisabled(saving)
     }
 }
 
 private struct LegalAgreement: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var isAccepted: Bool
 
     var body: some View {
@@ -190,12 +193,12 @@ private struct LegalAgreement: View {
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("确认隐私政策和使用支持")
-            .accessibilityValue(isAccepted ? "已勾选" : "未勾选")
+            .accessibilityLabel(L10n.tr("确认隐私政策和使用支持"))
+            .accessibilityValue(isAccepted ? L10n.tr("已勾选") : L10n.tr("未勾选"))
             .accessibilityAddTraits(isAccepted ? .isSelected : [])
             .accessibilityIdentifier("acceptLegalDocuments")
             VStack(alignment: .leading, spacing: 0) {
-                Text("我已阅读并同意以下内容")
+                Text(L10n.tr("我已阅读并同意以下内容"))
                     .font(.footnote).foregroundColor(ClubTheme.secondary)
                 LegalEntryLinks()
             }

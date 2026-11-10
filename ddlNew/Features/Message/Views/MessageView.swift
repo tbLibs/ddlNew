@@ -11,6 +11,7 @@ import Kingfisher
 
 /// 真实 SDK 会话列表，操作经服务端确认后回读数据库。
 struct MessageView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var store: ConversationsStore
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @ObservedObject private var recovery = MessageSessionRecovery.shared
@@ -28,6 +29,7 @@ struct MessageView: View {
     @EnvironmentObject private var navigation: ActivityNavigation
 
     private enum ConversationFilter: String, CaseIterable, Identifiable {
+    var displayName: String { L10n.lookup(rawValue) }
         case all = "全部"
         case unread = "未读"
         var id: Self { self }
@@ -46,12 +48,12 @@ struct MessageView: View {
     var body: some View {
         List {
             VStack(alignment: .leading, spacing: 10.zoom()) {
-                MessagingSearchField(placeholder: "搜索会话或消息预览", text: $query,
+                MessagingSearchField(placeholder: L10n.tr("搜索会话或消息预览"), text: $query,
                                      focus: $searchFocused, identifier: "messageSearch")
                 MessagingTabs(selection: $filter)
                 MessageConnectionStatusView()
-                if store.errorMessage?.hasPrefix("会话缓存读取失败") == true {
-                    Button("重新读取") {
+                if store.hasLocalCacheFailure {
+                    Button(L10n.tr("重新读取")) {
                         if recovery.hasPendingIdentity { recovery.retryLocalSnapshot() }
                         else { Task { await store.reload() } }
                     }.frame(minHeight: 44)
@@ -95,7 +97,7 @@ struct MessageView: View {
         .listStyle(.plain).scrollContentBackground(.hidden).background(MessagingTheme.background)
         .frame(maxWidth: 720).frame(maxWidth: .infinity)
         .background(MessagingTheme.background)
-        .navigationTitle("消息")
+        .navigationTitle(L10n.tr("消息"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { navigationTitle }
@@ -108,7 +110,8 @@ struct MessageView: View {
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .onAppear { MessageConnectionMonitor.shared.setVisible(true) }
         .onDisappear { MessageConnectionMonitor.shared.setVisible(false) }
-        .task { if authentication.isAuthenticated { await store.reload() } }
+        // 重读本地展示快照，更新文件助手及消息类型摘要；不触发连接或远端同步。
+        .task(id: localizationLocale.identifier) { if authentication.isAuthenticated { await store.reload() } }
         .task(id: miniApps.store.map(ObjectIdentifier.init)) {
             if let apps = miniApps.store, !apps.hasLoaded { await apps.refresh() }
         }
@@ -125,24 +128,24 @@ struct MessageView: View {
                 }, onConfirm: { _ in })
         }
 
-        .alert("删除会话？", isPresented: Binding(get: { deletingConversation != nil }, set: { if !$0 { deletingConversation = nil } }), presenting: deletingConversation) { conversation in
-            Button("取消", role: .cancel) { deletingConversation = nil }
-            Button("删除", role: .destructive) {
+        .alert(L10n.tr("删除会话？"), isPresented: Binding(get: { deletingConversation != nil }, set: { if !$0 { deletingConversation = nil } }), presenting: deletingConversation) { conversation in
+            Button(L10n.tr("取消"), role: .cancel) { deletingConversation = nil }
+            Button(L10n.tr("删除"), role: .destructive) {
                 Task { await store.perform(.delete, conversationID: conversation.id) }
                 deletingConversation = nil
             }
-        } message: { _ in Text("删除后会移除会话，聊天记录仍保留。") }
+        } message: { _ in Text(L10n.tr("删除后会移除会话，聊天记录仍保留。")) }
     }
 
     /// 标题与同步数量放入系统导航栏，不再占用列表顶部安全区。
     private var navigationTitle: some View {
         HStack(spacing: 8.zoom()) {
-            Text("消息").font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
+            Text(L10n.tr("消息")).font(.headline).foregroundStyle(MessagingTheme.text).accessibilityAddTraits(.isHeader)
             if store.isSyncing {
-                ProgressView().accessibilityLabel("正在同步会话")
+                ProgressView().accessibilityLabel(L10n.tr("正在同步会话"))
             } else {
                 Text("\(store.conversations.count)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
-                    .accessibilityLabel("\(store.conversations.count)个会话").accessibilityIdentifier("conversationCount")
+                    .accessibilityLabel(L10n.tr("\(store.conversations.count)个会话")).accessibilityIdentifier("conversationCount")
             }
         }
     }
@@ -151,16 +154,16 @@ struct MessageView: View {
     @ViewBuilder private var navigationActions: some View {
         NavigationLink(value: ContactsPageRoute.globalSearch) {
             Image(systemName: "magnifyingglass").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-        }.accessibilityLabel("搜索好友、群聊和聊天内容").accessibilityIdentifier("openGlobalSearch")
+        }.accessibilityLabel(L10n.tr("搜索好友、群聊和聊天内容")).accessibilityIdentifier("openGlobalSearch")
         Menu {
             if permissions.current?.allows("allowAddFriend") == true {
-                NavigationLink("添加好友", value: ContactsPageRoute.addFriend)
+                NavigationLink(L10n.tr("添加好友"), value: ContactsPageRoute.addFriend)
             }
-            if permissions.current?.allows("createGroup") == true { Button("创建群聊") { selectingMembers = true } }
-            NavigationLink("扫一扫", value: ContactsPageRoute.scanner)
+            if permissions.current?.allows("createGroup") == true { Button(L10n.tr("创建群聊")) { selectingMembers = true } }
+            NavigationLink(L10n.tr("扫一扫"), value: ContactsPageRoute.scanner)
         } label: {
             Image(systemName: "plus.circle").font(.system(size: 22.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-        }.accessibilityLabel("消息页面更多操作")
+        }.accessibilityLabel(L10n.tr("消息页面更多操作"))
     }
 
     private var emptyState: some View {
@@ -168,25 +171,25 @@ struct MessageView: View {
         let title: String
         let detail: String
         if !keyword.isEmpty {
-            title = "没有找到相关会话"
-            detail = "试试搜索联系人名称或消息内容。"
+            title = L10n.tr("没有找到相关会话")
+            detail = L10n.tr("试试搜索联系人名称或消息内容。")
         } else if recovery.hasPendingIdentity && !store.hasLoadedSnapshot && store.errorMessage == nil {
-            title = "正在读取本地会话…"
-            detail = "已有消息将显示在这里。"
+            title = L10n.tr("正在读取本地会话…")
+            detail = L10n.tr("已有消息将显示在这里。")
         } else if store.isSyncing && !store.hasLoadedSnapshot && store.conversations.isEmpty {
-            title = "正在同步会话…"
-            detail = "同步完成后，消息会显示在这里。"
-        } else if let error = store.errorMessage, store.conversations.isEmpty {
-            title = "会话列表暂时不可用"
-            detail = error.hasPrefix("会话缓存读取失败")
-                ? "请重新读取会话缓存，或稍后再查看。"
-                : "网络恢复后会自动同步，你也可以稍后再查看。"
+            title = L10n.tr("正在同步会话…")
+            detail = L10n.tr("同步完成后，消息会显示在这里。")
+        } else if store.errorMessage != nil, store.conversations.isEmpty {
+            title = L10n.tr("会话列表暂时不可用")
+            detail = store.hasLocalCacheFailure
+                ? L10n.tr("请重新读取会话缓存，或稍后再查看。")
+                : L10n.tr("网络恢复后会自动同步，你也可以稍后再查看。")
         } else if filter == .unread {
-            title = "暂无未读会话"
-            detail = "有新消息时，会显示在这里。"
+            title = L10n.tr("暂无未读会话")
+            detail = L10n.tr("有新消息时，会显示在这里。")
         } else {
-            title = "暂无会话"
-            detail = "收到新消息后，会话会显示在这里。"
+            title = L10n.tr("暂无会话")
+            detail = L10n.tr("收到新消息后，会话会显示在这里。")
         }
         return VStack(spacing: 14.zoom()) {
             Image(systemName: "bubble.left.and.bubble.right")
@@ -228,20 +231,20 @@ struct MessageView: View {
         if allowed.contains(.togglePin) {
             Button {
                 Task { await store.perform(.togglePin, conversationID: conversation.id) }
-            } label: { Label(conversation.isPinned ? "取消置顶" : "置顶", systemImage: conversation.isPinned ? "pin.slash" : "pin") }
+            } label: { Label(conversation.isPinned ? L10n.tr("取消置顶") : L10n.tr("置顶"), systemImage: conversation.isPinned ? "pin.slash" : "pin") }
         }
         if allowed.contains(.toggleMute) {
             Button {
                 Task { await store.perform(.toggleMute, conversationID: conversation.id) }
-            } label: { Label(conversation.isMuted ? "取消免打扰" : "免打扰", systemImage: "bell.slash") }
+            } label: { Label(conversation.isMuted ? L10n.tr("取消免打扰") : L10n.tr("免打扰"), systemImage: "bell.slash") }
         }
         if allowed.contains(.toggleUnread) {
             Button {
                 Task { await store.perform(.toggleUnread, conversationID: conversation.id) }
-            } label: { Label(conversation.unreadCount > 0 || conversation.isMarkedUnread ? "清除未读" : "标记未读", systemImage: "envelope.badge") }
+            } label: { Label(conversation.unreadCount > 0 || conversation.isMarkedUnread ? L10n.tr("清除未读") : L10n.tr("标记未读"), systemImage: "envelope.badge") }
         }
         if allowed.contains(.delete) {
-            Button(role: .destructive) { deletingConversation = conversation } label: { Label("删除会话", systemImage: "trash") }
+            Button(role: .destructive) { deletingConversation = conversation } label: { Label(L10n.tr("删除会话"), systemImage: "trash") }
         }
     }
 
@@ -263,7 +266,7 @@ struct MessageView: View {
                     }
                 }
             VStack(alignment: .leading, spacing: 6.zoom()) {
-                Text(conversation.title.isEmpty ? "未命名会话" : conversation.title)
+                Text(conversation.title.isEmpty ? L10n.tr("未命名会话") : conversation.title)
                     .font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text)
                     .lineLimit(conversation.kind == .group ? 1 : 2).truncationMode(.tail)
                 preview(for: conversation)
@@ -292,9 +295,9 @@ struct MessageView: View {
     private func preview(for conversation: ConversationRecord) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 4.zoom()) {
             if conversation.isDraft {
-                Text("草稿").font(.subheadline.weight(.semibold)).foregroundColor(MessagingTheme.error)
+                Text(L10n.tr("草稿")).font(.subheadline.weight(.semibold)).foregroundColor(MessagingTheme.error)
             }
-            Text(conversation.preview.isEmpty ? "暂无消息预览" : conversation.preview)
+            Text(conversation.preview.isEmpty ? L10n.tr("暂无消息预览") : conversation.preview)
                 .font(.subheadline)
                 .foregroundColor(MessagingTheme.secondaryText)
                 .lineLimit(1)
@@ -358,13 +361,13 @@ struct MessageView: View {
 
     /// 合并状态文案供 VoiceOver 读取整条会话。
     private func accessibilityLabel(for conversation: ConversationRecord) -> String {
-        var parts = [conversation.title.isEmpty ? "未命名会话" : conversation.title]
-        if conversation.kind == .single && conversation.isOnline { parts.append("在线") }
-        if conversation.isPinned { parts.append("已置顶") }
-        if conversation.isMuted { parts.append("免打扰") }
-        if conversation.unreadCount > 0 { parts.append("\(conversation.unreadCount) 条未读") }
-        else if conversation.isMarkedUnread { parts.append("标记未读") }
-        if conversation.isDraft { parts.append("草稿") }
+        var parts = [conversation.title.isEmpty ? L10n.tr("未命名会话") : conversation.title]
+        if conversation.kind == .single && conversation.isOnline { parts.append(L10n.tr("在线")) }
+        if conversation.isPinned { parts.append(L10n.tr("已置顶")) }
+        if conversation.isMuted { parts.append(L10n.tr("免打扰")) }
+        if conversation.unreadCount > 0 { parts.append(L10n.tr("\(conversation.unreadCount) 条未读")) }
+        else if conversation.isMarkedUnread { parts.append(L10n.tr("标记未读")) }
+        if conversation.isDraft { parts.append(L10n.tr("草稿")) }
         if !conversation.preview.isEmpty { parts.append(conversation.preview) }
         if let date = conversation.latestTime { parts.append(Self.displayTime(date)) }
         return parts.joined(separator: "，")
@@ -374,13 +377,13 @@ struct MessageView: View {
     private static func displayTime(_ date: Date) -> String {
         let calendar = Calendar.current
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = L10n.locale
         if calendar.isDateInToday(date) {
             formatter.dateFormat = "HH:mm"
         } else if calendar.isDateInYesterday(date) {
-            return "昨天"
+            return L10n.tr("昨天")
         } else if calendar.component(.year, from: date) == calendar.component(.year, from: .now) {
-            formatter.dateFormat = "M月d日"
+            formatter.setLocalizedDateFormatFromTemplate("MMMd")
         } else {
             formatter.dateFormat = "yyyy/M/d"
         }

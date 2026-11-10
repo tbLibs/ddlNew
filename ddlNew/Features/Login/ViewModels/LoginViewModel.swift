@@ -122,7 +122,7 @@ final class LoginViewModel: ObservableObject {
             guard let record, AccountIdentity.Kind(rawValue: record.loginType) != nil else { return nil }
             return record
         } catch {
-            rememberedLoginMessage = "无法读取已记住的密码，请手动输入"
+            rememberedLoginMessage = L10n.tr("无法读取已记住的密码，请手动输入")
             return nil
         }
     }
@@ -133,7 +133,7 @@ final class LoginViewModel: ObservableObject {
             try RememberedLoginStore.shared.clear()
             rememberedLoginMessage = nil
         } catch {
-            rememberedLoginMessage = "删除已记住的密码失败，请重新开启后关闭该选项以重试"
+            rememberedLoginMessage = L10n.tr("删除已记住的密码失败，请重新开启后关闭该选项以重试")
         }
     }
 
@@ -151,7 +151,7 @@ final class LoginViewModel: ObservableObject {
             try RememberedLoginStore.shared.save(record)
             rememberedLoginMessage = nil
         } catch {
-            rememberedLoginMessage = "本次密码未能保存，下次登录请手动输入"
+            rememberedLoginMessage = L10n.tr("本次密码未能保存，下次登录请手动输入")
         }
     }
 
@@ -179,7 +179,7 @@ final class LoginViewModel: ObservableObject {
             // 清空入口失败时停留在登录页，避免重启后仍恢复旧入口却误认为已完成切换。
             debugPrint("[更换俱乐部] 清空导航入口失败：\(error)")
             userInfo = nil
-            loginPhase = .failed("清理俱乐部会话失败，请重试")
+            loginPhase = .failed(L10n.tr("清理俱乐部会话失败，请重试"))
             IMConnectionCoordinator.shared.startCachedReconnect()
             return
         }

@@ -34,7 +34,7 @@ nonisolated struct PasswordSecurityStatus: Sendable {
     }
 
     var message: String {
-        type == "PASSWORD_EQ_ACCOUNT" ? "密码与账号相同，请修改密码以保护账号安全" : "当前密码强度不足，请修改密码以保护账号安全"
+        type == "PASSWORD_EQ_ACCOUNT" ? L10n.tr("密码与账号相同，请修改密码以保护账号安全") : L10n.tr("当前密码强度不足，请修改密码以保护账号安全")
     }
 
     private static func bool(_ value: Any?) -> Bool? {

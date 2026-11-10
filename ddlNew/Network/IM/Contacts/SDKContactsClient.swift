@@ -85,7 +85,7 @@ final class SDKContactsClient: ContactsClient {
                     ContactProfileRequestGate.shared.finish(profileVersion, userUID: userUID, license: license, friendUID: friendUID)
                 }
                 guard let payload else {
-                    onChange(.syncFailed("好友资料响应格式错误，请稍后重试"))
+                    onChange(.syncFailed(L10n.tr("好友资料响应格式错误，请稍后重试")))
                     return
                 }
                 let sdk = self.sdk
@@ -108,7 +108,7 @@ final class SDKContactsClient: ContactsClient {
                 if let value = payload.disableStatus { friend.disableStatus = value }
                 friend.showName = (friend.remarks ?? "").isEmpty ? friend.nickname : friend.remarks
                 if !self.sdk.toolUpdateMyFriend(with: friend) {
-                    onChange(.syncFailed("好友备注保存失败，请稍后重试"))
+                    onChange(.syncFailed(L10n.tr("好友备注保存失败，请稍后重试")))
                 }
             }
         }, onFailure: { @Sendable [weak self] _, message, _ in
@@ -118,7 +118,7 @@ final class SDKContactsClient: ContactsClient {
                       ContactProfileRequestGate.shared.accepts(profileVersion, userUID: userUID, license: license, friendUID: friendUID) else { return }
                 ContactProfileRequestGate.shared.finish(profileVersion, userUID: userUID, license: license, friendUID: friendUID)
                 self.remarkRequests.finish(version, for: friendUID)
-                onChange(.syncFailed(message ?? "好友备注更新失败，请稍后重试"))
+                onChange(.syncFailed(message ?? L10n.tr("好友备注更新失败，请稍后重试")))
             }
         })
     }

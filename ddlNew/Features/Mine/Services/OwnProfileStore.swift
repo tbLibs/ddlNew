@@ -60,12 +60,12 @@ import Combine
         do {
             let resource = try await client.upload(file, context: context)
             try validate(run)
-            guard !resource.isEmpty else { throw OwnProfileError.invalid("头像上传失败，请重试") }
+            guard !resource.isEmpty else { throw OwnProfileError.invalid(L10n.tr("头像上传失败，请重试")) }
             let change = OwnProfileChange.avatar(resource)
             try await client.save(change, context: context)
             try validate(run)
             try client.apply(change, context: context)
-            feedback = "头像已更新"
+            feedback = L10n.tr("头像已更新")
             return true
         } catch { report(error, run: run); return false }
     }
@@ -80,7 +80,7 @@ import Combine
             try await client.save(change, context: context)
             try validate(run)
             try client.apply(change, context: context)
-            feedback = "昵称已更新"
+            feedback = L10n.tr("昵称已更新")
             return true
         } catch { report(error, run: run); return false }
     }

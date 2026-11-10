@@ -48,11 +48,11 @@ import NoaChatCore
     func validateTarget(context: ChatContext) async throws {
         try validate(context)
         if context.route.kind == .single {
-            guard context.route.id != context.userUID, context.route.id != "100002", let friend: LingIMFriendModel = sdk.toolCheckMyFriend(with: context.route.id), friend.disableStatus != 4 else { throw CallError.unavailable("当前用户无法发起通话") }
+            guard context.route.id != context.userUID, context.route.id != "100002", let friend: LingIMFriendModel = sdk.toolCheckMyFriend(with: context.route.id), friend.disableStatus != 4 else { throw CallError.unavailable(L10n.tr("当前用户无法发起通话")) }
         } else if context.route.kind == .group {
             let data = try await group(context: context)
-            guard CallPolicy.groupCanCall(active: SDKCallPayload.integer(data["groupStatus"]) == 1 && SDKCallPayload.flag(data["userInGroup"]), prohibited: SDKCallPayload.flag(data["isNetCall"]), role: SDKCallPayload.integer(data["userGroupRole"])) else { throw CallError.unavailable("当前群不允许发起通话") }
-        } else { throw CallError.unavailable("此会话不支持通话") }
+            guard CallPolicy.groupCanCall(active: SDKCallPayload.integer(data["groupStatus"]) == 1 && SDKCallPayload.flag(data["userInGroup"]), prohibited: SDKCallPayload.flag(data["isNetCall"]), role: SDKCallPayload.integer(data["userGroupRole"])) else { throw CallError.unavailable(L10n.tr("当前群不允许发起通话")) }
+        } else { throw CallError.unavailable(L10n.tr("此会话不支持通话")) }
     }
 
     func members(context: ChatContext) async throws -> [CallParticipant] {
@@ -73,7 +73,7 @@ import NoaChatCore
                 result[id] = CallParticipant(id: id, name: name, avatar: SDKCallPayload.string(row["userAvatar"] ?? row["avatar"]), isLocal: false, isConnected: false, cameraEnabled: false, microphoneEnabled: true)
             }
             if rows.count < 100 { break }
-            guard page < 1000 else { throw CallError.unavailable("群成员过多，请稍后重试") }
+            guard page < 1000 else { throw CallError.unavailable(L10n.tr("群成员过多，请稍后重试")) }
             // 满页但全部被过滤不表示分页结束；按真实页数继续。
             if result.count == before && rows.isEmpty { break }
             page += 1
@@ -125,7 +125,7 @@ import NoaChatCore
             }
         }
         let result = SDKCallPayload.response(data, original: descriptor, localID: context.userUID)
-        if action == .create && result.id.isEmpty { throw CallError.unavailable("通话响应无效，请重试") }
+        if action == .create && result.id.isEmpty { throw CallError.unavailable(L10n.tr("通话响应无效，请重试")) }
         return result
     }
 
@@ -153,11 +153,11 @@ import NoaChatCore
         }
         try validate(context)
         let json = try response.get()
-        guard let data = json.data(using: .utf8) else { throw CallError.unavailable("通话响应无效，请重试") }
+        guard let data = json.data(using: .utf8) else { throw CallError.unavailable(L10n.tr("通话响应无效，请重试")) }
         let value = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
         if value is NSNull { return [:] }
         if let result = value as? [String: Any] { return result }
         if let boolean = value as? Bool, boolean { return [:] }
-        throw CallError.unavailable("通话响应无效，请重试")
+        throw CallError.unavailable(L10n.tr("通话响应无效，请重试"))
     }
 }

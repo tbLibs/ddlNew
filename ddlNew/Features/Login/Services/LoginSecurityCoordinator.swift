@@ -62,7 +62,7 @@ final class LoginSecurityCoordinator: ObservableObject {
             pendingCheck = true
             if requirementStore.load()?.matches(userUID: userUID, lastLiceseId: lastLiceseId) == true {
                 // 已确认强制要求先恢复屏障，检查超时或启动取消都不能放行缓存会话。
-                request = PasswordSecurityRequest(id: UUID(), isForced: true, message: "该账号需要修改密码，请完成修改或退出登录")
+                request = PasswordSecurityRequest(id: UUID(), isForced: true, message: L10n.tr("该账号需要修改密码，请完成修改或退出登录"))
             }
         }
         refreshIfNeeded()
@@ -171,11 +171,11 @@ final class LoginSecurityCoordinator: ObservableObject {
                 }
                 try await self.signOut()
                 if changed, self.identity == nil || self.identity == identity {
-                    LoginSecurityNoticeStore.shared.record(message: "密码已修改，请使用新密码重新登录")
+                    LoginSecurityNoticeStore.shared.record(message: L10n.tr("密码已修改，请使用新密码重新登录"))
                 }
             } catch {
                 if self.identity == identity {
-                    self.message = changed ? "密码已修改，但退出未完成，请重试退出并重新登录" : "退出登录未完成，请重试"
+                    self.message = changed ? L10n.tr("密码已修改，但退出未完成，请重试退出并重新登录") : L10n.tr("退出登录未完成，请重试")
                 }
             }
             self.signOutTask = nil
@@ -247,7 +247,7 @@ final class LoginSecurityCoordinator: ObservableObject {
         passwordChanged = true
         oldPasswordVerified = false
         inputResetID = UUID()
-        message = "密码已修改，请重新登录"
+        message = L10n.tr("密码已修改，请重新登录")
         exitToLogin()
     }
 

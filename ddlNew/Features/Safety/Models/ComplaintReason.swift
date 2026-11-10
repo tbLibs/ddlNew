@@ -12,14 +12,14 @@ nonisolated enum ComplaintReason: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .harmful: return "发布违法有害信息"
-        case .advertising: return "发布垃圾广告"
-        case .racism: return "种族歧视"
-        case .discrimination: return "存在文化歧视"
-        case .harassment: return "辱骂骚扰"
-        case .stolen: return "帐号可能被盗"
-        case .fraud: return "存在欺诈行为"
-        case .other: return "其他"
+        case .harmful: return L10n.tr("发布违法有害信息")
+        case .advertising: return L10n.tr("发布垃圾广告")
+        case .racism: return L10n.tr("种族歧视")
+        case .discrimination: return L10n.tr("存在文化歧视")
+        case .harassment: return L10n.tr("辱骂骚扰")
+        case .stolen: return L10n.tr("帐号可能被盗")
+        case .fraud: return L10n.tr("存在欺诈行为")
+        case .other: return L10n.tr("其他")
         }
     }
 }

@@ -17,7 +17,7 @@ struct MessagingTabs<Selection: RawRepresentable & CaseIterable & Hashable>: Vie
             ForEach(Array(Selection.allCases), id: \.self) { item in
                 Button { selection = item } label: {
                     VStack(spacing: 0.zoom()) {
-                        Text(item.rawValue).font(.subheadline.weight(selection == item ? .semibold : .regular)).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                        Text(L10n.lookup(item.rawValue)).font(.subheadline.weight(selection == item ? .semibold : .regular)).lineLimit(1).fixedSize(horizontal: true, vertical: false)
                             .padding(.vertical, 12.zoom())
                         Capsule().fill(selection == item ? MessagingTheme.accent : .clear).frame(width: 18.zoom(), height: 3.zoom())
                     }.frame(minWidth: max(44, 44.zoom()), minHeight: max(44, 44.zoom())).contentShape(Rectangle())

@@ -3,6 +3,7 @@ import UIKit
 
 @MainActor
 struct LoginVerificationSheet: View {
+    @Environment(\.locale) private var localizationLocale
     let request: LoginVerificationRequest
     let submit: (LoginVerificationAnswer) -> Void
     let cancel: () -> Void
@@ -33,7 +34,7 @@ struct LoginVerificationSheet: View {
             }
             .padding(24)
             .background(LoginPalette.background)
-            .messagingLoadingToast(isProviderCaptcha && loadState == .loading, title: "正在加载验证")
+            .messagingLoadingToast(isProviderCaptcha && loadState == .loading, title: L10n.tr("正在加载验证"))
             .messagingFeedbackToast(verificationFeedback, presentInitial: true)
             .task(id: refreshRevision) {
                 guard refreshRevision > 0, let reload = request.reloadImage else { return }
@@ -46,7 +47,7 @@ struct LoginVerificationSheet: View {
                     refreshingImage = false
                 } catch {
                     guard !Task.isCancelled, revision == refreshRevision else { return }
-                    imageRefreshError = "图片刷新失败，请重试或取消"
+                    imageRefreshError = L10n.tr("图片刷新失败，请重试或取消")
                     refreshingImage = false
                 }
             }
@@ -54,7 +55,7 @@ struct LoginVerificationSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", action: cancel)
+                    Button(L10n.tr("取消"), action: cancel)
                         .frame(minWidth: 44, minHeight: 44)
                         .accessibilityIdentifier("cancelLoginVerification")
                 }
@@ -68,13 +69,13 @@ struct LoginVerificationSheet: View {
     }
     private var verificationFeedback: String? {
         if let imageRefreshError { return imageRefreshError }
-        if request.kind == .imageCaptcha, captchaImage == nil { return "验证码图片加载失败，请换一张或取消后重试。" }
+        if request.kind == .imageCaptcha, captchaImage == nil { return L10n.tr("验证码图片加载失败，请换一张或取消后重试。") }
         if isProviderCaptcha, case .failed(let message) = loadState { return message }
         return nil
     }
 
     private var title: String {
-        request.kind == .securityCode ? "安全码验证" : request.title
+        request.kind == .securityCode ? L10n.tr("安全码验证") : request.title
     }
 
     private var captchaImage: UIImage? { (refreshedImage ?? request.imageData).flatMap { UIImage(data: $0) } }
@@ -85,12 +86,12 @@ struct LoginVerificationSheet: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: 260, maxHeight: 100)
-                .accessibilityLabel("图片验证码")
+                .accessibilityLabel(L10n.tr("图片验证码"))
         } else {
             Color.clear.frame(height: 100)
         }
         if request.reloadImage != nil {
-            Button(refreshingImage ? "正在刷新…" : "换一张") {
+            Button(refreshingImage ? L10n.tr("正在刷新…") : L10n.tr("换一张")) {
                 input = ""
                 imageRefreshError = nil
                 refreshingImage = true
@@ -100,8 +101,8 @@ struct LoginVerificationSheet: View {
             .disabled(refreshingImage || submitted)
             .accessibilityIdentifier("refreshLoginImageCode")
         }
-        TextField("图片验证码", text: $input,
-                  prompt: Text("请输入图片中的验证码").foregroundColor(LoginPalette.secondary))
+        TextField(L10n.tr("图片验证码"), text: $input,
+                  prompt: Text(L10n.tr("请输入图片中的验证码")).foregroundColor(LoginPalette.secondary))
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .textFieldStyle(.roundedBorder)
@@ -114,8 +115,8 @@ struct LoginVerificationSheet: View {
 
     private var securityCode: some View {
         VStack(spacing: 16) {
-            SecureField("安全码", text: $input,
-                        prompt: Text("请输入安全码").foregroundColor(LoginPalette.secondary))
+            SecureField(L10n.tr("安全码"), text: $input,
+                        prompt: Text(L10n.tr("请输入安全码")).foregroundColor(LoginPalette.secondary))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)

@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d)
@@ -17,6 +18,6 @@ fixture = (root/'Tests/Chat/GroupHistoryStartupChecks.swift').read_text()
 fixture = fixture.replace('// PRODUCTION_METHODS', method('    private func startGroupPermissionRefresh(') + '\n' + method('    func stop(') + '\n' + method('    func refreshPermissions('))
 (out/'Checks.swift').write_text(fixture)
 PY
-swiftc -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Models/"*.swift "$TASK_TMP/Checks.swift" -o "$TASK_TMP/checks"
 "$TASK_TMP/checks"

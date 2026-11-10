@@ -74,7 +74,7 @@ import ObjectiveC
                 }
             }
             let failure: LingIMFailureCallback = { _, _, _ in
-                Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable("群成员积分同步失败"))) }
+                Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("群成员积分同步失败")))) }
             }
             if points { sdk.groupGetMemberActiviteScore(with: params, onSuccess: success, onFailure: failure) }
             else { sdk.getGroupMemberList(with: params, onSuccess: success, onFailure: failure) }

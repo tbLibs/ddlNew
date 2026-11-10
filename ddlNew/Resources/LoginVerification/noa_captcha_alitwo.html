@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>登录验证</title>
+<title>Security verification</title>
 <!-- 由旧项目 CandyTalk 验证码资源适配，沿用服务商标识与 SDK 地址。 -->
 <script>
+const appCaptchaLanguage = (window.appCaptchaLocalization || {}).language || 'en';
+document.documentElement.lang = appCaptchaLanguage;
+document.title = (window.appCaptchaLocalization || {}).title || 'Security verification';
 function reportCaptchaState(state) {
   if (window.webkit && window.webkit.messageHandlers.captchaStatus) {
     window.webkit.messageHandlers.captchaStatus.postMessage(JSON.stringify({state: state}));
@@ -80,7 +83,7 @@ try {
     getInstance: getInstance,
     // 按弹窗内网页宽度缩放，保留服务商要求的 320 像素下限。
     slideStyle: {width: Math.max(320, Math.min(360, document.documentElement.clientWidth || window.innerWidth)), height: 39},
-    language: 'cn',
+    language: ({'zh-Hans': 'cn', 'zh-Hant': 'tw', 'en': 'en'})[appCaptchaLanguage] || 'en',
     region: 'sgp'
   });
 } catch (error) { reportCaptchaState('failed'); }

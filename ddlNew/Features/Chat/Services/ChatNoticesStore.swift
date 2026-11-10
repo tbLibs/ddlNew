@@ -97,7 +97,7 @@ import Combine
                 guard generation == run else { return false }
                 apply(rows, replacing: true); page = 2
             } catch {
-                if generation == run { errorMessage = deleting ? "公告已删除，刷新列表失败，请下拉重试" : "公告已保存，刷新列表失败，请下拉重试" }
+                if generation == run { errorMessage = deleting ? L10n.tr("公告已删除，刷新列表失败，请下拉重试") : L10n.tr("公告已保存，刷新列表失败，请下拉重试") }
             }
             return generation == run
         } catch { if generation == run { errorMessage = error.localizedDescription }; return false }

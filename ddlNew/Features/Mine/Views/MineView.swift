@@ -12,6 +12,7 @@ import AlertToast
 
 /// 个人中心，提供个人资料、账户支持和设置入口。
 struct MineView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @State private var showSettings = false
@@ -36,7 +37,7 @@ struct MineView: View {
         }
         .background(HomeTheme.background.ignoresSafeArea())
         .tint(HomeTheme.forest)
-        .navigationTitle("我的")
+        .navigationTitle(L10n.tr("我的"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -44,7 +45,7 @@ struct MineView: View {
                     Image(systemName: "gearshape")
                         .font(.system(size: 21.zoom())).foregroundStyle(HomeTheme.forest)
                         .frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                }.accessibilityLabel("打开设置")
+                }.accessibilityLabel(L10n.tr("打开设置"))
             }
         }
         .toolbarBackground(HomeTheme.surface, for: .navigationBar)
@@ -53,12 +54,12 @@ struct MineView: View {
             MineProfileView(context: destination.context, nickname: destination.nickname)
         }
         .sheet(isPresented: $showSettings) { SettingsScreen() }
-        .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = "投诉已提交"; complaintSubmitted = false } }) {
-            ComplaintView(target: .general, targetName: "系统投诉") { complaintSubmitted = true }
+        .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = L10n.tr("投诉已提交"); complaintSubmitted = false } }) {
+            ComplaintView(target: .general, targetName: L10n.tr("系统投诉")) { complaintSubmitted = true }
         }
         .messagingFeedbackToast(feedback, isEnabled: !showingComplaint)
         .toast(isPresenting: $showingCopyToast, duration: 2) {
-            AlertToast(displayMode: .alert, type: .regular, title: "账号已复制",
+            AlertToast(displayMode: .alert, type: .regular, title: L10n.tr("账号已复制"),
                        style: .style(backgroundColor: MessagingTheme.toastBackground,
                                      titleColor: MessagingTheme.toastText))
         }
@@ -74,9 +75,9 @@ struct MineView: View {
 
     /// 昵称与账号均来自当前登录资料，缺省时不回退到活动演示账号。
     private var profileDisplayName: String {
-        guard let user = userSession.currentUser else { return "未登录" }
+        guard let user = userSession.currentUser else { return L10n.tr("未登录") }
         if !user.nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return user.nickname }
-        return user.userName.isEmpty ? "未设置昵称" : user.userName
+        return user.userName.isEmpty ? L10n.tr("未设置昵称") : user.userName
     }
 
     /// 沿用真实头像的地址解析和解包方式，资料或文件节点变化时同步刷新。

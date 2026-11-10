@@ -9,6 +9,7 @@ import SwiftUI
 import UIAdapter
 
 struct ChatForwardRecipientView: View {
+    @Environment(\.locale) private var localizationLocale
     let messages: [ChatMessageRecord]
     let context: ChatContext
     @ObservedObject var chat: ChatStore
@@ -58,11 +59,11 @@ struct ChatForwardRecipientView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 12.zoom()) {
-                MessagingSearchField(placeholder: "搜索好友或群聊", text: $query, focus: $searchFocused, identifier: "forwardSearch")
+                MessagingSearchField(placeholder: L10n.tr("搜索好友或群聊"), text: $query, focus: $searchFocused, identifier: "forwardSearch")
                 ScrollView(.horizontal, showsIndicators: false) { MessagingTabs(selection: $scope) }
-                if messages.count > 1 { Toggle("合并为聊天记录", isOn: $merged).font(.subheadline) }
-                Text("已选 \(messages.count) 条消息").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
-                if messages.count > 100 { Text("一次最多转发 100 条消息，请返回重新选择。").foregroundStyle(MessagingTheme.error).font(.subheadline) }
+                if messages.count > 1 { Toggle(L10n.tr("合并为聊天记录"), isOn: $merged).font(.subheadline) }
+                Text(L10n.tr("已选 \(messages.count) 条消息")).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                if messages.count > 100 { Text(L10n.tr("一次最多转发 100 条消息，请返回重新选择。")).foregroundStyle(MessagingTheme.error).font(.subheadline) }
             }.padding(16.zoom()).background(MessagingTheme.surface)
             MessagingScroll {
                 LazyVStack(spacing: 0) {
@@ -73,23 +74,23 @@ struct ChatForwardRecipientView: View {
                                 ChatSecondaryAvatar(name: route.title, resource: route.avatarURL, isGroup: route.kind == .group)
                                 Text(route.title).font(.body).foregroundStyle(MessagingTheme.text).frame(maxWidth: .infinity, alignment: .leading)
                             }.padding(16.zoom()).contentShape(Rectangle())
-                        }.buttonStyle(MessagingRowStyle()).accessibilityLabel(route.title).accessibilityValue(selectedIDs.contains(key(route)) ? "已选中" : "未选中").accessibilityAddTraits(selectedIDs.contains(key(route)) ? .isSelected : [])
+                        }.buttonStyle(MessagingRowStyle()).accessibilityLabel(route.title).accessibilityValue(selectedIDs.contains(key(route)) ? L10n.tr("已选中") : L10n.tr("未选中")).accessibilityAddTraits(selectedIDs.contains(key(route)) ? .isSelected : [])
                         Divider().overlay(MessagingTheme.divider).padding(.leading, 92.zoom())
                     }
-                    if recipients.isEmpty { Text(query.isEmpty ? "暂无可选对象，可切换到好友或群聊" : "没有找到匹配的好友或群聊").foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()) }
+                    if recipients.isEmpty { Text(query.isEmpty ? L10n.tr("暂无可选对象，可切换到好友或群聊") : L10n.tr("没有找到匹配的好友或群聊")).foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()) }
 
                 }
             }
         }
-        .navigationTitle("选择转发对象").modifier(MessagingPageChrome())
-        .messagingLoadingToast(busy, title: "正在发送")
-        .messagingFeedbackToast(!busy && !results.isEmpty ? (Array(results.prefix(3)) + (results.count > 3 ? ["另有\(results.count - 3)项处理结果，尚有\(selectedIDs.count)个会话待重试"] : [])).joined(separator: "\n") : nil)
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() }.frame(minHeight: 44).disabled(busy) } }
+        .navigationTitle(L10n.tr("选择转发对象")).modifier(MessagingPageChrome())
+        .messagingLoadingToast(busy, title: L10n.tr("正在发送"))
+        .messagingFeedbackToast(!busy && !results.isEmpty ? (Array(results.prefix(3)) + (results.count > 3 ? [L10n.tr("另有\(results.count - 3)项处理结果，尚有\(selectedIDs.count)个会话待重试")] : [])).joined(separator: "\n") : nil)
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { dismiss() }.frame(minHeight: 44).disabled(busy) } }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 16.zoom()) {
-                Text("已选 \(selectedRecipients.count) 人").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                Text(L10n.tr("已选 \(selectedRecipients.count) 人")).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                 Spacer()
-                Button { searchFocused = false; confirming = true } label: { Text("发送").frame(minWidth: 100.zoom()) }
+                Button { searchFocused = false; confirming = true } label: { Text(L10n.tr("发送")).frame(minWidth: 100.zoom()) }
                     .buttonStyle(MessagingActionButtonStyle()).disabled(busy || selectedRecipients.isEmpty || messages.isEmpty || messages.count > 100)
             }.padding(16.zoom()).background(MessagingTheme.surface)
         }
@@ -102,14 +103,14 @@ struct ChatForwardRecipientView: View {
         NavigationStack {
             MessagingScroll {
                 VStack(alignment: .leading, spacing: 16.zoom()) {
-                    Text("发送给").font(.headline)
+                    Text(L10n.tr("发送给")).font(.headline)
                     ForEach(selectedRecipients, id: \.self) { route in
                         HStack(spacing: 12.zoom()) { ChatSecondaryAvatar(name: route.title, resource: route.avatarURL, isGroup: route.kind == .group); Text(route.title).font(.body) }
                     }
-                    MessagingCard { VStack(alignment: .leading, spacing: 8.zoom()) { Text(merged ? "合并转发 \(messages.count) 条消息" : "逐条转发 \(messages.count) 条消息").font(.headline); ForEach(Array(messages.prefix(3))) { item in Text(item.displayText).font(.subheadline).lineLimit(2) }; if messages.count > 3 { Text("还有 \(messages.count - 3) 条消息").font(.caption).foregroundStyle(MessagingTheme.secondaryText) } } }
+                    MessagingCard { VStack(alignment: .leading, spacing: 8.zoom()) { Text(merged ? L10n.tr("合并转发 \(messages.count) 条消息") : L10n.tr("逐条转发 \(messages.count) 条消息")).font(.headline); ForEach(Array(messages.prefix(3))) { item in Text(item.displayText).font(.subheadline).lineLimit(2) }; if messages.count > 3 { Text(L10n.tr("还有 \(messages.count - 3) 条消息")).font(.caption).foregroundStyle(MessagingTheme.secondaryText) } } }
                 }.padding(16.zoom())
-            }.navigationTitle("确认转发").modifier(MessagingPageChrome())
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { confirming = false }.frame(minHeight: 44) }; ToolbarItem(placement: .confirmationAction) { Button("发送") { let targets = selectedRecipients; let mergeMessages = merged; confirming = false; Task { await forward(to: targets, merged: mergeMessages) } }.frame(minHeight: 44).disabled(selectedRecipients.isEmpty) } }
+            }.navigationTitle(L10n.tr("确认转发")).modifier(MessagingPageChrome())
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { confirming = false }.frame(minHeight: 44) }; ToolbarItem(placement: .confirmationAction) { Button(L10n.tr("发送")) { let targets = selectedRecipients; let mergeMessages = merged; confirming = false; Task { await forward(to: targets, merged: mergeMessages) } }.frame(minHeight: 44).disabled(selectedRecipients.isEmpty) } }
         }
     }
 
@@ -120,16 +121,16 @@ struct ChatForwardRecipientView: View {
     private func forward(to targets: [ChatRoute], merged: Bool) async {
         guard !busy, messages.count <= 100 else { return }; busy = true; results = []; defer { busy = false }
         for route in targets {
-            guard ChatRuntime.shared.isCurrent(context) else { results.append("登录状态已变化，请重新进入聊天后转发。"); break }
+            guard ChatRuntime.shared.isCurrent(context) else { results.append(L10n.tr("登录状态已变化，请重新进入聊天后转发。")); break }
             do {
                 let records = try await SDKChatActionsClient().forward(messages, from: context, to: route, merged: merged, onEnqueued: { chat.applyOperationMessages($0, context: context) })
                 guard ChatRuntime.shared.isCurrent(context) else { return }
                 chat.applyForwardedMessages(records, context: context)
-                results.append(route.title + (merged ? "：已入队，等待消息回执" : "：\(records.count)条消息已获服务器确认")); selectedIDs.remove(key(route))
+                results.append(route.title + (merged ? L10n.tr("：已入队，等待消息回执") : L10n.tr("：\(records.count)条消息已获服务器确认"))); selectedIDs.remove(key(route))
             } catch { results.append(route.title + "：" + error.localizedDescription) }
         }
         if selectedIDs.isEmpty { chat.cancelSelection() }
     }
 }
 
-private enum ForwardRecipientScope: String, CaseIterable { case recent = "最近聊天", contacts = "好友", groups = "群聊" }
+private enum ForwardRecipientScope: String, CaseIterable { var displayName: String { L10n.lookup(rawValue) }; case recent = "最近聊天", contacts = "好友", groups = "群聊" }

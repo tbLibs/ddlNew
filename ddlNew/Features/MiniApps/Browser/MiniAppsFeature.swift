@@ -31,7 +31,7 @@ import WebKit
 
     /// 根Tab可重现，但同一AUTH不会重复创建列表和网页数据空间。
     func activate() {
-        let route = ChatRoute(id: "__mini_apps__", kind: .single, title: "我的应用", avatarURL: "")
+        let route = ChatRoute(id: "__mini_apps__", kind: .single, title: L10n.tr("我的应用"), avatarURL: "")
         guard let current = ChatRuntime.shared.context(for: route) else { close(); return }
         guard context != current else { return }
         close(); context = current
@@ -42,7 +42,7 @@ import WebKit
 
     /// 只接受已验证的记录；网页实例最多保留5个，其余仍可从SDK记录恢复。
     func open(_ record: MiniAppRecord, restoring: MiniAppFloatRecord? = nil) {
-        guard valid, let url = MiniAppWebPolicy.entryURL(record.url) else { feedback = "应用链接无效，请编辑后重试"; return }
+        guard valid, let url = MiniAppWebPolicy.entryURL(record.url) else { feedback = L10n.tr("应用链接无效，请编辑后重试"); return }
         feedback = nil
         let target: URL
         if let restoring, let saved = MiniAppWebPolicy.url(restoring.url),
@@ -65,7 +65,7 @@ import WebKit
         do {
             try floatClient.save(record, context: context)
             floats.removeAll { $0.id == record.id }; floats.insert(record, at: 0)
-        } catch { feedback = "网页记录保存失败，请重试"; if minimized { return } }
+        } catch { feedback = L10n.tr("网页记录保存失败，请重试"); if minimized { return } }
         session.suspend(true); active = nil
         if !minimized { cached.removeValue(forKey: session.id)?.close(); recency.removeAll { $0 == session.id } }
     }
@@ -73,7 +73,7 @@ import WebKit
     /// 先关闭浮窗列表，等sheet真正退出后才开始下一层呈现。
     func selectFloat(_ record: MiniAppFloatRecord) {
         guard !busy, store?.isLoading == false, store?.isBusy == false else {
-            feedback = "应用正在更新，请稍后再试"; return
+            feedback = L10n.tr("应用正在更新，请稍后再试"); return
         }
         pendingFloat = record; showsFloats = false
     }
@@ -85,7 +85,7 @@ import WebKit
 
     /// 浮窗表没有访问密码字段，必须从当前服务端列表重新确认应用资格。
     private func prepareRestore(_ selected: MiniAppFloatRecord) async {
-        guard valid, let store, !store.isLoading, !store.isBusy else { pendingFloat = nil; feedback = "应用正在更新，请稍后再试"; return }
+        guard valid, let store, !store.isLoading, !store.isBusy else { pendingFloat = nil; feedback = L10n.tr("应用正在更新，请稍后再试"); return }
         let run = revision; busy = true; feedback = nil
         defer { if run == revision { busy = false } }
         await store.refresh()
@@ -97,7 +97,7 @@ import WebKit
             if let error = store.feedback { feedback = error; pendingFloat = nil; return }
         }
         guard let record = store.items.first(where: { $0.id == selected.id }) else {
-            feedback = "此应用已不可用，可从浮窗列表移除"; pendingFloat = nil; return
+            feedback = L10n.tr("此应用已不可用，可从浮窗列表移除"); pendingFloat = nil; return
         }
         if record.passwordEnabled { passwordRequest = record }
         else {

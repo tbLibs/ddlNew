@@ -23,15 +23,15 @@ struct LegalDocumentScreen: View {
                         RemoteLegalPage(url: url, loading: $loading, loadFailed: $loadFailed)
                             .id(reloadID)
                         if loading {
-                            ProgressView("正在加载…")
+                            ProgressView(L10n.tr("正在加载…"))
                                 .padding(20).background(ClubTheme.card)
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
                         if loadFailed {
                             VStack(spacing: 16) {
-                                Text("页面加载失败，请检查网络后重试。")
+                                Text(L10n.tr("页面加载失败，请检查网络后重试。"))
                                     .foregroundColor(ClubTheme.secondary)
-                                Button("重新加载") {
+                                Button(L10n.tr("重新加载")) {
                                     loadFailed = false
                                     loading = true
                                     reloadID += 1
@@ -43,12 +43,12 @@ struct LegalDocumentScreen: View {
                         }
                     }
                 } else {
-                    Text("暂时无法打开文档，请稍后重试。").padding()
+                    Text(L10n.tr("暂时无法打开文档，请稍后重试。")).padding()
                 }
             }
             .navigationTitle(document.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("完成")) { dismiss() } }
             }
         }.navigationViewStyle(.stack).tint(ClubTheme.darkTeal)
     }

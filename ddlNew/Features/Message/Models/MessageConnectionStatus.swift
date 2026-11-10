@@ -21,12 +21,12 @@ nonisolated enum MessageConnectionStatus: Equatable {
 
     var title: String {
         switch self {
-        case .connecting: return "正在连接…"
-        case .online: return "在线"
-        case .reconnecting: return "重连中"
-        case .retrying: return "连接失败，正在重连"
-        case .offline: return "网络不可用"
-        case .localFailure: return "恢复失败，请重试"
+        case .connecting: return L10n.tr("正在连接…")
+        case .online: return L10n.tr("在线")
+        case .reconnecting: return L10n.tr("重连中")
+        case .retrying: return L10n.tr("连接失败，正在重连")
+        case .offline: return L10n.tr("网络不可用")
+        case .localFailure: return L10n.tr("恢复失败，请重试")
         }
     }
 }

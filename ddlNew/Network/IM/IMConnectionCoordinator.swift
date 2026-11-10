@@ -82,7 +82,7 @@ final class IMConnectionCoordinator: ObservableObject {
         } catch {
             if generation == runID {
                 driver.reset()
-                phase = error is CancellationError ? .idle : .failed("连接初始化失败，请重试")
+                phase = error is CancellationError ? .idle : .failed(L10n.tr("连接初始化失败，请重试"))
             }
             throw error
         }
@@ -100,7 +100,7 @@ final class IMConnectionCoordinator: ObservableObject {
         } catch {
             if generation == runID {
                 driver.reset()
-                phase = error is CancellationError ? .idle : .failed("连接失败，正在自动重试…")
+                phase = error is CancellationError ? .idle : .failed(L10n.tr("连接失败，正在自动重试…"))
             }
             throw error
         }
@@ -133,7 +133,7 @@ final class IMConnectionCoordinator: ObservableObject {
                     guard !Task.isCancelled, self.generation == runID else { return }
                     self.driver.reset()
                     self.selectedTCPNode = nil
-                    self.phase = .failed("连接失败，正在自动重试…")
+                    self.phase = .failed(L10n.tr("连接失败，正在自动重试…"))
                     debugPrint("[IM重连] 第 \(attempt + 1) 次初始化失败：\(error)")
                     let delay = UInt64(1 << min(attempt, 4))
                     attempt += 1

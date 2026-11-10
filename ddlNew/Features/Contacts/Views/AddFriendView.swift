@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 精确查找当前俱乐部账号，结果进入真实资料后再提交好友申请。
 struct AddFriendView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var businessStore: ContactsBusinessStore
     let fileHost: URL?
     @State private var query = ""
@@ -22,27 +23,27 @@ struct AddFriendView: View {
         MessagingScroll {
             VStack(spacing: 16.zoom()) {
                 HStack(spacing: 8.zoom()) {
-                    MessagingSearchField(placeholder: "请输入用户账号", text: $query, focus: $focused, identifier: "addFriendAccount")
+                    MessagingSearchField(placeholder: L10n.tr("请输入用户账号"), text: $query, focus: $focused, identifier: "addFriendAccount")
                         .onSubmit { search() }
-                    Button("查找") { search() }
+                    Button(L10n.tr("查找")) { search() }
                         .frame(minWidth: 44, minHeight: 44)
                         .disabled(businessStore.isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 if businessStore.searchResults.isEmpty, let user = session.currentUser {
                     // 与旧版一致：点击账号行查看二维码，长按或菜单复制公开账号。
-                    NavigationLink(value: ContactsPageRoute.qrCode(groupID: nil, title: "我的二维码")) {
+                    NavigationLink(value: ContactsPageRoute.qrCode(groupID: nil, title: L10n.tr("我的二维码"))) {
                         HStack(spacing: 12.zoom()) {
-                            Text("我的账号：\(user.userName)").font(.subheadline).foregroundStyle(MessagingTheme.text)
+                            Text(L10n.tr("我的账号：\(user.userName)")).font(.subheadline).foregroundStyle(MessagingTheme.text)
                             Image(systemName: "qrcode").foregroundStyle(MessagingTheme.accent).accessibilityHidden(true)
                         }.frame(maxWidth: .infinity).frame(minHeight: max(44, 44.zoom()))
                     }
                     .buttonStyle(.plain)
                     .onLongPressGesture(minimumDuration: 0.8) { copyAccount(user.userName) }
-                    .contextMenu { Button { copyAccount(user.userName) } label: { Label("复制账号", systemImage: "doc.on.doc") } }
-                    .accessibilityHint("查看我的二维码，也可通过操作菜单复制账号")
+                    .contextMenu { Button { copyAccount(user.userName) } label: { Label(L10n.tr("复制账号"), systemImage: "doc.on.doc") } }
+                    .accessibilityHint(L10n.tr("查看我的二维码，也可通过操作菜单复制账号"))
                 }
                 if searched && !businessStore.isSearching && businessStore.errorMessage == nil && businessStore.searchResults.isEmpty {
-                    EmptyClubState(title: "没有找到用户", message: "请核对用户账号，或扫描对方的业务二维码。")
+                    EmptyClubState(title: L10n.tr("没有找到用户"), message: L10n.tr("请核对用户账号，或扫描对方的业务二维码。"))
                 }
                 VStack(spacing: 0) {
                     ForEach(businessStore.searchResults) { contact in
@@ -51,7 +52,7 @@ struct AddFriendView: View {
                                 ContactRecordAvatar(contact: contact, fileHost: fileHost, size: 48.zoom())
                                 VStack(alignment: .leading, spacing: 4.zoom()) {
                                     Text(contact.displayName).font(.body).foregroundStyle(MessagingTheme.text)
-                                    Text("账号：\(contact.account.isEmpty ? contact.id : contact.account)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                                    Text(L10n.tr("账号：\(contact.account.isEmpty ? contact.id : contact.account)")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
                             }.padding(16.zoom()).frame(minHeight: max(64, 72.zoom()))
@@ -60,13 +61,13 @@ struct AddFriendView: View {
                 }.clipShape(RoundedRectangle(cornerRadius: 10.zoom()))
             }.padding(16.zoom())
         }
-        .navigationTitle("添加好友")
-        .messagingLoadingToast(businessStore.isSearching, title: "正在查找用户")
+        .navigationTitle(L10n.tr("添加好友"))
+        .messagingLoadingToast(businessStore.isSearching, title: L10n.tr("正在查找用户"))
         .modifier(MessagingPageChrome())
         .messagingFeedbackToast(businessStore.errorMessage ?? copyNotice)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                NavigationLink(value: ContactsPageRoute.scanner) { Image(systemName: "qrcode.viewfinder").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("扫一扫")
+                NavigationLink(value: ContactsPageRoute.scanner) { Image(systemName: "qrcode.viewfinder").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel(L10n.tr("扫一扫"))
             }
         }
         .onAppear {
@@ -78,7 +79,7 @@ struct AddFriendView: View {
     }
 
     /// 复制当前公开账号，给出可见反馈。
-    private func copyAccount(_ account: String) { guard !account.isEmpty else { return }; UIPasteboard.general.string = account; copyNotice = "账号已复制" }
+    private func copyAccount(_ account: String) { guard !account.isEmpty else { return }; UIPasteboard.general.string = account; copyNotice = L10n.tr("账号已复制") }
 
     /// 收起键盘并请求精确账号。
     private func search() {

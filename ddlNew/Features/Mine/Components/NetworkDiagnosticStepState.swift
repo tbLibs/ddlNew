@@ -15,21 +15,21 @@ nonisolated enum NetworkDiagnosticStepState: Equatable {
     }
 
     static func pendingInternetTitle(hasReachableAddress: Bool, completed: Bool, interrupted: Bool) -> String {
-        if hasReachableAddress { return "未请求 · 已有可达地址" }
-        if completed { return "未请求" }
-        return interrupted ? "未完成" : "待检测"
+        if hasReachableAddress { return L10n.tr("未请求 · 已有可达地址") }
+        if completed { return L10n.tr("未请求") }
+        return interrupted ? L10n.tr("未完成") : L10n.tr("待检测")
     }
 
     var title: String {
         switch self {
-        case .waiting: return "待检测"
-        case .active: return "检测中"
-        case .recorded: return "已有结果"
-        case .passed: return "全部通过"
-        case .partial: return "部分通过"
-        case .failed: return "未通过"
-        case .skipped: return "未执行"
-        case .interrupted: return "未完成"
+        case .waiting: return L10n.tr("待检测")
+        case .active: return L10n.tr("检测中")
+        case .recorded: return L10n.tr("已有结果")
+        case .passed: return L10n.tr("全部通过")
+        case .partial: return L10n.tr("部分通过")
+        case .failed: return L10n.tr("未通过")
+        case .skipped: return L10n.tr("未执行")
+        case .interrupted: return L10n.tr("未完成")
         }
     }
     var needsAttention: Bool { self == .partial || self == .failed || self == .interrupted }

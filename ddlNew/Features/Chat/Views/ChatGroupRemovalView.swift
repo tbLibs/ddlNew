@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 对齐旧版独立移除页：多选、确认及可选清理成员消息，成功才返回设置。
 struct ChatGroupRemovalView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var store: ChatSettingsStore
     let onRemoved: () -> Void
     @Environment(\.dismiss) private var dismiss
@@ -38,40 +39,40 @@ struct ChatGroupRemovalView: View {
 
     var body: some View {
         List {
-            MessagingSearchField(placeholder: "搜索群成员", text: $query, focus: $searchFocused, identifier: "groupRemoval.search")
+            MessagingSearchField(placeholder: L10n.tr("搜索群成员"), text: $query, focus: $searchFocused, identifier: "groupRemoval.search")
                 .listRowBackground(MessagingTheme.background).listRowSeparator(.hidden)
-            Text("已选择\(chosen.count)人，最多500人")
+            Text(L10n.tr("已选择\(chosen.count)人，最多500人"))
                 .font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
                 .listRowBackground(MessagingTheme.background).listRowSeparator(.hidden)
             if visible.isEmpty && !store.busy {
-                Text(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "暂无可移除的群成员" : "无搜索结果")
+                Text(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.tr("暂无可移除的群成员") : L10n.tr("无搜索结果"))
                     .foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity, minHeight: 80.zoom())
                     .listRowBackground(MessagingTheme.surface)
             }
             ForEach(visible) { member in
                 Button { toggle(member) } label: { memberRow(member) }
                     .buttonStyle(MessagingRowStyle()).listRowBackground(MessagingTheme.surface)
-                    .accessibilityLabel(member.name + "，" + (member.groupRoleTitle.map { $0 + "，" } ?? "") + (selection.selectedIDs.contains(member.id) ? "已选" : "未选"))
+                    .accessibilityLabel(member.name + "，" + (member.groupRoleTitle.map { $0 + "，" } ?? "") + (selection.selectedIDs.contains(member.id) ? L10n.tr("已选") : L10n.tr("未选")))
                     .accessibilityAddTraits(selection.selectedIDs.contains(member.id) ? .isSelected : [])
             }
             if store.errorMessage != nil {
-                Button("刷新成员和权限") { Task { await store.reload() } }.frame(minHeight: 44)
+                Button(L10n.tr("刷新成员和权限")) { Task { await store.reload() } }.frame(minHeight: 44)
             }
         }
         .listStyle(.plain).scrollDismissesKeyboard(.interactively)
         .disabled(store.busy || submitting)
-        .navigationTitle("移除群成员").modifier(MessagingPageChrome())
+        .navigationTitle(L10n.tr("移除群成员")).modifier(MessagingPageChrome())
         .navigationBarBackButtonHidden(submitting)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(chosen.isEmpty ? "完成" : "完成(\(chosen.count))") {
+                Button(chosen.isEmpty ? L10n.tr("完成") : L10n.tr("完成(\(chosen.count))")) {
                     searchFocused = false; feedback = nil; deleteMessages = false; showingConfirmation = true
                 }
                 .buttonStyle(.plain).foregroundStyle(canSubmit ? MessagingTheme.primaryAction : MessagingTheme.secondaryText)
                 .frame(minHeight: 44).disabled(!canSubmit)
             }
         }
-        .messagingLoadingToast(store.busy && !showingConfirmation, title: "正在更新群成员")
+        .messagingLoadingToast(store.busy && !showingConfirmation, title: L10n.tr("正在更新群成员"))
         .messagingFeedbackToast(store.errorMessage ?? feedback, isEnabled: !showingConfirmation)
         .onChange(of: candidateIDs) { _ in selection.reconcile(detail: store.snapshot?.group, userUID: userUID) }
         .sheet(isPresented: $showingConfirmation) { confirmation }
@@ -82,7 +83,7 @@ struct ChatGroupRemovalView: View {
         feedback = nil
         guard let detail = store.snapshot?.group else { return }
         if !selection.toggle(member.id, detail: detail, userUID: userUID) {
-            feedback = selection.selectedIDs.count >= 500 ? "最多只能选择500人" : "成员权限已变化，请刷新后重试"
+            feedback = selection.selectedIDs.count >= 500 ? L10n.tr("最多只能选择500人") : L10n.tr("成员权限已变化，请刷新后重试")
         }
     }
 
@@ -104,28 +105,28 @@ struct ChatGroupRemovalView: View {
     private var confirmation: some View {
         NavigationStack {
             Form {
-                Section("将所选成员移除群聊") {
+                Section(L10n.tr("将所选成员移除群聊")) {
                     ForEach(chosen) { member in
                         VStack(alignment: .leading, spacing: 4.zoom()) {
                             Text(member.name); ChatGroupMemberRoleBadge(member: member)
                         }
                     }
                 }
-                Toggle("删除所选成员全部已发消息", isOn: $deleteMessages)
-                if chosen.isEmpty { Text("成员或权限已变化，请返回重新选择。").foregroundStyle(MessagingTheme.secondaryText) }
+                Toggle(L10n.tr("删除所选成员全部已发消息"), isOn: $deleteMessages)
+                if chosen.isEmpty { Text(L10n.tr("成员或权限已变化，请返回重新选择。")).foregroundStyle(MessagingTheme.secondaryText) }
             }
             .disabled(submitting || store.busy)
-            .navigationTitle("移除成员").modifier(MessagingPageChrome())
+            .navigationTitle(L10n.tr("移除成员")).modifier(MessagingPageChrome())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { showingConfirmation = false }.frame(minHeight: 44).disabled(submitting || store.busy)
+                    Button(L10n.tr("取消")) { showingConfirmation = false }.frame(minHeight: 44).disabled(submitting || store.busy)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确认移除", role: .destructive) { Task { await removeSelected() } }
+                    Button(L10n.tr("确认移除"), role: .destructive) { Task { await removeSelected() } }
                         .frame(minHeight: 44).disabled(!canSubmit)
                 }
             }
-            .messagingLoadingToast(submitting || store.busy, title: "正在移除成员")
+            .messagingLoadingToast(submitting || store.busy, title: L10n.tr("正在移除成员"))
             .messagingFeedbackToast(store.errorMessage ?? feedback)
         }.interactiveDismissDisabled(submitting || store.busy)
     }

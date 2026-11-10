@@ -12,6 +12,7 @@ import SwiftUIIntrospect
 
 /// 保留原版邀请码演示页面；应用入口只使用 InvitationCodeView。
 struct OriginalInvitationCodeView: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var store: ClubStore
     @StateObject private var keyboard = Keyboard()
     @State private var code = ""
@@ -23,8 +24,8 @@ struct OriginalInvitationCodeView: View {
             VStack(spacing: 22) {
                 ClubLogo(size: 60).padding(.top, 48)
                 VStack(spacing: 10) {
-                    Text("连接你的俱乐部").font(.system(size: 25, weight: .bold))
-                    Text(invalid ? "修改邀请码后可以再次尝试" : (connecting ? "正在确认俱乐部信息" : "输入邀请码后进入专属会员空间"))
+                    Text(L10n.tr("连接你的俱乐部")).font(.system(size: 25, weight: .bold))
+                    Text(invalid ? L10n.tr("修改邀请码后可以再次尝试") : (connecting ? L10n.tr("正在确认俱乐部信息") : L10n.tr("输入邀请码后进入专属会员空间")))
                         .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                 }
                 ClubCard(padding: 20) {
@@ -33,14 +34,14 @@ struct OriginalInvitationCodeView: View {
                             VStack(spacing: 12) {
                                 ClubIcon(name: "alert", size: 26).foregroundColor(ClubTheme.darkTeal)
                                     .frame(width: 72, height: 72).background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 24))
-                                Text("未找到对应的俱乐部").font(.system(size: 20, weight: .semibold))
-                                Text("请检查邀请码，或向俱乐部工作人员确认。")
+                                Text(L10n.tr("未找到对应的俱乐部")).font(.system(size: 20, weight: .semibold))
+                                Text(L10n.tr("请检查邀请码，或向俱乐部工作人员确认。"))
                                     .font(.system(size: 12)).foregroundColor(ClubTheme.secondary)
                             }.frame(maxWidth: .infinity).padding(.vertical, 20)
                         }
-                        ClubField(title: "俱乐部邀请码", placeholder: "例如 10001", icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
+                        ClubField(title: L10n.tr("俱乐部邀请码"), placeholder: L10n.tr("例如 10001"), icon: "shield", text: $code, keyboard: .numberPad, focus: $codeFocused)
                         
-                        Button("连接俱乐部") {
+                        Button(L10n.tr("连接俱乐部")) {
                             codeFocused = false
                             keyboard.dismiss()
                             guard !code.isEmpty else { return }
@@ -66,7 +67,7 @@ struct OriginalInvitationCodeView: View {
         .background(ClubBackground()).allowsHitTesting(!connecting).blur(radius: connecting ? 2 : 0)
         .introspect(.scrollView, on: .iOS(.v15, .v16, .v17, .v18, .v26, .v27)) { $0.keyboardDismissMode = .interactive }
         .toast(isPresenting: $connecting, duration: 0, tapToDismiss: false) {
-            AlertToast(type: .loading, title: "正在连接俱乐部", subTitle: "请稍候，不要关闭 App",
+            AlertToast(type: .loading, title: L10n.tr("正在连接俱乐部"), subTitle: L10n.tr("请稍候，不要关闭 App"),
                        style: .style(backgroundColor: ClubTheme.card, titleColor: ClubTheme.ink))
         }
         .onChange(of: code) { value in

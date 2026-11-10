@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 call_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 call_temp=$(mktemp -d)
@@ -23,5 +24,5 @@ import CoreGraphics
     var bubble: UIHostingController<CallFloatingView>?
 ''' + methods + '\n}\n')
 PY
-swiftc -parse-as-library "$call_temp/Presentation.swift" "$call_root/Tests/Calls/PresentationChecks.swift" -o "$call_temp/checks"
+swiftc "$localization_source" -parse-as-library "$call_temp/Presentation.swift" "$call_root/Tests/Calls/PresentationChecks.swift" -o "$call_temp/checks"
 "$call_temp/checks"

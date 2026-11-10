@@ -21,7 +21,7 @@ import NoaChatCore
         let attachment = ChatAttachment(file: file, type: ChatAttachment.complaintEvidenceType, name: file.lastPathComponent, bytes: Int64(size))
         let result = try await transfer.upload(attachment, context: context) { _ in }
         try validate(context, run: run)
-        guard !result.resource.isEmpty else { throw ComplaintError.invalidInput("图片上传失败，请重试") }
+        guard !result.resource.isEmpty else { throw ComplaintError.invalidInput(L10n.tr("图片上传失败，请重试")) }
         return result.resource
     }
 
@@ -37,13 +37,13 @@ import NoaChatCore
                 let accepted = (data as? NSNumber)?.boolValue ?? true
                 Task { @MainActor in waiter.finish(.success(accepted)) }
             }, onFailure: { code, message, _ in
-                let detail = message.flatMap { $0.isEmpty ? nil : $0 } ?? "投诉提交失败，请稍后重试"
-                let text = code == 44016 ? "申请提交成功，系统稍后处理" : code == 44017 ? "已提交申请，请等待审核" : detail
+                let detail = message.flatMap { $0.isEmpty ? nil : $0 } ?? L10n.tr("投诉提交失败，请稍后重试")
+                let text = code == 44016 ? L10n.tr("申请提交成功，系统稍后处理") : code == 44017 ? L10n.tr("已提交申请，请等待审核") : detail
                 Task { @MainActor in waiter.finish(.failure(ComplaintError.invalidInput(text))) }
             })
         }
         try validate(context, run: run)
-        guard accepted else { throw ComplaintError.invalidInput("服务器未受理投诉，请稍后重试") }
+        guard accepted else { throw ComplaintError.invalidInput(L10n.tr("服务器未受理投诉，请稍后重试")) }
     }
 
     /// 退出及表单关闭立即终止Swift等待，SDK迟到回调不能改变新会话页面。
@@ -57,12 +57,12 @@ import NoaChatCore
               sdk.isUserDatabaseReady(), OSSConnectionBootstrap.shared.current?.lastLiceseId == context.tenantID else { throw ChatClientError.sessionExpired }
         if context.route.kind == .group {
             let cached: LingIMGroupModel? = sdk.toolCheckMyGroup(with: context.route.id)
-            guard let group = cached, group.groupStatus == 1, group.leaveGroupStatus == 0 else { throw ComplaintError.invalidInput("当前已不在该群中") }
+            guard let group = cached, group.groupStatus == 1, group.leaveGroupStatus == 0 else { throw ComplaintError.invalidInput(L10n.tr("当前已不在该群中")) }
         }
         if let id = context.route.sourceGroupID {
             let cached: LingIMGroupModel? = sdk.toolCheckMyGroup(with: id)
             guard let group = cached, group.groupStatus == 1, group.leaveGroupStatus == 0,
-                  group.userGroupRole > 0 || !group.isPrivateChat || UserRoleAuthorityStore.shared.current?.allows("groupSecurity") == true else { throw ComplaintError.invalidInput("来源群当前不允许访问成员资料") }
+                  group.userGroupRole > 0 || !group.isPrivateChat || UserRoleAuthorityStore.shared.current?.allows("groupSecurity") == true else { throw ComplaintError.invalidInput(L10n.tr("来源群当前不允许访问成员资料")) }
         }
     }
 }

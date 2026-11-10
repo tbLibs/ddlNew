@@ -62,7 +62,7 @@ import Combine
         guard let identity, !isCreating else { return nil }
         let selection = GroupMemberSelection(contacts: members, preselectedIDs: Set(members.map(\.id)), excludedIDs: [identity.userUID])
         guard permission(), selection.canSubmit(minimum: 2, maximum: 200), selection.selected.count == members.count else {
-            errorMessage = "当前不能建群，请选择2至200位有效好友并确认权限"; return nil
+            errorMessage = L10n.tr("当前不能建群，请选择2至200位有效好友并确认权限"); return nil
         }
         isCreating = true; errorMessage = nil
         defer { if self.identity == identity { isCreating = false } }

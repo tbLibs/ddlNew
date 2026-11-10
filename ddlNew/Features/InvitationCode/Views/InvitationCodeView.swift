@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 邀请码入口页，仅负责界面展示，不包含校验、网络请求或页面跳转逻辑。
 struct InvitationCodeView: View {
+    @Environment(\.locale) private var localizationLocale
     
     /// 页面状态和后续业务逻辑统一由 ViewModel 管理。
     @StateObject private var viewModel = InvitationCodeViewModel()
@@ -17,12 +18,13 @@ struct InvitationCodeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 22.zoom()) {
+                HStack { Spacer(); LanguageSelectionButton() }
                 // 顶部品牌区
                 InvitationCodeLogo(size: 60.zoom())
                     .padding(.top, 48.zoom())
 
                 VStack(spacing: 10.zoom()) {
-                    Text("连接你的俱乐部")
+                    Text(L10n.tr("连接你的俱乐部"))
                         .font(.system(size: 25.zoom(), weight: .bold))
                 }
 
@@ -30,7 +32,7 @@ struct InvitationCodeView: View {
                 VStack(alignment: .leading, spacing: 10.zoom()) {
                     InvitationCodeField(text: $viewModel.invitationCode)
 
-                    Button("连接俱乐部") {
+                    Button(L10n.tr("连接俱乐部")) {
                         viewModel.clickClub()
                     }
                     .buttonStyle(InvitationCodeButtonStyle())
@@ -63,7 +65,7 @@ struct InvitationCodeView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(InvitationCodeBackground())
-        .messagingLoadingToast(viewModel.isRacing, title: "正在连接俱乐部")
+        .messagingLoadingToast(viewModel.isRacing, title: L10n.tr("正在连接俱乐部"))
         .messagingFeedbackToast(viewModel.isRacing ? nil : viewModel.statusMessage)
         .foregroundStyle(InvitationCodePalette.ink)
     }

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>登录验证</title>
+<title>Security verification</title>
 <!-- 由旧项目 CandyTalk 验证码资源适配，沿用服务商标识与 SDK 地址。 -->
 <script>
+const appCaptchaLanguage = (window.appCaptchaLocalization || {}).language || 'en';
+document.documentElement.lang = appCaptchaLanguage;
+document.title = (window.appCaptchaLocalization || {}).title || 'Security verification';
 function reportCaptchaState(state) {
   if (window.webkit && window.webkit.messageHandlers.captchaStatus) {
     window.webkit.messageHandlers.captchaStatus.postMessage(JSON.stringify({state: state}));
@@ -26,6 +29,7 @@ function globalCallback(res) {
 window.onload = function () {
   try {
     const captcha = new TencentCaptcha('189974576', globalCallback, {
+      userLanguage: ({'zh-Hans': 'zh-cn', 'zh-Hant': 'zh-tw', 'en': 'en'})[appCaptchaLanguage] || 'en',
       needFeedBack: false,
       enableDarkMode: false,
       loading: false,

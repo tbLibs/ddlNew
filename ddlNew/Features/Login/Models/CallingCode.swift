@@ -14,7 +14,8 @@ nonisolated struct CallingCode: Decodable, Identifiable, Hashable {
         }
         return rows
     }()
+    var displayName: String { L10n.locale.localizedString(forRegionCode: id) ?? (L10n.languageCode == "en" ? englishName : name) }
     func matches(_ query: String) -> Bool {
-        query.isEmpty || [name, englishName, code, pinyin].contains { $0.localizedCaseInsensitiveContains(query.replacingOccurrences(of: "+", with: "")) }
+        query.isEmpty || [displayName, name, englishName, code, pinyin].contains { $0.localizedCaseInsensitiveContains(query.replacingOccurrences(of: "+", with: "")) }
     }
 }

@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -40,7 +41,7 @@ struct ProductionMapper {
 }
 ''')
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatMessageRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatMessageRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatFailureReason.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatMentionSegment.swift" \
  "$ROOT_DIR/Tests/Chat/AvatarChecks.swift" "$TMP_DIR/Production.swift" -o "$TMP_DIR/checks"

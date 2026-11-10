@@ -18,7 +18,7 @@ import NoaChatCore
         let run = revision
         try validate(context, run: run)
         let bytes = Int64(try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0)
-        guard bytes > 0, bytes <= 50 * 1024 else { throw OwnProfileError.invalid("头像图片无效，请重新选择") }
+        guard bytes > 0, bytes <= 50 * 1024 else { throw OwnProfileError.invalid(L10n.tr("头像图片无效，请重新选择")) }
         let result = try await transfer.upload(ChatAttachment(file: file, type: ChatAttachment.userAvatarType,
             name: file.lastPathComponent, bytes: bytes), context: context) { _ in }
         try validate(context, run: run)
@@ -41,7 +41,7 @@ import NoaChatCore
                 Task { @MainActor in waiter.finish(.success(accepted)) }
             }
             let failure: LingIMFailureCallback = { code, message, _ in
-                let text = message.flatMap { $0.isEmpty ? nil : $0 } ?? "资料保存失败（\(code)），请重试"
+                let text = message.flatMap { $0.isEmpty ? nil : $0 } ?? L10n.tr("资料保存失败（\(code)），请重试")
                 Task { @MainActor in waiter.finish(.failure(OwnProfileError.invalid(text))) }
             }
             switch change {
@@ -50,7 +50,7 @@ import NoaChatCore
             }
         }
         try validate(context, run: run)
-        guard accepted else { throw OwnProfileError.invalid("服务器未接受资料修改，请重试") }
+        guard accepted else { throw OwnProfileError.invalid(L10n.tr("服务器未接受资料修改，请重试")) }
     }
 
     /// 在主线程同步提交最新资料，昵称同时供SDK后续发送使用。

@@ -16,9 +16,9 @@ enum IMConnectionPhase: Equatable {
 
     var message: String {
         switch self {
-        case .idle: return "连接尚未准备"
-        case .connecting: return "正在恢复 TCP/ECDH 连接…"
-        case .ready: return "连接已就绪"
+        case .idle: return L10n.tr("连接尚未准备")
+        case .connecting: return L10n.tr("正在恢复 TCP/ECDH 连接…")
+        case .ready: return L10n.tr("连接已就绪")
         case .failed(let message): return message
         }
     }

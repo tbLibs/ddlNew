@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -36,7 +37,7 @@ predicate = re.search(r'where:(.*?) orders:', query).group(1).replace('NoaIMChat
 (out/'ProductionTimelineStatus.swift').write_text('enum ProductionTimelineStatus { static func includes(_ rawValue: Int) -> Bool { '+predicate+' } }\n')
 
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" \
  "$ROOT_DIR/Tests/Chat/HistoryPaginationChecks.swift" "$TMP_DIR/ProductionHistory.swift" "$TMP_DIR/RefreshAction.swift" "$TMP_DIR/ProductionMessageStatus.swift" "$TMP_DIR/ProductionTimelineStatus.swift" \

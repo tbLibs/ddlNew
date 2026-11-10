@@ -51,7 +51,7 @@ final class InvitationCodeViewModel: ObservableObject {
         // 本次请求始终使用当前输入；持久化的 lastLiceseId 仅在正式握手与本地租户参数设置成功后更新。
         let lastLiceseId = invitationCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !lastLiceseId.isEmpty else {
-            statusMessage = "请输入邀请码"
+            statusMessage = L10n.tr("请输入邀请码")
             return
         }
 
@@ -65,7 +65,7 @@ final class InvitationCodeViewModel: ObservableObject {
         let runID = UUID()
         raceRunID = runID
         isRacing = true
-        statusMessage = "正在获取连接节点…"
+        statusMessage = L10n.tr("正在获取连接节点…")
         raceTask = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -89,7 +89,7 @@ final class InvitationCodeViewModel: ObservableObject {
                 debugPrint("[OSS竞速] 获胜来源：\(winner.source.rawValue)，地址：\(winner.node.urlString)")
                 debugPrint("[OSS连接] HTTP：\(plan.apiHost?.absoluteString ?? "无（TCP 直连）")，TCP 候选：\(plan.tcpCandidates.count) 个")
 
-                statusMessage = "正在准备连接…"
+                statusMessage = L10n.tr("正在准备连接…")
                 do {
                     try await IMConnectionCoordinator.shared.connectForLogin(plan: plan)
                     try Task<Never, Never>.checkCancellation()
@@ -101,14 +101,14 @@ final class InvitationCodeViewModel: ObservableObject {
                     return
                 } catch {
                     guard !Task.isCancelled, self.raceRunID == runID else { return }
-                    statusMessage = "连接初始化失败，请重试"
+                    statusMessage = L10n.tr("连接初始化失败，请重试")
                     debugPrint("[IM初始化] 连接失败：\(error)")
                 }
             } catch is CancellationError {
                 return
             } catch {
                 guard !Task.isCancelled, self.raceRunID == runID else { return }
-                statusMessage = "导航获取或节点准备失败，请重试"
+                statusMessage = L10n.tr("导航获取或节点准备失败，请重试")
                 debugPrint("[OSS导航] 获取或节点准备失败：\(error)")
             }
         }

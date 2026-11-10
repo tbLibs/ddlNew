@@ -34,7 +34,7 @@ import NoaChatCore
         let resource = row["contentUrl"] as? String ?? ""
         let id = row["stickersId"] as? String ?? (row["stickersId"] as? NSNumber)?.stringValue ?? row["id"] as? String ?? (row["id"] as? NSNumber)?.stringValue ?? row["stickersKey"] as? String ?? ""
         guard (row["isDeleted"] as? NSNumber)?.boolValue != true, !resource.isEmpty, !id.isEmpty else { return nil }
-        return ChatSticker(id: id, title: row["name"] as? String ?? "贴纸", resource: resource, thumbnail: row["thumbUrl"] as? String ?? "", width: (row["width"] as? NSNumber)?.doubleValue ?? 0, height: (row["height"] as? NSNumber)?.doubleValue ?? 0, bytes: (row["size"] as? NSNumber)?.int64Value ?? 0, fromPackage: fromPackage)
+        return ChatSticker(id: id, title: row["name"] as? String ?? L10n.tr("贴纸"), resource: resource, thumbnail: row["thumbUrl"] as? String ?? "", width: (row["width"] as? NSNumber)?.doubleValue ?? 0, height: (row["height"] as? NSNumber)?.doubleValue ?? 0, bytes: (row["size"] as? NSNumber)?.int64Value ?? 0, fromPackage: fromPackage)
     }
     /// 关闭停止等待，旧账号结果不能进入新表情页。
     func close() { client.stop(); context = nil }

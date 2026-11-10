@@ -78,12 +78,12 @@ import WebKit
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failed(error) }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        guard !closed else { return }; isLoading = false; errorMessage = "网页已暂停，请重新加载"
+        guard !closed else { return }; isLoading = false; errorMessage = L10n.tr("网页已暂停，请重新加载")
     }
     private func failed(_ error: Error) {
         guard !closed, (error as NSError).code != NSURLErrorCancelled else { return }
         if let value = (error as NSError).userInfo[NSURLErrorFailingURLStringErrorKey] as? String { failedURL = MiniAppWebPolicy.url(value) }
-        isLoading = false; errorMessage = "网页加载失败，请检查网络后重试"
+        isLoading = false; errorMessage = L10n.tr("网页加载失败，请检查网络后重试")
     }
     /// 新窗口链接在当前应用内打开，未向页面注入登录凭据或原生业务桥。
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {

@@ -13,9 +13,9 @@ nonisolated struct ComplaintDraft: Sendable {
     var email = ""
     var images: [URL] = []
     var validationMessage: String? {
-        if images.isEmpty || images.count > 9 { return "请选择1至9张图片证据" }
-        if content.utf16.count > 200 { return "投诉内容最多200字" }
-        if !hasValidEmail { return "请输入有效的联系邮箱" }
+        if images.isEmpty || images.count > 9 { return L10n.tr("请选择1至9张图片证据") }
+        if content.utf16.count > 200 { return L10n.tr("投诉内容最多200字") }
+        if !hasValidEmail { return L10n.tr("请输入有效的联系邮箱") }
         return nil
     }
     var hasValidEmail: Bool {
@@ -25,10 +25,10 @@ nonisolated struct ComplaintDraft: Sendable {
     /// 上传前校验表单与目标，避免无效输入先产生孤立证据文件。
     func validate(target: ComplaintTarget, userUID: String) throws {
         if let validationMessage { throw ComplaintError.invalidInput(validationMessage) }
-        guard !userUID.isEmpty else { throw ComplaintError.invalidInput("登录状态已变化") }
+        guard !userUID.isEmpty else { throw ComplaintError.invalidInput(L10n.tr("登录状态已变化")) }
         switch target {
-        case .user(let id): guard !id.isEmpty, id != userUID, id != "100002" else { throw ComplaintError.invalidInput("当前用户不可投诉") }
-        case .group(let id): guard !id.isEmpty else { throw ComplaintError.invalidInput("群信息已失效") }
+        case .user(let id): guard !id.isEmpty, id != userUID, id != "100002" else { throw ComplaintError.invalidInput(L10n.tr("当前用户不可投诉")) }
+        case .group(let id): guard !id.isEmpty else { throw ComplaintError.invalidInput(L10n.tr("群信息已失效")) }
         case .general: break
         }
     }
@@ -36,7 +36,7 @@ nonisolated struct ComplaintDraft: Sendable {
     func parameters(target: ComplaintTarget, userUID: String, nickname: String, account: String, uploaded: [String]) throws -> [String: String] {
         try validate(target: target, userUID: userUID)
         guard uploaded.count == images.count,
-              uploaded.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.contains(",") }) else { throw ComplaintError.invalidInput("图片证据尚未全部上传，请重试") }
+              uploaded.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.contains(",") }) else { throw ComplaintError.invalidInput(L10n.tr("图片证据尚未全部上传，请重试")) }
         var result = ["userUid": userUID, "nickname": nickname, "username": account, "ufbImages": uploaded.joined(separator: ","), "ufbContentGroup": reason.rawValue, "ufbUserEmail": email.trimmingCharacters(in: .whitespacesAndNewlines)]
         let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty { result["ufbComment"] = text }

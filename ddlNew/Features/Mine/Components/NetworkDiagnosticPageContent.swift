@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 诊断工作台：本轮结论、实时步骤与实际检测目标。
 struct NetworkDiagnosticPageContent: View {
+    @Environment(\.locale) private var localizationLocale
     let results: [NetworkDiagnosticResult]
     let running: Bool
     let completed: Bool
@@ -19,30 +20,30 @@ struct NetworkDiagnosticPageContent: View {
     private var failures: Int { results.filter { !$0.passed }.count }
     private var interrupted: Bool { !running && !completed && status != "准备检测" }
     private var heading: String {
-        if running { return activeSection.flatMap { sections.firstIndex(of: $0) }.map { "正在" + stepTitle($0) } ?? "正在准备检测" }
-        if completed { return hasServer ? "已找到可用连接" : "暂未找到可用连接" }
-        return interrupted ? "检测未完成" : "检查你的连接"
+        if running { return activeSection.flatMap { sections.firstIndex(of: $0) }.map { L10n.tr("正在") + stepTitle($0) } ?? L10n.tr("正在准备检测") }
+        if completed { return hasServer ? L10n.tr("已找到可用连接") : L10n.tr("暂未找到可用连接") }
+        return interrupted ? L10n.tr("检测未完成") : L10n.tr("检查你的连接")
     }
     private var summary: String {
-        if running { return "逐项记录结果；当前来源不可用时，会继续尝试备用来源。" }
+        if running { return L10n.tr("逐项记录结果；当前来源不可用时，会继续尝试备用来源。") }
         if completed {
-            if hasServer { return failures == 0 ? "本轮已执行的检查均通过。" : "已找到可用服务器，仍有 \(failures) 条未通过记录，详见下方。" }
-            return "可先切换 Wi-Fi 或蜂窝网络再重测，并查看下方失败的地址。"
+            if hasServer { return failures == 0 ? L10n.tr("本轮已执行的检查均通过。") : L10n.tr("已找到可用服务器，仍有 \(failures) 条未通过记录，详见下方。") }
+            return L10n.tr("可先切换 Wi-Fi 或蜂窝网络再重测，并查看下方失败的地址。")
         }
-        return interrupted ? status : "检查设备联网、外网地址与服务节点，帮助定位连接问题。"
+        return interrupted ? status : L10n.tr("检查设备联网、外网地址与服务节点，帮助定位连接问题。")
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 if !license.isEmpty {
-                    Text("当前企业 · \(license)")
+                    Text(L10n.tr("当前企业 · \(license)"))
                         .font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 overview
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("检测详情").font(.headline).accessibilityAddTraits(.isHeader).padding(.bottom, 16)
+                    Text(L10n.tr("检测详情")).font(.headline).accessibilityAddTraits(.isHeader).padding(.bottom, 16)
                     ForEach(sections, id: \.self) { section in step(section) }
                 }
             }
@@ -73,7 +74,7 @@ struct NetworkDiagnosticPageContent: View {
                 .fixedSize(horizontal: false, vertical: true)
             if running, let target = activeTargets.first {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(activeTargets.count > 1 ? "正在检测 \(activeTargets.count) 个节点" : "当前目标")
+                    Text(activeTargets.count > 1 ? L10n.tr("正在检测 \(activeTargets.count) 个节点") : L10n.tr("当前目标"))
                         .font(.caption).foregroundStyle(HomeTheme.secondaryText)
                     Text(verbatim: NetworkDiagnosticAddress.masked(target)).font(.subheadline.monospaced())
                         .fixedSize(horizontal: false, vertical: true)
@@ -83,7 +84,7 @@ struct NetworkDiagnosticPageContent: View {
                 expanded = []
                 action()
             } label: {
-                Label(running ? "取消检测" : (completed || interrupted ? "重新检测" : "开始检测"),
+                Label(running ? L10n.tr("取消检测") : (completed || interrupted ? L10n.tr("重新检测") : L10n.tr("开始检测")),
                       systemImage: running ? "stop" : (completed || interrupted ? "arrow.clockwise" : "arrow.right"))
                     .font(.body.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 16).padding(.vertical, 10)
@@ -92,7 +93,7 @@ struct NetworkDiagnosticPageContent: View {
             .buttonStyle(HomePressStyle())
             .foregroundStyle(running ? HomeTheme.forest : HomeTheme.background)
             .background(running ? HomeTheme.mintSurface : HomeTheme.forest, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityHint(running ? "停止本轮检测并清空结果" : "开始新一轮检测")
+            .accessibilityHint(running ? L10n.tr("停止本轮检测并清空结果") : L10n.tr("开始新一轮检测"))
             .accessibilityIdentifier("mine.network.retry")
         }
         .padding(20).frame(maxWidth: .infinity, alignment: .leading)
@@ -131,8 +132,8 @@ struct NetworkDiagnosticPageContent: View {
                         stepHeading(index, state: state, tone: tone, disclosure: true, expanded: expanded.contains(section))
                     }.buttonStyle(HomePressStyle())
                         .accessibilityLabel("\(stepTitle(index))，\(state.title)")
-                        .accessibilityValue(expanded.contains(section) ? "已展开" : "已收起")
-                        .accessibilityHint("轻点\(expanded.contains(section) ? "收起" : "查看")地址与检测结果")
+                        .accessibilityValue(expanded.contains(section) ? L10n.tr("已展开") : L10n.tr("已收起"))
+                        .accessibilityHint(L10n.tr("轻点\(expanded.contains(section) ? L10n.tr("收起") : L10n.tr("查看"))地址与检测结果"))
                         .accessibilityIdentifier("mine.network.step.\(index)")
                 } else { stepHeading(index, state: state, tone: tone, disclosure: false, expanded: false) }
                 Text(stepSummary(index, rows: rows)).font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
@@ -171,22 +172,22 @@ struct NetworkDiagnosticPageContent: View {
                         .font(.subheadline.weight(.medium)).foregroundStyle(row.passed ? HomeTheme.text : HomeTheme.warmAccent)
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(Array(row.targets.enumerated()), id: \.offset) { offset, target in
-                        address(target, label: index == 1 ? (offset == 0 ? "来源地址" : "返回节点 \(offset)") : (index == 2 ? "检测节点" : "请求地址"))
+                        address(target, label: index == 1 ? (offset == 0 ? L10n.tr("来源地址") : L10n.tr("返回节点 \(offset)")) : (index == 2 ? L10n.tr("检测节点") : L10n.tr("请求地址")))
                     }
                     if index == 0 && row.targets.isEmpty {
-                        Text("设备网络接口检查，无远端节点").font(.caption).foregroundStyle(HomeTheme.secondaryText)
+                        Text(L10n.tr("设备网络接口检查，无远端节点")).font(.caption).foregroundStyle(HomeTheme.secondaryText)
                     }
-                    Text("\(row.passed ? "通过" : "未通过") · \(row.milliseconds) 毫秒")
+                    Text(L10n.tr("\(row.passed ? L10n.tr("通过") : L10n.tr("未通过")) · \(row.milliseconds) 毫秒"))
                         .font(.caption.monospacedDigit()).foregroundStyle(row.passed ? HomeTheme.secondaryText : HomeTheme.warmAccent)
                     Divider().overlay(HomeTheme.border)
                 }
             }
             if active {
                 if activeTargets.isEmpty {
-                    Text(index == 0 && rows.isEmpty ? "正在检查设备网络接口…" : "正在等待检测结果…")
+                    Text(index == 0 && rows.isEmpty ? L10n.tr("正在检查设备网络接口…") : L10n.tr("正在等待检测结果…"))
                         .font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
                 } else {
-                    ForEach(activeTargets, id: \.self) { target in address(target, label: "检测中") }
+                    ForEach(activeTargets, id: \.self) { target in address(target, label: L10n.tr("检测中")) }
                 }
             }
             if index == 0 {
@@ -198,17 +199,17 @@ struct NetworkDiagnosticPageContent: View {
                         completed: completed, interrupted: interrupted))
                 }
                 if rows.contains(where: { $0.passed && !$0.targets.isEmpty }) {
-                    Text("外网地址检测通过后，不再请求后续地址。").font(.caption).foregroundStyle(HomeTheme.secondaryText)
+                    Text(L10n.tr("外网地址检测通过后，不再请求后续地址。")).font(.caption).foregroundStyle(HomeTheme.secondaryText)
                 }
             }
             if index == 1 {
                 ForEach(sources.filter { source in
                     !rows.contains(where: { $0.targets.first == source.address }) && !activeTargets.contains(source.address)
                 }, id: \.address) { source in
-                    address(source.address, label: "\(sourceName(source.kind)) · \(completed ? "未执行" : (interrupted ? "未完成" : "待检测"))")
+                    address(source.address, label: L10n.tr("\(sourceName(source.kind)) · \(completed ? L10n.tr("未执行") : (interrupted ? L10n.tr("未完成") : L10n.tr("待检测")))"))
                 }
                 if completed && hasServer {
-                    Text("已找到可用服务器，后续来源不再检测。").font(.caption).foregroundStyle(HomeTheme.secondaryText)
+                    Text(L10n.tr("已找到可用服务器，后续来源不再检测。")).font(.caption).foregroundStyle(HomeTheme.secondaryText)
                 }
             }
         }
@@ -223,16 +224,16 @@ struct NetworkDiagnosticPageContent: View {
         }.accessibilityElement(children: .combine)
     }
 
-    private func stepTitle(_ index: Int) -> String { ["检查设备与外网", "获取服务节点", "连接服务器"][index] }
+    private func stepTitle(_ index: Int) -> String { [L10n.tr("检查设备与外网"), L10n.tr("获取服务节点"), L10n.tr("连接服务器")][index] }
     private func stepSummary(_ index: Int, rows: [NetworkDiagnosticResult]) -> String {
         if !rows.isEmpty {
             let passed = rows.filter(\.passed).count
-            return "\(passed) 条通过 · \(rows.count - passed) 条未通过"
+            return L10n.tr("\(passed) 条通过 · \(rows.count - passed) 条未通过")
         }
-        if completed && index == 2 { return "没有取得可探测的服务节点。" }
-        return ["设备联网状态与 4 个外网检测地址", "依次尝试主域、备域和 BIN", "检查具体节点的连接与密钥交换"][index]
+        if completed && index == 2 { return L10n.tr("没有取得可探测的服务节点。") }
+        return [L10n.tr("设备联网状态与 4 个外网检测地址"), L10n.tr("依次尝试主域、备域和 BIN"), L10n.tr("检查具体节点的连接与密钥交换")][index]
     }
     private func sourceName(_ kind: DNS1Source.Kind) -> String {
-        switch kind { case .main: return "主域"; case .backup: return "备域"; case .bin: return "BIN"; case .cache: return "缓存" }
+        switch kind { case .main: return L10n.tr("主域"); case .backup: return L10n.tr("备域"); case .bin: return "BIN"; case .cache: return L10n.tr("缓存") }
     }
 }

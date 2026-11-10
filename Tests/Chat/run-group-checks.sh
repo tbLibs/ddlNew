@@ -1,9 +1,10 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatGroupDetail.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatGroupDetail.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatGroupBanRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatGroupMember.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatGroupAction.swift" \

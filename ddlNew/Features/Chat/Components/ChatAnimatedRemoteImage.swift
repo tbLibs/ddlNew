@@ -10,6 +10,7 @@ import Kingfisher
 
 /// 已有GIF和贴纸复用旧媒体解码，动画缓冲、前后台和减少动态效果独立于发送状态。
 struct ChatAnimatedRemoteImage: View {
+    @Environment(\.locale) private var localizationLocale
     let url: URL?
     let fileHost: URL?
     let size: CGSize
@@ -35,7 +36,7 @@ struct ChatAnimatedRemoteImage: View {
                         imageView.contentMode = .scaleAspectFit
                         imageView.clipsToBounds = true
                     }
-                    .placeholder { ProgressView().accessibilityLabel("正在加载图片") }
+                    .placeholder { ProgressView().accessibilityLabel(L10n.tr("正在加载图片")) }
                     .onFailureView { Image(systemName: "photo").foregroundStyle(.secondary) }
             } else {
                 KFImage(url)
@@ -44,7 +45,7 @@ struct ChatAnimatedRemoteImage: View {
                     .downloader(NetworkImageDownloader.downloader(for: fileHost))
                     .loadDiskFileSynchronously(false)
                     .cancelOnDisappear(true)
-                    .placeholder { ProgressView().accessibilityLabel("正在加载图片") }
+                    .placeholder { ProgressView().accessibilityLabel(L10n.tr("正在加载图片")) }
                     .onFailureView { Image(systemName: "photo").foregroundStyle(.secondary) }
                     .resizable().scaledToFit()
             }

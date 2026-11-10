@@ -9,6 +9,7 @@ import SwiftUI
 
 /// 账号和密码输入组件，密码显隐状态只在当前组件内保存。
 struct LoginField: View {
+    @Environment(\.locale) private var localizationLocale
     let title: String
     let placeholder: String
     /// 使用新项目 Assets 中的图标，不引用旧版图标组件。
@@ -64,7 +65,7 @@ struct LoginField: View {
                             .background(LoginPalette.wash)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .accessibilityLabel(passwordVisible ? "隐藏密码" : "显示密码")
+                    .accessibilityLabel(passwordVisible ? L10n.tr("隐藏密码") : L10n.tr("显示密码"))
                 }
             }
             .padding(.horizontal, 16)

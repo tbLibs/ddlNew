@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 task_temp=$(mktemp -d)
@@ -24,7 +25,7 @@ methods = ''.join(method(name) for name in ['func load(', 'func invalidateMessag
 methods = methods.replace('LegacyChatMediaCodec.decodeFile(temporary)', 'PreviewDecodeGate.decodeFile(temporary)')
 (out/'ProductionPreview.swift').write_text(prefix + methods + '}\n')
 PY
-swiftc -parse-as-library "$task_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$task_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$task_root/ddlNew/Features/Chat/Models/"*.swift \
  "$task_root/ddlNew/Common/Media/LegacyChatMediaCodec.swift" \
  "$task_root/ddlNew/Network/Core/RemoteAvatarURL.swift" \

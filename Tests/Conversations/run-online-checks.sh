@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d /tmp/ddlNew-conversation-online.XXXXXX)
@@ -35,7 +36,7 @@ LABEL
 }
 '''.replace('LOAD',load).replace('SNAPSHOT',snapshot).replace('TITLE',title).replace('KINDS',kinds).replace('LABEL',label))
 PY
-swiftc -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/"*.swift \
+swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/"*.swift \
  "$TASK_ROOT/ddlNew/Features/Message/Services/ConversationsStore.swift" \
  "$TASK_ROOT/ddlNew/Features/Message/Services/ConversationOperationsClient.swift" \
  "$TASK_TMP/Production.swift" "$TASK_ROOT/Tests/Conversations/OnlineChecks.swift" -o "$TASK_TMP/checks"

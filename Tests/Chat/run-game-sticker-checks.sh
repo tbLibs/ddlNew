@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d /tmp/ddlNew-game-sticker.XXXXXX)
@@ -44,6 +45,6 @@ BRANCH
 '''.replace('BODY',body).replace('BRANCH',branch)
 (target/'ProductionGameWire.swift').write_text(code)
 PYWIRE
-swiftc -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Models/"*.swift "$TASK_ROOT/Tests/Chat/GameStickerChecks.swift" "$TASK_TMP/ProductionGameWire.swift" -o "$TASK_TMP/checks"
 "$TASK_TMP/checks"

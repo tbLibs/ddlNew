@@ -4,6 +4,7 @@ import UIKit
 enum MineSupportRoute: Hashable { case network, about }
 
 struct NetworkDiagnosticScreen: View {
+    @Environment(\.locale) private var localizationLocale
     @StateObject private var store = NetworkDiagnosticStore()
     @ObservedObject private var runtime = ChatRuntime.shared
     var body: some View {
@@ -12,7 +13,7 @@ struct NetworkDiagnosticScreen: View {
             status: store.status, license: currentLicense, activeTargets: store.activeTargets, sources: store.sources) {
                 if store.running { store.reset() } else { store.start() }
             }
-            .navigationTitle("网络检测").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(L10n.tr("网络检测")).navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HomeTheme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .onDisappear { store.cancel() }
@@ -26,10 +27,11 @@ struct NetworkDiagnosticScreen: View {
 }
 
 struct AboutUsScreen: View {
+    @Environment(\.locale) private var localizationLocale
     @State private var document: LegalDocument?
     private var version: String {
         let info = Bundle.main.infoDictionary ?? [:]
-        return "当前版本 v\(info["CFBundleShortVersionString"] as? String ?? "—") (\(info["CFBundleVersion"] as? String ?? "—"))"
+        return L10n.tr("当前版本 v\(info["CFBundleShortVersionString"] as? String ?? "—") (\(info["CFBundleVersion"] as? String ?? "—"))")
     }
     private var appIcon: UIImage? {
         let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any]
@@ -46,7 +48,7 @@ struct AboutUsScreen: View {
                 }
                 .frame(width: 82, height: 82).clipShape(RoundedRectangle(cornerRadius: 20))
                 .accessibilityHidden(true)
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "响铃")
+                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? L10n.tr("响铃"))
                     .font(.title2.weight(.semibold))
                 Text(version).font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
                 VStack(spacing: 0) {
@@ -59,7 +61,7 @@ struct AboutUsScreen: View {
             .padding(24).frame(maxWidth: HomeTheme.contentWidth).frame(maxWidth: .infinity)
         }
         .background(HomeTheme.background.ignoresSafeArea()).foregroundStyle(HomeTheme.text).tint(HomeTheme.forest)
-        .navigationTitle("关于我们").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(L10n.tr("关于我们")).navigationBarTitleDisplayMode(.inline)
         .sheet(item: $document) { LegalDocumentScreen(document: $0) }
     }
     private func legalRow(_ value: LegalDocument) -> some View {

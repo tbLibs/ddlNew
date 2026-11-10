@@ -7,10 +7,10 @@ enum ConversationPreviewText {
                                   userUID: String, mentionsMe: Bool, includeSender: Bool = true) -> String {
         var preview = text
         if kind == .group, includeSender {
-            let name = senderUID == userUID ? "你" : senderName
+            let name = senderUID == userUID ? L10n.tr("你") : senderName
             if !name.isEmpty { preview = name + "：" + preview }
         }
-        if mentionsMe, senderUID != userUID { preview = "[有人@我] " + preview }
+        if mentionsMe, senderUID != userUID { preview = L10n.tr("[有人@我] ") + preview }
         return preview
     }
 }

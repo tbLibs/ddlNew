@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 名片与二维码在同一真实接收人sheet提交，逐目标保留失败结果。
 struct ContactsRecipientPickerView: View {
+    @Environment(\.locale) private var localizationLocale
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var contacts = LoginSessionService.shared.contacts
     @ObservedObject private var groups = LoginSessionService.shared.groups
@@ -35,32 +36,32 @@ struct ContactsRecipientPickerView: View {
     var body: some View {
         NavigationStack {
             List {
-                MessagingSearchField(placeholder: "搜索好友或群聊", text: $query, focus: $searchFocused, identifier: "contactShareSearch")
+                MessagingSearchField(placeholder: L10n.tr("搜索好友或群聊"), text: $query, focus: $searchFocused, identifier: "contactShareSearch")
                     .listRowSeparator(.hidden).listRowBackground(MessagingTheme.background)
-                Section("好友") { ForEach(contacts.contacts.filter { !$0.isDeleted && (query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query)) }) { contact in
+                Section(L10n.tr("好友")) { ForEach(contacts.contacts.filter { !$0.isDeleted && (query.isEmpty || $0.searchText.localizedCaseInsensitiveContains(query)) }) { contact in
                     recipient(ChatRoute(id: contact.id, kind: .single, title: contact.displayName, avatarURL: contact.avatar))
                 } }
-                Section("群聊") { ForEach(groups.groups.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { group in
+                Section(L10n.tr("群聊")) { ForEach(groups.groups.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { group in
                     recipient(ChatRoute(id: group.id, kind: .group, title: group.name, avatarURL: group.avatar))
                 } }
-                if recipients.isEmpty { Text("暂无可分享的好友或群聊").foregroundStyle(MessagingTheme.secondaryText) }
-                else if !query.isEmpty && !hasSearchResults { Text("没有匹配的接收人").foregroundStyle(MessagingTheme.secondaryText) }
+                if recipients.isEmpty { Text(L10n.tr("暂无可分享的好友或群聊")).foregroundStyle(MessagingTheme.secondaryText) }
+                else if !query.isEmpty && !hasSearchResults { Text(L10n.tr("没有匹配的接收人")).foregroundStyle(MessagingTheme.secondaryText) }
             }
             .listStyle(.plain)
             .modifier(MessagingPageChrome())
         .messagingFeedbackToast(message)
-        .messagingLoadingToast(sending, title: "正在分享")
-            .navigationTitle("选择接收人")
+        .messagingLoadingToast(sending, title: L10n.tr("正在分享"))
+            .navigationTitle(L10n.tr("选择接收人"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(sending) }
-                ToolbarItem(placement: .confirmationAction) { Button("分享(\(chosen.count))") { searchFocused = false; confirmingShare = true }.disabled(sending || chosen.isEmpty) }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { dismiss() }.disabled(sending) }
+                ToolbarItem(placement: .confirmationAction) { Button(L10n.tr("分享(\(chosen.count))")) { searchFocused = false; confirmingShare = true }.disabled(sending || chosen.isEmpty) }
             }
-            .confirmationDialog("分享给\(chosen.count)个会话？", isPresented: $confirmingShare, titleVisibility: .visible) {
-                Button("分享") { Task { await send() } }
-                Button("取消", role: .cancel) {}
+            .confirmationDialog(L10n.tr("分享给\(chosen.count)个会话？"), isPresented: $confirmingShare, titleVisibility: .visible) {
+                Button(L10n.tr("分享")) { Task { await send() } }
+                Button(L10n.tr("取消"), role: .cancel) {}
             } message: { Text(chosen.map(\.title).joined(separator: "、")) }
             .safeAreaInset(edge: .bottom) {
-                Text("已选\(chosen.count)个会话，最多100个").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                Text(L10n.tr("已选\(chosen.count)个会话，最多100个")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(16.zoom()).background(MessagingTheme.surface)
             }
             .interactiveDismissDisabled(sending)
@@ -69,7 +70,7 @@ struct ContactsRecipientPickerView: View {
 
     /// 选择以会话ID与类型为稳定身份，跨搜索保持选中。
     private func recipient(_ route: ChatRoute) -> some View {
-        Button { if selected.contains(key(route)) { selected.remove(key(route)) } else if chosen.count < 100 { selected.insert(key(route)) } else { message = "最多选择100个会话，请先取消部分选择。" } } label: {
+        Button { if selected.contains(key(route)) { selected.remove(key(route)) } else if chosen.count < 100 { selected.insert(key(route)) } else { message = L10n.tr("最多选择100个会话，请先取消部分选择。") } } label: {
             HStack(spacing: 12.zoom()) {
                 Image(systemName: selected.contains(key(route)) ? "checkmark.circle.fill" : "circle")
                     .font(.title3).foregroundStyle(selected.contains(key(route)) ? MessagingTheme.accent : MessagingTheme.secondaryText).accessibilityHidden(true)
@@ -77,7 +78,7 @@ struct ContactsRecipientPickerView: View {
                 Text(route.title).font(.body).foregroundStyle(MessagingTheme.text).frame(maxWidth: .infinity, alignment: .leading)
             }.padding(.vertical, 8.zoom()).frame(minHeight: max(44, 64.zoom())).contentShape(Rectangle())
         }.buttonStyle(.borderless).listRowBackground(MessagingTheme.surface).disabled(sending).accessibilityLabel(route.title)
-            .accessibilityValue(selected.contains(key(route)) ? "已选" : "未选")
+            .accessibilityValue(selected.contains(key(route)) ? L10n.tr("已选") : L10n.tr("未选"))
             .accessibilityAddTraits(selected.contains(key(route)) ? .isSelected : [])
     }
 
@@ -103,7 +104,7 @@ struct ContactsRecipientPickerView: View {
             do {
                 switch content {
                 case .contact(let contact, let sourceGroupID):
-                    guard await ContactsBusinessStore.shared.checkGroupAccess(sourceGroupID) else { throw ContactBusinessError.invalidInput("当前群不允许分享成员名片") }
+                    guard await ContactsBusinessStore.shared.checkGroupAccess(sourceGroupID) else { throw ContactBusinessError.invalidInput(L10n.tr("当前群不允许分享成员名片")) }
                     try await service.sendContactCard(contact: contact, to: route)
                 case .image(let data): try await service.sendImage(data: data, to: route)
                 }
@@ -112,6 +113,6 @@ struct ContactsRecipientPickerView: View {
         }
         guard ChatRuntime.shared.revision == revision else { sending = false; return }
         selected.subtract(submitted); sending = false
-        message = failures.isEmpty ? "分享已提交，发送状态请在对应聊天中查看。" : "已提交\(submitted.count)个会话。\(failures.joined(separator: "；"))"
+        message = failures.isEmpty ? L10n.tr("分享已提交，发送状态请在对应聊天中查看。") : L10n.tr("已提交\(submitted.count)个会话。\(failures.joined(separator: "；"))")
     }
 }

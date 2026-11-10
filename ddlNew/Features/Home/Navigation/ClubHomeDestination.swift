@@ -16,8 +16,8 @@ enum ClubHomeDestination: Hashable {
 
     var title: String {
         switch self {
-        case .activities: "活动"
-        case .club: "俱乐部"
+        case .activities: L10n.tr("活动")
+        case .club: L10n.tr("俱乐部")
         }
     }
 }

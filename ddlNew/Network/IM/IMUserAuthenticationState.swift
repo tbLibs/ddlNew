@@ -16,10 +16,10 @@ enum IMUserAuthenticationState: Equatable {
 
     var message: String {
         switch self {
-        case .idle: return "尚未进行用户认证"
-        case .authenticating: return "正在等待 TCP 用户认证…"
-        case .ready: return "登录成功，TCP 用户认证已通过"
-        case .reconnecting: return "用户连接已断开，SDK 正在重新连接和认证…"
+        case .idle: return L10n.tr("尚未进行用户认证")
+        case .authenticating: return L10n.tr("正在等待 TCP 用户认证…")
+        case .ready: return L10n.tr("登录成功，TCP 用户认证已通过")
+        case .reconnecting: return L10n.tr("用户连接已断开，SDK 正在重新连接和认证…")
         case .failed(let message): return message
         }
     }

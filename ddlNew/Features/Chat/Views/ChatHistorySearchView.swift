@@ -9,6 +9,7 @@ import SwiftUI
 import UIAdapter
 
 struct ChatHistorySearchView: View {
+    @Environment(\.locale) private var localizationLocale
     let context: ChatContext
     let onLocate: (String) -> Void
     @StateObject private var store = ChatHistorySearchStore()
@@ -23,36 +24,36 @@ struct ChatHistorySearchView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 8.zoom()) {
-                MessagingSearchField(placeholder: category == .files ? "搜索文件名" : "搜索聊天记录", text: $keyword, focus: $searchFocused, identifier: "chatHistorySearch")
+                MessagingSearchField(placeholder: category == .files ? L10n.tr("搜索文件名") : L10n.tr("搜索聊天记录"), text: $keyword, focus: $searchFocused, identifier: "chatHistorySearch")
                 ScrollView(.horizontal, showsIndicators: false) { MessagingTabs(selection: $category) }
                 if !members.isEmpty || memberError != nil {
                     HStack {
-                        Text("发送成员").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                        Text(L10n.tr("发送成员")).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                         Spacer()
-                        Picker("发送成员", selection: $memberID) { Text("全部成员").tag(""); ForEach(members) { Text($0.name).tag($0.id) } }
+                        Picker(L10n.tr("发送成员"), selection: $memberID) { Text(L10n.tr("全部成员")).tag(""); ForEach(members) { Text($0.name).tag($0.id) } }
                             .frame(minHeight: max(44, 44.zoom()))
                     }
-                    if memberError != nil { HStack { Button("重试") { Task { await loadMembers() } }.frame(minHeight: 44) } }
+                    if memberError != nil { HStack { Button(L10n.tr("重试")) { Task { await loadMembers() } }.frame(minHeight: 44) } }
                 }
             }.padding(.horizontal, 16.zoom()).padding(.top, 12.zoom()).background(MessagingTheme.surface)
             MessagingScroll {
                 LazyVStack(spacing: 0) {
                     if store.errorMessage != nil {
-                        VStack(spacing: 8.zoom()) { Button("重试搜索") { Task { await search(reset: store.messages.isEmpty) } }.frame(minHeight: 44) }.padding(16.zoom())
+                        VStack(spacing: 8.zoom()) { Button(L10n.tr("重试搜索")) { Task { await search(reset: store.messages.isEmpty) } }.frame(minHeight: 44) }.padding(16.zoom())
                     }
                     ForEach(store.messages) { item in
                         Button { onLocate(item.serverID.isEmpty ? item.localID : item.serverID); dismiss() } label: { ChatSecondaryRecordRow(message: item) }
-                            .buttonStyle(MessagingRowStyle()).accessibilityHint("返回聊天并定位此消息")
+                            .buttonStyle(MessagingRowStyle()).accessibilityHint(L10n.tr("返回聊天并定位此消息"))
                         Divider().overlay(MessagingTheme.divider).padding(.leading, 72.zoom())
                     }
-                    if store.hasMore && !store.busy { Button("加载更多结果") { Task { await search(reset: false) } }.frame(minHeight: max(44, 44.zoom())) }
-                    if store.messages.isEmpty && !store.busy && store.errorMessage == nil { Label("暂无匹配的聊天记录", systemImage: "magnifyingglass").foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 48.zoom()) }
+                    if store.hasMore && !store.busy { Button(L10n.tr("加载更多结果")) { Task { await search(reset: false) } }.frame(minHeight: max(44, 44.zoom())) }
+                    if store.messages.isEmpty && !store.busy && store.errorMessage == nil { Label(L10n.tr("暂无匹配的聊天记录"), systemImage: "magnifyingglass").foregroundStyle(MessagingTheme.secondaryText).padding(.vertical, 48.zoom()) }
                 }
             }
         }
-        .navigationTitle("查找聊天记录").modifier(MessagingPageChrome())
+        .navigationTitle(L10n.tr("查找聊天记录")).modifier(MessagingPageChrome())
         .messagingFeedbackToast(store.errorMessage ?? memberError)
-        .messagingLoadingToast(store.busy, title: "正在查找记录")
+        .messagingLoadingToast(store.busy, title: L10n.tr("正在查找记录"))
         .task { await loadMembers() }
         .task(id: keyword) { do { try await Task.sleep(nanoseconds: 250_000_000); await search(reset: true) } catch {} }
         .onChange(of: category) { _ in Task { await search(reset: true) } }
@@ -64,7 +65,7 @@ struct ChatHistorySearchView: View {
     private func loadMembers() async {
         guard context.route.kind == .group else { return }
         do { let values = try await SDKChatHistorySearchClient().members(context: context); guard !Task.isCancelled, ChatRuntime.shared.isCurrent(context) else { return }; members = values; memberError = nil }
-        catch { guard !Task.isCancelled else { return }; memberError = "成员筛选暂不可用：" + error.localizedDescription }
+        catch { guard !Task.isCancelled else { return }; memberError = L10n.tr("成员筛选暂不可用：") + error.localizedDescription }
     }
     /// 每次提交完整分类和成员范围，加载更多保留 SDK 偏移。
     private func search(reset: Bool) async { await store.search(context: context, category: category, keyword: keyword, memberID: memberID, reset: reset) }

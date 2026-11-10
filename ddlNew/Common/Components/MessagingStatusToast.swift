@@ -10,7 +10,7 @@ import AlertToast
 
 extension View {
     /// loading只观察真实任务状态，不通过Toast关闭请求。
-    func messagingLoadingToast(_ isLoading: Bool, title: String = "正在加载") -> some View {
+    func messagingLoadingToast(_ isLoading: Bool, title: String = L10n.tr("正在加载")) -> some View {
         toast(isPresenting: Binding(get: { isLoading }, set: { _ in }), duration: 0, tapToDismiss: false) {
             AlertToast(type: .loading, title: title,
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))

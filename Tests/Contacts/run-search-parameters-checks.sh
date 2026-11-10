@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -19,7 +20,7 @@ swift += 'let sent = searchParameters(text: "qa-peer", identity: Identity(userUI
 swift += 'precondition(sent["userName"] as? String == "qa-peer", "搜索目标必须为输入账号")\n'
 swift += 'precondition(sent.count == 1 && sent["userUid"] == nil, "精确搜索不得额外用当前UID过滤目标")\n'
 swift += 'print("Search request contract: 2 passed")\n'
-(target / 'checks.swift').write_text(swift)
+(target / 'main.swift').write_text(swift)
 PYQA
-swiftc "$TMP_DIR/checks.swift" -o "$TMP_DIR/checks"
+swiftc "$localization_source" "$TMP_DIR/main.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

@@ -1,9 +1,10 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 task_temp=$(mktemp -d)
 trap 'rm -rf "$task_temp"' EXIT
-swiftc -parse-as-library "$task_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$task_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$task_root/ddlNew/Features/Chat/Models/"*.swift \
  "$task_root/ddlNew/Features/Safety/Models/"*.swift \
  "$task_root/ddlNew/Features/Safety/Services/"*.swift \

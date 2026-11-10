@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct MessageConnectionStatusView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject private var monitor = MessageConnectionMonitor.shared
     @ObservedObject private var recovery = MessageSessionRecovery.shared
 
@@ -16,7 +17,7 @@ struct MessageConnectionStatusView: View {
             Circle().fill(color).frame(width: 8, height: 8).accessibilityHidden(true)
             Text(monitor.status.title).font(.callout)
             if recovery.failureMessage != nil {
-                Button("重试") { recovery.retry() }.frame(minHeight: 44)
+                Button(L10n.tr("重试")) { recovery.retry() }.frame(minHeight: 44)
             }
             Spacer(minLength: 0)
         }

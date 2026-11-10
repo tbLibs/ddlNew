@@ -26,12 +26,12 @@ import Combine
               retrying: ChatMessageRecord? = nil,
               enqueue: (ChatMessageRecord) throws -> Void) async {
         guard !isUploading else { return }
-        guard attachment.bytes > 0 else { errorMessage = "附件为空，请重新选择"; return }
-        if attachment.type == 4 && (attachment.bytes < 1024 || !attachment.duration.isFinite || attachment.duration < 1 || attachment.duration > 60) { errorMessage = "录音太短或超过60秒，请重新录制"; return }
+        guard attachment.bytes > 0 else { errorMessage = L10n.tr("附件为空，请重新选择"); return }
+        if attachment.type == 4 && (attachment.bytes < 1024 || !attachment.duration.isFinite || attachment.duration < 1 || attachment.duration > 60) { errorMessage = L10n.tr("录音太短或超过60秒，请重新录制"); return }
         let run = generation; isUploading = true; progress = 0; errorMessage = nil
         defer { if generation == run { isUploading = false } }
         var message = retrying ?? ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id,
-            senderID: context.userUID, senderName: "我", type: attachment.type,
+            senderID: context.userUID, senderName: L10n.tr("我"), type: attachment.type,
             timestamp: Int64(Date().timeIntervalSince1970 * 1000))
         message.fileName = attachment.name; message.size = attachment.bytes
         message.duration = attachment.duration; message.mediaWidth = attachment.width; message.mediaHeight = attachment.height
@@ -93,9 +93,9 @@ import Combine
                discard: @escaping (String) -> Void,
                failed: @escaping (ChatMessageRecord) -> Void,
                enqueue: @escaping (ChatMessageRecord) throws -> Void) async {
-        guard !isUploading else { errorMessage = "附件正在发送，请稍后再试"; return }
+        guard !isUploading else { errorMessage = L10n.tr("附件正在发送，请稍后再试"); return }
         guard let file = message.localMediaFileURL, FileManager.default.fileExists(atPath: file.path) else {
-            errorMessage = "本地附件已丢失，请重新选择发送"; return
+            errorMessage = L10n.tr("本地附件已丢失，请重新选择发送"); return
         }
         let attachment = ChatAttachment(file: file, type: message.type, name: message.fileName,
             bytes: message.size, duration: message.duration, width: message.mediaWidth, height: message.mediaHeight,

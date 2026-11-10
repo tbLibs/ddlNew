@@ -56,7 +56,7 @@ final class ConversationsStore: ObservableObject {
                 self.requestReload()
             case .syncFailed(let message):
                 self.isSyncing = false
-                self.syncError = message.isEmpty ? "会话同步失败，请检查网络连接" : message
+                self.syncError = message.isEmpty ? L10n.tr("会话同步失败，请检查网络连接") : message
                 self.updateError()
                 self.requestReload()
             }
@@ -80,7 +80,7 @@ final class ConversationsStore: ObservableObject {
             updateError()
         } catch {
             guard !Task.isCancelled, generation == runID else { return }
-            cacheError = "会话缓存读取失败：\(error.localizedDescription)"
+            cacheError = L10n.tr("会话缓存读取失败：\(error.localizedDescription)")
             updateError()
         }
     }
@@ -120,7 +120,7 @@ final class ConversationsStore: ObservableObject {
                     self.cacheError = nil
                 } catch {
                     guard !Task.isCancelled, self.generation == runID else { return }
-                    self.cacheError = "会话缓存读取失败：\(error.localizedDescription)"
+                    self.cacheError = L10n.tr("会话缓存读取失败：\(error.localizedDescription)")
                 }
                 self.updateError()
             } while self.reloadRequested && !Task.isCancelled
@@ -157,6 +157,8 @@ final class ConversationsStore: ObservableObject {
     }
 
     /// 同步错误优先展示，缓存失败允许页面单独重试。
+    var hasLocalCacheFailure: Bool { cacheError != nil }
+
     private func updateError() { errorMessage = syncError ?? cacheError }
 
     /// 操作按会话去重；退出或换账号后不能写入旧请求的结果与错误。

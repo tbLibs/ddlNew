@@ -22,7 +22,7 @@ import Foundation
                 pending = continuation
                 timeout = Task { [weak self] in
                     do { try await Task.sleep(nanoseconds: 25_000_000_000) } catch { return }
-                    self?.finish(.failure(ChatClientError.unavailable("请求超时，请重试")))
+                    self?.finish(.failure(ChatClientError.unavailable(L10n.tr("请求超时，请重试"))))
                 }
                 start()
             }

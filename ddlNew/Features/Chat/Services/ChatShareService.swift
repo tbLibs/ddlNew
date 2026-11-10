@@ -22,7 +22,7 @@ import NoaChatCore
         let client = SDKChatClient(validSession: { ChatRuntime.shared.isCurrent($0) })
         client.observe(context: context, onEvent: { _ in }); defer { client.stop() }
         try await client.refreshPermissions(context: context)
-        var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: route.id, senderID: context.userUID, senderName: "我", type: attachment.type, timestamp: Int64(Date().timeIntervalSince1970 * 1000))
+        var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: route.id, senderID: context.userUID, senderName: L10n.tr("我"), type: attachment.type, timestamp: Int64(Date().timeIntervalSince1970 * 1000))
         record.resource = result.resource; record.thumbnail = result.thumbnail; record.fileName = attachment.name
         record.size = attachment.bytes; record.mediaWidth = attachment.width; record.mediaHeight = attachment.height
         try client.send(record, context: context)
@@ -37,7 +37,7 @@ import NoaChatCore
         if route.kind == .group {
             try await client.refreshPermissions(context: context)
         } else if !permission.canSend { throw ChatClientError.permission(permission.reason) }
-        guard try client.permissions(context: context).canSend else { throw ChatClientError.permission("当前会话不允许推荐名片") }
+        guard try client.permissions(context: context).canSend else { throw ChatClientError.permission(L10n.tr("当前会话不允许推荐名片")) }
         _ = try await client.request(context: context) { success, failure in
             NoaIMSDKManager.sharedTool().messageUserCardRecommend(NSMutableDictionary(dictionary: [
                 "friendUserId": contact.id, "userUid": context.userUID,

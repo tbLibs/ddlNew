@@ -59,7 +59,7 @@ extension SDKConversationsClient: ConversationOperationsClient {
             let failure: LingIMFailureCallback = { code, message, _ in
                 let detail = message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 Task { @MainActor in
-                    waiter.finish(.failure(ChatClientError.unavailable(detail.isEmpty ? "会话操作失败（\(code)），请稍后重试" : "\(detail)（\(code)）")))
+                    waiter.finish(.failure(ChatClientError.unavailable(detail.isEmpty ? L10n.tr("会话操作失败（\(code)），请稍后重试") : "\(detail)（\(code)）")))
                 }
             }
             switch action {
@@ -79,7 +79,7 @@ extension SDKConversationsClient: ConversationOperationsClient {
         guard runID == observationGeneration, sdk.myUserID() == userUID, sdk.isUserDatabaseReady(), ChatRuntime.shared.isCurrent(readContext) else {
             throw CancellationError()
         }
-        guard accepted else { throw ChatClientError.unavailable("服务端未接受会话操作，请重试") }
+        guard accepted else { throw ChatClientError.unavailable(L10n.tr("服务端未接受会话操作，请重试")) }
         let updated: LingIMSessionModel? = sdk.toolCheckMySession(with: conversation.id)
         guard let current = updated else { return }
         if action == .delete {
@@ -89,7 +89,7 @@ extension SDKConversationsClient: ConversationOperationsClient {
                   (latestNow?.serviceMsgID ?? "") == messageSID,
                   current.sessionLatestTime == latestTime else { return }
             guard sdk.toolDeleteSessionModel(with: current, andDeleteAllChatModel: false) else {
-                throw ChatClientError.unavailable("无法更新本机会话，请刷新确认状态")
+                throw ChatClientError.unavailable(L10n.tr("无法更新本机会话，请刷新确认状态"))
             }
         } else if action == .toggleUnread {
             current.readTag = markingUnread ? 1 : 0
@@ -110,7 +110,7 @@ extension SDKConversationsClient: ConversationOperationsClient {
                 let latestNow = stored?.sessionLatestServerMsgID ?? stored?.sessionLatestMessage?.serviceMsgID ?? ""
                 ChatRuntime.shared.confirmReadCountClear(readClear, context: readContext, count: stored?.sessionUnreadCount, latestID: latestNow)
             }
-            guard saved else { throw ChatClientError.unavailable("无法更新本机会话，请刷新确认状态") }
+            guard saved else { throw ChatClientError.unavailable(L10n.tr("无法更新本机会话，请刷新确认状态")) }
         }
     }
 }

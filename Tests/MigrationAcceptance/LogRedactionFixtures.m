@@ -112,7 +112,35 @@ static void Check(NSString *name, NSArray<NSString *> *required) {
     [captured removeAllObjects];
 }
 
+
+// Offline shapes for the production socket disconnect diagnostics added after this harness.
+@interface NoaSocketDropTrace : NSObject
+@property NSString *traceID, *closeRequest;
+@property NSTimeInterval authAt, pingAt, pongAt;
+@end
+@implementation NoaSocketDropTrace
+@end
+static double NoaElapsed(NSTimeInterval now, NSTimeInterval event) { return event > 0 ? now - event : -1; }
+@interface NetWorkStatusManager : NSObject
++ (instancetype)shared;
+- (BOOL)getConnectStatus;
+- (NSString *)getConnectType;
+@end
+@implementation NetWorkStatusManager
++ (instancetype)shared { return [self new]; }
+- (BOOL)getConnectStatus { return 1; }
+- (NSString *)getConnectType { return @"wifi"; }
+@end
+@interface UIApplication : NSObject
+@property NSInteger applicationState;
++ (instancetype)sharedApplication;
+@end
+@implementation UIApplication
++ (instancetype)sharedApplication { return [self new]; }
+@end
+
 @interface ScenarioOwner : NSObject
+@property NSInteger heartNoPongCount;
 @property NSData *aesKey, *frameBuffer;
 @property NSString *url, *msgId;
 @property NSString *socketHost;
@@ -156,7 +184,11 @@ static void Check(NSString *name, NSArray<NSString *> *required) {
     NSString *url = secrets, *fullPath = secrets, *path = secrets, *method = @"POST", *body = fixture.body, *ztid = @"safe-trace-id";
     NSDictionary *param = data, *params = data, *headerDic = data;
     NSError *fixtureError = [NSError errorWithDomain:NSURLErrorDomain code:-1009 userInfo:@{NSLocalizedDescriptionKey:secrets, NSURLErrorFailingURLErrorKey:[NSURL URLWithString:@"https://resource.invalid/private/object"]}];
-    NSError *error = fixtureError, *err = fixtureError;
+    NSError *error = fixtureError, *err = fixtureError, *underlying = fixtureError;
+    NSTimeInterval now = 100;
+    NoaSocketDropTrace *trace = [NoaSocketDropTrace new];
+    trace.traceID = @"safe-socket-trace"; trace.closeRequest = @"heartbeat-timeout";
+    trace.authAt = 10; trace.pingAt = 90; trace.pongAt = 80;
     CFErrorRef cfError = (__bridge CFErrorRef)fixtureError;
     CFErrorRef error1 = cfError, error2 = cfError, error3 = cfError, exportError = cfError;
     NSString *methodName = @"anonymous-method", *errorMsg = secrets, *errorMessage = secrets;

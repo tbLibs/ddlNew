@@ -5,7 +5,7 @@ nonisolated struct AccountIdentity: Hashable, Sendable {
     enum Kind: Int, CaseIterable, Codable, Sendable {
         case account = 1, phone = 3
         static var displayOrder: [Self] { [.account, .phone] }
-        var title: String { switch self { case .account: return "账号"; case .phone: return "手机号" } }
+        var title: String { switch self { case .account: return L10n.tr("账号"); case .phone: return L10n.tr("手机号") } }
         var missingCode: Int { switch self { case .account: return 2036; case .phone: return 50001 } }
         func allowed(by method: String) -> Bool {
             switch self {
@@ -66,11 +66,11 @@ nonisolated enum AccountInputError: LocalizedError {
     case invalidPhone, invalidCode, alreadyRegistered, invalidAccountLength, invalidPasswordLength
     var errorDescription: String? {
         switch self {
-        case .invalidPhone: return "请输入有效手机号并选择区号"
-        case .invalidCode: return "请输入6位验证码"
-        case .alreadyRegistered: return "该手机号已注册，请返回登录"
-        case .invalidAccountLength: return "账号长度为6～16位"
-        case .invalidPasswordLength: return "密码长度为6～16位"
+        case .invalidPhone: return L10n.tr("请输入有效手机号并选择区号")
+        case .invalidCode: return L10n.tr("请输入6位验证码")
+        case .alreadyRegistered: return L10n.tr("该手机号已注册，请返回登录")
+        case .invalidAccountLength: return L10n.tr("账号长度为6～16位")
+        case .invalidPasswordLength: return L10n.tr("密码长度为6～16位")
         }
     }
 }

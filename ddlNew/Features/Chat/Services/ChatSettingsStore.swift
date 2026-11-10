@@ -52,16 +52,16 @@ import Combine
 
     /// 清空需页面明确确认，Store再次复核当前清空资格。
     func clear() async {
-        guard snapshot?.canClear == true else { errorMessage = "当前账号不允许清空记录"; return }
+        guard snapshot?.canClear == true else { errorMessage = L10n.tr("当前账号不允许清空记录"); return }
         await operate { try await self.client.clear(context: $0) }
     }
 
     /// 管理动作完成后回读最新群资料；本人离开则关闭页面。
     @discardableResult func groupAction(_ action: ChatGroupAction) async -> Bool {
         guard let detail = snapshot?.group, let context,
-              ChatGroupPolicy.permits(action, detail: detail, userUID: context.userUID) else { errorMessage = "当前群权限不允许此操作"; return false }
-        if case .nickname(let value) = action, value.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > 30 { errorMessage = "群昵称最多30字"; return false }
-        if case .rename(let value) = action, value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { errorMessage = "群名称不能为空"; return false }
+              ChatGroupPolicy.permits(action, detail: detail, userUID: context.userUID) else { errorMessage = L10n.tr("当前群权限不允许此操作"); return false }
+        if case .nickname(let value) = action, value.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > 30 { errorMessage = L10n.tr("群昵称最多30字"); return false }
+        if case .rename(let value) = action, value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { errorMessage = L10n.tr("群名称不能为空"); return false }
         let run = generation
         return await operate { context in
             try await self.client.groupAction(action, context: context)
@@ -81,7 +81,7 @@ import Combine
             do {
                 let value = try await client.load(context: context)
                 guard generation == run, !Task.isCancelled else { return false }; snapshot = value
-            } catch { if generation == run { errorMessage = "服务器已受理操作，刷新资料失败：" + error.localizedDescription } }
+            } catch { if generation == run { errorMessage = L10n.tr("服务器已受理操作，刷新资料失败：") + error.localizedDescription } }
             return generation == run && !Task.isCancelled
         } catch { if generation == run { errorMessage = error.localizedDescription }; return false }
     }

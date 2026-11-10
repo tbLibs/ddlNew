@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 个人中心的展示布局；身份由登录会话传入，导航沿用当前 Tab 的值路由。
 struct MinePageContent<Avatar: View>: View {
+    @Environment(\.locale) private var localizationLocale
     let displayName: String
     let account: String
     let isSignedIn: Bool
@@ -24,7 +25,7 @@ struct MinePageContent<Avatar: View>: View {
         VStack(spacing: 0) {
             profile
             VStack(alignment: .leading, spacing: 24.zoom()) {
-                section("账户与支持") { accountServices }
+                section(L10n.tr("账户与支持")) { accountServices }
             }
             .padding(.horizontal, 20.zoom())
             .padding(.top, 24.zoom())
@@ -42,7 +43,7 @@ struct MinePageContent<Avatar: View>: View {
         return layout {
             Button(action: openProfile) { avatar.accessibilityHidden(true) }
                 .disabled(!isSignedIn)
-                .accessibilityLabel("编辑个人资料，修改头像")
+                .accessibilityLabel(L10n.tr("编辑个人资料，修改头像"))
                 .accessibilityIdentifier("mine.editAvatar")
             VStack(alignment: .leading, spacing: 4.zoom()) {
                 Button(action: openProfile) {
@@ -54,11 +55,11 @@ struct MinePageContent<Avatar: View>: View {
                     }.frame(minHeight: 44, alignment: .leading).contentShape(Rectangle())
                 }
                 .disabled(!isSignedIn)
-                .accessibilityLabel("编辑个人资料，昵称：\(displayName)")
+                .accessibilityLabel(L10n.tr("编辑个人资料，昵称：\(displayName)"))
                 .accessibilityIdentifier("mine.editNickname")
                 if isSignedIn, !account.isEmpty {
                     HStack(alignment: .top, spacing: 4.zoom()) {
-                        Text("账号：\(account)")
+                        Text(L10n.tr("账号：\(account)"))
                             .font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(minHeight: 44, alignment: .leading)
@@ -68,15 +69,15 @@ struct MinePageContent<Avatar: View>: View {
                                 .frame(width: 44, height: 44)
                                 .contentShape(Rectangle())
                         }
-                        .accessibilityLabel("复制账号")
+                        .accessibilityLabel(L10n.tr("复制账号"))
                         .accessibilityIdentifier("mine.copyAccount")
                     }
                 }
                 if isSignedIn {
-                    NavigationLink(value: ContactsPageRoute.qrCode(groupID: nil, title: "我的二维码")) {
+                    NavigationLink(value: ContactsPageRoute.qrCode(groupID: nil, title: L10n.tr("我的二维码"))) {
                         HStack(spacing: 8.zoom()) {
                             Image(systemName: "qrcode").accessibilityHidden(true)
-                            Text("我的二维码").fixedSize(horizontal: false, vertical: true)
+                            Text(L10n.tr("我的二维码")).fixedSize(horizontal: false, vertical: true)
                             chevron
                         }
                         .font(.subheadline.weight(.medium))
@@ -97,16 +98,16 @@ struct MinePageContent<Avatar: View>: View {
 
     private var accountServices: some View {
         VStack(spacing: 0) {
-            NavigationLink(value: SafetyRoute.blacklist) { menuRow("黑名单", symbol: "person.crop.circle.badge.minus") }
+            NavigationLink(value: SafetyRoute.blacklist) { menuRow(L10n.tr("黑名单"), symbol: "person.crop.circle.badge.minus") }
                 .accessibilityIdentifier("mine.blacklist")
             divider
-            Button(action: openComplaint) { menuRow("投诉与支持", symbol: "headphones") }
+            Button(action: openComplaint) { menuRow(L10n.tr("投诉与支持"), symbol: "headphones") }
                 .accessibilityIdentifier("mine.complaint")
             divider
-            NavigationLink(value: MineSupportRoute.network) { menuRow("网络检测", symbol: "network") }
+            NavigationLink(value: MineSupportRoute.network) { menuRow(L10n.tr("网络检测"), symbol: "network") }
                 .accessibilityIdentifier("mine.network")
             divider
-            NavigationLink(value: MineSupportRoute.about) { menuRow("关于我们", symbol: "info.circle") }
+            NavigationLink(value: MineSupportRoute.about) { menuRow(L10n.tr("关于我们"), symbol: "info.circle") }
                 .accessibilityIdentifier("mine.about")
         }
         .padding(.horizontal, 16.zoom())

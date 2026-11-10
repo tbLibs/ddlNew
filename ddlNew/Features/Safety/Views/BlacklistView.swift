@@ -9,6 +9,7 @@ import UIAdapter
 
 /// 真实名单按首字母分组，移出提供可见按钮，不依赖滑动手势。
 struct BlacklistView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var businessStore: ContactsBusinessStore
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     private var initials: [String] { businessStore.blacklist.reduce(into: []) { if !$0.contains($1.initial) { $0.append($1.initial) } } }
@@ -16,8 +17,8 @@ struct BlacklistView: View {
     var body: some View {
         List {
             if businessStore.blacklist.isEmpty && !businessStore.isLoadingBlacklist {
-                if businessStore.errorMessage != nil { Button("重新加载") { Task { await businessStore.loadBlacklist() } }.frame(minHeight: 44) }
-                else { EmptyClubState(title: "暂无黑名单用户", message: "加入黑名单的用户会显示在这里，可以随时移出。") }
+                if businessStore.errorMessage != nil { Button(L10n.tr("重新加载")) { Task { await businessStore.loadBlacklist() } }.frame(minHeight: 44) }
+                else { EmptyClubState(title: L10n.tr("暂无黑名单用户"), message: L10n.tr("加入黑名单的用户会显示在这里，可以随时移出。")) }
             }
             ForEach(initials, id: \.self) { initial in
                 Section(initial) {
@@ -32,9 +33,9 @@ struct BlacklistView: View {
                                     }
                                 }
                             }
-                            Button("移出") { Task { await businessStore.perform(.setBlack(friendID: contact.id, blocked: false)) } }
+                            Button(L10n.tr("移出")) { Task { await businessStore.perform(.setBlack(friendID: contact.id, blocked: false)) } }
                                 .buttonStyle(.borderless).foregroundStyle(MessagingTheme.accent)
-                                .frame(minWidth: 52, minHeight: 44).accessibilityLabel("将\(contact.displayName)移出黑名单")
+                                .frame(minWidth: 52, minHeight: 44).accessibilityLabel(L10n.tr("将\(contact.displayName)移出黑名单"))
                                 .disabled(businessStore.isSubmitting)
                         }.frame(minHeight: max(52, 64.zoom())).listRowBackground(MessagingTheme.surface)
                     }
@@ -42,7 +43,7 @@ struct BlacklistView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("黑名单").modifier(MessagingPageChrome())
+        .navigationTitle(L10n.tr("黑名单")).modifier(MessagingPageChrome())
         .messagingLoadingToast(businessStore.isLoadingBlacklist || businessStore.isSubmitting)
         .messagingFeedbackToast(businessStore.errorMessage ?? businessStore.notice)
         .task { await businessStore.loadBlacklist() }

@@ -8,6 +8,7 @@ import SwiftUI
 
 /// 常规字号使用自适应应用网格，辅助字号保留完整名称和独立操作按钮。
 struct MiniAppsGrid: View {
+    @Environment(\.locale) private var localizationLocale
     let items: [MiniAppRecord]
     let managing: Bool
     let select: (MiniAppRecord) -> Void
@@ -52,7 +53,7 @@ struct MiniAppsGrid: View {
             if record.passwordEnabled { Image(systemName: "lock.fill").font(.caption2).accessibilityHidden(true) }
             Text(record.name).font(.subheadline).fixedSize(horizontal: false, vertical: true)
         }.foregroundStyle(MessagingTheme.text)
-            .accessibilityLabel(record.name + (record.passwordEnabled ? "，需要访问密码" : "") + (managing && !record.canEdit ? "，系统应用不可编辑" : ""))
+            .accessibilityLabel(record.name + (record.passwordEnabled ? L10n.tr("，需要访问密码") : "") + (managing && !record.canEdit ? L10n.tr("，系统应用不可编辑") : ""))
     }
     private func deleteButton(_ record: MiniAppRecord) -> some View {
         Button(role: .destructive) { delete(record) } label: {
@@ -60,14 +61,14 @@ struct MiniAppsGrid: View {
                 .font(.system(size: 22, weight: .medium))
                 .symbolRenderingMode(.palette).foregroundStyle(.white, MessagingTheme.error)
                 .frame(width: 44, height: 44).contentShape(Rectangle())
-        }.buttonStyle(MiniAppButtonStyle()).accessibilityLabel("删除" + record.name)
+        }.buttonStyle(MiniAppButtonStyle()).accessibilityLabel(L10n.tr("删除") + record.name)
     }
     private var addButton: some View {
         Button(action: add) {
             VStack(spacing: 8) {
                 Image(systemName: "plus").font(.title2).frame(width: 48, height: 48)
                     .background(MessagingTheme.avatarBackground, in: RoundedRectangle(cornerRadius: 12))
-                Text("添加应用").font(.subheadline)
+                Text(L10n.tr("添加应用")).font(.subheadline)
             }.foregroundStyle(MessagingTheme.accent).frame(maxWidth: .infinity, minHeight: 90, alignment: .top).contentShape(Rectangle())
         }.buttonStyle(MiniAppButtonStyle())
     }

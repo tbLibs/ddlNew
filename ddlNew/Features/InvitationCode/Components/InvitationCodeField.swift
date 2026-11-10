@@ -10,11 +10,12 @@ import UIAdapter
 
 /// 邀请码标题与数字输入框。
 struct InvitationCodeField: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var text: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10.zoom()) {
-            Text("邀请码")
+            Text(L10n.tr("邀请码"))
                 .font(.system(size: 12.zoom(), weight: .semibold))
 
             HStack(spacing: 12.zoom()) {
@@ -26,13 +27,13 @@ struct InvitationCodeField: View {
                     .foregroundStyle(InvitationCodePalette.darkTeal)
                     .accessibilityHidden(true)
 
-                TextField("例如 10001", text: $text)
+                TextField(L10n.tr("例如 10001"), text: $text)
                     .font(.system(size: 15.zoom()))
                     .foregroundStyle(InvitationCodePalette.ink)
                     .keyboardType(.numberPad)
                     .textContentType(.oneTimeCode)
                     .autocorrectionDisabled()
-                    .accessibilityLabel("俱乐部邀请码")
+                    .accessibilityLabel(L10n.tr("俱乐部邀请码"))
                     .accessibilityIdentifier("field.shield")
                     .frame(height: 36.zoom())
             }

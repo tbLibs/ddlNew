@@ -12,6 +12,6 @@ struct ClubLogo: View {
     var body: some View {
         Image("club-logo").resizable().scaledToFit()
             .frame(width: size * 222 / 142, height: size * 234 / 142)
-            .frame(width: size, height: size).accessibilityLabel("叮咚聊")
+            .frame(width: size, height: size).accessibilityLabel(L10n.tr("叮咚聊"))
     }
 }

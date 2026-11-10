@@ -1,4 +1,5 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 # 编译生产群申请映射与状态层，验证混合字段、整页校验和未读保护。
 set -euo pipefail
 task_root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -22,7 +23,7 @@ fi
 swiftc -swift-version 5 -emit-library -emit-module -module-name ObjectMapper \
   "$task_mapper_sources"/*.swift -o "$task_output/libObjectMapper.dylib" \
   -emit-module-path "$task_output/ObjectMapper.swiftmodule"
-swiftc -swift-version 5 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
+swiftc "$localization_source" -swift-version 5 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
   "$task_root/ddlNew/Features/GroupApplications/Models/"*.swift \
   "$task_root/ddlNew/Features/GroupApplications/Services/"*.swift \
   "$task_root/ddlNew/Network/IM/GroupApplications/GroupApplicationPayload.swift" \

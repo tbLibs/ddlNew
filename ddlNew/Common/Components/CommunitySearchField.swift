@@ -20,7 +20,7 @@ struct CommunitySearchField: View {
                 .accessibilityLabel(placeholder).accessibilityIdentifier(identifier)
             if !text.isEmpty {
                 Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundColor(ClubTheme.secondary).frame(width: 44, height: 44) }
-                    .accessibilityLabel("清除搜索").accessibilityIdentifier("clearCommunitySearch")
+                    .accessibilityLabel(L10n.tr("清除搜索")).accessibilityIdentifier("clearCommunitySearch")
             }
         }.padding(.leading, 14).padding(.trailing, text.isEmpty ? 14 : 0).frame(minHeight: 52)
             .background(ClubTheme.card).clipShape(RoundedRectangle(cornerRadius: 17))

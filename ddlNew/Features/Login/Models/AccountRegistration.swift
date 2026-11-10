@@ -56,12 +56,12 @@ nonisolated enum AccountRegistrationError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .disabled: return "当前俱乐部未开启账号注册"
-        case .invalidAccount: return "账号长度6～16位，前两位必须为英文，只支持英文或数字"
-        case .invalidPassword(let symbol): return symbol ? "密码长度6～16位，须包含字母、数字和英文符号" : "密码长度6～16位，须包含字母、数字，可使用英文符号"
-        case .passwordMismatch: return "两次输入的密码不一致"
-        case .inviteCodeRequired: return "请输入邀请码"
-        case .accountExists: return "账号已存在，请使用账号密码登录"
+        case .disabled: return L10n.tr("当前俱乐部未开启账号注册")
+        case .invalidAccount: return L10n.tr("账号长度6～16位，前两位必须为英文，只支持英文或数字")
+        case .invalidPassword(let symbol): return symbol ? L10n.tr("密码长度6～16位，须包含字母、数字和英文符号") : L10n.tr("密码长度6～16位，须包含字母、数字，可使用英文符号")
+        case .passwordMismatch: return L10n.tr("两次输入的密码不一致")
+        case .inviteCodeRequired: return L10n.tr("请输入邀请码")
+        case .accountExists: return L10n.tr("账号已存在，请使用账号密码登录")
         }
     }
 }

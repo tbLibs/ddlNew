@@ -10,6 +10,7 @@ import UIAdapter
 import Kingfisher
 
 struct ChatMessageBubble: View {
+    @Environment(\.locale) private var localizationLocale
     let message: ChatMessageRecord
     let own: Bool
     let isSelected: Bool
@@ -19,7 +20,7 @@ struct ChatMessageBubble: View {
     var onAvatar: (() -> Void)? = nil
     var onMention: (() -> Void)? = nil
     var onOpenCard: (() -> Void)? = nil
-    var referenceSummary: String = "引用原文尚未加载，点击定位"
+    var referenceSummary: String = L10n.tr("引用原文尚未加载，点击定位")
     var showsSenderName = false
     var scrollVisibility: ChatScrollGeometry?
     var onGameAnimationComplete: (ChatMessageRecord) -> Void = { _ in }
@@ -57,21 +58,21 @@ struct ChatMessageBubble: View {
                     .overlay(alignment: .leading) {
                         if own && isVisualMedia && message.state == .sending {
                             ProgressView().controlSize(.mini).frame(width: 16.zoom(), height: 16.zoom())
-                                .offset(x: -22.zoom()).accessibilityLabel(message.isMediaUploading ? "上传中" : "发送中")
+                                .offset(x: -22.zoom()).accessibilityLabel(message.isMediaUploading ? L10n.tr("上传中") : L10n.tr("发送中"))
                         }
                     }
                     .overlay(alignment: .trailing) {
                         if !own && message.type == 4 && message.status == .normal && !message.isRead {
                             Circle().fill(MessagingTheme.error).frame(width: 6.zoom(), height: 6.zoom())
-                                .offset(x: 15.zoom()).accessibilityLabel("语音未读")
+                                .offset(x: 15.zoom()).accessibilityLabel(L10n.tr("语音未读"))
                         }
                     }
                 HStack(spacing: 8.zoom()) {
                     Text(Date(timeIntervalSince1970: Double(message.timestamp) / 1000), style: .time).font(.caption2).foregroundStyle(MessagingTheme.secondaryText)
                     if own && message.status == .normal {
                         switch message.state {
-                        case .sending: if !isVisualMedia { ProgressView().controlSize(.mini).accessibilityLabel("发送中") }
-                        case .failed: Button(action: onRetry) { Image(systemName: "exclamationmark.circle.fill").foregroundStyle(MessagingTheme.error).frame(minWidth: max(44, 44.zoom()), minHeight: max(44, 44.zoom())) }.accessibilityLabel("发送失败，重试")
+                        case .sending: if !isVisualMedia { ProgressView().controlSize(.mini).accessibilityLabel(L10n.tr("发送中")) }
+                        case .failed: Button(action: onRetry) { Image(systemName: "exclamationmark.circle.fill").foregroundStyle(MessagingTheme.error).frame(minWidth: max(44, 44.zoom()), minHeight: max(44, 44.zoom())) }.accessibilityLabel(L10n.tr("发送失败，重试"))
                         case .sent: EmptyView()
                         }
                     }
@@ -115,19 +116,19 @@ struct ChatMessageBubble: View {
             }
         }
         .frame(width: 16.zoom(), height: 16.zoom())
-        .accessibilityLabel(progress <= 0 ? "未读" : progress >= 1 ? "已读" : "已读\(message.readCount)/\(message.totalReadCount)")
+        .accessibilityLabel(progress <= 0 ? L10n.tr("未读") : progress >= 1 ? L10n.tr("已读") : L10n.tr("已读\(message.readCount)/\(message.totalReadCount)"))
     }
 
     /// 历史时长来自服务器，非法数值不直接转Int以免破坏整个消息列表。
-    private var voiceDuration: String { message.duration.isFinite && message.duration >= 0 ? "\(Int(min(message.duration.rounded(.up), 86_400)))秒" : "时长未知" }
+    private var voiceDuration: String { message.duration.isFinite && message.duration >= 0 ? L10n.tr("\(Int(min(message.duration.rounded(.up), 86_400)))秒") : L10n.tr("时长未知") }
 
     /// 头像使用显式按钮提供资料入口，辅助功能不依赖点击手势。
     @ViewBuilder private var avatar: some View {
         if let onAvatar {
             Button(action: onAvatar) { avatarImage.frame(minWidth: max(44, 44.zoom()), minHeight: max(44, 44.zoom())).contentShape(Rectangle()) }.buttonStyle(.plain)
-                .accessibilityLabel("查看" + (message.senderName.isEmpty ? "用户" : message.senderName) + "资料")
-                .contextMenu { if let onMention { Button("提及 " + message.senderName, action: onMention) } }
-                .accessibilityActions { if let onMention { Button("提及 " + message.senderName, action: onMention) } }
+                .accessibilityLabel(L10n.tr("查看") + (message.senderName.isEmpty ? L10n.tr("用户") : message.senderName) + L10n.tr("资料"))
+                .contextMenu { if let onMention { Button(L10n.tr("提及 ") + message.senderName, action: onMention) } }
+                .accessibilityActions { if let onMention { Button(L10n.tr("提及 ") + message.senderName, action: onMention) } }
         } else { avatarImage }
     }
 
@@ -164,9 +165,9 @@ struct ChatMessageBubble: View {
     /// 动图使用原资源保留帧，照片与视频封面仍先解码再按展示尺寸采样。
     @ViewBuilder private var content: some View {
         if !message.isCompatible { Text(message.displayText).foregroundStyle(own ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText) }
-        else if message.status == .recalled { Text("消息已撤回").font(.callout).italic() }
+        else if message.status == .recalled { Text(L10n.tr("消息已撤回")).font(.callout).italic() }
         else {
-            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel("定位引用消息") }
+            if !message.referenceID.isEmpty { Button(action: onReference) { Label(referenceSummary, systemImage: "arrowshape.turn.up.left").font(.caption).foregroundStyle(own && !isContactCard ? MessagingTheme.onPrimaryAction : MessagingTheme.secondaryText).frame(minHeight: max(44, 44.zoom())) }.accessibilityLabel(L10n.tr("定位引用消息")) }
             if message.type == 21 {
                 if let scrollVisibility {
                     ChatVisibleGameStickerBubble(message: message, onComplete: onGameAnimationComplete, visibility: scrollVisibility)
@@ -177,7 +178,7 @@ struct ChatMessageBubble: View {
                 ChatAnimatedRemoteImage(url: RemoteAvatarURL.resolve(message.resource.isEmpty ? message.thumbnail : message.resource, relativeTo: connection.current?.getFileHost), fileHost: connection.current?.getFileHost,
                                         size: message.type == 1 ? mediaSize : CGSize(width: 220.zoom(), height: 200.zoom()))
                     .clipShape(ChatMediaBubbleShape(own: own))
-                    .accessibilityLabel(message.type == 12 ? "贴纸" : "动态图片")
+                    .accessibilityLabel(message.type == 12 ? L10n.tr("贴纸") : L10n.tr("动态图片"))
             } else if [1, 2].contains(message.type) {
                 mediaContent
             } else if message.type == 12, let url = RemoteAvatarURL.resolve(message.thumbnail.isEmpty ? message.resource : message.thumbnail, relativeTo: connection.current?.getFileHost) {
@@ -196,17 +197,17 @@ struct ChatMessageBubble: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(message.cardProfileID == nil || onOpenCard == nil)
-                .accessibilityHint(message.cardProfileID == nil ? "名片信息不完整" : "查看用户资料")
+                .accessibilityHint(message.cardProfileID == nil ? L10n.tr("名片信息不完整") : L10n.tr("查看用户资料"))
             } else if message.type == 5 {
                 HStack(spacing: 12.zoom()) {
                     Image(systemName: "doc.fill").font(.system(size: 32.zoom()))
                     VStack(alignment: .leading, spacing: 6.zoom()) {
-                        Text(message.fileName.isEmpty ? "文件" : message.fileName).font(.subheadline).lineLimit(2)
+                        Text(message.fileName.isEmpty ? L10n.tr("文件") : message.fileName).font(.subheadline).lineLimit(2)
                         Text(ByteCountFormatter.string(fromByteCount: message.size, countStyle: .file)).font(.caption).opacity(0.8)
                     }
                 }.frame(maxWidth: 220.zoom(), alignment: .leading)
             } else { ChatEmojiText(value: message.displayText).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
-            if [0, 10].contains(message.type) { ForEach(messageLinks, id: \.absoluteString) { url in Link("打开链接：" + (url.host ?? url.absoluteString), destination: url).tint(own ? MessagingTheme.onPrimaryAction : MessagingTheme.accent).frame(minHeight: max(44, 44.zoom())).accessibilityLabel("打开链接 " + url.absoluteString) } }
+            if [0, 10].contains(message.type) { ForEach(messageLinks, id: \.absoluteString) { url in Link(L10n.tr("打开链接：") + (url.host ?? url.absoluteString), destination: url).tint(own ? MessagingTheme.onPrimaryAction : MessagingTheme.accent).frame(minHeight: max(44, 44.zoom())).accessibilityLabel(L10n.tr("打开链接 ") + url.absoluteString) } }
         }
     }
 
@@ -237,7 +238,7 @@ struct ChatMessageBubble: View {
         }
         .frame(width: size.width, height: size.height)
         .clipShape(ChatMediaBubbleShape(own: own))
-        .accessibilityLabel(message.type == 2 ? "视频，\(videoDuration)" : "图片")
+        .accessibilityLabel(message.type == 2 ? L10n.tr("视频，\(videoDuration)") : L10n.tr("图片"))
     }
 
     private var mediaSize: CGSize {

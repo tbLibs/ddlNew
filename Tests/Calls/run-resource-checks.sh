@@ -1,4 +1,5 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 tmp_dir=$(mktemp -d)
@@ -10,5 +11,5 @@ source=source[:source.index('    static func requestPermission(')]+'}\n'
 source=source.replace('import AVFoundation','import Foundation').replace('import AudioToolbox','').replace('import UIKit','')
 pathlib.Path(sys.argv[1], 'Resources.swift').write_text(source)
 PY
-swiftc -swift-version 5 "$tmp_dir/Resources.swift" Tests/Calls/ResourceChecks.swift -o "$tmp_dir/checks"
+swiftc "$localization_source" -swift-version 5 "$tmp_dir/Resources.swift" Tests/Calls/ResourceChecks.swift -o "$tmp_dir/checks"
 "$tmp_dir/checks"

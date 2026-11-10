@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 顶部俱乐部标志。
 struct InvitationCodeLogo: View {
+    @Environment(\.locale) private var localizationLocale
     /// 调用方传入的尺寸已经通过 UIAdapter 适配。
     let size: CGFloat
 
@@ -19,6 +20,6 @@ struct InvitationCodeLogo: View {
             .scaledToFit()
             .frame(width: size * 222 / 142, height: size * 234 / 142)
             .frame(width: size, height: size)
-            .accessibilityLabel("叮咚聊")
+            .accessibilityLabel(L10n.tr("叮咚聊"))
     }
 }

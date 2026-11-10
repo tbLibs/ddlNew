@@ -1,4 +1,5 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 tmp="$(mktemp -d)"
@@ -7,7 +8,7 @@ packages="${DNS1_PACKAGES:-/Users/taobotaobo/Library/Developer/Xcode/DerivedData
 xcrun swiftc -parse-as-library -emit-library -emit-module -module-name ObjectMapper "$packages/ObjectMapper/Sources/"*.swift -emit-module-path "$tmp/ObjectMapper.swiftmodule" -o "$tmp/libObjectMapper.dylib" 2> "$tmp/mapper.log"
 xcrun swiftc -parse-as-library -emit-library -emit-module -module-name SwiftProtobuf -package-name SwiftProtobuf "$packages/swift-protobuf/Sources/SwiftProtobuf/"*.swift -emit-module-path "$tmp/SwiftProtobuf.swiftmodule" -o "$tmp/libSwiftProtobuf.dylib" 2> "$tmp/protobuf.log" || { cat "$tmp/protobuf.log"; exit 1; }
 sed '/^import NoaChatCore$/d' "$root/ddlNew/Network/DNS1/DNS1NodeRaceCoordinator.swift" > "$tmp/DNS1NodeRaceCoordinator.swift"
-xcrun swiftc -swift-version 5 -default-isolation MainActor -parse-as-library \
+xcrun swiftc "$localization_source" -swift-version 5 -default-isolation MainActor -parse-as-library \
  -I "$tmp" -L "$tmp" -lObjectMapper -lSwiftProtobuf -Xlinker -rpath -Xlinker "$tmp" \
  "$root/ddlNew/Common/Crypto/AesEncryptUtils.swift" \
  "$root/ddlNew/Protocols/Nav/Nav.pb.swift" \

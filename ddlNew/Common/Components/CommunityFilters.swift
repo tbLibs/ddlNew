@@ -14,7 +14,7 @@ struct CommunityFilters<Filter: CaseIterable & Identifiable & RawRepresentable &
             HStack(spacing: 10) {
             ForEach(Filter.allCases) { item in
                 Button { selection = item } label: {
-                    Text(item.rawValue).font(.subheadline.weight(selection == item ? .semibold : .regular))
+                    Text(L10n.lookup(item.rawValue)).font(.subheadline.weight(selection == item ? .semibold : .regular))
                         .foregroundColor(selection == item ? .white : ClubTheme.secondary)
                         .padding(.horizontal, 22).frame(minHeight: 44)
                         .background(selection == item ? ClubTheme.darkTeal : ClubTheme.card)

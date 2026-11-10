@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 call_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 call_temp=$(mktemp -d)
@@ -22,5 +23,5 @@ harness = '''
 source = (root/'ddlNew/Features/Calls/Components/CallVideoSurface.swift').read_text()
 (out/'Surface.swift').write_text('import Foundation\nimport CoreGraphics\n@MainActor ' + source[source.index('final class CallVideoContainer:'):])
 PY
-swiftc -swift-version 5 -parse-as-library "$call_temp/"*.swift "$call_root/Tests/Calls/VideoChecks.swift" -o "$call_temp/checks"
+swiftc "$localization_source" -swift-version 5 -parse-as-library "$call_temp/"*.swift "$call_root/Tests/Calls/VideoChecks.swift" -o "$call_temp/checks"
 "$call_temp/checks"

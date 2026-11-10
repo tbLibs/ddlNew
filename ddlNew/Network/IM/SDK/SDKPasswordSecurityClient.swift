@@ -22,7 +22,7 @@ final class SDKPasswordSecurityClient: PasswordSecurityDriving {
                 else { result = .failure(.invalidEncryptKey) }
                 Task { @MainActor in waiter.finish(result) }
             }, onFailure: { code, _, _ in
-                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: "获取密码加密密钥失败，请重试"))) }
+                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: L10n.tr("获取密码加密密钥失败，请重试")))) }
             })
         }
     }
@@ -36,7 +36,7 @@ final class SDKPasswordSecurityClient: PasswordSecurityDriving {
                 else { result = .failure(.invalidResponse) }
                 Task { @MainActor in waiter.finish(result) }
             }, onFailure: { code, _, _ in
-                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: "密码安全检查暂未完成，请稍后重试"))) }
+                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: L10n.tr("密码安全检查暂未完成，请稍后重试")))) }
             })
         }
     }
@@ -48,7 +48,7 @@ final class SDKPasswordSecurityClient: PasswordSecurityDriving {
                 let result = Self.booleanResult(data)
                 Task { @MainActor in waiter.finish(result) }
             }, onFailure: { code, _, _ in
-                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: "原密码验证失败，请重试"))) }
+                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: L10n.tr("原密码验证失败，请重试")))) }
             })
         }
     }
@@ -60,7 +60,7 @@ final class SDKPasswordSecurityClient: PasswordSecurityDriving {
                 let result = Self.booleanResult(data)
                 Task { @MainActor in waiter.finish(result) }
             }, onFailure: { code, _, _ in
-                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: "修改密码未完成，请重试"))) }
+                Task { @MainActor in waiter.finish(.failure(.businessFailure(code: code, message: L10n.tr("修改密码未完成，请重试")))) }
             })
         }
     }

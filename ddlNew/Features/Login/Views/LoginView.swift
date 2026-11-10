@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 账号、手机号共用连接、验证及AUTH流程，页面只管理当前表单。
 struct LoginView: View {
+    @Environment(\.locale) private var localizationLocale
     @StateObject private var viewModel = LoginViewModel()
     @StateObject private var codeSender = AccountCodeViewModel()
     @ObservedObject private var securityNotice = LoginSecurityNoticeStore.shared
@@ -30,8 +31,9 @@ struct LoginView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                HStack { Spacer(); LanguageSelectionButton() }
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("登录叮咚聊").font(.largeTitle.bold()).foregroundStyle(LoginPalette.ink)
+                    Text(L10n.tr("登录叮咚聊")).font(.largeTitle.bold()).foregroundStyle(LoginPalette.ink)
                 }.padding(.top, 28)
                 VStack(alignment: .leading, spacing: 20) {
                     AuthenticationMethodPicker(selection: Binding(get: { kind }, set: changeKind))
@@ -42,11 +44,11 @@ struct LoginView: View {
                         AccountCodeField(code: $code, identity: identity, purpose: .login, scope: scope, sender: codeSender, focus: $focus)
                             .disabled(viewModel.loginPhase.isBusy)
                     } else {
-                        AuthenticationField(title: "密码", placeholder: "请输入密码", text: $password, field: .password, focus: $focus, secure: true, contentType: .password)
+                        AuthenticationField(title: L10n.tr("密码"), placeholder: L10n.tr("请输入密码"), text: $password, field: .password, focus: $focus, secure: true, contentType: .password)
                             .disabled(busy)
                     }
                     if kind != .account {
-                        Button(usesCode ? "使用密码登录" : "使用验证码登录") {
+                        Button(usesCode ? L10n.tr("使用密码登录") : L10n.tr("使用验证码登录")) {
                             focus = nil; codeSender.cancel(); code = ""; password = ""; usesCode.toggle()
                             viewModel.cancelLogin()
                         }
@@ -55,7 +57,7 @@ struct LoginView: View {
                         .disabled(busy).accessibilityIdentifier("toggleCodeLogin")
                     }
                     if !usesCode {
-                        Toggle("记住密码", isOn: $rememberPassword)
+                        Toggle(L10n.tr("记住密码"), isOn: $rememberPassword)
                             .font(.subheadline).frame(minHeight: 44).disabled(busy)
                             .accessibilityIdentifier("rememberPassword")
                     }
@@ -79,7 +81,7 @@ struct LoginView: View {
         .scrollDismissesKeyboard(.interactively).onSubmit { focus = nil }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if focus != nil {
-                HStack { Spacer(); Button("完成") { focus = nil }.buttonStyle(AuthenticationTextButtonStyle()) }
+                HStack { Spacer(); Button(L10n.tr("完成")) { focus = nil }.buttonStyle(AuthenticationTextButtonStyle()) }
                     .padding(.horizontal, 24).background(LoginPalette.card)
             }
         }
@@ -90,10 +92,10 @@ struct LoginView: View {
                 .onDisappear { verification.cancel(requestID: request.id) }
         }
         .sheet(isPresented: $showingRegistration) { AccountRegistrationView(initialKind: kind) }
-        .alert("提示", isPresented: $viewModel.showsLegalConsentAlert) {
-            Button("取消", role: .cancel) {}
-            Button("同意并继续") { viewModel.hasAcceptedLegalDocuments = true; login() }
-        } message: { Text("请阅读并同意《隐私政策》和《使用支持》") }
+        .alert(L10n.tr("提示"), isPresented: $viewModel.showsLegalConsentAlert) {
+            Button(L10n.tr("取消"), role: .cancel) {}
+            Button(L10n.tr("同意并继续")) { viewModel.hasAcceptedLegalDocuments = true; login() }
+        } message: { Text(L10n.tr("请阅读并同意《隐私政策》和《使用支持》")) }
         .onChange(of: verification.request?.id) { _ in focus = nil }
         .onChange(of: areaCode) { _ in codeSender.cancel(); code = "" }
         .onChange(of: connection.loginConnectionID) { _ in codeSender.cancel() }
@@ -108,17 +110,17 @@ struct LoginView: View {
                 .accessibilityIdentifier("loginConnectionStatus")
         }
         if case .failed = connection.phase {
-            Button("重试连接") { codeSender.cancel(); viewModel.cancelLogin(); connection.startCachedReconnect() }
+            Button(L10n.tr("重试连接")) { codeSender.cancel(); viewModel.cancelLogin(); connection.startCachedReconnect() }
                 .frame(minHeight: 44).disabled(busy).accessibilityIdentifier("retryLoginConnection")
         }
     }
     private var registrationButton: some View {
-        Button("注册新账号") { focus = nil; codeSender.cancel(); viewModel.cancelLogin(); password = ""; code = ""; showingRegistration = true }
+        Button(L10n.tr("注册新账号")) { focus = nil; codeSender.cancel(); viewModel.cancelLogin(); password = ""; code = ""; showingRegistration = true }
             .buttonStyle(AuthenticationTextButtonStyle())
             .frame(minHeight: 44).disabled(busy || verification.request != nil).accessibilityIdentifier("openAccountRegistration")
     }
     private var changeClubButton: some View {
-        Button("更换俱乐部") {
+        Button(L10n.tr("更换俱乐部")) {
             focus = nil; codeSender.cancel(); accounts = [:]; password = ""; code = ""; viewModel.changeClub()
         }.buttonStyle(AuthenticationTextButtonStyle()).frame(minHeight: 44).disabled(busy).accessibilityIdentifier("changeClub")
     }

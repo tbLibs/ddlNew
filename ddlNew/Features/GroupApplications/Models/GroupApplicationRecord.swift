@@ -15,6 +15,6 @@ nonisolated struct GroupApplicationRecord: Identifiable, Sendable {
     var inviteeAvatar: String = ""
     var roleID: Int = 0
     var statusText: String {
-        switch status { case 1: return "待审核"; case 4: return "已同意"; case 5: return "已拒绝"; default: return "已处理" }
+        switch status { case 1: return L10n.tr("待审核"); case 4: return L10n.tr("已同意"); case 5: return L10n.tr("已拒绝"); default: return L10n.tr("已处理") }
     }
 }

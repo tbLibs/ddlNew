@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -27,7 +28,7 @@ fields=sorted(set(re.findall(r'server\.([a-zA-Z]+Message|delGroupNotice|groupMes
 (tmp/'server.swift').write_text('import Foundation\nstruct ServerKind { let rawValue: Int }\nfinal class IMServerMessage { var sMsgType = ServerKind(rawValue: 0); var to = "me"\n'+''.join('var '+name+': Body! = Body()\n' for name in fields)+'}\n')
 (tmp/'client.swift').write_text((root/'Tests/Chat/StoreChecks.swift').read_text().split('@main struct ChatChecks')[0])
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" "$TMP_DIR/client.swift" \
  "$ROOT_DIR/Tests/Chat/SDKMessageParityChecks.swift" "$TMP_DIR/production.swift" "$TMP_DIR/server.swift" -o "$TMP_DIR/checks"

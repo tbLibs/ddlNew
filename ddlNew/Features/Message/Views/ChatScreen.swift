@@ -10,6 +10,7 @@ import UIKit
 import SwiftUIIntrospect
 
 struct ChatScreen: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var community: ClubCommunity
     @FocusState private var composerFocused: Bool
     @State private var showingContact = false
@@ -30,8 +31,8 @@ struct ChatScreen: View {
                         if entries.isEmpty {
                             VStack(spacing: 14) {
                                 avatar(outgoing: false)
-                                Text("和\(conversation.title)开始聊天").font(.headline).foregroundColor(ClubTheme.ink)
-                                Text("发一句问候，认识同行的伙伴。")
+                                Text(L10n.tr("和\(conversation.title)开始聊天")).font(.headline).foregroundColor(ClubTheme.ink)
+                                Text(L10n.tr("发一句问候，认识同行的伙伴。"))
                                     .font(.subheadline).foregroundColor(ClubTheme.secondary)
                             }.frame(maxWidth: .infinity).padding(.vertical, 36)
                         }
@@ -60,13 +61,13 @@ struct ChatScreen: View {
                         composerFocused = false
                         showingContact = true
                     } label: { Image(systemName: "person.crop.circle") }
-                    .accessibilityLabel("成员资料").accessibilityIdentifier("chatContactDetails")
+                    .accessibilityLabel(L10n.tr("成员资料")).accessibilityIdentifier("chatContactDetails")
                 }
                 if composerFocused {
                     Button { composerFocused = false } label: {
                         Image(systemName: "keyboard.chevron.compact.down")
                     }
-                    .accessibilityLabel("收起键盘")
+                    .accessibilityLabel(L10n.tr("收起键盘"))
                     .accessibilityIdentifier("keyboardDone")
                 }
             }
@@ -83,7 +84,7 @@ struct ChatScreen: View {
                 .font(.body).foregroundColor(ClubTheme.ink)
                 .focused($composerFocused).submitLabel(.send)
                 .onSubmit(send)
-                .accessibilityLabel("输入消息").accessibilityIdentifier("chatInput")
+                .accessibilityLabel(L10n.tr("输入消息")).accessibilityIdentifier("chatInput")
                 .padding(.horizontal, 14).padding(.vertical, 12)
                 .frame(minHeight: 48)
                 .background(ClubTheme.background)
@@ -96,7 +97,7 @@ struct ChatScreen: View {
                     .background(canSend ? ClubTheme.darkTeal : ClubTheme.border.opacity(0.45))
                     .clipShape(RoundedRectangle(cornerRadius: 17))
             }
-            .disabled(!canSend).accessibilityLabel("发送消息").accessibilityIdentifier("sendChatMessage")
+            .disabled(!canSend).accessibilityLabel(L10n.tr("发送消息")).accessibilityIdentifier("sendChatMessage")
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
         .background(ClubTheme.card.ignoresSafeArea(edges: .bottom))
@@ -105,9 +106,9 @@ struct ChatScreen: View {
 
     @ViewBuilder private var composerField: some View {
         if #available(iOS 16, *) {
-            TextField("输入消息…", text: draft, axis: .vertical).lineLimit(1...4)
+            TextField(L10n.tr("输入消息…"), text: draft, axis: .vertical).lineLimit(1...4)
         } else {
-            TextField("输入消息…", text: draft)
+            TextField(L10n.tr("输入消息…"), text: draft)
         }
     }
 
@@ -116,7 +117,7 @@ struct ChatScreen: View {
             if entry.isOutgoing { Spacer(minLength: 38) }
             if !entry.isOutgoing { avatar(outgoing: false) }
             VStack(alignment: entry.isOutgoing ? .trailing : .leading, spacing: 7) {
-                Text(entry.isOutgoing ? "我" : conversation.title)
+                Text(entry.isOutgoing ? L10n.tr("我") : conversation.title)
                     .font(.caption).foregroundColor(ClubTheme.secondary)
                 Text(entry.text).font(.body).foregroundColor(ClubTheme.ink)
                     .lineSpacing(5).padding(16)

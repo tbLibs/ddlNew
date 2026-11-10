@@ -30,7 +30,7 @@ import Foundation
                 try await self.service.send(to: identity, purpose: purpose)
                 guard self.runID == run, !Task.isCancelled else { return }
                 self.deadlines[Key(identity: identity, purpose: purpose.rawValue, scope: scope)] = self.now().addingTimeInterval(60)
-                self.feedback = "验证码已发送，请查看短信"
+                self.feedback = L10n.tr("验证码已发送，请查看短信")
             } catch is CancellationError {} catch {
                 guard self.runID == run, !Task.isCancelled else { return }
                 self.feedback = error.localizedDescription

@@ -128,7 +128,7 @@ nonisolated struct PushDeliveryPolicy {
 
 nonisolated enum PushMessageSummary {
     static func mention(title: String, text: String, targets: [String], userUID: String) -> String {
-        targets.contains(userUID) || targets.contains("-1") ? title + "@了你" : text
+        targets.contains(userUID) || targets.contains("-1") ? title + L10n.tr("@了你") : text
     }
     static func allowsGroupNotice(informStatus: Int?) -> Bool { informStatus == 1 }
 }

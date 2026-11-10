@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LegalConsentRow: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var isAccepted: Bool
     let onOpenDocument: () -> Void
     @State private var webLink: WebLink?
@@ -14,18 +15,18 @@ struct LegalConsentRow: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("同意隐私政策和使用支持")
-            .accessibilityValue(isAccepted ? "已勾选" : "未勾选")
+            .accessibilityLabel(L10n.tr("同意隐私政策和使用支持"))
+            .accessibilityValue(isAccepted ? L10n.tr("已勾选") : L10n.tr("未勾选"))
             .accessibilityAddTraits(isAccepted ? .isSelected : [])
             .accessibilityIdentifier("acceptLegalDocuments")
 
             VStack(alignment: .leading, spacing: 0) {
-                Text("我已阅读并同意以下内容")
+                Text(L10n.tr("我已阅读并同意以下内容"))
                     .foregroundColor(LoginPalette.secondary)
                 HStack(spacing: 24) {
-                    Button("隐私政策") { openWebPage(privacyPolicyURLString) }
+                    Button(L10n.tr("隐私政策")) { openWebPage(privacyPolicyURLString) }
                         .accessibilityIdentifier("openPrivacyPolicy")
-                    Button("使用支持") { openWebPage(usageSupportURLString) }
+                    Button(L10n.tr("使用支持")) { openWebPage(usageSupportURLString) }
                         .accessibilityIdentifier("openSupport")
                 }
                 .buttonStyle(AuthenticationTextButtonStyle())

@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 
 /// 原生相册/相机只选择一张图片，并提供方形裁剪。
 struct MineAvatarPicker: UIViewControllerRepresentable {
+    @Environment(\.locale) private var localizationLocale
     let source: UIImagePickerController.SourceType
     let completion: (UIImage?) -> Void
 
@@ -38,7 +39,7 @@ struct MineAvatarPicker: UIViewControllerRepresentable {
 /// 头像与旧端一致输出200像素正方形，避免按屏幕scale生成大图。
 enum MineAvatarPreparation {
     static func file(from image: UIImage) throws -> URL {
-        guard image.size.width > 0, image.size.height > 0 else { throw OwnProfileError.invalid("图片无法读取，请重新选择") }
+        guard image.size.width > 0, image.size.height > 0 else { throw OwnProfileError.invalid(L10n.tr("图片无法读取，请重新选择")) }
         let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
         let result = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 200), format: format).image { context in
             UIColor.white.setFill(); context.fill(CGRect(x: 0, y: 0, width: 200, height: 200))
@@ -53,6 +54,6 @@ enum MineAvatarPreparation {
                 return file
             }
         }
-        throw OwnProfileError.invalid("图片处理失败，请选择其他图片")
+        throw OwnProfileError.invalid(L10n.tr("图片处理失败，请选择其他图片"))
     }
 }

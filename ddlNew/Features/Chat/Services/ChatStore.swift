@@ -85,7 +85,7 @@ import Combine
             permission = try client.permissions(context: context)
             let draft = try client.draft(context: context)
             input = draft.text; previousInput = input; mentions = draft.mentions
-            if !draft.referenceID.isEmpty { reference = messages.first { $0.serverID == draft.referenceID } ?? ChatMessageRecord(localID: "reference:" + draft.referenceID, serverID: draft.referenceID, conversationID: context.route.id, senderID: "", senderName: "", text: "引用原文尚未加载，点击定位", timestamp: 0, state: .sent) }
+            if !draft.referenceID.isEmpty { reference = messages.first { $0.serverID == draft.referenceID } ?? ChatMessageRecord(localID: "reference:" + draft.referenceID, serverID: draft.referenceID, conversationID: context.route.id, senderID: "", senderName: "", text: L10n.tr("引用原文尚未加载，点击定位"), timestamp: 0, state: .sent) }
         } catch { errorMessage = error.localizedDescription }
         await loadPage(before: nil)
         guard generation == run, self.context == context else { return }
@@ -177,7 +177,7 @@ import Combine
             try checkSend(context)
             reconcileMentions()
             var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id,
-                senderID: context.userUID, senderName: "我", text: input,
+                senderID: context.userUID, senderName: L10n.tr("我"), text: input,
                 timestamp: Int64(Date().timeIntervalSince1970 * 1000), referenceID: reference?.serverID ?? "")
             if !mentions.isEmpty { record.type = 10; record.mentions = mentions }
             record = try client.prepareMessage(record, context: context)
@@ -190,10 +190,10 @@ import Combine
     /// 复核实时群权限和普通成员频控，管理者不受发送间隔限制。
     private func checkSend(_ context: ChatContext, messageType: Int? = nil) throws {
         permission = try client.permissions(context: context)
-        guard permission.isActive, permission.canSend else { throw ChatClientError.permission(permission.reason.isEmpty ? "当前会话暂不能发送消息" : permission.reason) }
-        if let messageType, [1, 2, 5].contains(messageType), !(messageType == 5 ? permission.canUploadFile : permission.canUpload) { throw ChatClientError.permission("当前账号不允许上传此附件") }
+        guard permission.isActive, permission.canSend else { throw ChatClientError.permission(permission.reason.isEmpty ? L10n.tr("当前会话暂不能发送消息") : permission.reason) }
+        if let messageType, [1, 2, 5].contains(messageType), !(messageType == 5 ? permission.canUploadFile : permission.canUpload) { throw ChatClientError.permission(L10n.tr("当前账号不允许上传此附件")) }
         if context.route.kind == .group, permission.role == 0, let lastSend,
-           Date().timeIntervalSince(lastSend) < permission.sendInterval { throw ChatClientError.permission("发送过于频繁，请稍后重试") }
+           Date().timeIntervalSince(lastSend) < permission.sendInterval { throw ChatClientError.permission(L10n.tr("发送过于频繁，请稍后重试")) }
     }
 
     /// 图片/视频先以本地资源占位；上传完成后用同一 localID 接续 SDK 消息。
@@ -236,7 +236,7 @@ import Combine
     func sendGame(_ game: ChatGameSticker) {
         guard let context else { return }
         var message = ChatMessageRecord(localID: UUID().uuidString, conversationID: context.route.id,
-            senderID: context.userUID, senderName: "我", type: 21, text: game.randomResult(),
+            senderID: context.userUID, senderName: L10n.tr("我"), type: 21, text: game.randomResult(),
             timestamp: Int64(Date().timeIntervalSince1970 * 1000))
         message.gameType = game.rawValue
         do { try sendAttachment(message) } catch { errorMessage = error.localizedDescription }
@@ -261,7 +261,7 @@ import Combine
             try checkSend(context, messageType: messages[index].type)
             var message = messages[index]
             if [1, 2].contains(message.type), message.resource.isEmpty || message.thumbnail.isEmpty {
-                guard let mediaRetryClient else { throw ChatClientError.unavailable("附件上传器尚未就绪，请稍后重试") }
+                guard let mediaRetryClient else { throw ChatClientError.unavailable(L10n.tr("附件上传器尚未就绪，请稍后重试")) }
                 let run = generation; let clearRun = clearRevision
                 busyIDs.insert(id)
                 Task { [weak self] in
@@ -376,9 +376,9 @@ import Combine
     /// 引用摘要即时读取原记录，原文编辑、撤回和删除不显示旧副本。
     func referenceSummary(_ serverID: String) -> String {
         guard !serverID.isEmpty else { return "" }
-        guard let original = records.first(where: { $0.serverID == serverID }) else { return "引用原文尚未加载，点击定位" }
-        if original.status == .deleted { return "原消息已删除" }
-        if original.status == .unavailable { return "原消息暂不可用" }
+        guard let original = records.first(where: { $0.serverID == serverID }) else { return L10n.tr("引用原文尚未加载，点击定位") }
+        if original.status == .deleted { return L10n.tr("原消息已删除") }
+        if original.status == .unavailable { return L10n.tr("原消息暂不可用") }
         return original.senderName + ": " + original.displayText
     }
 
@@ -400,7 +400,7 @@ import Combine
         if selectedIDs.contains(id) { selectedIDs.remove(id); return }
         guard let context, let item = messages.first(where: { $0.id == id }),
               ChatActionPolicy.allowed(for: item, userUID: context.userUID, permission: permission).contains(.select) else { return }
-        guard selectedIDs.count < 100 else { errorMessage = "一次最多选择100条消息"; return }
+        guard selectedIDs.count < 100 else { errorMessage = L10n.tr("一次最多选择100条消息"); return }
         selectedIDs.insert(id)
     }
 
@@ -414,7 +414,7 @@ import Combine
         defer { if generation == run { busyIDs.remove(id) } }
         do {
             permission = try client.permissions(context: context)
-            guard ChatActionPolicy.allowed(for: item, userUID: context.userUID, permission: permission).contains(action) else { throw ChatClientError.permission("当前消息已不允许此操作") }
+            guard ChatActionPolicy.allowed(for: item, userUID: context.userUID, permission: permission).contains(action) else { throw ChatClientError.permission(L10n.tr("当前消息已不允许此操作")) }
             busyIDs.insert(id)
             try await client.perform(action, message: item, context: context)
             guard generation == run, !Task.isCancelled else { return false }
@@ -432,10 +432,10 @@ import Combine
         for (index, id) in ids.enumerated() {
             guard self.context == context, !Task.isCancelled else { return }
             if await perform(both ? .deleteBoth : .delete, id: id) { successCount += 1 }
-            else { failures.append("第\(index + 1)条：" + (errorMessage ?? "未获得删除确认")) }
+            else { failures.append(L10n.tr("第\(index + 1)条：") + (errorMessage ?? L10n.tr("未获得删除确认"))) }
         }
         guard self.context == context else { return }
-        errorMessage = failures.isEmpty ? nil : "已确认删除\(successCount)条，\(failures.count)条未删除\n" + failures.joined(separator: "\n")
+        errorMessage = failures.isEmpty ? nil : L10n.tr("已确认删除\(successCount)条，\(failures.count)条未删除\n") + failures.joined(separator: "\n")
     }
 
     /// ACK必须含服务端ID；网络迟到失败不能覆盖成功，明确的业务拒收仍须显示失败。
@@ -487,7 +487,7 @@ import Combine
         case .permissionRefreshFailed(let message):
             permission.canSend = false; permission.canUpload = false; permission.canUploadFile = false
             permission.isChecking = false
-            permission.reason = "群发送权限暂未确认，请稍后重试"
+            permission.reason = L10n.tr("群发送权限暂未确认，请稍后重试")
             errorMessage = message
         case .pinsChanged: pinRevision += 1
         case .refresh:
@@ -620,7 +620,7 @@ import Combine
             await loadMore()
             guard messages.first?.id != previous || historyCursor != previousCursor || offset != previousOffset || messages.contains(where: { $0.isVisible && $0.status == .normal && ($0.localID == target || $0.serverID == target) }) else { break }
         }
-        if generation == run, clearRevision == clearRun, locationRequest == request, !Task.isCancelled { errorMessage = "当前历史中未找到这条消息，可能已删除或不可访问" }
+        if generation == run, clearRevision == clearRun, locationRequest == request, !Task.isCancelled { errorMessage = L10n.tr("当前历史中未找到这条消息，可能已删除或不可访问") }
     }
 
     /// 用户点新消息提示时只更新浏览状态，由页面滚动到实际最新ID。

@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -12,7 +13,7 @@ s=(root/'ddlNew/Network/IM/Conversations/SDKConversationOperations.swift').read_
 stubs=(root/'Tests/Chat/RuntimeDepartureChecks.swift').read_text()
 (tmp/'Dependencies.swift').write_text(stubs[:stubs.index('@main struct RuntimeDepartureChecks')])
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationAction.swift" \
  "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationActionPolicy.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \

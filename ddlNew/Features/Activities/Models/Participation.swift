@@ -11,11 +11,11 @@ nonisolated enum Participation: String, Codable, Sendable {
     case available, registered, waiting, checkedIn, ended
     var title: String {
         switch self {
-        case .available: return "可报名"
-        case .registered: return "已报名"
-        case .waiting: return "候补中"
-        case .checkedIn: return "已签到"
-        case .ended: return "已结束"
+        case .available: return L10n.tr("可报名")
+        case .registered: return L10n.tr("已报名")
+        case .waiting: return L10n.tr("候补中")
+        case .checkedIn: return L10n.tr("已签到")
+        case .ended: return L10n.tr("已结束")
         }
     }
 }

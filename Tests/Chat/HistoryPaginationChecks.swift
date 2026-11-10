@@ -7,6 +7,14 @@
 
 import Foundation
 
+// The activity-sync service is outside this history/permission harness.
+// Record requests so successful and stale production callbacks remain observable.
+@MainActor final class SDKGroupActivitySyncCoordinator {
+    static let shared = SDKGroupActivitySyncCoordinator()
+    private(set) var requests: [ChatContext] = []
+    func refreshIfNeeded(context: ChatContext) { requests.append(context) }
+}
+
 // 只替代SDK数据库和运输边界，历史请求、缓存回读与ChatStore均运行生产方法。
 struct HistorySendType { var rawValue: Int = 1 }
 final class NoaIMChatMessageModel {

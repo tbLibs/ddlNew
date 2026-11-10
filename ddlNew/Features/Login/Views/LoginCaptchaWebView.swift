@@ -15,6 +15,7 @@ enum LoginCaptchaLoadState: Equatable {
 /// 本地网页加载验证码服务商 SDK，仅接受该网页主框架返回的验证结果。
 @MainActor
 struct LoginCaptchaWebView: UIViewRepresentable {
+    @Environment(\.locale) private var localizationLocale
     let kind: LoginVerificationKind
     let stateChanged: (LoginCaptchaLoadState) -> Void
     let completed: (LoginVerificationAnswer) -> Void
@@ -25,6 +26,14 @@ struct LoginCaptchaWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
+        // 仅注入应用自有语言与标题；验证参数、服务商标识及回调协议保持不变。
+        let localization = ["language": L10n.languageCode, "title": L10n.tr("安全验证")]
+        if let data = try? JSONSerialization.data(withJSONObject: localization),
+           let json = String(data: data, encoding: .utf8) {
+            configuration.userContentController.addUserScript(WKUserScript(
+                source: "window.appCaptchaLocalization = " + json + ";",
+                injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         let handler = WeakMessageHandler(target: context.coordinator)
         for name in Coordinator.handlerNames {
             configuration.userContentController.add(handler, name: name)
@@ -77,13 +86,13 @@ struct LoginCaptchaWebView: UIViewRepresentable {
                 ?? bundle.url(forResource: resource, withExtension: "html", subdirectory: "LoginVerification")
                 ?? bundle.url(forResource: resource, withExtension: "html")
             guard let pageURL else {
-                fail("验证资源加载失败，请重试。")
+                fail(L10n.tr("验证资源加载失败，请重试。"))
                 return
             }
             loadTimeout = Task { [weak self] in
                 do { try await Task.sleep(nanoseconds: 45_000_000_000) }
                 catch { return }
-                self?.fail("验证加载超时，请检查网络后重试。")
+                self?.fail(L10n.tr("验证加载超时，请检查网络后重试。"))
             }
             webView.loadFileURL(pageURL, allowingReadAccessTo: pageURL.deletingLastPathComponent())
         }
@@ -164,7 +173,7 @@ struct LoginCaptchaWebView: UIViewRepresentable {
             url.isFileURL && url.standardizedFileURL == pageURL?.standardizedFileURL
         }
 
-        private func fail(_ message: String = "验证加载失败，请检查网络后重试。") {
+        private func fail(_ message: String = L10n.tr("验证加载失败，请检查网络后重试。")) {
             guard !stopped, !receivedAnswer else { return }
             stop()
             // 延后更新 makeUIView 期间产生的错误，避免在视图更新过程中修改 SwiftUI 状态。

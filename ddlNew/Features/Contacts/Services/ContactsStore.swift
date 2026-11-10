@@ -48,7 +48,7 @@ final class ContactsStore: ObservableObject {
                 self.requestReload()
             case .syncFailed(let message):
                 self.isSyncing = false
-                self.syncError = message.isEmpty ? "好友同步失败，请检查网络连接" : message
+                self.syncError = message.isEmpty ? L10n.tr("好友同步失败，请检查网络连接") : message
                 self.updateErrorMessage()
                 // 分页或在线状态失败时，前面的好友可能已落库，仍需显示这部分真实数据。
                 self.requestReload()
@@ -81,7 +81,7 @@ final class ContactsStore: ObservableObject {
                     self.cacheError = nil
                 } catch {
                     guard !Task.isCancelled, self.generation == runID else { return }
-                    self.cacheError = "好友缓存读取失败：\(error.localizedDescription)"
+                    self.cacheError = L10n.tr("好友缓存读取失败：\(error.localizedDescription)")
                 }
                 self.readingCache = false
                 self.updateErrorMessage()

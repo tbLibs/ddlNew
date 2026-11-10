@@ -9,11 +9,13 @@ import SwiftUI
 
 /// 旧演示消息页面，主消息入口继续使用真实 MessageView。
 private enum OriginalMessageFilter: String, CaseIterable, Identifiable {
+    var displayName: String { L10n.lookup(rawValue) }
     case all = "全部", unread = "未读", notices = "通知"
     var id: Self { self }
 }
 
 struct OriginalMessagesView: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var community: ClubCommunity
     @State private var query = ""
     @State private var filter: OriginalMessageFilter = .all
@@ -32,8 +34,8 @@ struct OriginalMessagesView: View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
-                    ScreenHeading(eyebrow: "远山户外俱乐部", title: "消息")
-                    Button("全部已读") { community.markAllRead() }
+                    ScreenHeading(eyebrow: L10n.tr("远山户外俱乐部"), title: L10n.tr("消息"))
+                    Button(L10n.tr("全部已读")) { community.markAllRead() }
                         .font(.subheadline.weight(.medium)).foregroundColor(ClubTheme.darkTeal)
                         .frame(minHeight: 44).disabled(community.unreadCount == 0)
                         .opacity(community.unreadCount == 0 ? 0.45 : 1)
@@ -42,14 +44,14 @@ struct OriginalMessagesView: View {
                 HStack(spacing: 8) {
                     ClubIcon(name: "messages", size: 16)
                     Text(community.unreadCount == 0
-                         ? "消息都已读，期待下一次相聚"
-                         : "有 \(community.unreadCount) 条未读消息，看看伙伴们的新动态")
+                         ? L10n.tr("消息都已读，期待下一次相聚")
+                         : L10n.tr("有 \(community.unreadCount) 条未读消息，看看伙伴们的新动态"))
                         .font(.subheadline)
                 }.foregroundColor(ClubTheme.secondary)
-                CommunitySearchField(placeholder: "搜索消息", text: $query, focus: $searchFocused, identifier: "messageSearch")
+                CommunitySearchField(placeholder: L10n.tr("搜索消息"), text: $query, focus: $searchFocused, identifier: "messageSearch")
                 CommunityFilters(selection: $filter)
                 if filtered.isEmpty {
-                    EmptyClubState(title: filter == .unread && query.isEmpty ? "暂时没有未读消息" : "没有找到相关消息", message: "试试其他关键词，或切换消息分类。")
+                    EmptyClubState(title: filter == .unread && query.isEmpty ? L10n.tr("暂时没有未读消息") : L10n.tr("没有找到相关消息"), message: L10n.tr("试试其他关键词，或切换消息分类。"))
                 } else {
                     ClubCard(padding: 0) {
                         LazyVStack(spacing: 0) {
@@ -64,7 +66,7 @@ struct OriginalMessagesView: View {
                                 }
                                 .buttonStyle(CommunityRowStyle())
                                 .accessibilityIdentifier("message.\(message.id)")
-                                .accessibilityLabel("\(message.title)，\(message.unread ? "未读" : "已读")，\(message.preview)，\(message.time)")
+                                .accessibilityLabel(L10n.tr("\(message.title)，\(message.unread ? L10n.tr("未读") : L10n.tr("已读"))，\(message.preview)，\(message.time)"))
                                 if message.id != filtered.last?.id {
                                     Divider().overlay(ClubTheme.border.opacity(0.4)).padding(.leading, 82)
                                 }
@@ -72,7 +74,7 @@ struct OriginalMessagesView: View {
                         }
                     }
                 }
-                Text("每一次相聚，都从一条消息开始")
+                Text(L10n.tr("每一次相聚，都从一条消息开始"))
                     .font(.footnote).foregroundColor(ClubTheme.secondary)
                     .frame(maxWidth: .infinity).padding(.top, 8)
             }.padding(.horizontal, 20).padding(.top, 18)

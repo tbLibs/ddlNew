@@ -40,7 +40,7 @@ nonisolated struct PushNavigationRequest: Identifiable, Equatable {
     @Published private(set) var isLoading = false
     @Published private(set) var isSaving = false
     @Published private(set) var errorMessage: String?
-    @Published private(set) var permission = "正在读取系统通知权限…"
+    @Published private(set) var permission = L10n.tr("正在读取系统通知权限…")
     @Published private(set) var registrationError: String?
     @Published private(set) var pendingNavigation: PushNavigationRequest?
     private(set) var identity: PushIdentity?
@@ -96,7 +96,7 @@ nonisolated struct PushNavigationRequest: Identifiable, Equatable {
         self.token = token; defaults.set(token, forKey:"push.apnsToken")
         registrationError = nil; reconcileBinding()
     }
-    func registrationFailed() { registrationError = "推送注册失败，回到前台后将重试。" }
+    func registrationFailed() { registrationError = L10n.tr("推送注册失败，回到前台后将重试。") }
 
     /// 单一泵串行绑定，迟到的旧绑定完成后仍协调到最新身份。
     private func reconcileBinding() {
@@ -113,7 +113,7 @@ nonisolated struct PushNavigationRequest: Identifiable, Equatable {
                     }
                 } catch {
                     if self.identity == owner, self.token == token {
-                        self.registrationError = "推送设备绑定失败，回到前台后将重试。"; return
+                        self.registrationError = L10n.tr("推送设备绑定失败，回到前台后将重试。"); return
                     }
                 }
             }
@@ -146,7 +146,7 @@ nonisolated struct PushNavigationRequest: Identifiable, Equatable {
                 self.preferences = value; self.preferencesReady = true; self.persist(value, owner:owner); self.errorMessage = nil
             } catch {
                 guard self.identity == owner, self.preferenceRevision == revision, !Task.isCancelled else { return }
-                self.errorMessage = "通知设置读取失败，请重试。"
+                self.errorMessage = L10n.tr("通知设置读取失败，请重试。")
             }
             self.isLoading = false
         }
@@ -160,7 +160,7 @@ nonisolated struct PushNavigationRequest: Identifiable, Equatable {
             preferences = value; persist(value, owner:owner)
         } catch {
             guard identity == owner, !signingOut else { return }
-            errorMessage = "通知设置保存失败，已保留原设置。"
+            errorMessage = L10n.tr("通知设置保存失败，已保留原设置。")
         }
         isSaving = false
     }

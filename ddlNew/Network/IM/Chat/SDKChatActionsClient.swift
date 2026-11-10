@@ -14,14 +14,14 @@ import NoaChatCore
 
     /// 编辑保留原双ID、发送时间与已读计数，仅成功回执后替换正文。
     func edit(_ message: ChatMessageRecord, text: String, mentions: [ChatMentionSegment]? = nil, context: ChatContext) async throws -> ChatMessageRecord {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ChatClientError.permission("编辑内容不能为空") }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ChatClientError.permission(L10n.tr("编辑内容不能为空")) }
         let client = SDKChatClient(validSession: { ChatRuntime.shared.isCurrent($0) })
         client.observe(context: context, onEvent: { _ in }); defer { client.stop() }
         try await client.refreshPermissions(context: context)
         let permission = try client.permissions(context: context)
-        guard ChatActionPolicy.allowed(for: message, userUID: context.userUID, permission: permission).contains(.edit) else { throw ChatClientError.permission("当前消息不允许编辑") }
+        guard ChatActionPolicy.allowed(for: message, userUID: context.userUID, permission: permission).contains(.edit) else { throw ChatClientError.permission(L10n.tr("当前消息不允许编辑")) }
         let original: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
-        guard let original else { throw ChatClientError.unavailable("原消息已不存在") }
+        guard let original else { throw ChatClientError.unavailable(L10n.tr("原消息已不存在")) }
         let request = LingIMModelTool.shared().getChatMessageModel(fromLingIMChatMessageModel: original)
         request.sMsgId = message.serverID; request.sendTime = message.timestamp
         let edited = mentions.map { (text, $0) } ?? ChatMentionEngine.editing(old: message.text, new: text, segments: message.mentions)
@@ -55,7 +55,7 @@ import NoaChatCore
         client.observe(context: context, onEvent: { _ in }); defer { client.stop() }
         try await client.refreshPermissions(context: context)
         let permission = try client.permissions(context: context)
-        guard ChatActionPolicy.allowed(for: message, userUID: context.userUID, permission: permission).contains(.pin), context.route.kind != .group || !global || permission.role > 0 else { throw ChatClientError.permission("当前消息不能置顶到所有成员") }
+        guard ChatActionPolicy.allowed(for: message, userUID: context.userUID, permission: permission).contains(.pin), context.route.kind != .group || !global || permission.role > 0 else { throw ChatClientError.permission(L10n.tr("当前消息不能置顶到所有成员")) }
         var values: [String: Any] = ["userUid": context.userUID, "smsgId": message.serverID]
         values[context.route.kind == .group ? "groupId" : "friendUid"] = context.route.id
         let current = try await client.request(context: context) { success, failure in
@@ -63,7 +63,7 @@ import NoaChatCore
             else { self.sdk.messageQueryUserMsgStatus(with: NSMutableDictionary(dictionary: values), onSuccess: success, onFailure: failure) }
         }
         guard let rawType = (current["type"] as? NSNumber)?.intValue ?? Int(current["type"] as? String ?? ""), let state = ChatPinStatus(type: rawType) else { throw ChatClientError.invalidResponse }
-        if removing && !(global ? state.global : state.personal) { throw ChatClientError.unavailable("该范围的消息置顶已不存在，请刷新") }
+        if removing && !(global ? state.global : state.personal) { throw ChatClientError.unavailable(L10n.tr("该范围的消息置顶已不存在，请刷新")) }
         if !removing && (global ? state.global : state.personal) { return }
         values["msgStatus"] = removing ? (global ? 3 : 4) : (global ? 1 : 2)
         _ = try await client.request(context: context) { success, failure in
@@ -115,13 +115,13 @@ import NoaChatCore
         let target = SDKChatClient(validSession: { ChatRuntime.shared.isCurrent($0) })
         target.observe(context: destination, onEvent: { _ in }); defer { target.stop() }
         try await target.refreshPermissions(context: destination)
-        guard try target.permissions(context: destination).canSend else { throw ChatClientError.permission("接收会话当前不允许发送") }
+        guard try target.permissions(context: destination).canSend else { throw ChatClientError.permission(L10n.tr("接收会话当前不允许发送")) }
         let permission = try source.permissions(context: context)
-        guard messages.allSatisfy({ ChatActionPolicy.allowed(for: $0, userUID: context.userUID, permission: permission).contains(.forward) }) else { throw ChatClientError.permission("部分消息已不允许转发") }
+        guard messages.allSatisfy({ ChatActionPolicy.allowed(for: $0, userUID: context.userUID, permission: permission).contains(.forward) }) else { throw ChatClientError.permission(L10n.tr("部分消息已不允许转发")) }
         let preflight = try await source.request(context: context) { success, failure in
             self.sdk.transpondComplianceMessage(NSMutableDictionary(dictionary: ["userUid": context.userUID, "dialogs": [["dialogId": recipient.id, "dialogType": recipient.kind == .group ? 1 : 0]], "forwardCount": merged ? 1 : messages.count]), onSuccess: success, onFailure: failure)
         }
-        if let invalid = preflight["_value"] as? [Any], !invalid.isEmpty { throw ChatClientError.permission("接收对象未通过转发检查，请选择其他会话") }
+        if let invalid = preflight["_value"] as? [Any], !invalid.isEmpty { throw ChatClientError.permission(L10n.tr("接收对象未通过转发检查，请选择其他会话")) }
         let ordered = messages.sorted { $0.timestamp == $1.timestamp ? $0.id < $1.id : $0.timestamp < $1.timestamp }
         // 合规等待期间原消息和权限可能变化；按最新缓存重验，不能转发删除/撤回的旧快照正文。
         try await source.refreshPermissions(context: context)
@@ -129,10 +129,10 @@ import NoaChatCore
         var models: [NoaIMChatMessageModel] = []
         for message in ordered {
             let original: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
-            guard let original else { throw ChatClientError.unavailable("转发原消息已不存在") }
+            guard let original else { throw ChatClientError.unavailable(L10n.tr("转发原消息已不存在")) }
             let current = SDKChatMessageMapper.record(original, userUID: context.userUID)
             guard ChatActionPolicy.allowed(for: current, userUID: context.userUID, permission: currentPermission).contains(.forward) else {
-                throw ChatClientError.permission("原消息已删除、撤回或当前不允许转发")
+                throw ChatClientError.permission(L10n.tr("原消息已删除、撤回或当前不允许转发"))
             }
             models.append(original)
         }
@@ -140,7 +140,7 @@ import NoaChatCore
             let forward = ForwardMessage(); forward.type = recipient.kind == .group ? 1 : 0; forward.title = context.route.title + "的聊天记录"
             let entries = models.map { forwardingMessage($0) }
             forward.messageListArray = NSMutableArray(array: entries)
-            var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: recipient.id, senderID: destination.userUID, senderName: "我", type: 18, timestamp: Int64(Date().timeIntervalSince1970 * 1000))
+            var record = ChatMessageRecord(localID: UUID().uuidString, conversationID: recipient.id, senderID: destination.userUID, senderName: L10n.tr("我"), type: 18, timestamp: Int64(Date().timeIntervalSince1970 * 1000))
             record.text = forward.title
             record.nestedMessages = entries.map { SDKChatMessageMapper.record(LingIMModelTool.shared().getChatMessageModel(from: $0), userUID: context.userUID) }
             let model = target.makeModel(record, context: destination); model.forwardMessage = forward; model.forwardMessageProtobuf = forward.delimitedData()
@@ -156,7 +156,7 @@ import NoaChatCore
         let response = try await source.request(context: context) { success, failure in self.sdk.transpondMessage(data, onSuccess: success, onFailure: failure) }
         try target.validate(destination)
         let failed = response["failId"] as? [String] ?? []
-        guard !failed.contains(recipient.id), let perReceiver = response["sMsgId"] as? [[String]], let serverIDs = perReceiver.first, serverIDs.count == ordered.count, serverIDs.allSatisfy({ !$0.isEmpty }) else { throw ChatClientError.unavailable("部分转发未成功，未确认的消息不会显示为成功") }
+        guard !failed.contains(recipient.id), let perReceiver = response["sMsgId"] as? [[String]], let serverIDs = perReceiver.first, serverIDs.count == ordered.count, serverIDs.allSatisfy({ !$0.isEmpty }) else { throw ChatClientError.unavailable(L10n.tr("部分转发未成功，未确认的消息不会显示为成功")) }
         var result: [ChatMessageRecord] = []
         let sentTime = Int64(Date().timeIntervalSince1970 * 1000)
         for index in ordered.indices {

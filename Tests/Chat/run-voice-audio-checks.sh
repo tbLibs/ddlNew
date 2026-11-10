@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -28,5 +29,5 @@ prefix = '''import Foundation
 methods = method('func playVoice(') + method('private func configureAudio(') + method('private func observeInterruption(') + method('private func releaseVoiceAudio(')
 (out/'ProductionVoiceAudio.swift').write_text(prefix + methods + '}\n')
 PY
-swiftc -parse-as-library "$TMP_DIR/ProductionVoiceAudio.swift" "$ROOT_DIR/Tests/Chat/VoiceAudioChecks.swift" -o "$TMP_DIR/checks"
+swiftc "$localization_source" -parse-as-library "$TMP_DIR/ProductionVoiceAudio.swift" "$ROOT_DIR/Tests/Chat/VoiceAudioChecks.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

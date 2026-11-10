@@ -9,6 +9,7 @@ import SwiftUI
 
 /// 首页推荐列表，活动详情仍由现有报名流程处理。
 struct HomeActivityRow: View {
+    @Environment(\.locale) private var localizationLocale
     let activity: ClubActivity
     let status: Participation
     let action: () -> Void
@@ -29,9 +30,9 @@ struct HomeActivityRow: View {
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(activity.title).font(.headline).foregroundStyle(HomeTheme.text)
+                    Text(activity.displayTitle).font(.headline).foregroundStyle(HomeTheme.text)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("\(activity.date) · \(activity.place)")
+                    Text("\(activity.displayDate) · \(activity.displayPlace)")
                         .font(.subheadline).foregroundStyle(HomeTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(status.title).font(.caption.weight(.semibold))
@@ -49,8 +50,8 @@ struct HomeActivityRow: View {
             .background(HomeTheme.surface, in: RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(HomePressStyle())
-        .accessibilityLabel("\(activity.title)，\(activity.date)，\(activity.place)，\(status.title)")
-        .accessibilityHint("查看活动详情")
+        .accessibilityLabel("\(activity.displayTitle)，\(activity.displayDate)，\(activity.displayPlace)，\(status.title)")
+        .accessibilityHint(L10n.tr("查看活动详情"))
         .accessibilityIdentifier("home.activity.\(activity.id)")
     }
 }

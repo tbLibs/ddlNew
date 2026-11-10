@@ -1,4 +1,5 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 # 编译生产通讯录模型和状态层，使用离线客户端验证账号隔离与列表规则。
 set -euo pipefail
 task_root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -22,7 +23,7 @@ fi
 swiftc -swift-version 5 -emit-library -emit-module -module-name ObjectMapper \
   "$task_mapper_sources"/*.swift -o "$task_output/libObjectMapper.dylib" \
   -emit-module-path "$task_output/ObjectMapper.swiftmodule"
-swiftc -swift-version 6 \
+swiftc "$localization_source" -swift-version 6 \
   -I "$task_output" -L "$task_output" -lObjectMapper \
   "$task_root/ddlNew/Network/Core/RemoteAvatarURL.swift" \
   "$task_root/ddlNew/Features/Contacts/Models/ContactRecord.swift" \
@@ -40,7 +41,7 @@ DYLD_LIBRARY_PATH="$task_output" "$task_output/ContactsChecks"
 xcrun clang -fobjc-arc -framework Foundation \
   "$task_root/Tests/Contacts/SDKContactsSyncChecks.m" -o "$task_output/SDKContactsChecks"
 "$task_output/SDKContactsChecks"
-swiftc -swift-version 5 -I "$task_output" -L "$task_output" -lObjectMapper \
+swiftc "$localization_source" -swift-version 5 -I "$task_output" -L "$task_output" -lObjectMapper \
   "$task_root/ddlNew/Network/Core/RemoteAvatarURL.swift" \
   "$task_root/ddlNew/Features/Contacts/Models/ContactRecord.swift" \
   "$task_root/ddlNew/Features/Contacts/Models/ContactSection.swift" \

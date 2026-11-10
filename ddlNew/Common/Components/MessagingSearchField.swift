@@ -24,7 +24,7 @@ struct MessagingSearchField: View {
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill").frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                }.foregroundStyle(MessagingTheme.secondaryText).accessibilityLabel("清除搜索")
+                }.foregroundStyle(MessagingTheme.secondaryText).accessibilityLabel(L10n.tr("清除搜索"))
             }
         }
         .padding(.leading, 12.zoom()).padding(.trailing, text.isEmpty ? 12 : 0.zoom())

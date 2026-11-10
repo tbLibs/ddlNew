@@ -6,11 +6,11 @@ enum ChatCallSummary {
         guard let data = content.data(using: .utf8),
               let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return "" }
         func string(_ key: String) -> String { body[key] as? String ?? (body[key] as? NSNumber)?.stringValue ?? "" }
-        let kind = string("mode") == "0" ? "视频通话" : "语音通话"
+        let kind = string("mode") == "0" ? L10n.tr("视频通话") : L10n.tr("语音通话")
         if type == 103 {
             switch string("action") {
             case "new": return kind
-            case "discard": return kind + "已经结束"
+            case "discard": return kind + L10n.tr("已经结束")
             default: return ""
             }
         }
@@ -21,8 +21,8 @@ enum ChatCallSummary {
 
     nonisolated static func zego(chatType: Int, kind: Int, status: Int, duration: Int, outgoing: Bool) -> String {
         if chatType == 2 {
-            let name = kind == 2 ? "视频通话" : "语音通话"
-            return status == 1 ? name : status == 11 ? name + "已经结束" : ""
+            let name = kind == 2 ? L10n.tr("视频通话") : L10n.tr("语音通话")
+            return status == 1 ? name : status == 11 ? name + L10n.tr("已经结束") : ""
         }
         guard chatType == 1 else { return "" }
         let reason: String
@@ -33,7 +33,7 @@ enum ChatCallSummary {
         case 5: reason = ""
         case 7: reason = "disconnect"
         case 8: reason = "accept"
-        case 12: return "超时未应答"
+        case 12: return L10n.tr("超时未应答")
         default: return ""
         }
         return single(reason: reason, duration: duration, outgoing: outgoing)
@@ -41,14 +41,14 @@ enum ChatCallSummary {
 
     nonisolated private static func single(reason: String, duration: Int, outgoing: Bool) -> String {
         switch reason {
-        case "cancel": return outgoing ? "已取消" : "对方已取消"
-        case "missed": return outgoing ? "对方无应答" : "超时未应答"
-        case "refused": return outgoing ? "对方已拒绝" : "已拒绝"
-        case "accept": return outgoing ? "" : "已在其他设备接听"
+        case "cancel": return outgoing ? L10n.tr("已取消") : L10n.tr("对方已取消")
+        case "missed": return outgoing ? L10n.tr("对方无应答") : L10n.tr("超时未应答")
+        case "refused": return outgoing ? L10n.tr("对方已拒绝") : L10n.tr("已拒绝")
+        case "accept": return outgoing ? "" : L10n.tr("已在其他设备接听")
         case "", "disconnect":
             let seconds = max(0, duration)
             let time = String(format: "%02d:%02d", seconds / 60, seconds % 60)
-            let text = reason.isEmpty ? "通话结束" : "通话中断"
+            let text = reason.isEmpty ? L10n.tr("通话结束") : L10n.tr("通话中断")
             return outgoing ? time + " " + text : text + " " + time
         default: return ""
         }

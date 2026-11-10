@@ -65,8 +65,8 @@ nonisolated enum AccountCodePurpose: Int, Sendable { case registration = 1, logi
                         } catch { try self.check(original); throw error }
                     }
                 }
-                answer = try await presenter.present(LoginVerificationRequest(kind: currentChallenge, message: "完成验证后发送验证码", imageData: image,
-                    title: "安全验证", submitTitle: "验证并发送", reloadImage: reloadImage))
+                answer = try await presenter.present(LoginVerificationRequest(kind: currentChallenge, message: L10n.tr("完成验证后发送验证码"), imageData: image,
+                    title: L10n.tr("安全验证"), submitTitle: L10n.tr("验证并发送"), reloadImage: reloadImage))
                 try check(original)
                 if answer.requestsImageFallback {
                     switch currentChallenge {

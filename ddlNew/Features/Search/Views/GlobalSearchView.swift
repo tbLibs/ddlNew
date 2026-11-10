@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 本地好友、群和消息缓存的分类搜索，消息结果按稳定 ID 回到原会话。
 struct GlobalSearchView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject private var store = LoginSessionService.shared.globalSearch
     @ObservedObject private var roles = UserRoleAuthorityStore.shared
     @State private var query = ""
@@ -18,27 +19,27 @@ struct GlobalSearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MessagingSearchField(placeholder: "搜索好友、群聊或消息", text: $query, focus: $searchFocused, identifier: "globalSearchInput")
+            MessagingSearchField(placeholder: L10n.tr("搜索好友、群聊或消息"), text: $query, focus: $searchFocused, identifier: "globalSearchInput")
                 .padding(.horizontal, 16.zoom()).padding(.vertical, 12.zoom()).background(MessagingTheme.surface)
             MessagingScroll {
                 LazyVStack(alignment: .leading, spacing: 12.zoom()) {
                     if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Label("搜索已同步的好友、群聊和聊天记录", systemImage: "magnifyingglass").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity).padding(.vertical, 40.zoom())
+                        Label(L10n.tr("搜索已同步的好友、群聊和聊天记录"), systemImage: "magnifyingglass").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity).padding(.vertical, 40.zoom())
                     }
                     if store.errorMessage != nil {
-                        VStack(alignment: .leading, spacing: 8.zoom()) { Button("重试") { Task { await store.search(query) } }.frame(minHeight: max(44, 44.zoom())) }.padding(16.zoom())
+                        VStack(alignment: .leading, spacing: 8.zoom()) { Button(L10n.tr("重试")) { Task { await store.search(query) } }.frame(minHeight: max(44, 44.zoom())) }.padding(16.zoom())
                     }
                     if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                        !store.isSearching, store.results.isEmpty, store.errorMessage == nil {
-                        Text("没有找到相关结果").foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity).padding(.vertical, 40.zoom()).accessibilityIdentifier("globalSearchEmpty")
+                        Text(L10n.tr("没有找到相关结果")).foregroundStyle(MessagingTheme.secondaryText).frame(maxWidth: .infinity).padding(.vertical, 40.zoom()).accessibilityIdentifier("globalSearchEmpty")
                     }
                     ForEach(GlobalSearchKind.allCases) { kind in resultSection(kind) }
                 }.padding(.vertical, 12.zoom())
             }
         }
-        .navigationTitle("全局搜索").modifier(MessagingPageChrome())
+        .navigationTitle(L10n.tr("全局搜索")).modifier(MessagingPageChrome())
         .messagingFeedbackToast(store.errorMessage)
-        .messagingLoadingToast(store.isSearching, title: "正在搜索")
+        .messagingLoadingToast(store.isSearching, title: L10n.tr("正在搜索"))
         .task { searchFocused = true }
         .task(id: query) {
             do { try await Task<Never, Never>.sleep(nanoseconds: 250_000_000) }
@@ -55,14 +56,14 @@ struct GlobalSearchView: View {
         let records = store.results.filter { $0.kind == kind }
         if !records.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
-                HStack { Text(kind.rawValue).font(.headline); Spacer(); Text("\(records.count)").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                HStack { Text(kind.displayName).font(.headline); Spacer(); Text("\(records.count)").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
                     .padding(16.zoom()).accessibilityAddTraits(.isHeader)
                 ForEach(expanded.contains(kind) ? records : Array(records.prefix(3))) { result in
                     resultLink(result)
                     Divider().overlay(MessagingTheme.divider).padding(.leading, 72.zoom())
                 }
                 if records.count > 3 {
-                    Button(expanded.contains(kind) ? "收起\(kind.rawValue)" : "查看更多\(kind.rawValue)") { if !expanded.insert(kind).inserted { expanded.remove(kind) }; searchFocused = false }
+                    Button(expanded.contains(kind) ? L10n.tr("收起\(kind.displayName)") : L10n.tr("查看更多\(kind.displayName)")) { if !expanded.insert(kind).inserted { expanded.remove(kind) }; searchFocused = false }
                         .font(.subheadline).frame(maxWidth: .infinity, minHeight: max(44, 48.zoom()))
                 }
             }.background(MessagingTheme.surface)

@@ -54,7 +54,7 @@ final class IMUserAuthenticationDelegate: NSObject, NoaToolUserDelegate, NoaTool
     }
 
     nonisolated func imSdkRefreshTokenAuthBanned(_ errorCode: Int) {
-        Task { @MainActor in rejected(errorCode, "账号认证已失效，请重新登录") }
+        Task { @MainActor in rejected(errorCode, L10n.tr("账号认证已失效，请重新登录")) }
     }
 
     nonisolated func imSdkRefreshUsetToken(_ userToken: String, errorMsg msg: String?) {

@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -58,6 +59,6 @@ METHODS
 code = code.replace('ScrollViewProxy', 'PositionProxy')
 (out/'Production.swift').write_text(code)
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatViewportPolicy.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Chat/Models/ChatViewportPolicy.swift" \
  "$ROOT_DIR/Tests/Chat/InitialPositionChecks.swift" "$TMP_DIR/Production.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

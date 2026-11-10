@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -33,7 +34,7 @@ prefix = '''import Foundation
 '''
 (out/'ProductionMentionPage.swift').write_text(request + prefix + methods + '}\n')
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift "$TMP_DIR/ProductionMentionPage.swift" \
  "$ROOT_DIR/Tests/Chat/MentionRequestChecks.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

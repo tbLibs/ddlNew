@@ -62,7 +62,7 @@ final class AccountRegistrationViewModel: ObservableObject {
             } catch {
                 guard self.runID == id, !Task.isCancelled else { return }
                 self.phase = .failed(self.accountWasRegistered
-                    ? "账号已注册，请返回登录页登录。\(error.localizedDescription)"
+                    ? L10n.tr("账号已注册，请返回登录页登录。\(error.localizedDescription)")
                     : error.localizedDescription)
             }
         }

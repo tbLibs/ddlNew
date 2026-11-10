@@ -27,11 +27,11 @@ nonisolated enum PasswordSecurityError: LocalizedError {
     case invalidPassword(requiresSymbol: Bool)
     var errorDescription: String? {
         switch self {
-        case .oldPasswordRejected: return "原密码不正确，请重新输入"
-        case .resetRejected: return "修改密码失败，请重试"
-        case .passwordMismatch: return "两次输入的密码不一致"
+        case .oldPasswordRejected: return L10n.tr("原密码不正确，请重新输入")
+        case .resetRejected: return L10n.tr("修改密码失败，请重试")
+        case .passwordMismatch: return L10n.tr("两次输入的密码不一致")
         case .invalidPassword(let symbol):
-            return symbol ? "密码长度6～16位，须包含字母、数字和英文符号" : "密码长度6～16位，须包含字母和数字，可使用英文符号"
+            return symbol ? L10n.tr("密码长度6～16位，须包含字母、数字和英文符号") : L10n.tr("密码长度6～16位，须包含字母和数字，可使用英文符号")
         }
     }
 }

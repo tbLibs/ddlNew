@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -13,7 +14,7 @@ mapper=(root/'ddlNew/Network/IM/Chat/SDKChatMessageMapper.swift').read_text()
 branch=next(line for line in mapper.splitlines() if line.strip().startswith('case 5: record.'))
 (tmp/'Production.swift').write_text('import Foundation\nimport UniformTypeIdentifiers\nstruct ProductionFileClient {\n'+s[start:end]+'\n}\nstruct ProductionFileMapper { static func record(_ model: NoaIMChatMessageModel) -> ChatMessageRecord { var record = ChatMessageRecord(localID: model.msgID ?? "", conversationID: model.toID ?? "", senderID: model.fromID ?? "", senderName: "", type: 5, timestamp: 1)\nswitch 5 {\n'+branch+'\ndefault: break\n}\nreturn record }\n}\n')
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$TMP_DIR/Production.swift" "$ROOT_DIR/Tests/Chat/FileNameContractChecks.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

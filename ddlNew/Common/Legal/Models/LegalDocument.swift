@@ -12,8 +12,8 @@ enum LegalDocument: String, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .privacy: return "隐私政策"
-        case .support: return "使用支持"
+        case .privacy: return L10n.tr("隐私政策")
+        case .support: return L10n.tr("使用支持")
         }
     }
     var onlineURL: URL? {

@@ -9,6 +9,7 @@ import UIKit
 
 /// UIKit只负责富文本和光标，正文、焦点和成员UID仍由现有SwiftUI/ChatStore拥有。
 struct ChatComposerTextInput: UIViewRepresentable {
+    @Environment(\.locale) private var localizationLocale
     @Binding var text: String
     @Binding var selection: NSRange
     var focused: Binding<Bool>
@@ -25,7 +26,7 @@ struct ChatComposerTextInput: UIViewRepresentable {
         view.textContainerInset = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 0)
         view.adjustsFontForContentSizeCategory = true
         view.allowsEditingTextAttributes = false
-        view.accessibilityLabel = "消息正文"
+        view.accessibilityLabel = L10n.tr("消息正文")
         view.accessibilityIdentifier = "chatMessageInput"
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return view

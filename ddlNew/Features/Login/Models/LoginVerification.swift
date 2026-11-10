@@ -21,7 +21,7 @@ nonisolated struct LoginVerificationRequest: Identifiable, Equatable {
     let reloadImage: (@MainActor () async throws -> Data)?
 
     init(id: UUID = UUID(), kind: LoginVerificationKind, message: String = "", imageData: Data? = nil,
-         title: String = "登录验证", submitTitle: String = "继续登录",
+         title: String = L10n.tr("登录验证"), submitTitle: String = L10n.tr("继续登录"),
          reloadImage: (@MainActor () async throws -> Data)? = nil) {
         self.id = id
         self.kind = kind

@@ -36,8 +36,8 @@ import NoaChatCore
         guard let context else { throw ChatClientError.sessionExpired }
         let group = try await client.request(context: context) { success, failure in self.sdk.getGroupInfo(with: ["groupId": context.route.id, "userUid": context.userUID], onSuccess: success, onFailure: failure) }
         let role = (group["userGroupRole"] as? NSNumber)?.intValue ?? Int(group["userGroupRole"] as? String ?? "") ?? 0
-        guard [1, 2].contains(role), (group["userInGroup"] as? NSNumber)?.boolValue == true else { throw ChatClientError.permission("群管理权限已变化") }
-        guard deleting || !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ChatClientError.permission("公告内容不能为空") }
+        guard [1, 2].contains(role), (group["userInGroup"] as? NSNumber)?.boolValue == true else { throw ChatClientError.permission(L10n.tr("群管理权限已变化")) }
+        guard deleting || !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ChatClientError.permission(L10n.tr("公告内容不能为空")) }
         let values: [String: Any]
         if deleting {
             guard let notice else { throw ChatClientError.invalidResponse }

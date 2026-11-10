@@ -1,9 +1,10 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -euo pipefail
 task_root="$(cd "$(dirname "$0")/../.." && pwd)"
 task_output="$(mktemp -d /tmp/ddlNew-maintenance-checks.XXXXXX)"
 trap 'rm -r -- "$task_output"' EXIT
-xcrun swiftc -swift-version 6 -parse-as-library \
+xcrun swiftc "$localization_source" -swift-version 6 -parse-as-library \
  "$task_root/ddlNew/Network/Session/SessionMaintenanceEngine.swift" \
  "$task_root/Tests/SessionMaintenance/MaintenanceChecks.swift" -o "$task_output/checks"
 "$task_output/checks"
@@ -25,7 +26,7 @@ fi
 swiftc -swift-version 5 -emit-library -emit-module -module-name ObjectMapper \
   "$task_mapper_sources"/*.swift -o "$task_output/libObjectMapper.dylib" \
   -emit-module-path "$task_output/ObjectMapper.swiftmodule"
-xcrun swiftc -swift-version 6 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
+xcrun swiftc "$localization_source" -swift-version 6 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
  "$task_root/ddlNew/Common/User/UserRoleAuthority.swift" \
  "$task_root/ddlNew/Common/User/UserInfo.swift" \
  "$task_root/ddlNew/Common/User/UserSettings.swift" \
@@ -37,7 +38,7 @@ DYLD_LIBRARY_PATH="$task_output" "$task_output/role-checks"
 xcrun clang -fobjc-arc -framework Foundation "$task_root/Tests/SessionMaintenance/SDKRequestFenceChecks.m" -o "$task_output/sdk-fence-checks"
 "$task_output/sdk-fence-checks"
 
-xcrun swiftc -swift-version 6 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
+xcrun swiftc "$localization_source" -swift-version 6 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
  "$task_root/ddlNew/Common/User/UserInfo.swift" \
  "$task_root/ddlNew/Common/User/UserSettings.swift" \
  "$task_root/ddlNew/Common/User/UserProfileCache.swift" \
@@ -47,6 +48,6 @@ xcrun swiftc -swift-version 6 -parse-as-library -I "$task_output" -L "$task_outp
  "$task_root/Tests/SessionMaintenance/SettingsChecks.swift" -o "$task_output/settings-checks"
 DYLD_LIBRARY_PATH="$task_output" "$task_output/settings-checks"
 
-xcrun swiftc -swift-version 6 -parse-as-library "$task_root/ddlNew/Configuration/GroupActivitySyncPolicy.swift" "$task_root/Tests/SessionMaintenance/GroupActivityChecks.swift" -o "$task_output/activity-checks"
+xcrun swiftc "$localization_source" -swift-version 6 -parse-as-library "$task_root/ddlNew/Configuration/GroupActivitySyncPolicy.swift" "$task_root/Tests/SessionMaintenance/GroupActivityChecks.swift" -o "$task_output/activity-checks"
 "$task_output/activity-checks"
 bash "$task_root/Tests/SessionMaintenance/run-activity-integration-checks.sh"

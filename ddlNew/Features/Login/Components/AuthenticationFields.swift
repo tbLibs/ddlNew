@@ -12,6 +12,7 @@ struct AuthenticationTextButtonStyle: ButtonStyle {
 }
 
 struct AuthenticationMethodPicker: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var selection: AccountIdentity.Kind
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
@@ -25,7 +26,7 @@ struct AuthenticationMethodPicker: View {
         .background(LoginPalette.background)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("登录注册方式")
+        .accessibilityLabel(L10n.tr("登录注册方式"))
     }
     private var choices: some View {
         ForEach(AccountIdentity.Kind.displayOrder, id: \.self) { kind in
@@ -47,6 +48,7 @@ struct AuthenticationMethodPicker: View {
 }
 
 struct AuthenticationField: View {
+    @Environment(\.locale) private var localizationLocale
     let title: String
     let placeholder: String
     @Binding var text: String
@@ -71,7 +73,7 @@ struct AuthenticationField: View {
                         }.frame(minWidth: 60, minHeight: 44)
                     }
                     .foregroundStyle(LoginPalette.darkTeal)
-                    .accessibilityLabel("国家或地区区号，+\(prefix)")
+                    .accessibilityLabel(L10n.tr("国家或地区区号，+\(prefix)"))
                     .accessibilityIdentifier("chooseCallingCode")
                 }
                 Group {
@@ -89,7 +91,7 @@ struct AuthenticationField: View {
                             .frame(width: 44, height: 44)
                     }
                     .foregroundStyle(LoginPalette.secondary)
-                    .accessibilityLabel(isPasswordVisible ? "隐藏密码" : "显示密码")
+                    .accessibilityLabel(isPasswordVisible ? L10n.tr("隐藏密码") : L10n.tr("显示密码"))
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 4)
@@ -102,13 +104,14 @@ struct AuthenticationField: View {
 }
 
 struct AccountIdentityField: View {
+    @Environment(\.locale) private var localizationLocale
     let kind: AccountIdentity.Kind
     @Binding var value: String
     @Binding var areaCode: String
     var focus: FocusState<AuthenticationFocus?>.Binding
     @State private var choosingCode = false
     var body: some View {
-        AuthenticationField(title: kind.title, placeholder: "请输入\(kind.title)", text: $value,
+        AuthenticationField(title: kind.title, placeholder: L10n.tr("请输入\(kind.title)"), text: $value,
             field: .identity, focus: focus, keyboard: kind == .phone ? .phonePad : .asciiCapable,
             contentType: kind == .phone ? .telephoneNumber : .username,
             prefix: kind == .phone ? areaCode : nil, selectPrefix: { focus.wrappedValue = nil; choosingCode = true })
@@ -117,6 +120,7 @@ struct AccountIdentityField: View {
 }
 
 struct AccountCodeField: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var code: String
     let identity: AccountIdentity
     let purpose: AccountCodePurpose
@@ -125,7 +129,7 @@ struct AccountCodeField: View {
     var focus: FocusState<AuthenticationFocus?>.Binding
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            AuthenticationField(title: "验证码", placeholder: "请输入6位验证码", text: $code, field: .code,
+            AuthenticationField(title: L10n.tr("验证码"), placeholder: L10n.tr("请输入6位验证码"), text: $code, field: .code,
                 focus: focus, keyboard: .numberPad, contentType: .oneTimeCode)
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let remaining = sender.remaining(for: identity, purpose: purpose, scope: scope, at: context.date)
@@ -133,7 +137,7 @@ struct AccountCodeField: View {
                     focus.wrappedValue = nil
                     sender.send(to: identity, purpose: purpose, scope: scope)
                 } label: {
-                    Text(sender.isSending ? "正在发送…" : remaining > 0 ? "\(remaining)秒后重新获取" : "获取验证码")
+                    Text(sender.isSending ? L10n.tr("正在发送…") : remaining > 0 ? L10n.tr("\(remaining)秒后重新获取") : L10n.tr("获取验证码"))
                         .font(.subheadline.weight(.medium)).monospacedDigit()
                         .frame(minHeight: 44)
                 }
@@ -147,6 +151,7 @@ struct AccountCodeField: View {
 }
 
 struct CallingCodePicker: View {
+    @Environment(\.locale) private var localizationLocale
     @Binding var selection: String
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
@@ -158,7 +163,7 @@ struct CallingCodePicker: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(item.name).foregroundStyle(LoginPalette.ink)
+                            Text(item.displayName).foregroundStyle(LoginPalette.ink)
                             Text(item.englishName).font(.caption).foregroundStyle(LoginPalette.secondary)
                         }
                         Spacer(minLength: 16)
@@ -166,9 +171,9 @@ struct CallingCodePicker: View {
                     }.frame(minHeight: 44)
                 }
             }
-            .searchable(text: $search, prompt: "搜索国家、地区或区号")
-            .navigationTitle("国家或地区").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
+            .searchable(text: $search, prompt: L10n.tr("搜索国家、地区或区号"))
+            .navigationTitle(L10n.tr("国家或地区")).navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { dismiss() } } }
         }.tint(LoginPalette.darkTeal)
     }
 }

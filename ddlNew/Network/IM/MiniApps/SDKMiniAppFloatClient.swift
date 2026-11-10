@@ -24,11 +24,11 @@ import NoaChatCore
     func save(_ record: MiniAppFloatRecord, context: ChatContext) throws {
         try validate(context)
         let value = NoaFloatMiniAppModel(); value.floladId = prefix(context) + record.id; value.title = record.title; value.url = record.url; value.headerUrl = record.icon
-        guard NoaIMSDKManager.sharedTool().imSdkInsertFloatMiniApp(with: value) else { throw MiniAppError.invalid("浮窗保存失败") }
+        guard NoaIMSDKManager.sharedTool().imSdkInsertFloatMiniApp(with: value) else { throw MiniAppError.invalid(L10n.tr("浮窗保存失败")) }
     }
     func delete(id: String, context: ChatContext) throws {
         try validate(context)
-        guard NoaIMSDKManager.sharedTool().imSdkDeleteFloatMiniApp(with: prefix(context) + id) else { throw MiniAppError.invalid("浮窗删除失败") }
+        guard NoaIMSDKManager.sharedTool().imSdkDeleteFloatMiniApp(with: prefix(context) + id) else { throw MiniAppError.invalid(L10n.tr("浮窗删除失败")) }
     }
     func clear(context: ChatContext) throws {
         try validate(context)

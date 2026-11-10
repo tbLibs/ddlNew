@@ -104,9 +104,11 @@ final class SDKConversationsClient: ConversationsClient {
     /// 单聊名称随好友库的已确认备注变化，旧会话快照不能覆盖新备注或清空结果。
     nonisolated static func displayTitle(_ model: LingIMSessionModel, id: String, kind: ConversationKind, sdk: NoaIMSDKManager) -> String {
         if kind == .single, let friend = sdk.toolCheckMyFriend(with: id) {
-            if friend.disableStatus == 4 { return "账号已注销" }
+            if friend.disableStatus == 4 { return L10n.tr("账号已注销") }
+            if id == "100002", (friend.remarks ?? "").isEmpty { return L10n.tr("文件助手") }
             return [friend.remarks ?? "", friend.nickname ?? "", friend.userName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
         }
+        if kind == .single, id == "100002" { return L10n.tr("文件助手") }
         return [model.sessionName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
     }
 
@@ -114,7 +116,7 @@ final class SDKConversationsClient: ConversationsClient {
 
 private enum ConversationsClientError: LocalizedError {
     case cacheReadFailed
-    var errorDescription: String? { "无法读取 SDK 会话缓存" }
+    var errorDescription: String? { L10n.tr("无法读取 SDK 会话缓存") }
 }
 
 private extension ConversationKind {
@@ -135,7 +137,7 @@ private enum ConversationPreview {
     /// 为不同消息生成列表摘要，正文仍由真实聊天页呈现。
     nonisolated static func text(for message: NoaIMChatMessageModel?, kind: ConversationKind, userUID: String,
                                  sdk: NoaIMSDKManager) -> String {
-        guard let message else { return "暂无消息" }
+        guard let message else { return L10n.tr("暂无消息") }
         let type = Int(message.messageType.rawValue)
         let text = body(for: message, type: type, userUID: userUID)
         var senderName = message.fromNickname ?? ""
@@ -144,7 +146,7 @@ private enum ConversationPreview {
             let friend = sdk.toolCheckMyFriend(with: sender)
             // 好友存在时空备注代表主动清空，不能回退到群成员表的旧备注。
             let remark = friend.map { $0.remarks ?? "" } ?? cached?.remarks ?? ""
-            senderName = cached?.disableStatus == 4 || friend?.disableStatus == 4 ? "账号已注销" : [remark, cached?.nicknameInGroup ?? "", cached?.userNickname ?? "", senderName, sender].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? sender
+            senderName = cached?.disableStatus == 4 || friend?.disableStatus == 4 ? L10n.tr("账号已注销") : [remark, cached?.nicknameInGroup ?? "", cached?.userNickname ?? "", senderName, sender].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? sender
         }
         let mentions = message.atUsersInfoList as? [[String: Any]] ?? []
         let mentionsMe = type == 10 && mentions.contains { $0[userUID] != nil || $0["-1"] != nil }
@@ -156,20 +158,20 @@ private enum ConversationPreview {
     nonisolated private static func body(for message: NoaIMChatMessageModel, type: Int, userUID: String) -> String {
         switch type {
         case 0: return message.textContent ?? ""
-        case 1: return "[图片]"
-        case 2: return "[视频]"
-        case 3, 7: return "[位置]"
-        case 4: return "[语音]"
-        case 5: return message.showFileName ?? message.fileName ?? "[文件]"
-        case 6: return "[名片]"
-        case 8: return "[消息已撤回]"
+        case 1: return L10n.tr("[图片]")
+        case 2: return L10n.tr("[视频]")
+        case 3, 7: return L10n.tr("[位置]")
+        case 4: return L10n.tr("[语音]")
+        case 5: return message.showFileName ?? message.fileName ?? L10n.tr("[文件]")
+        case 6: return L10n.tr("[名片]")
+        case 8: return L10n.tr("[消息已撤回]")
         case 10: return SDKChatMessageMapper.record(message, userUID: userUID).text
-        case 12, 21: return "[表情]"
-        case 16: return message.groupNoticeContent ?? "[群公告]"
-        case 18: return "[聊天记录]"
-        case 20: return "[通话]"
-        case 1000: return message.systemNoticeContent ?? "[系统通知]"
-        default: return "[消息]"
+        case 12, 21: return L10n.tr("[表情]")
+        case 16: return message.groupNoticeContent ?? L10n.tr("[群公告]")
+        case 18: return L10n.tr("[聊天记录]")
+        case 20: return L10n.tr("[通话]")
+        case 1000: return message.systemNoticeContent ?? L10n.tr("[系统通知]")
+        default: return L10n.tr("[消息]")
         }
     }
 }

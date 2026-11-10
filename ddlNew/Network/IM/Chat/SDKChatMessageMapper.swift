@@ -71,13 +71,13 @@ enum SDKChatMessageMapper {
                     let remark = friend.map { $0.remarks ?? "" } ?? member.remarks ?? ""
                     record.senderName = [remark, member.nicknameInGroup ?? "", member.userNickname ?? "", record.senderName, record.senderID].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? record.senderID
                     // 部分成员缓存尚无头像，不能用空串覆盖消息自带头像；注销状态仍明确清空。
-                    if member.disableStatus == 4 || friend?.disableStatus == 4 { record.senderName = "账号已注销"; record.avatarURL = "" }
+                    if member.disableStatus == 4 || friend?.disableStatus == 4 { record.senderName = L10n.tr("账号已注销"); record.avatarURL = "" }
                     else if let avatar = member.userAvatar, !avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { record.avatarURL = avatar }
                 }
             } else {
                 let friend: LingIMFriendModel? = sdk.toolCheckMyFriend(with: record.senderID)
                 if let friend {
-                    record.senderName = friend.disableStatus == 4 ? "账号已注销" : [friend.remarks ?? "", friend.nickname ?? "", friend.showName ?? "", record.senderName, record.senderID].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? record.senderID
+                    record.senderName = friend.disableStatus == 4 ? L10n.tr("账号已注销") : [friend.remarks ?? "", friend.nickname ?? "", friend.showName ?? "", record.senderName, record.senderID].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? record.senderID
                     // 空好友缓存不代表头像已删除，保留消息提供的有效资源。
                     if friend.disableStatus == 4 { record.avatarURL = "" }
                     else if let avatar = friend.avatar, !avatar.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { record.avatarURL = avatar }
@@ -137,7 +137,7 @@ enum SDKChatMessageMapper {
             groupInformStatus: group?.groupInformStatus, role: group?.userGroupRole, isSilence: silence,
             subtype: subtype, informSwitch: informSwitch, informUIDs: informUIDs, actorID: actorID, targetID: targetID) else { return "" }
         func name(_ uid: String, _ nick: String, _ group: String = "") -> String {
-            if uid == userUID { return "你" }
+            if uid == userUID { return L10n.tr("你") }
             let sdk = NoaIMSDKManager.sharedTool()
             var value = nick
             if sdk.myUserID() == userUID, sdk.isUserDatabaseReady() {
@@ -150,70 +150,69 @@ enum SDKChatMessageMapper {
                     }
                 }
             }
-            return value.isEmpty ? "成员" : "“" + value + "”"
+            return value.isEmpty ? L10n.tr("成员") : "“" + value + "”"
         }
         func names(_ values: NSMutableArray, group: String, excluding: String = "") -> String {
-            (values as? [NoaChatCore.UserInfo] ?? []).filter { $0.uId != excluding }.map { name($0.uId, $0.uNick, group) }.joined(separator: "、")
+            (values as? [NoaChatCore.UserInfo] ?? []).filter { $0.uId != excluding }.map { name($0.uId, $0.uNick, group) }.joined(separator: L10n.languageCode == "en" ? ", " : "、")
         }
         switch Int(server.sMsgType.rawValue) {
-        case 105: return "您还不是对方好友，请先添加好友。"
-        case 106: return server.friendBlackMessage?.type == 1 ? "已拉黑" : "对方已拒绝接受你的消息"
+        case 105: return L10n.tr("您还不是对方好友，请先添加好友。")
+        case 106: return server.friendBlackMessage?.type == 1 ? L10n.tr("已拉黑") : L10n.tr("对方已拒绝接受你的消息")
         case 200:
             guard let body = server.createGroupMessage else { return "" }
             let invited = names(body.inviteUidArray, group: body.gid, excluding: body.uid)
-            return name(body.uid, body.nick, body.gid) + (invited.isEmpty ? "创建了群聊" : "邀请了" + invited + "加入群聊")
+            return invited.isEmpty ? L10n.tr("\(name(body.uid, body.nick, body.gid))创建了群聊") : L10n.tr("\(name(body.uid, body.nick, body.gid))邀请了\(invited)加入群聊")
         case 203:
-            guard let body = server.outGroupMessage else { return "" }; return name(body.uid, body.nick, body.gid) + "退出了群聊"
+            guard let body = server.outGroupMessage else { return "" }; return L10n.tr("\(name(body.uid, body.nick, body.gid))退出了群聊")
         case 204:
             guard let body = server.kickGroupMessage else { return "" }
-            return body.uid == userUID ? "你已被移出群聊" : name(body.operateUid, body.operateNick, body.gid) + "将" + name(body.uid, body.nick, body.gid) + "移出群聊"
+            return body.uid == userUID ? L10n.tr("你已被移出群聊") : L10n.tr("\(name(body.operateUid, body.operateNick, body.gid))将\(name(body.uid, body.nick, body.gid))移出群聊")
         case 205:
-            guard let body = server.delGroupMessage else { return "" }; return name(body.uid, body.nick, body.gid) + "解散了该群"
+            guard let body = server.delGroupMessage else { return "" }; return L10n.tr("\(name(body.uid, body.nick, body.gid))解散了该群")
         case 206:
-            guard let body = server.transferOwnerMessage else { return "" }; return "群主变更为" + name(body.uid, body.nick, body.gid)
+            guard let body = server.transferOwnerMessage else { return "" }; return L10n.tr("群主变更为\(name(body.uid, body.nick, body.gid))")
         case 207, 213, 238:
             guard let body = server.groupStatusMessage else { return "" }
-            let operation = body.status == 1 ? "开启了" : "关闭了"
-            let setting = server.sMsgType.rawValue == 207 ? "全员禁言" : server.sMsgType.rawValue == 213 ? "入群邀请确认" : "新成员可查看历史消息"
-            return name(body.uid, body.nick, body.gid) + operation + setting
+            let setting = server.sMsgType.rawValue == 207 ? L10n.tr("全员禁言") : server.sMsgType.rawValue == 213 ? L10n.tr("入群邀请确认") : L10n.tr("新成员可查看历史消息")
+            return body.status == 1 ? L10n.tr("\(name(body.uid, body.nick, body.gid))开启了\(setting)") : L10n.tr("\(name(body.uid, body.nick, body.gid))关闭了\(setting)")
         case 208:
-            guard let body = server.noticeGroupMessage else { return "" }; return name(body.uid, body.nick, body.gid) + "设置了群公告"
+            guard let body = server.noticeGroupMessage else { return "" }; return L10n.tr("\(name(body.uid, body.nick, body.gid))设置了群公告")
         case 210:
-            guard let body = server.nameGroupMessage else { return "" }; return name(body.uid, body.nick, body.gid) + "将群名称修改为：" + body.gName
+            guard let body = server.nameGroupMessage else { return "" }; return L10n.tr("\(name(body.uid, body.nick, body.gid))将群名称修改为：\(body.gName)")
         case 211:
             guard let body = server.adminGroupMessage else { return "" }
             let targets = names(body.adminInfoArray, group: body.gid)
             let target = targets.isEmpty ? name(body.uid, body.nick, body.gid) : targets
-            return name(body.operateUid, body.operateNick, body.gid) + (body.type == 1 ? "将" + target + "设为管理员" : "将" + target + "从管理员中移除")
+            return body.type == 1 ? L10n.tr("\(name(body.operateUid, body.operateNick, body.gid))将\(target)设为管理员") : L10n.tr("\(name(body.operateUid, body.operateNick, body.gid))将\(target)从管理员中移除")
         case 215:
             guard let body = server.inviteConfirmGroupMessage else { return "" }
             if body.type == 5 { return "" }
             let targets = names(body.inviteUidArray, group: body.gid)
-            if body.type == 4 { return (targets.isEmpty ? "新成员" : targets) + "通过扫描二维码加入群聊" }
-            return name(body.uid, body.nick, body.gid) + "邀请了" + (targets.isEmpty ? "新成员" : targets) + "加入群聊"
-        case 216: return "你已不在该群"
-        case 217: return "群组已解散"
-        case 218: return "该群开启了全员禁言"
+            if body.type == 4 { return L10n.tr("\(targets.isEmpty ? L10n.tr("新成员") : targets)通过扫描二维码加入群聊") }
+            return L10n.tr("\(name(body.uid, body.nick, body.gid))邀请了\(targets.isEmpty ? L10n.tr("新成员") : targets)加入群聊")
+        case 216: return L10n.tr("你已不在该群")
+        case 217: return L10n.tr("群组已解散")
+        case 218: return L10n.tr("该群开启了全员禁言")
         case 219:
-            guard let body = server.delGroupNotice else { return "" }; return name(body.uid, body.nick, body.gid) + "删除了群公告"
+            guard let body = server.delGroupNotice else { return "" }; return L10n.tr("\(name(body.uid, body.nick, body.gid))删除了群公告")
         case 221:
             guard let body = server.groupSingleForbidMessage else { return "" }
             let target = name(body.toUid, body.toNick, body.gid)
             let actor = name(body.fromUid, body.fromNick, body.gid)
-            let duration = body.expireTime > 0 ? "\(body.expireTime)分钟" : ""
-            return target + "被" + actor + (body.status == 1 ? "禁言" + duration : "解除禁言")
-        case 222: return "你已被禁言"
+            let duration = body.expireTime > 0 ? L10n.tr("\(body.expireTime)分钟") : ""
+            return body.status == 1 ? L10n.tr("\(target)被\(actor)禁言\(duration)") : L10n.tr("\(target)被\(actor)解除禁言")
+        case 222: return L10n.tr("你已被禁言")
         case 230:
-            guard let body = server.inviteJoinGroupNoFriendMessage else { return "" }; return name(body.operateUid, body.operateNick, body.gid) + "未添加你为好友，无法邀请进入群聊"
+            guard let body = server.inviteJoinGroupNoFriendMessage else { return "" }; return L10n.tr("\(name(body.operateUid, body.operateNick, body.gid))未添加你为好友，无法邀请进入群聊")
         case 231:
-            guard let body = server.avatarGroupMessage else { return "" }; return name(body.uid, body.nick, body.gid) + "修改了群头像"
+            guard let body = server.avatarGroupMessage else { return "" }; return L10n.tr("\(name(body.uid, body.nick, body.gid))修改了群头像")
         case 232:
             guard let body = server.scheduleDeleteMessage else { return "" }
-            if body.type == 2 { return "已按设置清理到期消息" }
-            return name(body.userId, body.userNick) + (body.freq > 0 ? "设置消息在\(body.freq)天后自动删除" : "关闭了消息自动删除")
+            if body.type == 2 { return L10n.tr("已按设置清理到期消息") }
+            return body.freq > 0 ? L10n.tr("\(name(body.userId, body.userNick))设置消息在\(body.freq)天后自动删除") : L10n.tr("\(name(body.userId, body.userNick))关闭了消息自动删除")
         case 237:
-            guard let body = server.inviteJoinGroupBlackFriendMessage else { return "" }; return name(body.operateUid, body.operateNick, body.gid) + "拒绝加入群聊"
-        case 507: return "账号已注销"
+            guard let body = server.inviteJoinGroupBlackFriendMessage else { return "" }; return L10n.tr("\(name(body.operateUid, body.operateNick, body.gid))拒绝加入群聊")
+        case 507: return L10n.tr("账号已注销")
         default: return ""
         }
     }

@@ -44,7 +44,7 @@ import AVFoundation
         loadedContext = context; loadedSenderID = message.senderID; loadedMessageID = message.id; loadedServerID = message.serverID
         let host = OSSConnectionBootstrap.shared.current?.getFileHost
         guard ChatRuntime.shared.isCurrent(context),
-              let resource = RemoteAvatarURL.resolve(message.resource, relativeTo: host) else { errorMessage = "资源地址已不可用"; return }
+              let resource = RemoteAvatarURL.resolve(message.resource, relativeTo: host) else { errorMessage = L10n.tr("资源地址已不可用"); return }
         loading = true; defer { if generation == run { loading = false } }
         do {
             let identity = SHA256.hash(data: Data((context.tenantID + ":" + context.userUID).utf8)).map { String(format: "%02x", $0) }.joined()
@@ -60,7 +60,7 @@ import AVFoundation
             let (temporary, response) = try await session.download(for: URLRequest(url: resource))
             defer { try? FileManager.default.removeItem(at: temporary) }
             guard !Task.isCancelled, generation == run, ChatRuntime.shared.isCurrent(context) else { return }
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw ChatClientError.unavailable("附件已失效或下载失败，请重试") }
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw ChatClientError.unavailable(L10n.tr("附件已失效或下载失败，请重试")) }
             // 解包脱离主线程，但页面取消、后台关闭和原条删除仍须停止流式读写。
             let decoding = Task.detached { try LegacyChatMediaCodec.decodeFile(temporary) }
             decodingTask = decoding
@@ -73,7 +73,7 @@ import AVFoundation
             defer { if decoded != temporary { try? FileManager.default.removeItem(at: decoded) } }
             guard !Task.isCancelled, generation == run, ChatRuntime.shared.isCurrent(context) else { return }
             try FileManager.default.moveItem(at: decoded, to: cached); file = cached
-        } catch { if generation == run, !Task.isCancelled, !(error is CancellationError) { errorMessage = "下载失败：" + error.localizedDescription } }
+        } catch { if generation == run, !Task.isCancelled, !(error is CancellationError) { errorMessage = L10n.tr("下载失败：") + error.localizedDescription } }
     }
 
     /// 成员历史删除只停止同身份同会话被删作者的已打开预览，不影响录音草稿。
@@ -94,18 +94,18 @@ import AVFoundation
     }
 
     /// 删除原条后取消网络和播放并保持失效标记，前台恢复也不能重新取旧资源。
-    private func invalidate(_ id: String) { close(); invalidatedMessageID = id; isInvalidated = true; errorMessage = "原消息已删除，附件已停止播放或下载" }
+    private func invalidate(_ id: String) { close(); invalidatedMessageID = id; isInvalidated = true; errorMessage = L10n.tr("原消息已删除，附件已停止播放或下载") }
 
     /// 语音文件真正开始播放后才由页面报告已读，下载与可见不算播放。
     func playVoice() throws -> Bool {
-        guard CallCoordinator.shared.session == nil else { throw ChatClientError.unavailable("通话中暂不能播放语音") }
+        guard CallCoordinator.shared.session == nil else { throw ChatClientError.unavailable(L10n.tr("通话中暂不能播放语音")) }
         guard let file else { return false }
         self.player?.stop()
         let player = try AVAudioPlayer(contentsOf: file); player.delegate = self; self.player = player
         do {
             try configureAudio()
             observeInterruption()
-            guard player.play() else { throw ChatClientError.unavailable("语音无法播放，请重试") }
+            guard player.play() else { throw ChatClientError.unavailable(L10n.tr("语音无法播放，请重试")) }
             playing = true; return true
         } catch {
             player.stop(); self.player = nil; playing = false; releaseVoiceAudio()

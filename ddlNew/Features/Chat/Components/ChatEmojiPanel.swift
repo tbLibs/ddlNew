@@ -9,6 +9,7 @@ import UIAdapter
 
 /// 基础表情插入旧端文本标记；SDK贴纸仍使用独立的真实资源发送链路。
 struct ChatEmojiPanel: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var chat: ChatStore
     @Binding var selection: NSRange
     @State private var tab = 0
@@ -17,17 +18,17 @@ struct ChatEmojiPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Picker("表情类型", selection: $tab) { Text("表情").tag(0); Text("贴纸").tag(1) }.pickerStyle(.segmented)
+                Picker(L10n.tr("表情类型"), selection: $tab) { Text(L10n.tr("表情")).tag(0); Text(L10n.tr("贴纸")).tag(1) }.pickerStyle(.segmented)
                 if tab == 0 {
                     Button { edit(ChatEmojiCatalog.deletingBackward(chat.input, selection: selection)) } label: {
                         Image(systemName: "delete.left").frame(width: 44, height: 44)
-                    }.accessibilityLabel("删除前一个表情或文字").disabled(chat.input.isEmpty)
+                    }.accessibilityLabel(L10n.tr("删除前一个表情或文字")).disabled(chat.input.isEmpty)
                 }
             }.padding(.horizontal, 12.zoom())
             if tab == 0 {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8.zoom()) {
-                        Text("互动表情").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                        Text(L10n.tr("互动表情")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                         HStack(spacing: 12.zoom()) {
                             ForEach(ChatGameSticker.allCases) { game in
                                 Button { chat.sendGame(game) } label: {
@@ -35,12 +36,12 @@ struct ChatEmojiPanel: View {
                                         Image(game.icon).resizable().scaledToFit().frame(width: 44.zoom(), height: 44.zoom())
                                         Text(game.title).font(.caption).foregroundStyle(MessagingTheme.text)
                                     }.frame(maxWidth: .infinity, minHeight: 64).contentShape(Rectangle())
-                                }.buttonStyle(.plain).accessibilityLabel("发送" + game.title)
+                                }.buttonStyle(.plain).accessibilityLabel(L10n.tr("发送") + game.title)
                             }
                         }
-                        Text("最近使用").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                        Text(L10n.tr("最近使用")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                         grid(recent.isEmpty ? Array(ChatEmojiCatalog.items.prefix(7)) : recent)
-                        Text("全部表情").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
+                        Text(L10n.tr("全部表情")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                         grid(ChatEmojiCatalog.items)
                     }.padding(.horizontal, 12.zoom()).padding(.bottom, 12.zoom())
                 }
@@ -58,7 +59,7 @@ struct ChatEmojiPanel: View {
                 } label: {
                     Image(item.image).resizable().scaledToFit().frame(width: 30.zoom(), height: 30.zoom())
                         .frame(maxWidth: .infinity, minHeight: 44)
-                }.buttonStyle(.plain).accessibilityLabel("插入表情" + item.token)
+                }.buttonStyle(.plain).accessibilityLabel(L10n.tr("插入表情") + item.token)
             }
         }
     }

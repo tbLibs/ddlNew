@@ -47,20 +47,20 @@ enum CallError: LocalizedError {
         case .server(let code, let message):
             // 与 xgd NoaNetResultCode.plist 的通话错误映射一致。
             switch code {
-            case 900017: return "用户已经注销"
-            case 900018: return "用户已经被拉黑"
-            case 900019: return "你已经被拉黑"
-            case 910001: return "对方正在通话中"
-            case 910002: return "你已经在通话中了"
-            case 910003: return "通话记录不存在"
-            case 910004: return "用户不在线"
-            case 910005: return "通话状态错误"
-            case 910006: return "通话token构建错误"
-            case 910007: return "邀请的用户不符合条件"
-            case 910008: return "通话已结束"
+            case 900017: return L10n.tr("用户已经注销")
+            case 900018: return L10n.tr("用户已经被拉黑")
+            case 900019: return L10n.tr("你已经被拉黑")
+            case 910001: return L10n.tr("对方正在通话中")
+            case 910002: return L10n.tr("你已经在通话中了")
+            case 910003: return L10n.tr("通话记录不存在")
+            case 910004: return L10n.tr("用户不在线")
+            case 910005: return L10n.tr("通话状态错误")
+            case 910006: return L10n.tr("通话token构建错误")
+            case 910007: return L10n.tr("邀请的用户不符合条件")
+            case 910008: return L10n.tr("通话已结束")
             default:
                 let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
-                return text.isEmpty ? "通话请求失败，请稍后重试" : text
+                return text.isEmpty ? L10n.tr("通话请求失败，请稍后重试") : text
             }
         }
     }

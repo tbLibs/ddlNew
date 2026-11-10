@@ -1,10 +1,11 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -euo pipefail
 task_root="$(cd "$(dirname "$0")/../.." && pwd)"
 task_output="$(mktemp -d /tmp/ddlNew-mine-sdk.XXXXXX)"
 trap 'rm -rf "$task_output"' EXIT
 sed '/^import NoaChatCore$/d' "$task_root/ddlNew/Network/IM/SDKOwnProfileClient.swift" > "$task_output/SDKOwnProfileClient.swift"
-swiftc -swift-version 5 -parse-as-library \
+swiftc "$localization_source" -swift-version 5 -parse-as-library \
  "$task_root/ddlNew/Features/Mine/Models/OwnProfileChange.swift" \
  "$task_root/ddlNew/Features/Chat/Models/ChatContext.swift" \
  "$task_root/ddlNew/Features/Chat/Models/ChatRoute.swift" \

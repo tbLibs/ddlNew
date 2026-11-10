@@ -24,7 +24,7 @@ import Combine
             messages[index].unread = false
             return messages[index]
         }
-        let conversation = ClubMessage(id: id, title: contact.name, preview: "点击开始聊天", body: "", time: "", icon: "person", isNotice: false, unread: false, contactID: contact.id)
+        let conversation = ClubMessage(id: id, title: contact.name, preview: L10n.tr("点击开始聊天"), body: "", time: "", icon: "person", isNotice: false, unread: false, contactID: contact.id)
         conversations[id] = []
         messages.insert(conversation, at: 0)
         return conversation
@@ -42,12 +42,12 @@ import Combine
     func sendMessage(in conversationID: String) {
         let text = (drafts[conversationID] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let index = messages.firstIndex(where: { $0.id == conversationID }) else { return }
-        let time = Date().formatted(date: .omitted, time: .shortened)
+        let time = Date().formatted(.dateTime.hour().minute().locale(L10n.locale))
         conversations[conversationID, default: []].append(ChatEntry(text: text, isOutgoing: true, time: time))
         drafts[conversationID] = ""
         var conversation = messages.remove(at: index)
-        conversation.preview = "我：\(text)"
-        conversation.time = "刚刚"
+        conversation.preview = L10n.tr("我：\(text)")
+        conversation.time = L10n.tr("刚刚")
         conversation.unread = false
         messages.insert(conversation, at: 0)
     }

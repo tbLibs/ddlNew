@@ -25,17 +25,17 @@ final class BusinessQRCameraController: UIViewController, AVCaptureMetadataOutpu
         case .authorized: configure()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                Task { @MainActor [weak self] in if granted { self?.configure() } else { self?.onError?("请在系统设置中允许摄像头访问") } }
+                Task { @MainActor [weak self] in if granted { self?.configure() } else { self?.onError?(L10n.tr("请在系统设置中允许摄像头访问")) } }
             }
-        default: onError?("请在系统设置中允许摄像头访问")
+        default: onError?(L10n.tr("请在系统设置中允许摄像头访问"))
         }
     }
 
     /// 会话使用后置镜头QR元数据，预览在主线程布局。
     private func configure() {
-        guard active, let device = AVCaptureDevice.default(for: .video), let input = try? AVCaptureDeviceInput(device: device) else { onError?("此设备无法使用摄像头"); return }
+        guard active, let device = AVCaptureDevice.default(for: .video), let input = try? AVCaptureDeviceInput(device: device) else { onError?(L10n.tr("此设备无法使用摄像头")); return }
         let output = AVCaptureMetadataOutput()
-        guard session.canAddInput(input), session.canAddOutput(output) else { onError?("相机初始化失败"); return }
+        guard session.canAddInput(input), session.canAddOutput(output) else { onError?(L10n.tr("相机初始化失败")); return }
         session.addInput(input); session.addOutput(output)
         output.setMetadataObjectsDelegate(self, queue: .main); output.metadataObjectTypes = [.qr]
         let layer = AVCaptureVideoPreviewLayer(session: session); layer.videoGravity = .resizeAspectFill

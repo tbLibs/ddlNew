@@ -11,6 +11,7 @@ import UIKit
 
 /// 使用所在Tab的NavigationStack，页面不创建第二个聊天导航所有者。
 struct ChatRoomView: View {
+    @Environment(\.locale) private var localizationLocale
     let route: ChatRoute
     @StateObject private var store: ChatStore
     @ObservedObject private var runtime = ChatRuntime.shared
@@ -83,15 +84,15 @@ struct ChatRoomView: View {
                         Task { await calls.joinGroupRoom(context: context) }
                     }
                 }
-                if let notice = pinnedNotice { Button { showNotices = true } label: { Label("群公告：" + notice.content, systemImage: "megaphone").lineLimit(2).padding(10.zoom()) }.accessibilityLabel("查看置顶群公告 " + notice.content) }
+                if let notice = pinnedNotice { Button { showNotices = true } label: { Label(L10n.tr("群公告：") + notice.content, systemImage: "megaphone").lineLimit(2).padding(10.zoom()) }.accessibilityLabel(L10n.tr("查看置顶群公告 ") + notice.content) }
                 if let pinned = pinnedMessages.first {
                     HStack(spacing: 0) {
                         Button { locateMessage(pinned.serverID.isEmpty ? pinned.localID : pinned.serverID) } label: {
                             HStack { Image(systemName: "pin.fill"); Text(pinned.displayText).lineLimit(1); Spacer(minLength: 0) }.padding(10.zoom()).frame(maxWidth: .infinity)
-                        }.accessibilityLabel("定位置顶消息 " + pinned.displayText)
+                        }.accessibilityLabel(L10n.tr("定位置顶消息 ") + pinned.displayText)
                         Button { composerFocused = false; showPinnedMessages = true } label: {
-                            HStack { Text("\(pinnedMessages.count)条"); Image(systemName: "list.bullet") }.padding(10.zoom()).frame(minHeight: 44)
-                        }.accessibilityLabel("查看全部置顶消息")
+                            HStack { Text(L10n.tr("\(pinnedMessages.count)条")); Image(systemName: "list.bullet") }.padding(10.zoom()).frame(minHeight: 44)
+                        }.accessibilityLabel(L10n.tr("查看全部置顶消息"))
                     }.buttonStyle(.plain)
                 }
 
@@ -147,7 +148,7 @@ struct ChatRoomView: View {
                 .opacity(initialMessagesReady ? 1 : 0)
                 .allowsHitTesting(initialMessagesReady)
                 .accessibilityHidden(!initialMessagesReady)
-                if store.unreadArrivals > 0 { Button("\(store.unreadArrivals)条新消息") { store.returnToLatest(); if let id = store.messages.last?.id { proxy.scrollTo(id, anchor: .bottom) } }.padding(8.zoom()) }
+                if store.unreadArrivals > 0 { Button(L10n.tr("\(store.unreadArrivals)条新消息")) { store.returnToLatest(); if let id = store.messages.last?.id { proxy.scrollTo(id, anchor: .bottom) } }.padding(8.zoom()) }
             }
             .background(MessagingTheme.background)
             .safeAreaInset(edge: .bottom, spacing: 0.zoom()) { composer }
@@ -181,7 +182,7 @@ struct ChatRoomView: View {
     private var chatNavigation: some View {
         chatViewport
         .onReceive(conversations.$conversations) { updateGroupTitle($0) }
-        .navigationTitle(composerMode.panel == .selection ? "选择消息（\(store.selectedIDs.count)）" : chatTitle)
+        .navigationTitle(composerMode.panel == .selection ? L10n.tr("选择消息（\(store.selectedIDs.count)）") : chatTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         // 目标页在push准备时就声明隐藏底栏，避免先按Tab栏安全区布局、随后输入区下移。
@@ -191,14 +192,14 @@ struct ChatRoomView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text(composerMode.panel == .selection ? "选择消息（\(store.selectedIDs.count)）" : chatTitle)
+                Text(composerMode.panel == .selection ? L10n.tr("选择消息（\(store.selectedIDs.count)）") : chatTitle)
                     .font(.headline).lineLimit(1).foregroundStyle(MessagingTheme.text)
             }
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if composerMode.panel == .selection {
-                    Button("取消") { store.cancelSelection(); composerMode.endSelection() }.frame(minHeight: 44).accessibilityLabel("取消多选")
+                    Button(L10n.tr("取消")) { store.cancelSelection(); composerMode.endSelection() }.frame(minHeight: 44).accessibilityLabel(L10n.tr("取消多选"))
                 } else {
-                    Button { composerFocused = false; showSettings = true } label: { Image(systemName: "ellipsis").font(.system(size: 20.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom())) }.accessibilityLabel("聊天设置")
+                    Button { composerFocused = false; showSettings = true } label: { Image(systemName: "ellipsis").font(.system(size: 20.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom())) }.accessibilityLabel(L10n.tr("聊天设置"))
                 }
             }
         }
@@ -250,10 +251,10 @@ struct ChatRoomView: View {
         .sheet(isPresented: $showNotices, onDismiss: {
             pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() }
         }) { NavigationStack { ChatGroupNoticesView(route: route) } }
-        .sheet(isPresented: $showPinnedMessages, onDismiss: locateAfterSheetDismissal) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showPinnedMessages = false } } } } }
+        .sheet(isPresented: $showPinnedMessages, onDismiss: locateAfterSheetDismissal) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { showPinnedMessages = false } } } } }
         .sheet(item: $pinningMessage) { message in if let context = store.context { NavigationStack { ChatPinActionView(message: message, context: context, permission: store.permission, onChange: { Task { await reloadPins() } }) } } }
         .sheet(isPresented: $showFullHistorySearch, onDismiss: locateAfterSheetDismissal) {
-            if let context = store.context { NavigationStack { ChatHistorySearchView(context: context, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { showFullHistorySearch = false } } } } }
+            if let context = store.context { NavigationStack { ChatHistorySearchView(context: context, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { showFullHistorySearch = false } } } } }
         }
         .sheet(isPresented: $showMentionPicker, onDismiss: {
             let context = mentionRequest?.context
@@ -268,12 +269,12 @@ struct ChatRoomView: View {
             }, onCancel: { showMentionPicker = false })
         }
         // 只读弹层提供明确关闭入口，Mac运行iPhone App时不能依赖手势下拉退出。
-        .sheet(item: $forwardRecord) { message in if let context = store.context { NavigationStack { ChatForwardRecordView(message: message, context: context).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { forwardRecord = nil } } } } } }
-        .sheet(item: $locationMessage) { message in NavigationStack { ChatLocationDetailView(message: message).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { locationMessage = nil } } } } }
+        .sheet(item: $forwardRecord) { message in if let context = store.context { NavigationStack { ChatForwardRecordView(message: message, context: context).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { forwardRecord = nil } } } } } }
+        .sheet(item: $locationMessage) { message in NavigationStack { ChatLocationDetailView(message: message).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { locationMessage = nil } } } } }
         .sheet(item: $editingMessage) { message in if let context = store.context { NavigationStack { ChatMessageEditorView(message: message, context: context, store: store) } } }
         .sheet(isPresented: $showForward, onDismiss: { if store.selectedIDs.isEmpty { composerMode.endSelection() } }) { if let context = store.context { NavigationStack { ChatForwardRecipientView(messages: forwardingMessages, context: context, chat: store, initialMerged: forwardingMerged) } } }
         .sheet(item: $mediaMessage) { message in
-            if let context = store.context { NavigationStack { ChatMediaDetailView(message: message, context: context, onVoicePlayed: { Task { await store.markVisible(message.id, voicePlayed: true) } }).toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { mediaMessage = nil } } } } }
+            if let context = store.context { NavigationStack { ChatMediaDetailView(message: message, context: context, onVoicePlayed: { Task { await store.markVisible(message.id, voicePlayed: true) } }).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { mediaMessage = nil } } } } }
         }
         .chatPhotoBrowser(item: $mediaGallery, context: store.context)
     }
@@ -297,16 +298,16 @@ struct ChatRoomView: View {
         }
         .onChange(of: scenePhase) { phase in store.isForeground = phase == .active; if phase != .active { voicePlayback.stop() } }
         .onChange(of: composerMode.panel) { panel in if panel == .selection { voicePlayback.stop() } }
-        .confirmationDialog("删除所选消息", isPresented: $showDeleteSelection, titleVisibility: .visible) {
-            if selectedCanDelete { Button("仅为我删除", role: .destructive) { Task { await deleteSelection(both: false) } } }
-            if selectedCanDeleteBoth { Button("从双方或群成员设备删除", role: .destructive) { Task { await deleteSelection(both: true) } } }
-        } message: { Text("只删除服务器或本机已确认成功的记录，失败项会保留选择并显示明细。") }
-        .confirmationDialog("确认消息操作", isPresented: Binding(get: { confirmAction != nil }, set: { if !$0 { confirmAction = nil } }), titleVisibility: .visible) {
+        .confirmationDialog(L10n.tr("删除所选消息"), isPresented: $showDeleteSelection, titleVisibility: .visible) {
+            if selectedCanDelete { Button(L10n.tr("仅为我删除"), role: .destructive) { Task { await deleteSelection(both: false) } } }
+            if selectedCanDeleteBoth { Button(L10n.tr("从双方或群成员设备删除"), role: .destructive) { Task { await deleteSelection(both: true) } } }
+        } message: { Text(L10n.tr("只删除服务器或本机已确认成功的记录，失败项会保留选择并显示明细。")) }
+        .confirmationDialog(L10n.tr("确认消息操作"), isPresented: Binding(get: { confirmAction != nil }, set: { if !$0 { confirmAction = nil } }), titleVisibility: .visible) {
             if let action = confirmAction, let id = actionMessageID {
                 Button(actionTitle(action), role: .destructive) { Task { await store.perform(action, id: id) }; confirmAction = nil }
-                Button("取消", role: .cancel) { confirmAction = nil }
+                Button(L10n.tr("取消"), role: .cancel) { confirmAction = nil }
             }
-        } message: { Text(confirmAction == .delete ? "仅删除你自己的这条聊天记录。" : confirmAction == .deleteBoth ? "将申请从双方聊天记录删除这条消息。" : "将申请撤回这条消息。") }
+        } message: { Text(confirmAction == .delete ? L10n.tr("仅删除你自己的这条聊天记录。") : confirmAction == .deleteBoth ? L10n.tr("将申请从双方聊天记录删除这条消息。") : L10n.tr("将申请撤回这条消息。")) }
     }
 
     private var displayedMessages: [ChatMessageRecord] { store.messages.filter(\.isVisible) }
@@ -357,7 +358,7 @@ struct ChatRoomView: View {
         if let error = store.errorMessage, !error.isEmpty { return error }
         guard store.context != nil, !store.isLoading, !store.permission.isChecking,
               !store.permission.isActive || !store.permission.canSend else { return nil }
-        return store.permission.reason.isEmpty ? "当前会话暂不能发送消息" : store.permission.reason
+        return store.permission.reason.isEmpty ? L10n.tr("当前会话暂不能发送消息") : store.permission.reason
     }
 
     /// 引用和多选独立占位，媒体组件保持同一身份，切换面板不销毁上传或草稿。
@@ -368,11 +369,11 @@ struct ChatRoomView: View {
                 HStack(spacing: 8.zoom()) {
                     Rectangle().fill(MessagingTheme.accent).frame(width: 3)
                     VStack(alignment: .leading, spacing: 3.zoom()) {
-                        Text("回复 " + reference.senderName).font(.caption.weight(.semibold))
+                        Text(L10n.tr("回复 ") + reference.senderName).font(.caption.weight(.semibold))
                         Text(reference.displayText).font(.caption).foregroundStyle(MessagingTheme.secondaryText).lineLimit(2)
                     }
                     Spacer(minLength: 4)
-                    Button { store.reference = nil } label: { Image(systemName: "xmark").frame(width: 44, height: 44) }.accessibilityLabel("取消引用")
+                    Button { store.reference = nil } label: { Image(systemName: "xmark").frame(width: 44, height: 44) }.accessibilityLabel(L10n.tr("取消引用"))
                 }
                 .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 16.zoom()).padding(.vertical, 6.zoom())
             }
@@ -391,22 +392,22 @@ struct ChatRoomView: View {
     /// 群顶部保留旧版消息/群公告入口；未批准的收藏链接标签不展示。
     private var groupNavigation: some View {
         HStack(spacing: 24.zoom()) {
-            Label("消息", systemImage: "message").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.accent)
-            Button { composerFocused = false; showNotices = true } label: { Label("群公告", systemImage: "megaphone").font(.subheadline) }.frame(minHeight: 44)
+            Label(L10n.tr("消息"), systemImage: "message").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.accent)
+            Button { composerFocused = false; showNotices = true } label: { Label(L10n.tr("群公告"), systemImage: "megaphone").font(.subheadline) }.frame(minHeight: 44)
             Spacer(minLength: 0)
-            Button { composerFocused = false; showFullHistorySearch = true } label: { Image(systemName: "magnifyingglass").frame(width: 44, height: 44) }.accessibilityLabel("搜索聊天记录")
+            Button { composerFocused = false; showFullHistorySearch = true } label: { Image(systemName: "magnifyingglass").frame(width: 44, height: 44) }.accessibilityLabel(L10n.tr("搜索聊天记录"))
         }.padding(.horizontal, 16.zoom()).background(MessagingTheme.surface)
     }
 
     /// 多选使用独立底栏，零选中仍保留取消出口，不显示普通输入或录音面板。
     private var selectionBar: some View {
         HStack(spacing: 0) {
-            Button { beginForward(merged: true) } label: { Label("合并转发", systemImage: "square.stack").frame(maxWidth: .infinity) }
+            Button { beginForward(merged: true) } label: { Label(L10n.tr("合并转发"), systemImage: "square.stack").frame(maxWidth: .infinity) }
             Divider().frame(height: 24)
-            Button { beginForward(merged: false) } label: { Label("逐条转发", systemImage: "arrowshape.turn.up.right").frame(maxWidth: .infinity) }
+            Button { beginForward(merged: false) } label: { Label(L10n.tr("逐条转发"), systemImage: "arrowshape.turn.up.right").frame(maxWidth: .infinity) }
             if store.permission.canDelete || store.permission.canDeleteBoth {
                 Divider().frame(height: 24)
-                Button(role: .destructive) { showDeleteSelection = true } label: { Label("删除", systemImage: "trash").frame(maxWidth: .infinity) }
+                Button(role: .destructive) { showDeleteSelection = true } label: { Label(L10n.tr("删除"), systemImage: "trash").frame(maxWidth: .infinity) }
                     .disabled(!selectedCanDelete && !selectedCanDeleteBoth)
             }
         }.labelStyle(ChatComposerToolLabelStyle()).buttonStyle(.plain).padding(.vertical, 8.zoom()).padding(.horizontal, 16.zoom())
@@ -595,7 +596,7 @@ struct ChatRoomView: View {
             guard !Task.isCancelled, isCurrentMentionRequest(request),
                   let group = result.group, group.isActive, group.role > 0 || !group.isPrivateChat else { return }
             let members = group.members.filter { !$0.isDeleted }
-            mentionMembers = members.isEmpty ? [] : [ChatGroupMember(id: "-1", name: "所有人", avatar: "", role: 0, isDeleted: false)] + members
+            mentionMembers = members.isEmpty ? [] : [ChatGroupMember(id: "-1", name: L10n.tr("所有人"), avatar: "", role: 0, isDeleted: false)] + members
             showMentionPicker = true
         } catch {
             if !Task.isCancelled, isCurrentMentionRequest(request) { store.errorMessage = error.localizedDescription }
@@ -622,7 +623,7 @@ struct ChatRoomView: View {
                         Button { store.toggleSelection(message.id) } label: {
                             Image(systemName: store.selectedIDs.contains(message.id) ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                        }.accessibilityLabel("选择消息 " + message.displayText).accessibilityValue(store.selectedIDs.contains(message.id) ? "已选中" : "未选中")
+                        }.accessibilityLabel(L10n.tr("选择消息 ") + message.displayText).accessibilityValue(store.selectedIDs.contains(message.id) ? L10n.tr("已选中") : L10n.tr("未选中"))
                             .disabled(!ChatActionPolicy.allowed(for: message, userUID: store.context?.userUID ?? "", permission: store.permission).contains(.select) && !store.selectedIDs.contains(message.id))
                     }
                     ChatMessageBubble(message: message, own: message.senderID == store.context?.userUID,
@@ -636,7 +637,7 @@ struct ChatRoomView: View {
                     .onTapGesture { if composerMode.panel != .selection { activateMessage(message) } }
                     .accessibilityAction(named: openActionTitle(message)) { activateMessage(message) }
                     .contextMenu { if composerMode.panel != .selection { messageMenu(message) } }
-                    .accessibilityAction(named: "选择消息") { composerMode.selectMessages(); composerFocused = false; store.toggleSelection(message.id) }
+                    .accessibilityAction(named: L10n.tr("选择消息")) { composerMode.selectMessages(); composerFocused = false; store.toggleSelection(message.id) }
                 }
             }
         }
@@ -667,7 +668,7 @@ struct ChatRoomView: View {
     private func activateMessage(_ message: ChatMessageRecord) {
         guard !message.isMediaUploading else { return }
         if calls.session != nil && [2, 4].contains(message.type) {
-            store.errorMessage = "通话中暂不能播放语音或视频"; return
+            store.errorMessage = L10n.tr("通话中暂不能播放语音或视频"); return
         }
         if message.type != 4 { voicePlayback.stop() }
         if composerMode.panel == .selection { store.toggleSelection(message.id) }
@@ -690,7 +691,7 @@ struct ChatRoomView: View {
 
     /// 媒体操作名称与真实点击目标相同，普通正文使用选择动作。
     private func openActionTitle(_ message: ChatMessageRecord) -> String {
-        switch message.type { case 6: return "查看名片"; case 1, 12: return "查看图片"; case 2: return "查看视频"; case 4: return "播放语音"; case 5: return "查看文件"; case 18: return "查看聊天记录"; case 3, 7: return "查看位置"; default: return "选择消息" }
+        switch message.type { case 6: return L10n.tr("查看名片"); case 1, 12: return L10n.tr("查看图片"); case 2: return L10n.tr("查看视频"); case 4: return L10n.tr("播放语音"); case 5: return L10n.tr("查看文件"); case 18: return L10n.tr("查看聊天记录"); case 3, 7: return L10n.tr("查看位置"); default: return L10n.tr("选择消息") }
     }
 
     /// 直接比较渲染快照里的相邻记录，避免每行重复过滤并线性查找整段历史。
@@ -702,16 +703,16 @@ struct ChatRoomView: View {
     /// 菜单由实时权限矩阵产生，破坏动作使用确认并在提交再次校验。
     @ViewBuilder private func messageMenu(_ message: ChatMessageRecord) -> some View {
         let allowed = ChatActionPolicy.allowed(for: message, userUID: store.context?.userUID ?? "", permission: store.permission)
-        if let cardID = message.cardProfileID { Button("查看名片") { selectedProfile = ContactsRoute(contactID: cardID) } }
-        if allowed.contains(.copy) { Button("复制") { UIPasteboard.general.string = message.text } }
-        if allowed.contains(.reply) { Button("引用回复") { store.reference = message; composerMode.beginTyping(); composerFocused = true } }
-        if allowed.contains(.edit) { Button("编辑") { editingMessage = message } }
-        if allowed.contains(.forward) { Button("转发") { forwardingMerged = false; forwardingMessages = [message]; showForward = true } }
-        if allowed.contains(.pin) { Button("置顶范围…") { pinningMessage = message } }
-        if allowed.contains(.select) { Button("多选") { composerMode.selectMessages(); composerFocused = false; store.toggleSelection(message.id) } }
-        if allowed.contains(.delete) { Button("仅为我删除", role: .destructive) { actionMessageID = message.id; confirmAction = .delete } }
-        if allowed.contains(.deleteBoth) { Button("双向删除", role: .destructive) { actionMessageID = message.id; confirmAction = .deleteBoth } }
-        if allowed.contains(.recall) { Button("撤回", role: .destructive) { actionMessageID = message.id; confirmAction = .recall } }
+        if let cardID = message.cardProfileID { Button(L10n.tr("查看名片")) { selectedProfile = ContactsRoute(contactID: cardID) } }
+        if allowed.contains(.copy) { Button(L10n.tr("复制")) { UIPasteboard.general.string = message.text } }
+        if allowed.contains(.reply) { Button(L10n.tr("引用回复")) { store.reference = message; composerMode.beginTyping(); composerFocused = true } }
+        if allowed.contains(.edit) { Button(L10n.tr("编辑")) { editingMessage = message } }
+        if allowed.contains(.forward) { Button(L10n.tr("转发")) { forwardingMerged = false; forwardingMessages = [message]; showForward = true } }
+        if allowed.contains(.pin) { Button(L10n.tr("置顶范围…")) { pinningMessage = message } }
+        if allowed.contains(.select) { Button(L10n.tr("多选")) { composerMode.selectMessages(); composerFocused = false; store.toggleSelection(message.id) } }
+        if allowed.contains(.delete) { Button(L10n.tr("仅为我删除"), role: .destructive) { actionMessageID = message.id; confirmAction = .delete } }
+        if allowed.contains(.deleteBoth) { Button(L10n.tr("双向删除"), role: .destructive) { actionMessageID = message.id; confirmAction = .deleteBoth } }
+        if allowed.contains(.recall) { Button(L10n.tr("撤回"), role: .destructive) { actionMessageID = message.id; confirmAction = .recall } }
     }
 
     /// 真实置顶查询刷新顶部条，删除撤回和SDK事件后不保留失效正文。
@@ -728,7 +729,7 @@ struct ChatRoomView: View {
 
     /// 确认按钮明确区分本地范围、双方范围和撤回。
     private func actionTitle(_ action: ChatMessageAction) -> String {
-        action == .delete ? "仅为我删除" : action == .deleteBoth ? "双向删除" : "撤回"
+        action == .delete ? L10n.tr("仅为我删除") : action == .deleteBoth ? L10n.tr("双向删除") : L10n.tr("撤回")
     }
 }
 

@@ -59,7 +59,7 @@ final class ChatPhotoBrowserImageCell: JXZoomImageCell {
                 if self.isActive { self.animatedView.startAnimating() } else { self.animatedView.stopAnimating() }
                 self.setNeedsLayout()
             case .failure:
-                if file != nil { preview?.errorMessage = "图片无法预览，请重试" }
+                if file != nil { preview?.errorMessage = L10n.tr("图片无法预览，请重试") }
             }
         }
     }

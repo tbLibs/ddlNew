@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d /tmp/ddlNew-profile-navigation.XXXXXX)
@@ -47,7 +48,7 @@ SEND_METHOD
 }
 '''.replace('RETURNED',returned).replace('ENUM',enum_source).replace('SEND_METHOD',send_method).replace('METHOD',method))
 PY
-swiftc -parse-as-library "$TASK_ROOT/ddlNew/Features/Home/Navigation/ActivityNavigation.swift" \
+swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/Features/Home/Navigation/ActivityNavigation.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Components/ContactChatNavigationAction.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Models/ChatRoute.swift" \
  "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \

@@ -17,6 +17,6 @@ nonisolated struct FriendBusinessGroup: Identifiable, Equatable, Sendable {
 
     /// 沿用xgd的空名兜底；保留默认组重命名后的名称，不改写SDK原始字段。
     var displayName: String {
-        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "默认分组" : name
+        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.tr("默认分组") : name
     }
 }

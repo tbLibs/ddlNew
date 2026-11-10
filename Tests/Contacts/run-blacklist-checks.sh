@@ -1,10 +1,11 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 task_temp=$(mktemp -d)
 trap 'rm -rf "$task_temp"' EXIT
 sed -n '/^let contactsApplicationStateKey = /p' "$task_root/ddlNew/Configuration/Const.swift" > "$task_temp/Constants.swift"
-swiftc -swift-version 5 "$task_temp/Constants.swift" "$task_root/ddlNew/Network/Core/RemoteAvatarURL.swift" \
+swiftc "$localization_source" -swift-version 5 "$task_temp/Constants.swift" "$task_root/ddlNew/Network/Core/RemoteAvatarURL.swift" \
  "$task_root/ddlNew/Features/Contacts/Models/ContactRecord.swift" \
  "$task_root/ddlNew/Features/Contacts/Models/ContactSection.swift" \
  "$task_root/ddlNew/Features/Contacts/Models/ContactsIdentity.swift" \

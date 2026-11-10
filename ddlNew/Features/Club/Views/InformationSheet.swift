@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct InformationSheet: View {
+    @Environment(\.locale) private var localizationLocale
     @Environment(\.dismiss) private var dismiss
     let page: InformationPage
     var body: some View {
@@ -18,8 +19,8 @@ struct InformationSheet: View {
                         ForEach(page.paragraphs, id: \.self) { Text($0).font(.system(size: 15)).lineSpacing(6).textSelection(.enabled) }
                     }
                 }.padding(20)
-            }.navigationTitle(page.rawValue).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
+            }.navigationTitle(page.displayName).navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button(L10n.tr("完成")) { dismiss() } } }
         }.navigationViewStyle(.stack).tint(ClubTheme.darkTeal)
     }
 }

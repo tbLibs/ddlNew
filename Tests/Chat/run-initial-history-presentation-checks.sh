@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -45,7 +46,7 @@ METHODS
 '''.replace('METHODS', block('    private var initialMessagesReady:')+'\n'+block('    private func positionInitialMessages(')).replace('LAYOUT', layout)
 (out/'Presentation.swift').write_text(code)
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Components/ChatLatestPreference.swift" \

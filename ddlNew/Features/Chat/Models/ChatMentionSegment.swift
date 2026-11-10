@@ -61,7 +61,7 @@ enum ChatMentionEngine {
         let result = NSMutableString(); var cursor = 0; var segments: [ChatMentionSegment] = []
         for match in expression.matches(in: wire, range: NSRange(location: 0, length: raw.length)) {
             result.append(raw.substring(with: NSRange(location: cursor, length: match.range.location - cursor)))
-            let uid = raw.substring(with: match.range(at: 1)); let name = names[uid] ?? "未知成员"
+            let uid = raw.substring(with: match.range(at: 1)); let name = names[uid] ?? L10n.tr("未知成员")
             let start = result.length; result.append("@" + name)
             let next = NSMaxRange(match.range)
             let includesSpace = next < raw.length && raw.substring(with: NSRange(location: next, length: 1)) == " "

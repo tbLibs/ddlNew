@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -76,7 +77,7 @@ f += '\nfinal class LingIMSessionModel { var sessionName: String? = "旧会话�
 f=(root/'Tests/Chat/LocationChecks.swift').read_text().split('@main struct LocationChecks')[0]
 (out/'Client.swift').write_text(f)
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" \
  "$TMP_DIR/Production.swift" "$TMP_DIR/Boundary.swift" "$TMP_DIR/Client.swift" \
  "$ROOT_DIR/Tests/Chat/ContactNameChecks.swift" -o "$TMP_DIR/checks"

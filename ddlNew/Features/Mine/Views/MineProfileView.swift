@@ -11,6 +11,7 @@ import AVFoundation
 
 /// 编辑页持有本次AUTH快照，导航子页和系统选图共用同一提交状态。
 struct MineProfileView: View {
+    @Environment(\.locale) private var localizationLocale
     let context: ChatContext
     @StateObject private var editor: OwnProfileStore
     @ObservedObject private var session = UserSessionStore.shared
@@ -39,41 +40,41 @@ struct MineProfileView: View {
                     VStack(spacing: 0) {
                         Button { errorMessage = nil; choosingAvatar = true } label: {
                             HStack(spacing: 16.zoom()) {
-                                Text("头像").foregroundStyle(MessagingTheme.text)
+                                Text(L10n.tr("头像")).foregroundStyle(MessagingTheme.text)
                                 Spacer(minLength: 0)
                                 avatar
                                 chevron
                             }.padding(16.zoom()).contentShape(Rectangle())
-                        }.buttonStyle(MessagingRowStyle()).accessibilityLabel("修改头像")
+                        }.buttonStyle(MessagingRowStyle()).accessibilityLabel(L10n.tr("修改头像"))
                         Divider()
                         Button {
                             editor.beginNickname(session.currentUser?.nickname ?? "")
                             editingNickname = true
                         } label: {
-                            row("昵称", value: session.currentUser?.nickname ?? "", editable: true)
-                        }.buttonStyle(MessagingRowStyle()).accessibilityLabel("修改昵称")
+                            row(L10n.tr("昵称"), value: session.currentUser?.nickname ?? "", editable: true)
+                        }.buttonStyle(MessagingRowStyle()).accessibilityLabel(L10n.tr("修改昵称"))
                         Divider()
-                        row("账号", value: session.currentUser?.userName ?? "", editable: false)
+                        row(L10n.tr("账号"), value: session.currentUser?.userName ?? "", editable: false)
                     }
                 }.padding(16.zoom()).disabled(editor.busy || cameraPermissionPending)
             }
-            .navigationTitle("编辑个人资料")
+            .navigationTitle(L10n.tr("编辑个人资料"))
             .modifier(MessagingPageChrome())
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("完成") { dismiss() }.disabled(editor.busy) }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("完成")) { dismiss() }.disabled(editor.busy) }
             }
             .navigationDestination(isPresented: $editingNickname) { MineNicknameEditor(editor: editor) }
-            .confirmationDialog("修改头像", isPresented: $choosingAvatar, titleVisibility: .visible) {
-                Button("从相册选择") { picker = .library }
-                if UIImagePickerController.isSourceTypeAvailable(.camera) { Button("拍照") { requestCamera() } }
-                Button("取消", role: .cancel) {}
+            .confirmationDialog(L10n.tr("修改头像"), isPresented: $choosingAvatar, titleVisibility: .visible) {
+                Button(L10n.tr("从相册选择")) { picker = .library }
+                if UIImagePickerController.isSourceTypeAvailable(.camera) { Button(L10n.tr("拍照")) { requestCamera() } }
+                Button(L10n.tr("取消"), role: .cancel) {}
             }
             .fullScreenCover(item: $picker, onDismiss: uploadSelectedImage) { source in
                 MineAvatarPicker(source: source == .camera ? .camera : .photoLibrary) { image in
                     pendingImage = image; picker = nil
                 }.ignoresSafeArea()
             }
-            .messagingLoadingToast(editor.busy && !editingNickname, title: "正在更新头像")
+            .messagingLoadingToast(editor.busy && !editingNickname, title: L10n.tr("正在更新头像"))
             .messagingFeedbackToast(errorMessage ?? editor.feedback, isEnabled: !editingNickname)
         }
         .tint(HomeTheme.forest)
@@ -109,7 +110,7 @@ struct MineProfileView: View {
         HStack(spacing: 16.zoom()) {
             Text(title).foregroundStyle(MessagingTheme.text)
             Spacer(minLength: 0)
-            Text(value.isEmpty ? "未设置" : value).foregroundStyle(MessagingTheme.secondaryText)
+            Text(value.isEmpty ? L10n.tr("未设置") : value).foregroundStyle(MessagingTheme.secondaryText)
                 .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
             if editable { chevron }
         }.padding(16.zoom()).frame(minHeight: 54.zoom()).contentShape(Rectangle())
@@ -123,7 +124,7 @@ struct MineProfileView: View {
             cameraPermissionPending = false
             guard active, runtime.isCurrent(context), !Task.isCancelled else { return }
             if granted { picker = .camera }
-            else { errorMessage = "相机权限未开启，请在系统设置中允许访问相机" }
+            else { errorMessage = L10n.tr("相机权限未开启，请在系统设置中允许访问相机") }
         }
     }
 
@@ -143,6 +144,7 @@ struct MineProfileView: View {
 
 /// 昵称保存失败留在编辑页并保留输入，成功才返回资料页。
 private struct MineNicknameEditor: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var editor: OwnProfileStore
     @Environment(\.dismiss) private var dismiss
 
@@ -151,29 +153,29 @@ private struct MineNicknameEditor: View {
             VStack(alignment: .leading, spacing: 12.zoom()) {
                 MessagingCard {
                     HStack(alignment: .top) {
-                        TextField("请输入昵称", text: $editor.nickname, axis: .vertical)
+                        TextField(L10n.tr("请输入昵称"), text: $editor.nickname, axis: .vertical)
                             .lineLimit(1...4).textInputAutocapitalization(.never).autocorrectionDisabled()
                             .accessibilityIdentifier("mine.nickname")
                         Button { editor.nickname = "" } label: {
                             Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
-                        }.accessibilityLabel("清空昵称").foregroundStyle(MessagingTheme.secondaryText)
+                        }.accessibilityLabel(L10n.tr("清空昵称")).foregroundStyle(MessagingTheme.secondaryText)
                     }
                 }
                 Text("\(editor.normalizedNickname.utf16.count)/30")
                     .font(.footnote).foregroundStyle(editor.normalizedNickname.utf16.count > 30 ? .red : MessagingTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                Text("最多30个字符，部分表情占2个或更多字符。")
+                Text(L10n.tr("最多30个字符，部分表情占2个或更多字符。"))
                     .font(.footnote).foregroundStyle(MessagingTheme.secondaryText)
             }.padding(16.zoom()).disabled(editor.busy)
         }
-        .navigationTitle("修改昵称").modifier(MessagingPageChrome())
+        .navigationTitle(L10n.tr("修改昵称")).modifier(MessagingPageChrome())
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { Task { if await editor.saveNickname() { dismiss() } } }
+                Button(L10n.tr("保存")) { Task { if await editor.saveNickname() { dismiss() } } }
                     .disabled(!editor.canSaveNickname)
             }
         }
-        .messagingLoadingToast(editor.busy, title: "正在保存昵称")
+        .messagingLoadingToast(editor.busy, title: L10n.tr("正在保存昵称"))
         .messagingFeedbackToast(editor.feedback)
     }
 }

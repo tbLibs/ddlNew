@@ -1,5 +1,29 @@
 # ddlNew 项目交接文档
 
+## 2026-11-10 删除启动包装视图与启动图语言排查
+
+按用户要求删除 `LaunchWaitingView.swift` 和未引用的 `SplashScreen.swift`。根入口在本地恢复完成前仅以系统背景色及原有本地化进度提示占位，不再手动实例化启动 storyboard；本地入口校验、消息页连接／AUTH恢复及离线列表逻辑不变。系统启动 storyboard 保留，随后更名为 `AppLaunchScreen.storyboard`（见下段）。
+
+SessionRestore 离线检查通过；generic iOS Debug 无签名构建 exit0／BUILD SUCCEEDED（`/tmp/ddlNew-remove-startup-wrappers-build.log`）。没有新增启动阶段网络请求，未提交推送。
+
+用户报告简体中文手机的启动图显示英文。三语资源、对象ID、打包结果及 Scheme 未发现强制英文。独立模拟器 UIKit 宿主加载相同 storyboard，简体／繁体／英文三组文案均匹配（`/tmp/ddlNew-launch-language-results.json`）；该检查只证明运行时资源加载，不等同系统启动快照验收。用户指定的 iPhone／iOS26.6.1 经 Xcode 调试读取，`NSLocale.preferredLanguages = zh-Hans-CN`、`Bundle.main.preferredLocalizations = zh-Hans`，安装包实例化启动 storyboard 的标签为“叮咚聊／一起发现，一起参与”；读取后已恢复运行，没有修改设备语言或清理App数据。用户确认重新构建后仍显示英文。为验证旧启动快照假设，将系统启动资源整体改名为 `AppLaunchScreen`，同步三语 strings、Debug／Release 的 `UILaunchStoryboardName` 和资源检查；不修改文案、不删除App、不清理业务数据。资源审计三语各1624键、启动strings键匹配与验证码9组检查通过。iPhone目标签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-launch-cache-signed-build.log`），codesign验证通过，新包 `UILaunchStoryboardName = AppLaunchScreen`；已覆盖安装至用户指定的 iPhone／iOS26.6.1，随后通过devicectl终止旧进程并冷启动，安装／启动回执分别为 `/tmp/ddlNew-launch-cache-install.json`、`/tmp/ddlNew-launch-cache-launch.json`。用户再次确认仍显示英文，改名方案未解决问题，不能归因于旧快照。
+
+后续改为 `zh-Hans／zh-Hant／en.lproj/AppLaunchScreen.storyboard` 三份独立资源，文字直接编译进对应nib；删除Base启动版本及三份启动strings，避免系统启动渲染依赖运行时翻译替换。三份布局保持一致，新增 `Tests/Localization/check_launch_resources.py` 校验源文案、布局、可选App产物的入口、资源完整性、无旧strings、无Base回退以及无 `NSLocalizableString`。独立模拟器宿主clean build通过，三语资源加载与编译产物检查通过（`/tmp/ddlNew-launch-embedded-language-results.json`）；该宿主仍不代表目标手机系统启动画面验收。主工程首次遇到用户Xcode并行构建数据库锁，未终止其任务；随后clean签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-launch-embedded-clean-build.log`），最终App产物的三语独立nib、无Base／旧启动strings／运行时翻译对象检查及codesign验证通过。已保留数据覆盖安装并冷启动至指定iPhone（`/tmp/ddlNew-launch-embedded-install.json`、`/tmp/ddlNew-launch-embedded-launch.json`）。用户最初表示没看清，随后回复“好了”并要求结束任务；按用户确认结束，未宣称已取得系统启动图截图。临时LLDB调试退出，不在生产代码中加入启动延迟。不使用Mobile MCP，未提交推送。
+
+## 2026-11-10 简体中文、繁体中文与英文
+
+用户确认全App方案并要求直接实施：参考xgd默认跟随系统、本机保存选择，提供简体中文、繁體中文、English，未支持系统语言回退英文。邀请码页、登录页和设置页新增共享语言入口，选择后按确定应用，取消不保存。AppLanguageStore发布locale，页面显式读取语言环境；不通过根视图id重建、重新登录或SDK重连切换语言，表单输入保留。
+
+新增Foundation的L10n/L10nKey和三语资源，各1624键；已有适用译文复用xgd，新项目文案补齐。覆盖原生界面、错误提示、辅助功能文本、群／通话／消息类型模板和内置活动展示，支持插值参数重排。保持协议值、枚举rawValue、文件名、转发序列化内容及用户／服务端正文原样；内置活动显式标记才翻译，外部数据不翻译。消息页语言变化时只重读本地SDK快照。操作时生成的临时反馈、权限描述或部分历史系统消息展示快照在后续正常生成／读取时更新，不重置会话强刷。
+
+验证码网页注入应用语言并配置阿里云／腾讯语种；四项系统权限说明和启动storyboard新增三语资源。系统启动页和权限弹窗由iOS选取语言，真实第三方验证码挑战尚未联网验收。维护说明与边界见 `Docs/Localization/README.md`，设计记录 `Docs/superpowers/specs/2026-11-10-localization-design.md`。
+
+验证：资源审计1624/语言，缺失／过期／重复／格式错误为0；语言映射／保存／插值检查、验证码9组模拟检查、内置活动23项通过。完整离线首轮122脚本发现7个旧夹具依赖或提取边界失败，修复并逐项复跑，加活动／验证码2入口，最终124/124通过；汇总 `/tmp/ddlNew-localization-checks/final-summary.json`。保留原业务断言；现有业务回归编译真实L10n，活动模型检查隔离翻译边界，真实运行时另有专项与UI验证。
+
+generic iOS Debug无签名构建exit0、BUILD SUCCEEDED，日志 `/tmp/ddlNew-localization-verified-build.log`，安装包已核验三套Localizable／InfoPlist／LaunchScreen资源。iPhone SE3 iOS26.5匿名原生XCTest9/9通过、exit0／TEST SUCCEEDED，报告 `/tmp/ddlNew-localization-ui-final/DerivedData/Logs/Test/Test-AuthAudit-2026.11.10_11-14-54-+0800.xcresult`；简体→英文→繁体即时切换、输入保留、重启偏好恢复、英文注册小屏滚动均通过。截图 `.impeccable/review/localization/`。首轮结果收尾卡住，最终关闭测试诊断收集正常完成；既有注册页键盘Invalid frame dimension警告仍记录，未宣称零警告。
+
+本轮不使用Mobile MCP，不操作实体设备、真实登录或短信／邮件服务，xgd只读，未提交推送。上述为离线与匿名宿主验证，不代表所有页面三语真机逐屏验收。
+
 ## 2026-11-10 移除邮箱登录与注册
 
 用户明确不再需要邮箱登录／注册。当前仅保留账号、手机号，登录和注册入口共享两项选择器；删除邮箱身份枚举、邮箱键盘／占位、校验错误和发码提示。接口枚举仍为账号1、手机3，本地 loginMethod/registerMethod 改为5（xgd的账号＋手机组合）。手机号密码／短信验证码登录、短信注册、区号、协议确认及AUTH链路保留。

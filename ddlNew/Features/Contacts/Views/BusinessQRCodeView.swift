@@ -13,6 +13,7 @@ import AlertToast
 
 /// 二维码内容由真实SDK生成，仅在本机将服务器内容渲染成图片。
 struct BusinessQRCodeView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var businessStore: ContactsBusinessStore
     let groupID: String?
     let title: String
@@ -32,7 +33,7 @@ struct BusinessQRCodeView: View {
                         if groupID == nil, let user = session.currentUser {
                             ContactRecordAvatar(contact: ContactRecord(id: user.userUID, account: user.userName, nickname: user.nickname, avatar: user.avatar), fileHost: OSSConnectionBootstrap.shared.current?.getFileHost, size: 80.zoom())
                             Text(user.nickname).font(.headline).foregroundStyle(MessagingTheme.text)
-                            Text("账号：\(user.userName)").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                            Text(L10n.tr("账号：\(user.userName)")).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
                         } else if let group = groups.groups.first(where: { $0.id == groupID }) {
                             GroupRecordAvatar(group: group, fileHost: OSSConnectionBootstrap.shared.current?.getFileHost)
                             Text(group.name).font(.headline).foregroundStyle(MessagingTheme.text)
@@ -41,17 +42,17 @@ struct BusinessQRCodeView: View {
                             Image(uiImage: image).interpolation(.none).resizable().scaledToFit()
                                 .frame(maxWidth: 256.zoom()).padding(20.zoom()).background(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 12.zoom())).padding(.vertical, 12.zoom())
-                                .accessibilityLabel(groupID == nil ? "我的业务二维码" : "群业务二维码")
+                                .accessibilityLabel(groupID == nil ? L10n.tr("我的业务二维码") : L10n.tr("群业务二维码"))
                             Divider().overlay(MessagingTheme.divider)
-                            Text(groupID == nil ? "扫一扫我的二维码，添加我为好友。" : "扫一扫二维码，加入群聊。")
+                            Text(groupID == nil ? L10n.tr("扫一扫我的二维码，添加我为好友。") : L10n.tr("扫一扫二维码，加入群聊。"))
                                 .font(.subheadline).foregroundStyle(MessagingTheme.text).multilineTextAlignment(.center)
-                            if !businessStore.qrExpiry.isEmpty { Text("有效期：\(expiryLabel)").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                            if !businessStore.qrExpiry.isEmpty { Text(L10n.tr("有效期：\(expiryLabel)")).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
                         } else if businessStore.isSubmitting {
                             Color.clear.frame(minHeight: 240.zoom())
                         } else {
                             Image(systemName: "qrcode").font(.largeTitle).foregroundStyle(MessagingTheme.secondaryText).accessibilityHidden(true)
-                            Text("二维码暂时不可用，请重新生成。").font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
-                            Button("重新生成") { Task { await generate() } }.frame(minHeight: 44)
+                            Text(L10n.tr("二维码暂时不可用，请重新生成。")).font(.subheadline).foregroundStyle(MessagingTheme.secondaryText)
+                            Button(L10n.tr("重新生成")) { Task { await generate() } }.frame(minHeight: 44)
                         }
                     }.frame(maxWidth: .infinity)
                 }
@@ -70,7 +71,7 @@ struct BusinessQRCodeView: View {
         }
         .task { await generate() }
         .toast(isPresenting: Binding(get: { isSaving || businessStore.isSubmitting }, set: { _ in }), duration: 0, tapToDismiss: false) {
-            AlertToast(type: .loading, title: isSaving ? "正在保存到相册" : "正在生成二维码",
+            AlertToast(type: .loading, title: isSaving ? L10n.tr("正在保存到相册") : L10n.tr("正在生成二维码"),
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
         }
         .toast(isPresenting: $showingSaveFeedback, duration: 3) {
@@ -84,14 +85,14 @@ struct BusinessQRCodeView: View {
     /// 保存与聊天分享沿用旧版底部双操作，大字号时自然改为纵向。
     private func saveButton(_ image: UIImage) -> some View {
         Button { save(image) } label: {
-            Label("保存相册", systemImage: "square.and.arrow.down").fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity)
+            Label(L10n.tr("保存相册"), systemImage: "square.and.arrow.down").fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity)
         }.buttonStyle(MessagingActionButtonStyle(fill: MessagingTheme.surface, foreground: MessagingTheme.accent, border: MessagingTheme.border)).disabled(isSaving || businessStore.isSubmitting)
     }
 
     /// 分享选择真实聊天接收人。
     private var chatShareButton: some View {
         Button { sharingToChat = true } label: {
-            Label("分享", systemImage: "square.and.arrow.up").fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity)
+            Label(L10n.tr("分享"), systemImage: "square.and.arrow.up").fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity)
         }.buttonStyle(MessagingActionButtonStyle()).disabled(isSaving || businessStore.isSubmitting)
     }
 
@@ -107,7 +108,7 @@ struct BusinessQRCodeView: View {
         guard await businessStore.perform(.qrCode(groupID: groupID)), !businessStore.qrContent.isEmpty else { return }
         let filter = CIFilter.qrCodeGenerator(); filter.message = Data(businessStore.qrContent.utf8)
         filter.correctionLevel = "M"
-        guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 12, y: 12)), let bitmap = CIContext().createCGImage(output, from: output.extent) else { saveMessage = "二维码图片生成失败"; return }
+        guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 12, y: 12)), let bitmap = CIContext().createCGImage(output, from: output.extent) else { saveMessage = L10n.tr("二维码图片生成失败"); return }
         image = UIImage(cgImage: bitmap)
     }
 
@@ -116,9 +117,9 @@ struct BusinessQRCodeView: View {
         guard !isSaving else { return }
         isSaving = true; saveMessage = nil; showingSaveFeedback = false
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-            guard status == .authorized || status == .limited else { Task { @MainActor in saveMessage = "请在系统设置中允许添加照片"; isSaving = false }; return }
+            guard status == .authorized || status == .limited else { Task { @MainActor in saveMessage = L10n.tr("请在系统设置中允许添加照片"); isSaving = false }; return }
             PHPhotoLibrary.shared().performChanges { PHAssetChangeRequest.creationRequestForAsset(from: image) } completionHandler: { success, _ in
-                Task { @MainActor in saveMessage = success ? "已保存到相册" : "保存失败，请重试"; isSaving = false }
+                Task { @MainActor in saveMessage = success ? L10n.tr("已保存到相册") : L10n.tr("保存失败，请重试"); isSaving = false }
             }
         }
     }

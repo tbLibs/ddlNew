@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountRegistrationView: View {
+    @Environment(\.locale) private var localizationLocale
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = AccountRegistrationViewModel()
     @StateObject private var codeSender = AccountCodeViewModel()
@@ -27,23 +28,23 @@ struct AccountRegistrationView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("选择一种方式创建账号").font(.largeTitle.bold())
+                        Text(L10n.tr("选择一种方式创建账号")).font(.largeTitle.bold())
                     }.padding(.vertical, 8)
                     Group {
                         AuthenticationMethodPicker(selection: Binding(get: { kind }, set: changeKind))
                         AccountIdentityField(kind: kind, value: accountBinding, areaCode: $areaCode, focus: $focus)
                         if kind == .account {
-                            Text("6～16位，前两位为英文字母，只支持英文和数字")
+                            Text(L10n.tr("6～16位，前两位为英文字母，只支持英文和数字"))
                                 .font(.footnote).foregroundStyle(LoginPalette.secondary)
                         } else {
                             AccountCodeField(code: $code, identity: identity, purpose: .registration, scope: scope, sender: codeSender, focus: $focus)
                         }
-                        AuthenticationField(title: "密码", placeholder: "设置登录密码", text: $password, field: .password, focus: $focus, secure: true, contentType: .newPassword)
-                        AuthenticationField(title: "确认密码", placeholder: "再次输入密码", text: $confirmation, field: .confirmation, focus: $focus, secure: true, contentType: .newPassword)
-                        Text(context?.requiresPasswordSymbol == true ? "密码6～16位，须包含字母、数字和英文符号" : "密码6～16位，须包含字母、数字，可使用英文符号")
+                        AuthenticationField(title: L10n.tr("密码"), placeholder: L10n.tr("设置登录密码"), text: $password, field: .password, focus: $focus, secure: true, contentType: .newPassword)
+                        AuthenticationField(title: L10n.tr("确认密码"), placeholder: L10n.tr("再次输入密码"), text: $confirmation, field: .confirmation, focus: $focus, secure: true, contentType: .newPassword)
+                        Text(context?.requiresPasswordSymbol == true ? L10n.tr("密码6～16位，须包含字母、数字和英文符号") : L10n.tr("密码6～16位，须包含字母、数字，可使用英文符号"))
                             .font(.footnote).foregroundStyle(LoginPalette.secondary)
                         if context?.requiresInviteCode == true {
-                            AuthenticationField(title: "邀请码", placeholder: "请输入邀请码", text: $inviteCode, field: .invite, focus: $focus)
+                            AuthenticationField(title: L10n.tr("邀请码"), placeholder: L10n.tr("请输入邀请码"), text: $inviteCode, field: .invite, focus: $focus)
                         }
                         LegalConsentRow(isAccepted: $viewModel.hasAcceptedLegalDocuments) { focus = nil }
                     }.disabled(busy || viewModel.accountWasRegistered)
@@ -56,22 +57,22 @@ struct AccountRegistrationView: View {
                 .padding(24).frame(maxWidth: 460).frame(maxWidth: .infinity)
             }
             .foregroundStyle(LoginPalette.ink).background(LoginBackground()).tint(LoginPalette.darkTeal)
-            .messagingLoadingToast(viewModel.phase.isBusy && verification.request == nil, title: "正在注册")
+            .messagingLoadingToast(viewModel.phase.isBusy && verification.request == nil, title: L10n.tr("正在注册"))
             .messagingFeedbackToast(registrationFeedback, isEnabled: verification.request == nil)
             .scrollDismissesKeyboard(.interactively).onSubmit { focus = nil }
-            .navigationTitle("注册").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(L10n.tr("注册")).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { codeSender.cancel(); viewModel.cancel(); dismiss() }.accessibilityIdentifier("cancelAccountRegistration") }
-                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成") { focus = nil } }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { codeSender.cancel(); viewModel.cancel(); dismiss() }.accessibilityIdentifier("cancelAccountRegistration") }
+                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button(L10n.tr("完成")) { focus = nil } }
             }
             .sheet(item: $verification.request) { request in
                 LoginVerificationSheet(request: request, submit: { verification.submit($0, for: request.id) }, cancel: { verification.cancel(requestID: request.id) })
                     .onDisappear { verification.cancel(requestID: request.id) }
             }
-            .alert("提示", isPresented: $viewModel.showsLegalConsentAlert) {
-                Button("取消", role: .cancel) {}
-                Button("同意并继续") { viewModel.hasAcceptedLegalDocuments = true; submit() }
-            } message: { Text("请阅读并同意《隐私政策》和《使用支持》") }
+            .alert(L10n.tr("提示"), isPresented: $viewModel.showsLegalConsentAlert) {
+                Button(L10n.tr("取消"), role: .cancel) {}
+                Button(L10n.tr("同意并继续")) { viewModel.hasAcceptedLegalDocuments = true; submit() }
+            } message: { Text(L10n.tr("请阅读并同意《隐私政策》和《使用支持》")) }
             .onChange(of: areaCode) { _ in codeSender.cancel(); code = "" }
             .onChange(of: connection.loginConnectionID) { _ in codeSender.cancel() }
             .onDisappear { codeSender.cancel(); viewModel.cancel(); password = ""; confirmation = ""; code = "" }
@@ -95,10 +96,10 @@ struct AccountRegistrationView: View {
         return nil
     }
     private var buttonTitle: String {
-        if viewModel.accountWasRegistered, !viewModel.phase.isBusy, viewModel.phase != .succeeded { return "返回登录" }
+        if viewModel.accountWasRegistered, !viewModel.phase.isBusy, viewModel.phase != .succeeded { return L10n.tr("返回登录") }
         switch viewModel.phase {
-        case .idle, .failed: return "注册并登录"
-        case .succeeded: return "注册成功"
+        case .idle, .failed: return L10n.tr("注册并登录")
+        case .succeeded: return L10n.tr("注册成功")
         default: return viewModel.phase.buttonTitle
         }
     }

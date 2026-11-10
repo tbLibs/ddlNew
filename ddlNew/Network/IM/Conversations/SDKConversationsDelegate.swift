@@ -98,7 +98,7 @@ nonisolated final class SDKConversationsDelegate: NSObject, NoaToolSessionDelega
         syncing = false
         lock.unlock()
         // 前几页可能已落库；失败时也保存已收到的预览，再显示可用缓存。
-        persist(messages, version: failedVersion, then: .syncFailed(errorMsg ?? "会话同步失败"))
+        persist(messages, version: failedVersion, then: .syncFailed(errorMsg ?? L10n.tr("会话同步失败")))
     }
     /// SDK 全局已读事件需先更新数据库；单纯重读会残留旧未读数。
     func imSdkSessionListAllRead(_ lastServerMsgId: String) {

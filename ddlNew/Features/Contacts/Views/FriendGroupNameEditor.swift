@@ -11,6 +11,7 @@ import AlertToast
 
 /// 分组名称编辑留在sheet内等待回执，失败保留输入与目标分组。
 struct FriendGroupNameEditor: View {
+    @Environment(\.locale) private var localizationLocale
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var businessStore: ContactsBusinessStore
     let groupID: String?
@@ -31,30 +32,30 @@ struct FriendGroupNameEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("分组名称") { TextField("请输入分组名称", text: $name).frame(minHeight: 44).accessibilityLabel("分组名称").disabled(businessStore.isSubmitting) }
+                Section(L10n.tr("分组名称")) { TextField(L10n.tr("请输入分组名称"), text: $name).frame(minHeight: 44).accessibilityLabel(L10n.tr("分组名称")).disabled(businessStore.isSubmitting) }
             }
             .listRowBackground(MessagingTheme.surface)
-            .navigationTitle(groupID == nil ? "添加分组" : "重命名分组")
+            .navigationTitle(groupID == nil ? L10n.tr("添加分组") : L10n.tr("重命名分组"))
             .modifier(MessagingPageChrome())
         .messagingFeedbackToast(businessStore.errorMessage)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(businessStore.isSubmitting) }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { if isDirty { confirmingDiscard = true } else { dismiss() } }.disabled(businessStore.isSubmitting) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button { Task { await save() } } label: {
-                    Text("保存").frame(maxWidth: .infinity)
+                    Text(L10n.tr("保存")).frame(maxWidth: .infinity)
                 }.buttonStyle(MessagingActionButtonStyle())
                     .disabled(!canSave)
                     .padding(16.zoom()).background(MessagingTheme.surface)
             }
             .interactiveDismissDisabled(businessStore.isSubmitting || isDirty)
-            .confirmationDialog("放弃未保存的分组名称？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button("继续编辑", role: .cancel) {}
-                Button("放弃修改", role: .destructive) { dismiss() }
+            .confirmationDialog(L10n.tr("放弃未保存的分组名称？"), isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                Button(L10n.tr("继续编辑"), role: .cancel) {}
+                Button(L10n.tr("放弃修改"), role: .destructive) { dismiss() }
             }
         }
         .toast(isPresenting: Binding(get: { businessStore.isSubmitting }, set: { _ in }), duration: 0, tapToDismiss: false) {
-            AlertToast(type: .loading, title: "正在保存",
+            AlertToast(type: .loading, title: L10n.tr("正在保存"),
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
         }
         .presentationDetents([.medium, .large])

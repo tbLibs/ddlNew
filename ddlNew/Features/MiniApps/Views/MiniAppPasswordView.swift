@@ -8,6 +8,7 @@ import SwiftUI
 
 /// 密码只属于本次验证弹层，取消或关闭即释放，不写入模型或浮窗数据库。
 struct MiniAppPasswordView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var store: MiniAppsStore
     let record: MiniAppRecord
     let onUnlock: (MiniAppRecord, String) -> Void
@@ -21,19 +22,19 @@ struct MiniAppPasswordView: View {
             Form {
                 Section {
                     HStack(spacing: 12) { MiniAppIcon(resource: record.icon); Text(record.name).font(.headline) }
-                    SecureField("访问密码", text: $password, prompt: Text("访问密码").foregroundColor(MessagingTheme.secondaryText)).textContentType(.password).submitLabel(.go).onSubmit(verify)
-                        .accessibilityLabel("访问密码").disabled(busy)
+                    SecureField(L10n.tr("访问密码"), text: $password, prompt: Text(L10n.tr("访问密码")).foregroundColor(MessagingTheme.secondaryText)).textContentType(.password).submitLabel(.go).onSubmit(verify)
+                        .accessibilityLabel(L10n.tr("访问密码")).disabled(busy)
                     if let error { Text(error).foregroundStyle(MessagingTheme.error).font(.callout) }
-                } footer: { Text("此应用已设置访问密码，验证后可继续。").foregroundStyle(MessagingTheme.secondaryText) }
+                } footer: { Text(L10n.tr("此应用已设置访问密码，验证后可继续。")).foregroundStyle(MessagingTheme.secondaryText) }
             }
-            .navigationTitle("验证访问密码").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(L10n.tr("验证访问密码")).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { task?.cancel(); password = ""; dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("取消")) { task?.cancel(); password = ""; dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("继续", action: verify).disabled(password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || busy)
+                    Button(L10n.tr("继续"), action: verify).disabled(password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || busy)
                 }
             }
-            .overlay { if busy { ProgressView("正在验证").padding(20).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 12)) } }
+            .overlay { if busy { ProgressView(L10n.tr("正在验证")).padding(20).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 12)) } }
         }.tint(MessagingTheme.accent).interactiveDismissDisabled(busy)
             .onDisappear { task?.cancel(); password = "" }
     }
@@ -45,7 +46,7 @@ struct MiniAppPasswordView: View {
             let unlocked = await store.unlock(record, password: value)
             guard !Task.isCancelled else { return }; busy = false
             if let unlocked { onUnlock(unlocked, value) }
-            else { error = store.feedback ?? "密码验证失败，请重试" }
+            else { error = store.feedback ?? L10n.tr("密码验证失败，请重试") }
         }
     }
 }

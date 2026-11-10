@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 gallery_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 gallery_temp=$(mktemp -d)
@@ -100,7 +101,7 @@ def bridge_method(name):
     var isReloading = false
 ''' + bridge_method('didSelect(') + bridge_method('publishSelection(') + '}\n')
 PY
-swiftc -parse-as-library "$gallery_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$gallery_root/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$gallery_root/ddlNew/Features/Chat/Models/"*.swift "$gallery_temp/"*.swift \
  "$gallery_root/ddlNew/Features/Chat/Media/PhotoBrowser/ChatPhotoBrowserResources.swift" \
  "$gallery_root/Tests/Chat/PhotoBrowserChecks.swift" -o "$gallery_temp/checks"

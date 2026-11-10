@@ -7,6 +7,7 @@ extension View {
 }
 
 private struct CallPresentation: UIViewControllerRepresentable {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject private var coordinator = CallCoordinator.shared
     @Environment(\.scenePhase) private var scenePhase
 
@@ -195,6 +196,7 @@ private struct CallPresentation: UIViewControllerRepresentable {
 }
 
 private struct CallFloatingView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var coordinator: CallCoordinator
     var body: some View {
         Button { coordinator.restore() } label: {
@@ -202,14 +204,14 @@ private struct CallFloatingView: View {
                 Image(systemName: coordinator.session?.kind == .video ? "video.fill" : "phone.fill")
                     .font(.title2)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(coordinator.session?.title ?? "通话").font(.subheadline.weight(.semibold)).lineLimit(1)
+                    Text(coordinator.session?.title ?? L10n.tr("通话")).font(.subheadline.weight(.semibold)).lineLimit(1)
                     if let started = coordinator.session?.connectedAt {
                         Text(started, style: .timer).font(.caption).monospacedDigit()
-                    } else { Text("返回通话").font(.caption) }
+                    } else { Text(L10n.tr("返回通话")).font(.caption) }
                 }
             }.padding(14).frame(maxWidth: .infinity, maxHeight: .infinity)
                 .foregroundStyle(.white).background(MessagingTheme.accent, in: RoundedRectangle(cornerRadius: 18))
                 .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
-        }.buttonStyle(.plain).accessibilityLabel("返回当前通话")
+        }.buttonStyle(.plain).accessibilityLabel(L10n.tr("返回当前通话"))
     }
 }

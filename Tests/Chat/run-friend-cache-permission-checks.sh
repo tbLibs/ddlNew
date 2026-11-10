@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -20,7 +21,7 @@ swift += 'precondition(!canSend(Friend(status: 0, disableStatus: 4)), "注销用
 swift += 'precondition(!canSend(Friend(status: 2, disableStatus: 0)))\n'
 swift += 'precondition(!canSend(Friend(status: -1, disableStatus: 0)))\n'
 swift += 'print("Single friend cache permission: 6 passed")\n'
-(target / 'checks.swift').write_text(swift)
+(target / 'main.swift').write_text(swift)
 PYQA
-swiftc "$TMP_DIR/checks.swift" -o "$TMP_DIR/checks"
+swiftc "$localization_source" "$TMP_DIR/main.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

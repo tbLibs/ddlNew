@@ -8,6 +8,7 @@
 import Foundation
 
 enum ChatHistoryCategory: String, CaseIterable, Sendable {
+    var displayName: String { L10n.lookup(rawValue) }
     case text = "文字", media = "图片视频", files = "文件"
     nonisolated var types: [Int] { switch self { case .text: return [0, 10]; case .media: return [1, 2]; case .files: return [5] } }
 }

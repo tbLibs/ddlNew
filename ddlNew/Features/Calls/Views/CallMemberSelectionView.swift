@@ -2,6 +2,7 @@ import SwiftUI
 import UIAdapter
 
 struct CallMemberSelectionView: View {
+    @Environment(\.locale) private var localizationLocale
     let request: CallSelectionRequest
     @ObservedObject var coordinator: CallCoordinator
     @State private var selected: Set<String> = []
@@ -22,23 +23,23 @@ struct CallMemberSelectionView: View {
                         CallAvatar(name: member.name, resource: member.avatar, size: 44.zoom())
                         Text(member.name).foregroundStyle(MessagingTheme.text)
                         Spacer()
-                        if alreadyInCall { Text("已在通话").font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
+                        if alreadyInCall { Text(L10n.tr("已在通话")).font(.caption).foregroundStyle(MessagingTheme.secondaryText) }
                         Image(systemName: selected.contains(member.id) || alreadyInCall ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(alreadyInCall ? MessagingTheme.secondaryText : MessagingTheme.accent)
                     }.frame(minHeight: 48)
                 }
                 .disabled(alreadyInCall || coordinator.busy)
-                .accessibilityLabel(member.name + (alreadyInCall ? "，已在通话" : selected.contains(member.id) ? "，已选择" : "，未选择"))
+                .accessibilityLabel(member.name + (alreadyInCall ? L10n.tr("，已在通话") : selected.contains(member.id) ? L10n.tr("，已选择") : L10n.tr("，未选择")))
             }
-            .searchable(text: $query, prompt: "搜索群成员")
-            .navigationTitle(request.isAdditionalInvite ? "邀请成员" : (request.kind == .audio ? "发起语音通话" : "发起视频通话"))
+            .searchable(text: $query, prompt: L10n.tr("搜索群成员"))
+            .navigationTitle(request.isAdditionalInvite ? L10n.tr("邀请成员") : (request.kind == .audio ? L10n.tr("发起语音通话") : L10n.tr("发起视频通话")))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { coordinator.cancelSelection() }.disabled(coordinator.busy)
+                    Button(L10n.tr("取消")) { coordinator.cancelSelection() }.disabled(coordinator.busy)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("确定（\(selected.count)）") {
+                    Button(L10n.tr("确定（\(selected.count)）")) {
                         Task { await coordinator.submitSelection(selected, requestID: request.id) }
                     }.disabled(selected.isEmpty || coordinator.busy)
                 }

@@ -19,8 +19,8 @@ nonisolated struct NetworkDiagnosticResult: Identifiable, Sendable {
             try Task.checkCancellation()
             let name: String
             switch source.kind {
-            case .main: name = "主域"
-            case .backup: name = "备域"
+            case .main: name = L10n.tr("主域")
+            case .backup: name = L10n.tr("备域")
             case .bin: name = "BIN"
             case .cache: continue // 诊断不能以缓存掩盖本轮获取失败。
             }
@@ -30,11 +30,11 @@ nonisolated struct NetworkDiagnosticResult: Identifiable, Sendable {
             catch {
                 try Task.checkCancellation()
                 if error is CancellationError { throw error }
-                emit(.init(section: "节点获取检测", title: "\(name)：获取失败或超时", passed: false, milliseconds: elapsed(start), targets: [source.address]))
+                emit(.init(section: "节点获取检测", title: L10n.tr("\(name)：获取失败或超时"), passed: false, milliseconds: elapsed(start), targets: [source.address]))
                 continue
             }
             try Task.checkCancellation()
-            emit(.init(section: "节点获取检测", title: "\(name)：获取到 \(payload.tcp.count) 个节点", passed: !payload.tcp.isEmpty, milliseconds: elapsed(start), targets: [source.address] + payload.tcp.map(\.address)))
+            emit(.init(section: "节点获取检测", title: L10n.tr("\(name)：获取到 \(payload.tcp.count) 个节点"), passed: !payload.tcp.isEmpty, milliseconds: elapsed(start), targets: [source.address] + payload.tcp.map(\.address)))
             var available = false
             try await withThrowingTaskGroup(of: NetworkDiagnosticResult.self) { group in
                 for (index, node) in payload.tcp.enumerated() {
@@ -49,7 +49,7 @@ nonisolated struct NetworkDiagnosticResult: Identifiable, Sendable {
                             passed = false
                         }
                         try Task.checkCancellation()
-                        return .init(section: "服务器连接检测", title: "\(name)节点 \(index + 1)：\(passed ? "TCP / 密钥交换成功" : "连接或密钥交换失败／超时")", passed: passed, milliseconds: elapsed(started), targets: [node.address])
+                        return .init(section: "服务器连接检测", title: L10n.tr("\(name)节点 \(index + 1)：\(passed ? L10n.tr("TCP / 密钥交换成功") : L10n.tr("连接或密钥交换失败／超时"))"), passed: passed, milliseconds: elapsed(started), targets: [node.address])
                     }
                 }
                 for try await result in group {

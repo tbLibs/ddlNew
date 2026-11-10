@@ -40,7 +40,7 @@ struct Mapper<T> { func map(JSONString: String) -> UserRoleAuthority? { UserRole
 }
 @MainActor final class UserSessionStore {
     static let shared = UserSessionStore()
-    struct User { let userUID = "a" }
+    struct User { let userUID = "a"; let userSettings: ProfileSettings? = nil }
     var currentUser: User? = User()
     var profileRevision = UUID()
     var nickname = "原昵称"
@@ -54,6 +54,29 @@ struct Mapper<T> { func map(JSONString: String) -> UserRoleAuthority? { UserRole
 @MainActor final class LoginSecurityCoordinator {
     static let shared = LoginSecurityCoordinator()
     func refreshIfNeeded() {}
+}
+
+// Account settings, calling, and activity sync are separate service boundaries.
+// Keep their calls observable while this suite exercises production profile request ordering.
+struct ProfileSettings {}
+@MainActor final class AccountSettingsStore {
+    static let shared = AccountSettingsStore()
+    struct Snapshot { let callsEnabled = false; let callProvider: Int? = nil; let zegoAppID: UInt32 = 0 }
+    let current = Snapshot()
+    private(set) var updateCount = 0
+    func activate(userUID: String, tenantID: String, sessionID: UUID, settings: ProfileSettings?) {}
+    func update(settings: ProfileSettings?, userUID: String, tenantID: String, sessionID: UUID) { updateCount += 1 }
+    func reset() {}
+}
+enum CallProvider: Int { case zego = 1 }
+struct CallConfiguration { let tenantID: String; let enabled: Bool; let provider: CallProvider?; let zegoAppID: UInt32 }
+@MainActor final class CallConfigurationStore {
+    static let shared = CallConfigurationStore()
+    func apply(_ value: CallConfiguration) {}
+}
+@MainActor final class SDKGroupActivitySyncCoordinator {
+    static let shared = SDKGroupActivitySyncCoordinator()
+    func reset() {}
 }
 
 @main struct ProfileRefreshChecks {

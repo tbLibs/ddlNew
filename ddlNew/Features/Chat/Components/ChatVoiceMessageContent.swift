@@ -10,6 +10,7 @@ import UIAdapter
 
 /// 对齐旧端左右镜像的播放图标、波形和秒数；进度只刷新正在播放的语音行。
 struct ChatVoiceMessageContent: View {
+    @Environment(\.locale) private var localizationLocale
     let message: ChatMessageRecord
     let own: Bool
     @ObservedObject var playback: ChatVoicePlayback
@@ -38,7 +39,7 @@ struct ChatVoiceMessageContent: View {
         .frame(width: width, height: max(24, 24.zoom()))
         .foregroundStyle(foreground)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("语音消息，\(Int(duration.rounded(.up)))秒，" + (playing ? "点击停止播放" : "点击播放"))
+        .accessibilityLabel(L10n.tr("语音消息，\(Int(duration.rounded(.up)))秒，") + (playing ? L10n.tr("点击停止播放") : L10n.tr("点击播放")))
     }
 
     private var seconds: some View {

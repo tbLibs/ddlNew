@@ -52,7 +52,7 @@ import ZegoExpressEngine
                 Task { @MainActor in
                     guard let self, self.active, Self.owner === self else { return }
                     if code == 0 { self.onConnected?() }
-                    else { self.onFailure?("通话房间登录失败，请重试") }
+                    else { self.onFailure?(L10n.tr("通话房间登录失败，请重试")) }
                 }
             }
         }
@@ -63,7 +63,7 @@ import ZegoExpressEngine
         publishing = true
         let config = ZegoPublisherConfig(); config.streamCensorshipMode = kind == .audio ? .audio : .audioAndVideo
         engine.startPublishingStream(localID, config: config, channel: .main)
-        participants[localID] = CallParticipant(id: localID, name: "我", avatar: "", isLocal: true, isConnected: true, cameraEnabled: cameraEnabled, microphoneEnabled: microphoneEnabled, stateText: "已加入")
+        participants[localID] = CallParticipant(id: localID, name: L10n.tr("我"), avatar: "", isLocal: true, isConnected: true, cameraEnabled: cameraEnabled, microphoneEnabled: microphoneEnabled, stateText: "已加入")
         if let surface = surfaces[localID], cameraEnabled { engine.startPreview(ZegoCanvas(view: surface)) }
         publishSnapshot()
     }
@@ -96,7 +96,7 @@ import ZegoExpressEngine
         participants[localID]?.cameraEnabled = cameraEnabled; publishSnapshot(); completion(true)
     }
     func speaker(_ enabled: Bool) throws {
-        guard active, let engine, Self.owner === self else { throw CallError.unavailable("通话未连接") }
+        guard active, let engine, Self.owner === self else { throw CallError.unavailable(L10n.tr("通话未连接")) }
         engine.setAudioRouteToSpeaker(enabled)
     }
     func switchCamera(completion: @escaping (Bool) -> Void) { guard active, kind == .video, Self.owner === self else { completion(false); return }; front.toggle(); engine?.useFrontCamera(front); completion(true) }
@@ -171,7 +171,7 @@ import ZegoExpressEngine
             guard let self, self.active, Self.owner === self, self.roomID == roomID else { return }
             if reason == .reconnecting { self.onReconnecting?(true) }
             else if reason == .reconnected { self.onReconnecting?(false) }
-            else if [.loginFailed, .reconnectFailed, .kickOut].contains(reason) { self.onFailure?("通话连接已中断") }
+            else if [.loginFailed, .reconnectFailed, .kickOut].contains(reason) { self.onFailure?(L10n.tr("通话连接已中断")) }
         }
     }
     nonisolated func onRoomTokenWillExpire(_ remainTimeInSecond: Int32, roomID: String) {
@@ -179,6 +179,6 @@ import ZegoExpressEngine
     }
     nonisolated func onPublisherStateUpdate(_ state: ZegoPublisherState, errorCode: Int32, extendedData: [AnyHashable: Any]?, streamID: String) {
         guard state == .noPublish, errorCode != 0 else { return }
-        Task { @MainActor [weak self] in guard let self, self.active, Self.owner === self, self.localID == streamID else { return }; self.onFailure?("通话音视频发送失败") }
+        Task { @MainActor [weak self] in guard let self, self.active, Self.owner === self, self.localID == streamID else { return }; self.onFailure?(L10n.tr("通话音视频发送失败")) }
     }
 }

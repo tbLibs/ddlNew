@@ -19,6 +19,35 @@ final class AuthUITests: XCTestCase {
         app.swipeDown(); app.buttons["authMethod.1"].tap()
         XCTAssertEqual(field("identity").value as? String, "test001"); shot("method-switch")
     }
+    func testLanguageSwitchPreservesFormAndRelaunch() {
+        launch("account")
+        enter("identity", "test001"); enter("password", "Ab1234")
+        app.swipeDown()
+        app.buttons["openLanguageSettings"].tap()
+        XCTAssertTrue(app.buttons["language.en"].waitForExistence(timeout: 3))
+        app.buttons["language.en"].tap(); app.buttons["language.confirm"].tap()
+        let english = NSPredicate(format: "label CONTAINS %@", "Language")
+        expectation(for: english, evaluatedWith: app.buttons["openLanguageSettings"]); waitForExpectations(timeout: 4)
+        XCTAssertEqual(field("identity").value as? String, "test001")
+        XCTAssertFalse((field("password").value as? String ?? "").isEmpty)
+        shot("language-english-preserved")
+        app.buttons["openLanguageSettings"].tap()
+        app.buttons["language.zh-Hant"].tap(); app.buttons["language.confirm"].tap()
+        let traditional = NSPredicate(format: "label CONTAINS %@", "語言")
+        expectation(for: traditional, evaluatedWith: app.buttons["openLanguageSettings"]); waitForExpectations(timeout: 4)
+        XCTAssertEqual(field("identity").value as? String, "test001")
+        shot("language-traditional-preserved")
+        app.terminate(); launch("language-restore")
+        XCTAssertTrue(app.buttons["openLanguageSettings"].label.contains("語言"))
+    }
+    func testEnglishPhoneRegistrationLayout() {
+        launch("phone-register-english")
+        XCTAssertEqual(app.buttons["authMethod.1"].label, "Account")
+        shot("english-phone-registration")
+        show(app.buttons["submitAccountRegistration"])
+        XCTAssertTrue(app.buttons["submitAccountRegistration"].isHittable)
+        shot("english-phone-registration-bottom")
+    }
     func testLoginConsentCancelPreservesInputs() {
         launch("account"); enter("identity", "test001"); enter("password", "Ab1234")
         show(app.buttons["login"]); app.buttons["login"].tap()

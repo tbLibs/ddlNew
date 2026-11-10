@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TMP_DIR=$(mktemp -d)
@@ -11,7 +12,7 @@ s = (root/'ddlNew/Features/Chat/Views/ChatRoomView.swift').read_text()
 observed = re.search(r'\.onChange\(of: store\.(locationRevision|locatedMessageID)\)', s).group(1)
 (out/'Observed.swift').write_text('import Foundation\n@MainActor extension ChatStore { var observedLocation: AnyHashable { AnyHashable('+observed+') } }\n')
 PY
-swiftc -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" \
  "$ROOT_DIR/Tests/Chat/LocationChecks.swift" "$TMP_DIR/Observed.swift" -o "$TMP_DIR/checks"
@@ -63,5 +64,5 @@ METHODS
 code=code.replace('ScrollViewProxy','LocationProxy')
 (out/'LocationUI.swift').write_text(code)
 PY
-swiftc -parse-as-library "$ROOT_DIR/Tests/Chat/LocationLayoutChecks.swift" "$TMP_DIR/LocationUI.swift" -o "$TMP_DIR/layout-checks"
+swiftc "$localization_source" -parse-as-library "$ROOT_DIR/Tests/Chat/LocationLayoutChecks.swift" "$TMP_DIR/LocationUI.swift" -o "$TMP_DIR/layout-checks"
 "$TMP_DIR/layout-checks"

@@ -124,13 +124,13 @@ final class AccountLoginService: AccountLoginServicing {
                 default: throw error
                 }
                 answer = try await present(kind: kind, account: account,
-                                           message: code == 450010 || code == 50002 ? "验证码不正确，请重新验证" : "请完成验证码验证",
+                                           message: code == 450010 || code == 50002 ? L10n.tr("验证码不正确，请重新验证") : L10n.tr("请完成验证码验证"),
                                            originalContext: originalContext,
                                            verificationAttempts: &verificationAttempts,
                                            progress: progress, imageType: identity.kind == .phone ? 2 : 0)
                 if answer.requestsImageFallback {
                     kind = .imageCaptcha
-                    answer = try await present(kind: kind, account: account, message: "请完成图片验证",
+                    answer = try await present(kind: kind, account: account, message: L10n.tr("请完成图片验证"),
                                                originalContext: originalContext, verificationAttempts: &verificationAttempts,
                                                progress: progress, imageType: identity.kind == .phone ? 2 : 0)
                 }
@@ -228,7 +228,7 @@ final class AccountLoginService: AccountLoginServicing {
     private func verifySecurityCode(scKey: String, originalContext: AccountLoginContext,
                                     verificationAttempts: inout Int,
                                     progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> AccountLoginResponse {
-        var message = "在新设备登录需要验证，请输入设备安全码"
+        var message = L10n.tr("在新设备登录需要验证，请输入设备安全码")
         while true {
             let answer = try await present(kind: .securityCode, account: "", message: message,
                                            originalContext: originalContext, verificationAttempts: &verificationAttempts,
@@ -249,13 +249,13 @@ final class AccountLoginService: AccountLoginServicing {
                 guard case let AccountLoginError.businessFailure(code, failureMessage) = error else { throw error }
                 switch code {
                 case 40069, 40070, 40071:
-                    message = "安全码不正确，请重新输入六位数字和字母组成的安全码"
+                    message = L10n.tr("安全码不正确，请重新输入六位数字和字母组成的安全码")
                 case 40072, 40073: throw AccountLoginError.securityVerificationExpired
                 case 90018:
                     throw AccountLoginError.businessFailure(code: code, message: LoginSecurityNotice.whitelistAddress(from: failureMessage))
                 default:
                     // 安全验证响应可能包含临时凭据，页面仅显示固定提示。
-                    throw AccountLoginError.businessFailure(code: code, message: "安全码验证失败，请重新登录")
+                    throw AccountLoginError.businessFailure(code: code, message: L10n.tr("安全码验证失败，请重新登录"))
                 }
             }
         }

@@ -65,7 +65,7 @@ import Combine
         }
         self.resources.interrupted = { [weak self] in
             guard let self, let callID = self.session?.id else { return }
-            self.errorMessage = "通话被系统中断"
+            self.errorMessage = L10n.tr("通话被系统中断")
             Task { if self.session?.id == callID { await self.hangUp() } }
         }
     }
@@ -97,8 +97,8 @@ import Combine
     }
 
     func start(context: ChatContext, kind: CallKind) async {
-        guard session == nil, !busy else { errorMessage = "正在通话中，请先结束当前通话"; return }
-        guard canOfferCall(context: context) else { errorMessage = "当前不可使用通话"; return }
+        guard session == nil, !busy else { errorMessage = L10n.tr("正在通话中，请先结束当前通话"); return }
+        guard canOfferCall(context: context) else { errorMessage = L10n.tr("当前不可使用通话"); return }
         let stamp = UUID(); operation = stamp; busy = true; errorMessage = nil
         defer { if operation == stamp { busy = false } }
         do {
@@ -119,18 +119,18 @@ import Combine
     func submitSelection(_ ids: Set<String>, requestID: UUID) async {
         guard let request = selection, request.id == requestID, !busy, !ids.isEmpty else { return }
         let allowed = Set(request.members.map(\.id)).subtracting(request.selectedIDs).subtracting([request.context.userUID])
-        guard ids.isSubset(of: allowed) else { errorMessage = "成员状态已变化，请重新选择"; return }
+        guard ids.isSubset(of: allowed) else { errorMessage = L10n.tr("成员状态已变化，请重新选择"); return }
         let stamp = UUID(); operation = stamp; busy = true; errorMessage = nil
         defer { if operation == stamp { busy = false } }
         do {
             try await client.validateTarget(context: request.context)
             guard current(stamp, request.context), selection?.id == requestID, canOfferCall(context: request.context) else { return }
             let fresh = try await client.members(context: request.context)
-            guard current(stamp, request.context), ids.isSubset(of: Set(fresh.map(\.id))) else { throw CallError.unavailable("群成员已变化，请重新选择") }
+            guard current(stamp, request.context), ids.isSubset(of: Set(fresh.map(\.id))) else { throw CallError.unavailable(L10n.tr("群成员已变化，请重新选择")) }
             if request.isAdditionalInvite {
                 guard let room = descriptor, let active = session, active.context == request.context else { throw CancellationError() }
                 let connectedIDs = Set(active.participants.filter { $0.stateText == "已加入" || $0.stateText == "呼叫中" }.map(\.id))
-                guard ids.isDisjoint(with: connectedIDs) else { throw CallError.unavailable("所选成员已在当前通话中") }
+                guard ids.isDisjoint(with: connectedIDs) else { throw CallError.unavailable(L10n.tr("所选成员已在当前通话中")) }
                 let response = try await client.perform(.invite, descriptor: room, context: request.context, ids: ids.sorted())
                 guard current(stamp, request.context), descriptor?.id == room.id else { return }
                 if !response.participants.isEmpty { mergeMembers(response.participants) }
@@ -147,7 +147,7 @@ import Combine
     func cancelSelection() { selection = nil; operation = UUID(); busy = false; pendingCreation = nil; pendingSignals.removeAll() }
 
     private func create(context: ChatContext, kind: CallKind, members: [CallParticipant], stamp: UUID) async throws {
-        guard let configurationSnapshot = configuration.current, let provider = configurationSnapshot.provider, canOfferCall(context: context) else { throw CallError.unavailable("通话配置已变化，请重试") }
+        guard let configurationSnapshot = configuration.current, let provider = configurationSnapshot.provider, canOfferCall(context: context) else { throw CallError.unavailable(L10n.tr("通话配置已变化，请重试")) }
         let room = CallRoomDescriptor(provider: provider, id: "", groupID: context.route.kind == .group ? context.route.id : "", kind: kind, callerID: context.userUID, recipientID: context.route.kind == .single ? context.route.id : "")
         // 与旧端一致，创建请求成功前不建立可展示的通话，也不响铃。
         pendingCreation = (stamp, context, provider)
@@ -177,7 +177,7 @@ import Combine
     private func begin(context: ChatContext, room: CallRoomDescriptor, incoming: Bool, members: [CallParticipant], configurationSnapshot: CallConfiguration? = nil) {
         activeConfiguration = configurationSnapshot ?? configuration.current
         var local = client.participant(id: context.userUID, localID: context.userUID)
-        local.name = local.name.isEmpty ? "我" : local.name
+        local.name = local.name.isEmpty ? L10n.tr("我") : local.name
         local.cameraEnabled = false
         let all = [local] + members.filter { $0.id != local.id }
         session = CallSession(id: UUID(), context: context, kind: room.kind, phase: incoming ? .incoming : .outgoing, title: context.route.title, isIncoming: incoming, participants: all, connectedAt: nil, microphoneEnabled: true, cameraEnabled: room.kind == .video, speakerEnabled: !room.groupID.isEmpty || room.kind == .video, callerID: room.callerID)
@@ -213,7 +213,7 @@ import Combine
         finish()
         guard let ended, !ended.id.isEmpty, isCurrent(active.context) else { return }
         do { _ = try await client.perform(.end, descriptor: ended, context: active.context, ids: []) }
-        catch { if isCurrent(active.context), session == nil { errorMessage = "通话已关闭，结束通知发送失败" } }
+        catch { if isCurrent(active.context), session == nil { errorMessage = L10n.tr("通话已关闭，结束通知发送失败") } }
     }
 
     func inviteMembers() async {
@@ -243,13 +243,13 @@ import Combine
     }
 
     func joinGroupRoom(context: ChatContext) async {
-        guard session == nil, !busy else { errorMessage = "正在通话中，请先结束当前通话"; return }
+        guard session == nil, !busy else { errorMessage = L10n.tr("正在通话中，请先结束当前通话"); return }
         let stamp = UUID(); operation = stamp; busy = true; errorMessage = nil
         defer { if operation == stamp { busy = false } }
         do {
             try await client.validateTarget(context: context)
             await refreshGroupRoom(context: context)
-            guard current(stamp, context), let currentRoom = groupRooms[context.route.id] else { throw CallError.unavailable("当前通话已结束") }
+            guard current(stamp, context), let currentRoom = groupRooms[context.route.id] else { throw CallError.unavailable(L10n.tr("当前通话已结束")) }
             prepareAudio(); try await permission(currentRoom.kind)
             guard current(stamp, context), canOfferCall(context: context) else { return }
             begin(context: context, room: currentRoom.descriptor, incoming: false, members: currentRoom.participants)
@@ -307,7 +307,7 @@ import Combine
                     else { response = currentRoom }
                     guard self.session?.id == id, self.isCurrent(active.context), !self.endedRooms.contains(self.roomKey(room)) else { return }
                     self.descriptor = response; self.connect(response)
-                } catch { if self.session?.id == id { self.fail("通话连接失败，请重试") } }
+                } catch { if self.session?.id == id { self.fail(L10n.tr("通话连接失败，请重试")) } }
             }
         case .confirmed:
             guard active.isIncoming, active.phase == .connecting else { return }
@@ -324,7 +324,7 @@ import Combine
         let target = room.groupID.isEmpty ? room.callerID : room.groupID
         guard !target.isEmpty, room.callerID != identity.user else { return }
         let peer = client.participant(id: room.callerID, localID: identity.user)
-        let context = ChatContext(userUID: identity.user, tenantID: identity.tenant, sessionID: identity.session, route: ChatRoute(id: target, kind: room.groupID.isEmpty ? .single : .group, title: room.groupID.isEmpty ? peer.name : "群通话", avatarURL: peer.avatar))
+        let context = ChatContext(userUID: identity.user, tenantID: identity.tenant, sessionID: identity.session, route: ChatRoute(id: target, kind: room.groupID.isEmpty ? .single : .group, title: room.groupID.isEmpty ? peer.name : L10n.tr("群通话"), avatarURL: peer.avatar))
         if session != nil || busy {
             if room.provider == .liveKit {
                 var rejected = room; rejected.reason = "refused"
@@ -341,14 +341,14 @@ import Combine
             actionTask = Task { [weak self] in
                 guard let self, self.session?.id == id, self.descriptor?.id == room.id, self.isCurrent(context) else { return }
                 do { _ = try await self.client.perform(.receive, descriptor: room, context: context, ids: []) }
-                catch { if self.session?.id == id { self.fail("来电确认失败，请稍后重试") } }
+                catch { if self.session?.id == id { self.fail(L10n.tr("来电确认失败，请稍后重试")) } }
             }
         }
     }
 
     private func connect(_ room: CallRoomDescriptor) {
         guard let active = session, let config = activeConfiguration, isCurrent(active.context), media == nil else { return }
-        guard (room.provider == .liveKit && !room.endpoint.isEmpty && !room.token.isEmpty) || (room.provider == .zego && !room.roomName.isEmpty && !room.token.isEmpty && config.zegoAppID != 0) else { fail("通话房间信息不完整，请重试"); return }
+        guard (room.provider == .liveKit && !room.endpoint.isEmpty && !room.token.isEmpty) || (room.provider == .zego && !room.roomName.isEmpty && !room.token.isEmpty && config.zegoAppID != 0) else { fail(L10n.tr("通话房间信息不完整，请重试")); return }
         resources.stopRinging(); resources.retainScreen(); session?.phase = .connecting
         groupRooms[active.context.route.id] = nil
         let engine = mediaFactory(room.provider); media = engine
@@ -362,7 +362,7 @@ import Combine
                         _ = try await self.client.perform(.confirmJoin, descriptor: room, context: active.context, ids: [])
                         guard self.session?.id == id else { return }
                         self.connected(id: id)
-                    } catch { if self.session?.id == id { self.fail("通话入房确认失败，请重试") } }
+                    } catch { if self.session?.id == id { self.fail(L10n.tr("通话入房确认失败，请重试")) } }
                 }
             } else { self.connected(id: id) }
         }
@@ -382,7 +382,7 @@ import Combine
                     let renewed = try await self.client.perform(.token, descriptor: room, context: active.context, ids: [])
                     guard self.session?.id == id, !renewed.token.isEmpty else { return }
                     engine.renewToken(renewed.token)
-                } catch { if self.session?.id == id { self.fail("通话凭据更新失败") } }
+                } catch { if self.session?.id == id { self.fail(L10n.tr("通话凭据更新失败")) } }
             }
         }
         scheduleConnectionDeadline(id)
@@ -415,7 +415,7 @@ import Combine
         connectDeadline = Task { [weak self] in
             do { try await Task.sleep(nanoseconds: 30_000_000_000) } catch { return }
             guard let self, self.session?.id == id, self.session?.phase == .connecting else { return }
-            self.fail("连接通话房间超时，请重试")
+            self.fail(L10n.tr("连接通话房间超时，请重试"))
         }
     }
 
@@ -424,7 +424,7 @@ import Combine
         microphoneChanging = true; let enabled = !active.microphoneEnabled
         media.microphone(enabled) { [weak self] success in
             guard let self, self.session?.id == active.id else { return }; self.microphoneChanging = false
-            if success { self.session?.microphoneEnabled = enabled } else { self.errorMessage = "麦克风切换失败，请重试" }
+            if success { self.session?.microphoneEnabled = enabled } else { self.errorMessage = L10n.tr("麦克风切换失败，请重试") }
         }
     }
     func toggleCamera() {
@@ -432,18 +432,18 @@ import Combine
         cameraChanging = true; let enabled = !active.cameraEnabled
         media.camera(enabled && foreground) { [weak self] success in
             guard let self, self.session?.id == active.id else { return }; self.cameraChanging = false
-            if success { self.session?.cameraEnabled = enabled } else { self.errorMessage = "摄像头切换失败，请重试" }
+            if success { self.session?.cameraEnabled = enabled } else { self.errorMessage = L10n.tr("摄像头切换失败，请重试") }
         }
     }
     func toggleSpeaker() {
         guard let active = session, active.phase == .connected, let media else { return }
         do { try media.speaker(!active.speakerEnabled); session?.speakerEnabled.toggle() }
-        catch { errorMessage = "音频输出切换失败，请重试" }
+        catch { errorMessage = L10n.tr("音频输出切换失败，请重试") }
     }
     func switchCamera() {
         guard let active = session, active.kind == .video, active.cameraEnabled, foreground else { return }
         media?.switchCamera { [weak self] success in
-            if !success, self?.session?.id == active.id { self?.errorMessage = "切换摄像头失败，请重试" }
+            if !success, self?.session?.id == active.id { self?.errorMessage = L10n.tr("切换摄像头失败，请重试") }
         }
     }
     func setForeground(_ foreground: Bool) {
@@ -500,7 +500,7 @@ import Combine
     private func roomKey(_ room: CallRoomDescriptor) -> String { "\(room.provider.rawValue):\(room.id)" }
     private func report(_ error: Error, stamp: UUID, context: ChatContext, terminate: Bool = true) {
         guard current(stamp, context), !(error is CancellationError) else { return }
-        let message = (error as? CallError)?.localizedDescription ?? "通话请求失败，请稍后重试"
+        let message = (error as? CallError)?.localizedDescription ?? L10n.tr("通话请求失败，请稍后重试")
         errorMessage = message
         if terminate, session != nil { fail(message) }
     }
@@ -517,10 +517,10 @@ import Combine
         pendingCreation = nil; pendingSignals.removeAll()
     }
     private func endMessage(_ room: CallRoomDescriptor) -> String? {
-        if room.reason == "accept" || room.status == 8 { return "已在其他设备接听" }
-        if room.reason == "missed" || room.reason == "timeout" || room.status == 3 || room.status == 12 { return "对方未应答" }
-        if room.reason == "refused" || room.status == 4 { return "对方已拒绝" }
-        if room.reason == "disconnect" || room.status == 7 { return "通话已中断" }
+        if room.reason == "accept" || room.status == 8 { return L10n.tr("已在其他设备接听") }
+        if room.reason == "missed" || room.reason == "timeout" || room.status == 3 || room.status == 12 { return L10n.tr("对方未应答") }
+        if room.reason == "refused" || room.status == 4 { return L10n.tr("对方已拒绝") }
+        if room.reason == "disconnect" || room.status == 7 { return L10n.tr("通话已中断") }
         return nil
     }
 }

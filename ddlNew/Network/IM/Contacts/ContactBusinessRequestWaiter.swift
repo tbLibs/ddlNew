@@ -21,7 +21,7 @@ import Foundation
                 guard !finished else { continuation.resume(throwing: CancellationError()); return }
                 self.continuation = continuation
                 timer = Task {
-                    do { try await Task.sleep(nanoseconds: 20_000_000_000); finish(.failure(ContactBusinessError.invalidInput("请求超时，请刷新状态后重试"))) }
+                    do { try await Task.sleep(nanoseconds: 20_000_000_000); finish(.failure(ContactBusinessError.invalidInput(L10n.tr("请求超时，请刷新状态后重试")))) }
                     catch { /* 请求已结束时取消计时。 */ }
                 }
                 start()

@@ -44,7 +44,7 @@ struct ClubField: View {
                         ClubIcon(name: "eye").frame(width: 44, height: 44)
                             .background(ClubTheme.wash).clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .accessibilityLabel(passwordVisible ? "隐藏密码" : "显示密码")
+                    .accessibilityLabel(passwordVisible ? L10n.tr("隐藏密码") : L10n.tr("显示密码"))
                     .accessibilityIdentifier("\(identifier ?? "field.\(icon)").visibility")
                 }
             }

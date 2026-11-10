@@ -3,35 +3,46 @@ import UIAdapter
 
 /// 设置页展示，账户来源与敏感操作由父页面持有。
 struct SettingsPageContent<DeleteDestination: View>: View {
+    @Environment(\.locale) private var localizationLocale
     let displayName: String
     let account: String
     let deleteDestination: DeleteDestination
     let openPrivacyPolicy: () -> Void
     let openSupport: () -> Void
     let logout: () -> Void
+    @State private var showingLanguageSettings = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28.zoom()) {
             accountSummary
-            section("消息通知") {
+            section(L10n.tr("语言设置")) {
+                Button { showingLanguageSettings = true } label: {
+                    row(L10n.tr("语言"), detail: L10n.tr("简体中文、繁體中文、English"), symbol: "globe")
+                        .padding(.horizontal, 16.zoom())
+                }
+                .accessibilityIdentifier("settings.language")
+                .background(HomeTheme.surface, in: cardShape)
+                .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
+            }
+            section(L10n.tr("消息通知")) {
                 NavigationLink(destination: PushSettingsView()) {
-                    row("通知设置", detail: "新消息通知、声音与震动", symbol: "bell")
+                    row(L10n.tr("通知设置"), detail: L10n.tr("新消息通知、声音与震动"), symbol: "bell")
                         .padding(.horizontal, 16.zoom())
                 }
                 .accessibilityIdentifier("settings.notifications")
                 .background(HomeTheme.surface, in: cardShape)
                 .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
             }
-            section("隐私与支持") {
+            section(L10n.tr("隐私与支持")) {
                 VStack(spacing: 0) {
                     Button(action: openPrivacyPolicy) {
-                        row("隐私政策", detail: "了解个人信息的使用与保护", symbol: "hand.raised")
+                        row(L10n.tr("隐私政策"), detail: L10n.tr("了解个人信息的使用与保护"), symbol: "hand.raised")
                     }
                     .accessibilityIdentifier("settings.privacyPolicy")
                     divider
                     Button(action: openSupport) {
-                        row("使用支持", detail: "查看帮助与联系方式", symbol: "questionmark.circle")
+                        row(L10n.tr("使用支持"), detail: L10n.tr("查看帮助与联系方式"), symbol: "questionmark.circle")
                     }
                     .accessibilityIdentifier("settings.support")
                 }
@@ -39,9 +50,9 @@ struct SettingsPageContent<DeleteDestination: View>: View {
                 .background(HomeTheme.surface, in: cardShape)
                 .overlay(cardShape.stroke(HomeTheme.border, lineWidth: 1))
             }
-            section("账户管理") {
+            section(L10n.tr("账户管理")) {
                 NavigationLink(destination: deleteDestination) {
-                    row("注销账号", detail: "永久注销，操作不可撤销", symbol: "person.crop.circle.badge.minus")
+                    row(L10n.tr("注销账号"), detail: L10n.tr("永久注销，操作不可撤销"), symbol: "person.crop.circle.badge.minus")
                         .padding(.horizontal, 16.zoom())
                 }
                 .accessibilityIdentifier("deleteAccountEntry")
@@ -50,7 +61,7 @@ struct SettingsPageContent<DeleteDestination: View>: View {
             }
             VStack(spacing: 12.zoom()) {
                 Button(role: .destructive, action: logout) {
-                    Text("退出登录")
+                    Text(L10n.tr("退出登录"))
                         .font(.body.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(HomeTheme.text)
@@ -61,7 +72,7 @@ struct SettingsPageContent<DeleteDestination: View>: View {
                         .contentShape(cardShape)
                 }
                 .accessibilityIdentifier("settings.logout")
-                Text("退出登录后，活动记录会保留。")
+                Text(L10n.tr("退出登录后，活动记录会保留。"))
                     .font(.footnote).foregroundStyle(HomeTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -71,6 +82,7 @@ struct SettingsPageContent<DeleteDestination: View>: View {
         .padding(.top, 24.zoom()).padding(.bottom, 32.zoom())
         .foregroundStyle(HomeTheme.text)
         .buttonStyle(SettingsPressStyle())
+        .sheet(isPresented: $showingLanguageSettings) { LanguageSettingsView() }
     }
 
     private var accountSummary: some View {
@@ -85,12 +97,12 @@ struct SettingsPageContent<DeleteDestination: View>: View {
                 .background(HomeTheme.surface, in: RoundedRectangle(cornerRadius: 18.zoom()))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 7.zoom()) {
-                Text("当前账户").font(.caption.weight(.medium))
+                Text(L10n.tr("当前账户")).font(.caption.weight(.medium))
                     .foregroundStyle(HomeTheme.secondaryText)
                 Text(displayName).font(.title3.weight(.semibold))
                     .accessibilityIdentifier("settings.displayName")
                 if !account.isEmpty {
-                    Text("账号：\(account)").font(.subheadline)
+                    Text(L10n.tr("账号：\(account)")).font(.subheadline)
                         .foregroundStyle(HomeTheme.secondaryText)
                         .accessibilityIdentifier("settings.account")
                 }

@@ -69,7 +69,7 @@ import Combine
             let refreshed = await load(1, afterMutation: true)
             try valid(token)
             isBusy = false
-            if !refreshed { feedback = "操作已完成，列表刷新失败，请刷新重试" }
+            if !refreshed { feedback = L10n.tr("操作已完成，列表刷新失败，请刷新重试") }
             return true
         }
         catch { if epoch == token { isBusy = false }; report(error, token); return false }

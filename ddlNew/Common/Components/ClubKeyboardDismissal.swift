@@ -20,7 +20,7 @@ struct ClubKeyboardDismissal: ViewModifier {
                 if isFocused {
                     HStack {
                         Spacer()
-                        Button("完成", action: dismiss)
+                        Button(L10n.tr("完成"), action: dismiss)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(tint)
                             .accessibilityIdentifier("keyboardDone")

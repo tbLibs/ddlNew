@@ -2,6 +2,14 @@
 import Foundation
 
 struct ChatContext {}
+// Storage configuration is a captured dependency; URL and quota logic remain extracted production code.
+struct CloudPolicyMediaSnapshot {
+    let provider = LocalMediaSettings.ossConfigType
+    let bucket = LocalMediaSettings.ossConfigBucketName
+    let endpoint = LocalMediaSettings.ossConfigEndPoint
+    let uploadDomain = LocalMediaSettings.ossOBSUploadDomain
+    let downloadDomain = LocalMediaSettings.ossOBSDownloadDomain
+}
 struct CloudPolicyRole {
     var allowed = false
     var configurationData: [String: String] = [:]

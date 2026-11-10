@@ -105,18 +105,18 @@ nonisolated private final class SDKPushDelegate: NSObject, NoaToolMessageDelegat
         var title=message.fromNickname ?? ""
         if group, let member=(sdk.imSdkCheckGroupMember(with:message.fromID ?? "",groupID:id) as LingIMGroupMemberModel?) { title=member.showName ?? title }
         else if !group, let friend=sdk.toolCheckMyFriend(with:id) { title=friend.showName ?? title }
-        if title.isEmpty { title = group ? "群消息":"新消息" }
+        if title.isEmpty { title = group ? L10n.tr("群消息"):L10n.tr("新消息") }
         let body:String
         switch type {
         case 0: body = (message.translateContent?.isEmpty == false ? message.translateContent:message.textContent) ?? ""
-        case 1: body="[图片]"
-        case 2: body="[视频]"
-        case 3,7: body="[位置]" + (message.geoName ?? "")
-        case 4: body="[语音]"
-        case 5: body="[文件]"
-        case 6: body="[个人名片]" + (message.cardNickName ?? "")
-        case 12,21: body="[表情]"
-        case 18: body="[会话记录]" + (message.forwardMessage?.title ?? "")
+        case 1: body=L10n.tr("[图片]")
+        case 2: body=L10n.tr("[视频]")
+        case 3,7: body=L10n.tr("[位置]") + (message.geoName ?? "")
+        case 4: body=L10n.tr("[语音]")
+        case 5: body=L10n.tr("[文件]")
+        case 6: body=L10n.tr("[个人名片]") + (message.cardNickName ?? "")
+        case 12,21: body=L10n.tr("[表情]")
+        case 18: body=L10n.tr("[会话记录]") + (message.forwardMessage?.title ?? "")
         case 10:
             let targets = (message.atUsersInfoList as? [[String:String]] ?? []).flatMap { $0.keys }
             let names=(message.atUsersInfoList as? [[String:String]] ?? []).reduce(into:[String:String]()) { result, values in result.merge(values) { _,new in new } }
@@ -126,7 +126,7 @@ nonisolated private final class SDKPushDelegate: NSObject, NoaToolMessageDelegat
             guard group, message.serverMessage?.sMsgType.rawValue == 208 else { return }
             let info: LingIMGroupModel? = sdk.toolCheckMyGroup(with:id)
             guard PushMessageSummary.allowsGroupNotice(informStatus:info?.groupInformStatus) else { return }
-            body="[群公告]"
+            body=L10n.tr("[群公告]")
         default: return
         }
         let stableID = message.serviceMsgID?.isEmpty == false ? message.serviceMsgID ?? "" : message.msgID ?? ""
@@ -135,7 +135,7 @@ nonisolated private final class SDKPushDelegate: NSObject, NoaToolMessageDelegat
     }
     func cimToolUserFriendInvite(_ message: FriendInviteMessage) {
         guard valid else { return }
-        received(PushEvent(id:message.hashKey,destination:.friends,title:message.fNick.isEmpty ? "好友申请":message.fNick,
-                           body:message.reason.isEmpty ? "请求添加您为好友~":message.reason,muted:false,fromSelf:false))
+        received(PushEvent(id:message.hashKey,destination:.friends,title:message.fNick.isEmpty ? L10n.tr("好友申请"):message.fNick,
+                           body:message.reason.isEmpty ? L10n.tr("请求添加您为好友~"):message.reason,muted:false,fromSelf:false))
     }
 }

@@ -94,8 +94,8 @@ final class LoginVerificationCoordinator: ObservableObject, AccountLoginChalleng
 
         var errorDescription: String? {
             switch self {
-            case .alreadyPresenting: return "验证窗口正在关闭，请稍后重新登录。"
-            case .timedOut: return "验证已超时，请重新登录。"
+            case .alreadyPresenting: return L10n.tr("验证窗口正在关闭，请稍后重新登录。")
+            case .timedOut: return L10n.tr("验证已超时，请重新登录。")
             }
         }
     }

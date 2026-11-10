@@ -34,7 +34,7 @@ import ObjectiveC
         objc_sync_enter(sdk); defer { objc_sync_exit(sdk) }
         guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady() else { throw ContactBusinessError.staleSession }
         let cachedGroups: [LingIMGroupModel]? = sdk.toolGetMyGroupList()
-        guard let cachedGroups else { throw ContactBusinessError.invalidInput("群列表缓存读取失败，请刷新重试") }
+        guard let cachedGroups else { throw ContactBusinessError.invalidInput(L10n.tr("群列表缓存读取失败，请刷新重试")) }
         return cachedGroups.filter { $0.leaveGroupStatus == 0 && $0.groupStatus != 2 }.map { group in
             GroupRecord(id: group.groupId ?? "", name: group.groupName ?? "", avatar: group.groupAvatar ?? "", role: group.userGroupRole, memberCount: group.memberCount, isNeedVerify: group.isNeedVerify, isShowQRCode: group.isShowQrCode, isPrivateChat: group.isPrivateChat, isAllMuted: group.isGroupChat)
         }
@@ -44,9 +44,9 @@ import ObjectiveC
     func createGroup(userUID: String, nickname: String, members: [ContactRecord]) async throws -> GroupRecord {
         let revision = generation, license = OSSNavigationStore.shared.lastUsableLiceseId()
         guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady(), UserRoleAuthorityStore.shared.current?.allows("createGroup") == true,
-              (2...200).contains(members.count), Set(members.map(\.id)).count == members.count else { throw ContactBusinessError.invalidInput("当前无建群权限或人数不符合要求") }
+              (2...200).contains(members.count), Set(members.map(\.id)).count == members.count else { throw ContactBusinessError.invalidInput(L10n.tr("当前无建群权限或人数不符合要求")) }
         for member in members {
-            guard member.id != userUID, let friend = sdk.toolCheckMyFriend(with: member.id), friend.userType == 0, friend.disableStatus != 4 else { throw ContactBusinessError.invalidInput("好友状态已变化，请重新选择") }
+            guard member.id != userUID, let friend = sdk.toolCheckMyFriend(with: member.id), friend.userType == 0, friend.disableStatus != 4 else { throw ContactBusinessError.invalidInput(L10n.tr("好友状态已变化，请重新选择")) }
         }
         let params: NSMutableDictionary = ["userUid": userUID, "ownerUid": userUID, "ownerNickname": nickname,
                                            "groupMemberParams": members.map { ["userUid": $0.id, "nickName": $0.nickname] }]

@@ -26,13 +26,13 @@ import Combine
     /// 麦克风授权返回后再次校验认证轮次，取消授权等待不会启动录音。
     func start(context: ChatContext, onLimitReached: (() -> Void)? = nil) async {
         cancel(); errorMessage = nil; self.context = context; let run = generation
-        guard CallCoordinator.shared.session == nil else { errorMessage = "通话中暂不能录制语音"; return }
+        guard CallCoordinator.shared.session == nil else { errorMessage = L10n.tr("通话中暂不能录制语音"); return }
         self.onLimitReached = onLimitReached
         let session = AVAudioSession.sharedInstance()
         let permitted = await withCheckedContinuation { continuation in session.requestRecordPermission { continuation.resume(returning: $0) } }
         guard generation == run, !Task.isCancelled, ChatRuntime.shared.isCurrent(context) else { return }
-        guard CallCoordinator.shared.session == nil else { errorMessage = "通话中暂不能录制语音"; return }
-        guard permitted else { errorMessage = "麦克风权限未开启，请在系统设置中允许录音"; return }
+        guard CallCoordinator.shared.session == nil else { errorMessage = L10n.tr("通话中暂不能录制语音"); return }
+        guard permitted else { errorMessage = L10n.tr("麦克风权限未开启，请在系统设置中允许录音"); return }
         do {
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP]); try session.setActive(true)
             ownsAudioSession = true
@@ -40,7 +40,7 @@ import Combine
             self.file = file
             let recorder = try AVAudioRecorder(url: file, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 64000])
             self.recorder = recorder; recorder.delegate = self; recorder.isMeteringEnabled = true
-            guard recorder.record(forDuration: 60) else { throw ChatClientError.unavailable("无法开始录音，请重试") }
+            guard recorder.record(forDuration: 60) else { throw ChatClientError.unavailable(L10n.tr("无法开始录音，请重试")) }
             self.recorder = recorder; self.file = file; isRecording = true; duration = 0
             observeInterruption()
             let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -67,7 +67,7 @@ import Combine
         releaseAudioSession()
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }; interruptionObserver = nil
         let bytes = Int64(try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0)
-        guard bytes >= 1024, duration >= 1, duration <= 60.5 else { cancel(); throw ChatClientError.unavailable("说话时间太短") }
+        guard bytes >= 1024, duration >= 1, duration <= 60.5 else { cancel(); throw ChatClientError.unavailable(L10n.tr("说话时间太短")) }
         self.file = nil; self.recorder = nil; self.context = nil
         return ChatAttachment(file: file, type: 4, name: file.lastPathComponent, bytes: bytes, duration: min(60, duration))
     }
@@ -82,7 +82,7 @@ import Combine
                 let completion = self.onLimitReached; self.onLimitReached = nil
                 completion?()
             }
-            else { self.errorMessage = "录音被中断，请重新录制"; self.cancel() }
+            else { self.errorMessage = L10n.tr("录音被中断，请重新录制"); self.cancel() }
         }
     }
 
@@ -97,7 +97,7 @@ import Combine
     nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         Task { @MainActor in
             guard self.recorder === recorder else { return }
-            self.cancel(); self.errorMessage = "录音出错了，请稍后再试"
+            self.cancel(); self.errorMessage = L10n.tr("录音出错了，请稍后再试")
         }
     }
 
@@ -107,7 +107,7 @@ import Combine
         interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
             let began = (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?.uintValue == AVAudioSession.InterruptionType.began.rawValue
             guard began, let owner = self else { return }
-            Task { @MainActor in guard owner.generation == run else { return }; owner.cancel(); owner.errorMessage = "录音被系统中断，请重新录制" }
+            Task { @MainActor in guard owner.generation == run else { return }; owner.cancel(); owner.errorMessage = L10n.tr("录音被系统中断，请重新录制") }
         }
     }
 

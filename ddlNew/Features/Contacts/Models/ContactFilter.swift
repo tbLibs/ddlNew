@@ -8,6 +8,7 @@
 import Foundation
 
 enum ContactFilter: String, CaseIterable, Identifiable {
+    var displayName: String { L10n.lookup(rawValue) }
     case all = "全部", leaders = "领队", favorites = "常用"
     var id: Self { self }
 }

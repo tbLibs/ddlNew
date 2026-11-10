@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d /tmp/ddlNew-group-send-permission.XXXXXX)
@@ -43,7 +44,7 @@ BODY
 '''.replace('BODY',body)
 (target/'ProductionGroupPermission.swift').write_text(code)
 PY
-swiftc -parse-as-library "$TASK_ROOT/ddlNew/Configuration/LocalMessagingSettings.swift" "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \
+swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/Configuration/LocalMessagingSettings.swift" "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Models/"*.swift "$TASK_TMP/ProductionGroupPermission.swift" \
  "$TASK_ROOT/Tests/Chat/GroupSendPermissionChecks.swift" -o "$TASK_TMP/checks"
 "$TASK_TMP/checks"

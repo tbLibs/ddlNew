@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 import AVFoundation
 
 struct ChatMediaComposer: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var chat: ChatStore
     @Binding var mode: ChatComposerMode
     var focused: Binding<Bool>
@@ -75,7 +76,7 @@ struct ChatMediaComposer: View {
             HStack(alignment: .bottom, spacing: 0) {
                 ZStack(alignment: .topLeading) {
                     if chat.input.isEmpty {
-                        Text("发送消息").foregroundStyle(MessagingTheme.secondaryText)
+                        Text(L10n.tr("发送消息")).foregroundStyle(MessagingTheme.secondaryText)
                             .padding(.leading, 12).padding(.top, 10).allowsHitTesting(false).accessibilityHidden(true)
                     }
                     ChatComposerTextInput(text: $chat.input, selection: $inputSelection, focused: focused,
@@ -87,7 +88,7 @@ struct ChatMediaComposer: View {
                 } label: {
                     Image(systemName: mode.panel == .stickers ? "keyboard" : "face.smiling")
                         .font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                }.accessibilityLabel(mode.panel == .stickers ? "切换文字输入" : "展开表情与贴纸")
+                }.accessibilityLabel(mode.panel == .stickers ? L10n.tr("切换文字输入") : L10n.tr("展开表情与贴纸"))
             }.background(MessagingTheme.background, in: RoundedRectangle(cornerRadius: 14.zoom()))
             primaryButton
         }.disabled(!chat.permission.canSend).padding(.horizontal, 16.zoom()).padding(.top, 6.zoom())
@@ -98,18 +99,18 @@ struct ChatMediaComposer: View {
         if mode.panel == .voice {
             Button { mode.beginTyping(); focused.wrappedValue = true } label: {
                 Image(systemName: "keyboard").font(.system(size: 23.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("切换文字输入")
+            }.accessibilityLabel(L10n.tr("切换文字输入"))
         } else if ChatComposerMode.primaryAction(input: chat.input, focused: focused.wrappedValue) == .send {
             Button { chat.sendText() } label: {
                 Image(systemName: "arrow.up").font(.system(size: 20.zoom(), weight: .semibold))
                     .frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
                     .foregroundStyle(MessagingTheme.onPrimaryAction).background(MessagingTheme.primaryAction, in: RoundedRectangle(cornerRadius: 12.zoom()))
-            }.accessibilityLabel("发送消息").disabled(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }.accessibilityLabel(L10n.tr("发送消息")).disabled(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .opacity(chat.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
         } else {
             Button { focused.wrappedValue = false; mode.toggle(.voice) } label: {
                 Image(systemName: "mic").font(.system(size: 24.zoom())).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-            }.accessibilityLabel("展开语音录制")
+            }.accessibilityLabel(L10n.tr("展开语音录制"))
         }
     }
 
@@ -118,16 +119,16 @@ struct ChatMediaComposer: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0),
                                  count: dynamicTypeSize.isAccessibilitySize ? 3 : (offersCalls ? 5 : 3)), spacing: 4.zoom()) {
             if offersCalls {
-                Button { beginCall(.video) } label: { Label("视频通话", systemImage: "video") }
+                Button { beginCall(.video) } label: { Label(L10n.tr("视频通话"), systemImage: "video") }
                     .disabled(calls.busy)
-                Button { beginCall(.audio) } label: { Label("语音通话", systemImage: "phone") }
+                Button { beginCall(.audio) } label: { Label(L10n.tr("语音通话"), systemImage: "phone") }
                     .disabled(calls.busy)
             }
-            PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label("相册", systemImage: "photo") }
+            PhotosPicker(selection: $photos, maxSelectionCount: 9, matching: .any(of: [.images, .videos])) { Label(L10n.tr("相册"), systemImage: "photo") }
                 .frame(maxWidth: .infinity).disabled(!chat.permission.canSend)
-            Button { focused.wrappedValue = false; prepareCamera() } label: { Label("拍摄", systemImage: "camera") }
+            Button { focused.wrappedValue = false; prepareCamera() } label: { Label(L10n.tr("拍摄"), systemImage: "camera") }
                 .frame(maxWidth: .infinity).disabled(!chat.permission.canSend || calls.session != nil)
-            Button { focused.wrappedValue = false; showFiles = true } label: { Label("文件", systemImage: "doc") }
+            Button { focused.wrappedValue = false; showFiles = true } label: { Label(L10n.tr("文件"), systemImage: "doc") }
                 .frame(maxWidth: .infinity).disabled(!chat.permission.canSend)
         }.labelStyle(ChatComposerToolLabelStyle(equalWidth: true)).buttonStyle(.plain)
             .padding(.horizontal, 12.zoom())
@@ -149,7 +150,7 @@ struct ChatMediaComposer: View {
     /// 旧端100点按住按钮及160×60录音状态卡，移出按钮切换取消提示。
     private var voicePanel: some View {
         VStack(spacing: 0) {
-            Text("按住说话").font(.system(size: 16.zoom())).foregroundStyle(MessagingTheme.secondaryText)
+            Text(L10n.tr("按住说话")).font(.system(size: 16.zoom())).foregroundStyle(MessagingTheme.secondaryText)
                 .padding(.top, 16.zoom())
             ZStack {
                 Circle().fill(voicePress.isHolding && !voicePress.isInside ? MessagingTheme.error : MessagingTheme.primaryAction)
@@ -170,14 +171,14 @@ struct ChatMediaComposer: View {
                         ChatVoiceRecordingMeter(level: recorder.level).frame(width: 44.zoom(), height: 17.zoom())
                         Text("\(Int(recorder.duration))s").font(.system(size: 16.zoom())).monospacedDigit()
                     }
-                    Text(voicePress.isInside ? "上滑取消发送" : "松开取消发送").font(.system(size: 10.zoom()))
+                    Text(voicePress.isInside ? L10n.tr("上滑取消发送") : L10n.tr("松开取消发送")).font(.system(size: 10.zoom()))
                 }
                 .foregroundStyle(.white).frame(width: 160.zoom(), height: 60.zoom())
                 .background(voicePress.isInside ? MessagingTheme.primaryAction : MessagingTheme.error,
                             in: RoundedRectangle(cornerRadius: 16.zoom()))
                 .shadow(color: (voicePress.isInside ? MessagingTheme.accent : MessagingTheme.error).opacity(0.4), radius: 5)
                 .offset(y: -70.zoom()).allowsHitTesting(false)
-                .accessibilityLabel(voicePress.isInside ? "正在录音，上滑取消发送" : "松开取消发送")
+                .accessibilityLabel(voicePress.isInside ? L10n.tr("正在录音，上滑取消发送") : L10n.tr("松开取消发送"))
             }
         }
         .disabled(!chat.permission.canSend)
@@ -204,7 +205,7 @@ struct ChatMediaComposer: View {
                         attachment = try await ChatAttachmentPreparation.video(movie.file)
                         try? FileManager.default.removeItem(at: movie.file)
                     } else if let data = try await item.loadTransferable(type: Data.self) { attachment = try await Task.detached { try ChatAttachmentPreparation.image(data) }.value }
-                    else { throw ChatClientError.unavailable("无法读取所选媒体，请重试") }
+                    else { throw ChatClientError.unavailable(L10n.tr("无法读取所选媒体，请重试")) }
                     await send(attachment, context: context)
                 } catch { media.errorMessage = error.localizedDescription }
             }
@@ -213,8 +214,8 @@ struct ChatMediaComposer: View {
     }
     /// 相机拒权给出系统设置路径，模拟器无相机不会崩溃。
     private func prepareCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else { media.errorMessage = "当前设备没有可用相机"; return }
-        Task { let allowed = await AVCaptureDevice.requestAccess(for: .video); if allowed { showCamera = true } else { media.errorMessage = "相机权限未开启，请在系统设置中允许拍摄" } }
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else { media.errorMessage = L10n.tr("当前设备没有可用相机"); return }
+        Task { let allowed = await AVCaptureDevice.requestAccess(for: .video); if allowed { showCamera = true } else { media.errorMessage = L10n.tr("相机权限未开启，请在系统设置中允许拍摄") } }
     }
     /// 用户拍摄的图片只准备真实字节，不乐观生成消息。
     private func prepareImage(_ data: Data) { preparation = Task { guard let context = chat.context else { return }; do { let attachment = try await Task.detached { try ChatAttachmentPreparation.image(data) }.value; await send(attachment, context: context) } catch { media.errorMessage = error.localizedDescription } } }
@@ -225,9 +226,9 @@ struct ChatMediaComposer: View {
     /// 按下即请求录音；权限弹窗期间松手会撤销该轮，不迟到启动麦克风。
     private func beginRecording() {
         guard chat.permission.canSend, let context = chat.context, startRecordingTask == nil else { return }
-        guard calls.session == nil else { recorder.errorMessage = "通话中暂不能录制语音"; return }
+        guard calls.session == nil else { recorder.errorMessage = L10n.tr("通话中暂不能录制语音"); return }
         media.errorMessage = nil
-        guard !media.isUploading else { recorder.errorMessage = "附件正在发送，请稍后再试"; return }
+        guard !media.isUploading else { recorder.errorMessage = L10n.tr("附件正在发送，请稍后再试"); return }
         guard voicePress.begin() else { return }
         onBeginRecording()
         let run = UUID(); recordingGestureID = run

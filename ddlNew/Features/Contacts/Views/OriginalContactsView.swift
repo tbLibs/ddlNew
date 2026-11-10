@@ -9,11 +9,13 @@ import SwiftUI
 
 /// 旧演示通讯录页面，主通讯录入口继续使用真实 ContactsView。
 private enum OriginalContactFilter: String, CaseIterable, Identifiable {
+    var displayName: String { L10n.lookup(rawValue) }
     case all = "全部", leaders = "领队", favorites = "常用"
     var id: Self { self }
 }
 
 struct OriginalContactsView: View {
+    @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var community: ClubCommunity
     @State private var query = ""
     @State private var filter: OriginalContactFilter = .all
@@ -32,24 +34,24 @@ struct OriginalContactsView: View {
     var body: some View {
         ClubScroll {
             VStack(alignment: .leading, spacing: 20) {
-                ScreenHeading(eyebrow: "一起发现，一起参与", title: "通讯录")
+                ScreenHeading(eyebrow: L10n.tr("一起发现，一起参与"), title: L10n.tr("通讯录"))
                 ClubCard(padding: 18, highlighted: true) {
                     HStack(spacing: 14) {
                         ClubIcon(name: "contacts", size: 26).foregroundColor(ClubTheme.darkTeal)
                             .frame(width: 52, height: 52).background(ClubTheme.card.opacity(0.75))
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("认识同行的伙伴").font(.headline)
-                            Text("\(community.contacts.count) 位伙伴 · \(community.contacts.filter(\.isLeader).count) 位领队")
+                            Text(L10n.tr("认识同行的伙伴")).font(.headline)
+                            Text(L10n.tr("\(community.contacts.count) 位伙伴 · \(community.contacts.filter(\.isLeader).count) 位领队"))
                                 .font(.subheadline).foregroundColor(ClubTheme.secondary)
                         }
                         Spacer(minLength: 0)
                     }
                 }
-                CommunitySearchField(placeholder: "搜索姓名、兴趣", text: $query, focus: $searchFocused, identifier: "contactSearch")
+                CommunitySearchField(placeholder: L10n.tr("搜索姓名、兴趣"), text: $query, focus: $searchFocused, identifier: "contactSearch")
                 CommunityFilters(selection: $filter)
                 if filtered.isEmpty {
-                    EmptyClubState(title: "暂无符合条件的联系人", message: filter == .favorites ? "在成员资料中添加常用联系人，方便下次找到。" : "试试其他姓名或兴趣关键词。")
+                    EmptyClubState(title: L10n.tr("暂无符合条件的联系人"), message: filter == .favorites ? L10n.tr("在成员资料中添加常用联系人，方便下次找到。") : L10n.tr("试试其他姓名或兴趣关键词。"))
                 } else {
                     LazyVStack(alignment: .leading, spacing: 18) {
                         ForEach(initials, id: \.self) { initial in
@@ -88,9 +90,9 @@ struct OriginalContactsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Text(contact.name).font(.body.weight(.semibold)).foregroundColor(ClubTheme.ink)
-                    if contact.isLeader { Text("领队").font(.caption.weight(.medium)).foregroundColor(ClubTheme.darkTeal) }
+                    if contact.isLeader { Text(L10n.tr("领队")).font(.caption.weight(.medium)).foregroundColor(ClubTheme.darkTeal) }
                     if community.favorites.contains(contact.id) {
-                        Image(systemName: "star.fill").font(.caption2).foregroundColor(ClubTheme.darkTeal).accessibilityLabel("常用联系人")
+                        Image(systemName: "star.fill").font(.caption2).foregroundColor(ClubTheme.darkTeal).accessibilityLabel(L10n.tr("常用联系人"))
                     }
                 }
                 Text(contact.interests).font(.subheadline).foregroundColor(ClubTheme.secondary).lineLimit(2)

@@ -21,7 +21,7 @@ import Combine
     private var restored = false
     var memberDisplayName: String { snapshot.activeAccount ?? "林夏" }
     var memberAccountDescription: String {
-        "远山户外俱乐部 · \(snapshot.activeAccount ?? "YS****18")"
+        L10n.tr("远山户外俱乐部 · \(snapshot.activeAccount ?? "YS****18")")
     }
     func restore() async {
         guard !restored else { return }
@@ -85,7 +85,7 @@ import Combine
         }
         snapshot = updated
         stage = .login
-        notify("注册成功，请登录")
+        notify(L10n.tr("注册成功，请登录"))
     }
     func signOut(changeClub: Bool = false) async {
         snapshot.signedIn = false
@@ -107,7 +107,7 @@ import Combine
         snapshot = deleted
         selectedTab = .messages
         stage = .invite
-        notify("账号已注销")
+        notify(L10n.tr("账号已注销"))
     }
     func status(_ activity: ClubActivity) -> Participation { snapshot.participation[activity.id] ?? .available }
     func activities(with states: Set<Participation>) -> [ClubActivity] { activities.filter { states.contains(status($0)) } }
@@ -120,18 +120,18 @@ import Combine
         guard [.registered, .waiting].contains(status(activity)) else { return }
         snapshot.participation[activity.id] = .available
         await persist()
-        notify("已取消参与")
+        notify(L10n.tr("已取消参与"))
     }
     func checkIn(_ activity: ClubActivity, code: String) async -> Bool {
         guard status(activity) == .registered, code == activity.checkInCode else { return false }
         snapshot.participation[activity.id] = .checkedIn
         await persist()
-        notify("签到成功，享受这次活动吧")
+        notify(L10n.tr("签到成功，享受这次活动吧"))
         return true
     }
     func notify(_ text: String) { toastMessage = text; showToast = true }
     private func persist() async {
         do { try await repository.save(snapshot) }
-        catch { notify("操作未保存，请重试") }
+        catch { notify(L10n.tr("操作未保存，请重试")) }
     }
 }

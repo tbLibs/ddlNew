@@ -10,7 +10,7 @@ import Foundation
 nonisolated enum ChatGameSticker: Int, CaseIterable, Identifiable, Sendable {
     case rockPaperScissors = 1, dice = 2
     var id: Int { rawValue }
-    var title: String { self == .dice ? "骰子" : "石头剪刀布" }
+    var title: String { self == .dice ? L10n.tr("骰子") : L10n.tr("石头剪刀布") }
     var icon: String { self == .dice ? "emoji_collect_playDice" : "emoji_collect_stoneScissorCloth" }
     var maximum: Int { self == .dice ? 6 : 3 }
     var frames: [String] {
@@ -28,7 +28,7 @@ nonisolated enum ChatGameSticker: Int, CaseIterable, Identifiable, Sendable {
         return (self == .dice ? "icon_chat_message_dice" : "icon_chat_message_stoneScissorCloth") + result
     }
     func resultName(_ result: String) -> String {
-        guard isValid(result) else { return "结果未知" }
-        return self == .dice ? result + "点" : ["1": "石头", "2": "剪刀", "3": "布"][result] ?? "结果未知"
+        guard isValid(result) else { return L10n.tr("结果未知") }
+        return self == .dice ? result + L10n.tr("点") : ["1": L10n.tr("石头"), "2": L10n.tr("剪刀"), "3": L10n.tr("布")][result] ?? L10n.tr("结果未知")
     }
 }

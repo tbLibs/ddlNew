@@ -10,6 +10,7 @@ import MapKit
 import UIAdapter
 
 struct ChatLocationDetailView: View {
+    @Environment(\.locale) private var localizationLocale
     let message: ChatMessageRecord
     @State private var region: MKCoordinateRegion
     private let coordinate: CLLocationCoordinate2D?
@@ -26,16 +27,16 @@ struct ChatLocationDetailView: View {
         VStack(spacing: 0) {
             if let coordinate {
                 Map(coordinateRegion: $region, annotationItems: [LocationPoint(coordinate: coordinate)]) { point in MapMarker(coordinate: point.coordinate, tint: MessagingTheme.accent) }
-                    .accessibilityLabel(message.text.isEmpty ? "消息中的位置" : message.text)
+                    .accessibilityLabel(message.text.isEmpty ? L10n.tr("消息中的位置") : message.text)
                 VStack(alignment: .leading, spacing: 12.zoom()) {
-                    Text(message.text.isEmpty ? "位置" : message.text).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(message.text.isEmpty ? L10n.tr("位置") : message.text).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
                     if let url = mapURL(coordinate) {
-                        Link(destination: url) { Label("在系统地图打开", systemImage: "arrow.triangle.turn.up.right.diamond").frame(maxWidth: .infinity) }
+                        Link(destination: url) { Label(L10n.tr("在系统地图打开"), systemImage: "arrow.triangle.turn.up.right.diamond").frame(maxWidth: .infinity) }
                             .buttonStyle(MessagingActionButtonStyle())
                     }
                 }.frame(maxWidth: 640).padding(16.zoom()).frame(maxWidth: .infinity).background(MessagingTheme.surface)
-            } else { Spacer(); Label("此位置记录的坐标已不可用", systemImage: "mappin.slash").foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()); Spacer() }
-        }.navigationTitle("位置").modifier(MessagingPageChrome())
+            } else { Spacer(); Label(L10n.tr("此位置记录的坐标已不可用"), systemImage: "mappin.slash").foregroundStyle(MessagingTheme.secondaryText).padding(24.zoom()); Spacer() }
+        }.navigationTitle(L10n.tr("位置")).modifier(MessagingPageChrome())
     }
 
     /// 用户点击后才打开系统地图，历史展示无需位置授权。

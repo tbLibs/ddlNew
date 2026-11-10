@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 call_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 call_temp=$(mktemp -d)
@@ -15,7 +16,7 @@ method = s[s.index('    private func request(context:'):s.rfind('\n}')].replace(
     func validate(_ context: ChatContext) throws { if !valid { throw CancellationError() } }
 ''' + method + '\n}\n')
 PY
-swiftc -swift-version 5 -parse-as-library "$call_temp/Request.swift" \
+swiftc "$localization_source" -swift-version 5 -parse-as-library "$call_temp/Request.swift" \
  "$call_root/ddlNew/Network/IM/SDK/SDKLoginRequestWaiter.swift" \
  "$call_root/ddlNew/Features/Calls/Models/CallContract.swift" \
  "$call_root/Tests/Calls/RequestChecks.swift" -o "$call_temp/checks"

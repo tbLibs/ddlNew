@@ -15,7 +15,7 @@ import ObjectiveC
         guard ChatRuntime.shared.isCurrent(context) else { throw ChatClientError.sessionExpired }
         if context.route.kind == .group, !memberIDs.isEmpty {
             let group: LingIMGroupModel? = NoaIMSDKManager.sharedTool().toolCheckMyGroup(with: context.route.id)
-            guard group?.closeSearchUser == false else { throw ChatClientError.permission("本群已关闭按成员搜索") }
+            guard group?.closeSearchUser == false else { throw ChatClientError.permission(L10n.tr("本群已关闭按成员搜索")) }
         }
         let page = try await Task.detached {
             let sdk = NoaIMSDKManager.sharedTool(); objc_sync_enter(sdk); defer { objc_sync_exit(sdk) }

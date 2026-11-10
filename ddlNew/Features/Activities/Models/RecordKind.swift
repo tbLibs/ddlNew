@@ -9,6 +9,7 @@ import Foundation
 
 /// 参与记录的分类，同时作为当前 Tab 导航栈中的列表路由。
 enum RecordKind: String, Hashable {
+    var displayName: String { L10n.lookup(rawValue) }
     case registered = "我的报名"
     case waiting = "候补记录"
     case checkedIn = "签到记录"

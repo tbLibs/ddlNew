@@ -52,13 +52,13 @@ import NoaChatCore
                             self.camera(true) { [weak self] success in
                                 guard let self, self.active else { return }
                                 if success { self.publishSnapshot(); self.onConnected?() }
-                                else { self.onFailure?("无法开启通话摄像头") }
+                                else { self.onFailure?(L10n.tr("无法开启通话摄像头")) }
                             }
                         } else { self.publishSnapshot(); self.onConnected?() }
                     }
-                }.catch { [weak self] _ in Task { @MainActor in if self?.active == true { self?.onFailure?("无法开启通话麦克风") } } }
+                }.catch { [weak self] _ in Task { @MainActor in if self?.active == true { self?.onFailure?(L10n.tr("无法开启通话麦克风")) } } }
             }
-        }.catch { [weak self] _ in Task { @MainActor in if self?.active == true { self?.onFailure?("通话房间连接失败") } } }
+        }.catch { [weak self] _ in Task { @MainActor in if self?.active == true { self?.onFailure?(L10n.tr("通话房间连接失败")) } } }
     }
 
     func disconnect() {
@@ -136,7 +136,7 @@ import NoaChatCore
         Task { @MainActor [weak self] in guard let self, self.active, self.room === room else { return }; self.onReconnecting?(false) }
     }
     nonisolated func room(_ room: Room, didDisconnect error: Error?) {
-        Task { @MainActor [weak self] in guard let self, self.active, self.room === room else { return }; self.onFailure?("通话连接已断开") }
+        Task { @MainActor [weak self] in guard let self, self.active, self.room === room else { return }; self.onFailure?(L10n.tr("通话连接已断开")) }
     }
     nonisolated func room(_ room: Room, participantDidJoin participant: RemoteParticipant) { refresh(room) }
     nonisolated func room(_ room: Room, participantDidLeave participant: RemoteParticipant) {

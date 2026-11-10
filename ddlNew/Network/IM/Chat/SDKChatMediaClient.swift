@@ -20,7 +20,7 @@ import UniformTypeIdentifiers
     /// 视频封面独立上传后填入封面URI，原视频URI保持真实资源身份。
     func upload(_ attachment: ChatAttachment, context: ChatContext, progress: @escaping @MainActor (Double) -> Void) async throws -> ChatUploadedAttachment {
         guard let media = mediaSnapshot ?? AccountSettingsStore.shared.current.media else {
-            throw ChatClientError.unavailable("文件存储配置不可用，请稍后重试")
+            throw ChatClientError.unavailable(L10n.tr("文件存储配置不可用，请稍后重试"))
         }
         let primary = try await uploadSingle(attachment, context: context, media: media, progress: progress)
         let run = generation
@@ -47,7 +47,7 @@ import UniformTypeIdentifiers
             try validate(run, context: context)
             return result
         }
-        guard let uploadHost = plan.uploadFileHost else { throw ChatClientError.unavailable("服务器未提供文件上传地址") }
+        guard let uploadHost = plan.uploadFileHost else { throw ChatClientError.unavailable(L10n.tr("服务器未提供文件上传地址")) }
         try checkPermission(attachment)
         let encodedFile = try await Task.detached { try LegacyChatMediaCodec.prepareUpload(file: attachment.file, type: attachment.type) }.value
         defer { if encodedFile != attachment.file { try? FileManager.default.removeItem(at: encodedFile) } }
@@ -93,7 +93,7 @@ import UniformTypeIdentifiers
         var sent: Int64 = 0; var part = 1; var tags: [[String: Any]] = []
         while sent < attachment.bytes {
             try validate(run, context: context)
-            guard let bytes = try handle.read(upToCount: 50 * 1024 * 1024), !bytes.isEmpty else { throw ChatClientError.unavailable("附件读取失败，请重新选择") }
+            guard let bytes = try handle.read(upToCount: 50 * 1024 * 1024), !bytes.isEmpty else { throw ChatClientError.unavailable(L10n.tr("附件读取失败，请重新选择")) }
             let chunk = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             try bytes.write(to: chunk); defer { try? FileManager.default.removeItem(at: chunk) }
             let boundary = UUID().uuidString
@@ -130,28 +130,28 @@ import UniformTypeIdentifiers
 
     /// 文件与图片视频分别读取角色配额，单位MB，语音按录制上限校验。
     private func checkPermission(_ attachment: ChatAttachment) throws {
-        guard FileManager.default.fileExists(atPath: attachment.file.path) else { throw ChatClientError.unavailable("附件已不存在，请重新选择") }
+        guard FileManager.default.fileExists(atPath: attachment.file.path) else { throw ChatClientError.unavailable(L10n.tr("附件已不存在，请重新选择")) }
         // 证据图不是聊天发送；只允许已认证的投诉客户端经通用目录上传。
         if attachment.type == ChatAttachment.complaintEvidenceType {
-            guard attachment.bytes > 0 else { throw ChatClientError.unavailable("证据图片为空") }
+            guard attachment.bytes > 0 else { throw ChatClientError.unavailable(L10n.tr("证据图片为空")) }
             return
         }
         if attachment.type == ChatAttachment.userAvatarType || attachment.type == ChatAttachment.miniAppIconType {
-            guard attachment.bytes > 0, attachment.bytes <= 50 * 1024 else { throw ChatClientError.unavailable("头像图片无效") }
+            guard attachment.bytes > 0, attachment.bytes <= 50 * 1024 else { throw ChatClientError.unavailable(L10n.tr("头像图片无效")) }
             return
         }
-        guard let role = UserRoleAuthorityStore.shared.current else { throw ChatClientError.permission("账号上传权限尚未就绪") }
+        guard let role = UserRoleAuthorityStore.shared.current else { throw ChatClientError.permission(L10n.tr("账号上传权限尚未就绪")) }
         guard ![4, 101].contains(attachment.type) else { return }
         let key = attachment.type == 5 ? "upFile" : "upImageVideoFile"
-        guard role.allows(key) else { throw ChatClientError.permission("当前账号不允许上传此附件") }
+        guard role.allows(key) else { throw ChatClientError.permission(L10n.tr("当前账号不允许上传此附件")) }
         let maxMB = Int64(role.configurationData[key] ?? "") ?? 0
-        guard ChatAttachmentPolicy.allowedBytes(attachment.bytes, maximumMB: maxMB) else { throw ChatClientError.permission("附件超过当前账号允许的大小，请选择较小文件") }
+        guard ChatAttachmentPolicy.allowedBytes(attachment.bytes, maximumMB: maxMB) else { throw ChatClientError.permission(L10n.tr("附件超过当前账号允许的大小，请选择较小文件")) }
     }
 
     /// 所有HTTP请求使用旧Minio真实签名、UID及上传公钥令牌。
     private func request(path: String, query: [String: String] = [:], plan: OSSConnectionPlan, tenantCode: String, context: ChatContext, fileName: String? = nil, publicKey: String? = nil) throws -> URLRequest {
         guard let uploadHost = plan.uploadFileHost,
-              var components = URLComponents(url: uploadHost.appendingPathComponent(String(path.dropFirst())), resolvingAgainstBaseURL: false) else { throw ChatClientError.unavailable("服务器未提供文件上传地址") }
+              var components = URLComponents(url: uploadHost.appendingPathComponent(String(path.dropFirst())), resolvingAgainstBaseURL: false) else { throw ChatClientError.unavailable(L10n.tr("服务器未提供文件上传地址")) }
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
         guard let url = components.url else { throw ChatClientError.invalidResponse }
         var request = URLRequest(url: url); request.httpMethod = "POST"

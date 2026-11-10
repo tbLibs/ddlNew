@@ -91,7 +91,7 @@ import ObjectiveC
             let data = try await call(identity) { sdk.getBlackListFromServer(with: params, onSuccess: $0, onFailure: $1) }
             response.contacts = try ContactBusinessPayload.searchContacts(from: data)
         case .setBlack(let id, let blocked):
-            guard !id.isEmpty, id != identity.userUID, id != "100002" else { throw ContactBusinessError.invalidInput("不能对该用户操作黑名单") }
+            guard !id.isEmpty, id != identity.userUID, id != "100002" else { throw ContactBusinessError.invalidInput(L10n.tr("不能对该用户操作黑名单")) }
             params["friendUserUid"] = id; params["status"] = blocked ? 1 : 0
             response.success = try ContactBusinessPayload.blackFlag(await call(identity) { success, failure in
                 if blocked { sdk.addUserToBlackList(with: params, onSuccess: success, onFailure: failure) }
@@ -165,7 +165,7 @@ import ObjectiveC
         case .roleLabels:
             let data = try await call(identity) { sdk.imGetRoleConfigInfo(with: nil, onSuccess: $0, onFailure: $1) }
             guard let rows = data as? [[String: Any]] else { throw ContactBusinessError.malformedResponse }
-            let chinese = Locale.preferredLanguages.first?.hasPrefix("zh") == true
+            let chinese = L10n.languageCode.hasPrefix("zh")
             for row in rows {
                 guard let mapped = Mapper<ContactBusinessPayload>().map(JSON: row), mapped.flag("showRoleName") else { continue }
                 let label = chinese ? mapped.text("roleName") : mapped.text("enName")
@@ -175,7 +175,7 @@ import ObjectiveC
             params["friendUserUid"] = id
             let relation = try await call(identity) { sdk.checkMyFriend(with: params, onSuccess: $0, onFailure: $1) }
             guard let friend = relation as? NSNumber else { throw ContactBusinessError.malformedResponse }
-            guard !friend.boolValue else { throw ContactBusinessError.invalidInput("该用户已经是你的好友") }
+            guard !friend.boolValue else { throw ContactBusinessError.invalidInput(L10n.tr("该用户已经是你的好友")) }
             try validateAllowedFriend(id, identity: identity, adding: true)
             response.success = try boolean(await call(identity) { sdk.addContact(with: params, onSuccess: $0, onFailure: $1) })
         case .accept(let id):
@@ -201,11 +201,11 @@ import ObjectiveC
                 let deleteParams: NSMutableDictionary = ["userUid": identity.userUID, "peerUid": id, "dialogType": 0]
                 do {
                     let cleared = try boolean(await call(identity) { sdk.deleteServerConversation(deleteParams, onSuccess: $0, onFailure: $1) })
-                    guard cleared else { throw ContactBusinessError.invalidInput("聊天记录清理未完成") }
+                    guard cleared else { throw ContactBusinessError.invalidInput(L10n.tr("聊天记录清理未完成")) }
                     let cachedSession: LingIMSessionModel? = sdk.toolCheckMySession(with: id)
-                    if let session = cachedSession, !sdk.toolDeleteSessionModel(with: session, andDeleteAllChatModel: true) { throw ContactBusinessError.invalidInput("本机聊天记录清理失败") }
+                    if let session = cachedSession, !sdk.toolDeleteSessionModel(with: session, andDeleteAllChatModel: true) { throw ContactBusinessError.invalidInput(L10n.tr("本机聊天记录清理失败")) }
                     ChatRuntime.shared.closeConversation(id: id)
-                } catch { throw ContactBusinessError.invalidInput("好友已删除，但聊天记录清理失败。请在聊天设置中重试。") }
+                } catch { throw ContactBusinessError.invalidInput(L10n.tr("好友已删除，但聊天记录清理失败。请在聊天设置中重试。")) }
             }
         case .groups:
             let data = try await call(identity) { sdk.getFriendGroupList(with: params, onSuccess: $0, onFailure: $1) }
@@ -215,7 +215,7 @@ import ObjectiveC
             try validate(identity, revision: generation)
             let returnedIDs = Set(rows.compactMap { Mapper<ContactBusinessPayload>().map(JSON: $0)?.text("ugUuid") }.filter { !$0.isEmpty })
             let cachedGroups: [LingIMFriendGroupModel]? = sdk.toolGetMyFriendGroupList()
-            guard let cachedGroups else { throw ContactBusinessError.invalidInput("好友分组缓存读取失败，请刷新重试") }
+            guard let cachedGroups else { throw ContactBusinessError.invalidInput(L10n.tr("好友分组缓存读取失败，请刷新重试")) }
             for group in cachedGroups where !returnedIDs.contains(group.ugUuid ?? "") { _ = sdk.toolDeleteMyFriendGroup(with: group.ugUuid ?? "") }
             for row in rows {
                 guard let mapped = Mapper<ContactBusinessPayload>().map(JSON: row), !mapped.text("ugUuid").isEmpty else { continue }
@@ -239,7 +239,7 @@ import ObjectiveC
             params["ugUuid"] = id; params["ugOrder"] = order
             response.success = try mutationResult(await call(identity) { sdk.updateFriendGroup(with: params, onSuccess: $0, onFailure: $1) })
         case .deleteGroup(let id):
-            guard try loadGroups().contains(where: { $0.id == id && !$0.isDefault }) else { throw ContactBusinessError.invalidInput("默认分组不可删除") }
+            guard try loadGroups().contains(where: { $0.id == id && !$0.isDefault }) else { throw ContactBusinessError.invalidInput(L10n.tr("默认分组不可删除")) }
             params["ugUuid"] = id
             response.success = try mutationResult(await call(identity) { sdk.deleteFriendGroup(with: params, onSuccess: $0, onFailure: $1) })
         case .moveFriend(let id, let groupID):
@@ -249,7 +249,7 @@ import ObjectiveC
         case .qrCode(let groupID):
             if let groupID {
                 let currentGroup: LingIMGroupModel? = sdk.toolCheckMyGroup(with: groupID)
-                guard let group = currentGroup, group.leaveGroupStatus == 0, group.groupStatus == 1, [1, 2].contains(group.userGroupRole) || group.isShowQrCode else { throw ContactBusinessError.invalidInput("该群当前不允许展示二维码") }
+                guard let group = currentGroup, group.leaveGroupStatus == 0, group.groupStatus == 1, [1, 2].contains(group.userGroupRole) || group.isShowQrCode else { throw ContactBusinessError.invalidInput(L10n.tr("该群当前不允许展示二维码")) }
                 let json = try JSONSerialization.data(withJSONObject: ["groupId": groupID])
                 params["content"] = String(data: json, encoding: .utf8) ?? ""; params["type"] = 2
             } else { params["content"] = ""; params["type"] = 1 }
@@ -282,11 +282,11 @@ import ObjectiveC
 
     /// 写操作前检查实际好友是否仍存在以及注销状态。
     private func validateAllowedFriend(_ id: String, identity: ContactsIdentity, adding: Bool) throws {
-        guard id != identity.userUID else { throw ContactBusinessError.invalidInput("不能对自己执行该操作") }
+        guard id != identity.userUID else { throw ContactBusinessError.invalidInput(L10n.tr("不能对自己执行该操作")) }
         if adding {
-            guard UserRoleAuthorityStore.shared.current?.allows("allowAddFriend") == true else { throw ContactBusinessError.invalidInput("当前账号无添加好友权限") }
+            guard UserRoleAuthorityStore.shared.current?.allows("allowAddFriend") == true else { throw ContactBusinessError.invalidInput(L10n.tr("当前账号无添加好友权限")) }
         } else {
-            guard let friend = sdk.toolCheckMyFriend(with: id), friend.disableStatus != 4 else { throw ContactBusinessError.invalidInput("好友关系已变化，请刷新资料") }
+            guard let friend = sdk.toolCheckMyFriend(with: id), friend.disableStatus != 4 else { throw ContactBusinessError.invalidInput(L10n.tr("好友关系已变化，请刷新资料")) }
         }
     }
 
@@ -296,7 +296,7 @@ import ObjectiveC
         objc_sync_enter(sdk); defer { objc_sync_exit(sdk) }
         try validate(identity, revision: generation)
         guard let friend = sdk.toolCheckMyFriend(with: id), friend.disableStatus != 4 else {
-            throw ContactBusinessError.invalidInput("好友关系已变化，请刷新资料")
+            throw ContactBusinessError.invalidInput(L10n.tr("好友关系已变化，请刷新资料"))
         }
         // 撤销保存前的资料读取，旧请求不能迟到覆盖本次已确认修改。
         let version = ContactProfileRequestGate.shared.begin(userUID: identity.userUID, license: identity.license, friendUID: id)
@@ -305,7 +305,7 @@ import ObjectiveC
         friend.remarksPinyin = ContactSorter.searchPinyin(for: remark)
         friend.showName = remark.isEmpty ? friend.nickname : remark
         guard sdk.toolUpdateMyFriend(with: friend) else {
-            throw ContactBusinessError.invalidInput("备注已保存，但本机缓存更新失败，请刷新重试")
+            throw ContactBusinessError.invalidInput(L10n.tr("备注已保存，但本机缓存更新失败，请刷新重试"))
         }
         return ContactRecord(id: id, account: friend.userName ?? "", nickname: friend.nickname ?? "",
                              remarks: remark, description: description, avatar: friend.avatar ?? "",
@@ -327,14 +327,14 @@ import ObjectiveC
         friend.showName = record.displayName; friend.roleId = record.roleID
         friend.onlineStatus = record.isOnline; friend.userType = record.userType
         let success = existing == nil ? sdk.toolAddMyFriend(with: friend) : sdk.toolUpdateMyFriend(with: friend)
-        if !success { throw ContactBusinessError.invalidInput("好友资料缓存保存失败，请重新读取") }
+        if !success { throw ContactBusinessError.invalidInput(L10n.tr("好友资料缓存保存失败，请重新读取")) }
     }
 
     /// 分组默认组包含未指定分组的普通好友，组内按在线/离线/注销排列。
     private func loadGroups() throws -> [FriendBusinessGroup] {
         let friends = sdk.toolGetMyFriendList() ?? []
         let cachedGroups: [LingIMFriendGroupModel]? = sdk.toolGetMyFriendGroupList()
-        guard let cachedGroups else { throw ContactBusinessError.invalidInput("好友分组缓存读取失败，请刷新重试") }
+        guard let cachedGroups else { throw ContactBusinessError.invalidInput(L10n.tr("好友分组缓存读取失败，请刷新重试")) }
         return cachedGroups.filter { $0.delFlag == 0 }.map { group in
             let members = friends.filter { $0.userType == 0 && ($0.ugUuid == group.ugUuid || (group.ugType == -1 && ($0.ugUuid ?? "").isEmpty)) }.map {
                 ContactRecord(id: $0.friendUserUID ?? "", account: $0.userName ?? "", nickname: $0.nickname ?? "", remarks: $0.remarks ?? "", description: $0.descRemark ?? "", avatar: $0.avatar ?? "", isOnline: $0.onlineStatus, disableStatus: $0.disableStatus, userType: $0.userType, roleID: $0.roleId)
@@ -356,7 +356,7 @@ import ObjectiveC
             let inviter = Mapper<ContactBusinessPayload>().map(JSON: fields)?.text("shareUserUid") ?? ""
             return .group(id: mapped.text("gid"), name: mapped.text("gName"), avatar: mapped.text("avatar"), inviter: inviter, isMember: Mapper<ContactBusinessPayload>().map(JSON: fields)?.flag("isOnGroup") == true, needsApproval: mapped.flag("isNeedVerify"))
         }
-        throw ContactBusinessError.invalidInput("此二维码不是有效的好友或群业务二维码")
+        throw ContactBusinessError.invalidInput(L10n.tr("此二维码不是有效的好友或群业务二维码"))
     }
 }
 

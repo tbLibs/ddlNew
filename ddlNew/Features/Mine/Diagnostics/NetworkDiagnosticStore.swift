@@ -26,7 +26,7 @@ import Network
     func cancel() {
         generation = UUID()
         task?.cancel(); task = nil
-        if running { status = "检测已取消" }
+        if running { status = L10n.tr("检测已取消") }
         running = false
         activeSection = nil; activeTargets = []
     }
@@ -42,12 +42,12 @@ import Network
         results = []; progress = 0; completed = false; sources = []
         guard let uid = ChatRuntime.shared.userUID,
               let context = ChatRuntime.shared.context(for: ChatRoute(id: uid, kind: .single, title: "", avatarURL: "")) else {
-            status = "登录状态已失效，请重新登录后检测"; return
+            status = L10n.tr("登录状态已失效，请重新登录后检测"); return
         }
         license = context.tenantID
         activeSection = "网络连接情况"
         let round = generation
-        running = true; status = "正在检测网络连接"
+        running = true; status = L10n.tr("正在检测网络连接")
         ChatRuntime.shared.registerCleanup(owner: self) { [weak self] in self?.cancel() }
         task = Task { [weak self] in
             guard let self else { return }
@@ -61,7 +61,7 @@ import Network
                 let start = Date()
                 let connected = try await checkDevice()
                 try valid()
-                results.append(.init(section: "网络连接情况", title: connected ? "设备已联网" : "设备未联网", passed: connected, milliseconds: NetworkDiagnosticRunner.elapsed(start)))
+                results.append(.init(section: "网络连接情况", title: connected ? L10n.tr("设备已联网") : L10n.tr("设备未联网"), passed: connected, milliseconds: NetworkDiagnosticRunner.elapsed(start)))
                 _ = await checkInternet { event in
                     guard self.generation == round, ChatRuntime.shared.isCurrent(context), !Task.isCancelled else { return }
                     switch event {
@@ -69,12 +69,12 @@ import Network
                     case .finished(let attempt):
                         self.activeTargets = []
                         self.results.append(.init(section: "网络连接情况",
-                            title: attempt.passed ? "外网地址可达" : "外网地址未通过检测",
+                            title: attempt.passed ? L10n.tr("外网地址可达") : L10n.tr("外网地址未通过检测"),
                             passed: attempt.passed, milliseconds: attempt.milliseconds, targets: [attempt.address]))
                     }
                 }
                 try valid()
-                status = "正在获取节点并检测服务器"
+                status = L10n.tr("正在获取节点并检测服务器")
                 progress = 33; activeSection = "节点获取检测"
                 try await NetworkDiagnosticRunner.run(sources: sources, load: { source in
                     try valid()
@@ -96,12 +96,12 @@ import Network
                 try valid()
                 let failures = results.filter { !$0.passed }.count
                 let hasServer = results.contains { $0.section == "服务器连接检测" && $0.passed }
-                status = hasServer ? (failures == 0 ? "检测完成，连接正常" : "检测完成，有 \(failures) 项异常，可用服务器已找到") : "检测完成，未找到可用服务器"
+                status = hasServer ? (failures == 0 ? L10n.tr("检测完成，连接正常") : L10n.tr("检测完成，有 \(failures) 项异常，可用服务器已找到")) : L10n.tr("检测完成，未找到可用服务器")
                 progress = 100; completed = true; activeSection = nil; activeTargets = []
                 running = false; task = nil
             } catch {
                 guard generation == round else { return }
-                status = error is CancellationError ? "检测已取消" : "检测失败，请确认当前企业入口后重试"
+                status = error is CancellationError ? L10n.tr("检测已取消") : L10n.tr("检测失败，请确认当前企业入口后重试")
                 activeSection = nil; activeTargets = []
                 running = false; task = nil
             }

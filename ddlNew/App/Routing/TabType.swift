@@ -14,13 +14,13 @@ enum TabType: Hashable {
     var title: String {
         switch self {
         case .main:
-            "首页"
+            L10n.tr("首页")
         case .message:
-            "消息"
+            L10n.tr("消息")
         case .contacts:
-            "通讯录"
+            L10n.tr("通讯录")
         case .mine:
-            "我的"
+            L10n.tr("我的")
         }
     }
 }

@@ -58,7 +58,7 @@ import UniformTypeIdentifiers
         let (_, response) = try await session.upload(for: request, fromFile: prepared)
         try validate(run, context: context); try checkPermission(attachment)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw ChatClientError.unavailable("文件存储服务未接受上传，请稍后重试")
+            throw ChatClientError.unavailable(L10n.tr("文件存储服务未接受上传，请稍后重试"))
         }
         progress(1)
         return ChatUploadedAttachment(resource: downloadURL.absoluteString, thumbnail: "")
@@ -78,12 +78,12 @@ import UniformTypeIdentifiers
                     if let json { waiter.finish(.success(json)) } else { waiter.finish(.failure(ChatClientError.invalidResponse)) }
                 }
             }, onFailure: { code, _, _ in
-                Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable("获取临时上传资格失败（\(code)），请重试"))) }
+                Task { @MainActor in waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("获取临时上传资格失败（\(code)），请重试")))) }
             })
         }
         try validate(run, context: context)
         guard let payload = Mapper<CloudMediaCredentialPayload>().map(JSONString: json), let credentials = payload.credentials(for: provider) else {
-            throw ChatClientError.unavailable("临时上传资格缺失或已过期，请稍后重试")
+            throw ChatClientError.unavailable(L10n.tr("临时上传资格缺失或已过期，请稍后重试"))
         }
         return credentials
     }
@@ -93,7 +93,7 @@ import UniformTypeIdentifiers
         guard !bucket.isEmpty, var components = URLComponents(string: endpoint.contains("://") ? endpoint : "https://" + endpoint),
               components.scheme == "https" || components.scheme == "http", let host = components.host,
               components.user == nil, components.password == nil, components.query == nil, components.fragment == nil else {
-            throw ChatClientError.unavailable("文件存储节点配置无效")
+            throw ChatClientError.unavailable(L10n.tr("文件存储节点配置无效"))
         }
         if !customDomain && !host.hasPrefix(bucket + ".") { components.host = bucket + "." + host }
         // 云供应商使用系统验证的HTTPS，不能把临时STS资格通过明文HTTP发送。
@@ -104,21 +104,21 @@ import UniformTypeIdentifiers
 
     /// 上传配额在准备、签名和最终提交前各校验一次，计算采用溢出检查。
     private func checkPermission(_ attachment: ChatAttachment) throws {
-        guard attachment.bytes > 0 else { throw ChatClientError.permission("上传文件为空") }
+        guard attachment.bytes > 0 else { throw ChatClientError.permission(L10n.tr("上传文件为空")) }
         if attachment.type == ChatAttachment.userAvatarType || attachment.type == ChatAttachment.miniAppIconType {
-            guard attachment.bytes <= 50 * 1024 else { throw ChatClientError.permission("头像图片过大") }
+            guard attachment.bytes <= 50 * 1024 else { throw ChatClientError.permission(L10n.tr("头像图片过大")) }
             return
         }
         // 101仅由群设置使用，调用方在上传前后校验实时群管理员权限。
         if attachment.type == 101 || attachment.type == ChatAttachment.complaintEvidenceType { return }
-        guard let role = UserRoleAuthorityStore.shared.current else { throw ChatClientError.permission("当前没有附件发送权限") }
-        if attachment.type == 4 { guard attachment.duration > 0, attachment.duration <= 60 else { throw ChatClientError.permission("语音最长60秒") }; return }
+        guard let role = UserRoleAuthorityStore.shared.current else { throw ChatClientError.permission(L10n.tr("当前没有附件发送权限")) }
+        if attachment.type == 4 { guard attachment.duration > 0, attachment.duration <= 60 else { throw ChatClientError.permission(L10n.tr("语音最长60秒")) }; return }
         let key = attachment.type == 5 ? "upFile" : "upImageVideoFile"
-        guard role.allows(key) else { throw ChatClientError.permission("当前账号不允许发送此类附件") }
+        guard role.allows(key) else { throw ChatClientError.permission(L10n.tr("当前账号不允许发送此类附件")) }
         if let raw = role.configurationData[key], !raw.isEmpty {
-            guard let limit = Int64(raw), limit > 0 else { throw ChatClientError.permission("附件发送额度不可用") }
+            guard let limit = Int64(raw), limit > 0 else { throw ChatClientError.permission(L10n.tr("附件发送额度不可用")) }
             let bytes = limit.multipliedReportingOverflow(by: 1024 * 1024)
-            guard !bytes.overflow, attachment.bytes <= bytes.partialValue else { throw ChatClientError.permission("附件超过当前账号发送额度") }
+            guard !bytes.overflow, attachment.bytes <= bytes.partialValue else { throw ChatClientError.permission(L10n.tr("附件超过当前账号发送额度")) }
         }
     }
 

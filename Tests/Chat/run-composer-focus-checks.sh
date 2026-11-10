@@ -1,4 +1,5 @@
 #!/bin/sh
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d /tmp/ddlNew-composer-focus.XXXXXX)
@@ -38,5 +39,5 @@ END
 '''.replace('FOCUS', focus).replace('UPDATE', update).replace('BEGIN', begin).replace('END', end)
 (out/'ProductionFocusInput.swift').write_text(code)
 PY
-swiftc -parse-as-library "$TASK_TMP/ProductionFocusInput.swift" "$TASK_ROOT/Tests/Chat/ComposerFocusChecks.swift" -o "$TASK_TMP/checks"
+swiftc "$localization_source" -parse-as-library "$TASK_TMP/ProductionFocusInput.swift" "$TASK_ROOT/Tests/Chat/ComposerFocusChecks.swift" -o "$TASK_TMP/checks"
 "$TASK_TMP/checks"

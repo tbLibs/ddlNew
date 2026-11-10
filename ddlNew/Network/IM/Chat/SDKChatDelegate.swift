@@ -62,7 +62,7 @@ nonisolated final class SDKChatDelegate: NSObject, NoaToolMessageDelegate, CIMTo
         let member: LingIMGroupMemberModel? = isGroup ? sdk.imSdkCheckGroupMember(with: id, groupID: conversationID) : nil
         if isGroup && member == nil { changed(.refresh); return }
         let deleted = friend.disableStatus == 4 || member?.disableStatus == 4
-        let name = deleted ? "账号已注销" : [friend.remarks ?? "", isGroup ? member?.nicknameInGroup ?? "" : "", isGroup ? member?.userNickname ?? "" : "", friend.nickname ?? "", friend.userName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
+        let name = deleted ? L10n.tr("账号已注销") : [friend.remarks ?? "", isGroup ? member?.nicknameInGroup ?? "" : "", isGroup ? member?.userNickname ?? "" : "", friend.nickname ?? "", friend.userName ?? "", id].first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? id
         changed(.memberMetadataChanged([ChatGroupMember(id: id, name: name,
             avatar: isGroup ? member?.userAvatar ?? friend.avatar ?? "" : friend.avatar ?? "",
             role: member?.role ?? 0, isDeleted: deleted)]))

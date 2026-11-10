@@ -8,6 +8,7 @@ import SwiftUI
 
 /// 消息页的折叠应用区域，管理和打开共用真实记录，不影响会话筛选或滚动所有权。
 struct MiniAppsPanel: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var store: MiniAppsStore
     @ObservedObject var feature: MiniAppsFeature
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -29,19 +30,19 @@ struct MiniAppsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 16) {
-                Button { Task { await store.refresh() } } label: { Label("刷新", systemImage: "arrow.clockwise").font(.subheadline).frame(minHeight: 44) }
+                Button { Task { await store.refresh() } } label: { Label(L10n.tr("刷新"), systemImage: "arrow.clockwise").font(.subheadline).frame(minHeight: 44) }
                 Spacer()
-                Button(managing ? "完成" : "管理") {
+                Button(managing ? L10n.tr("完成") : L10n.tr("管理")) {
                     deleting = nil
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { managing.toggle() }
                 }.font(.subheadline.weight(.medium)).frame(minHeight: 44)
                     .disabled(store.items.isEmpty)
             }.disabled(store.isLoading || store.isBusy || opening)
             if store.isLoading && store.items.isEmpty {
-                ProgressView("正在加载应用").frame(maxWidth: .infinity, minHeight: 88)
+                ProgressView(L10n.tr("正在加载应用")).frame(maxWidth: .infinity, minHeight: 88)
             } else {
                 if store.items.isEmpty && store.hasLoaded {
-                    Text("添加常用应用，下次从这里直接打开。")
+                    Text(L10n.tr("添加常用应用，下次从这里直接打开。"))
                         .font(.callout).foregroundStyle(MessagingTheme.secondaryText).fixedSize(horizontal: false, vertical: true)
                 }
                 MiniAppsGrid(items: store.items, managing: managing,
@@ -49,14 +50,14 @@ struct MiniAppsPanel: View {
                     .disabled(store.isBusy || opening)
                 if store.hasMore && store.hasLoaded {
                     Button { Task { await store.loadMore() } } label: {
-                        HStack { if store.isLoading { ProgressView() }; Text(store.isLoading ? "正在加载" : "加载更多应用") }.frame(maxWidth: .infinity, minHeight: 44)
+                        HStack { if store.isLoading { ProgressView() }; Text(store.isLoading ? L10n.tr("正在加载") : L10n.tr("加载更多应用")) }.frame(maxWidth: .infinity, minHeight: 44)
                     }.disabled(store.isLoading || store.isBusy)
                 }
             }
             if let message = error ?? store.feedback {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(message).font(.callout).foregroundStyle(MessagingTheme.error).fixedSize(horizontal: false, vertical: true)
-                    Button("重试") { error = nil; Task { await store.refresh() } }.frame(minHeight: 44).disabled(store.isBusy || store.isLoading)
+                    Button(L10n.tr("重试")) { error = nil; Task { await store.refresh() } }.frame(minHeight: 44).disabled(store.isBusy || store.isLoading)
                 }
             }
         }
@@ -75,13 +76,13 @@ struct MiniAppsPanel: View {
                 passwordRecord = nil
             }
         }
-        .alert("删除应用？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), presenting: deleting) { record in
-            Button("取消", role: .cancel) { deleting = nil }
-            Button("删除", role: .destructive) {
+        .alert(L10n.tr("删除应用？"), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), presenting: deleting) { record in
+            Button(L10n.tr("取消"), role: .cancel) { deleting = nil }
+            Button(L10n.tr("删除"), role: .destructive) {
                 deleting = nil
                 Task { if await store.delete(record) { feature.removeFloat(id: record.id); feature.invalidate(id: record.id) } }
             }
-        } message: { record in Text("将从我的应用移除“\(record.name)”。") }
+        } message: { record in Text(L10n.tr("将从我的应用移除“\(record.name)”。")) }
         .onDisappear { openTask?.cancel() }
     }
     private func select(_ record: MiniAppRecord) {

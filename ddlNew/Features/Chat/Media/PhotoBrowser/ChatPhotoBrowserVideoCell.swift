@@ -70,6 +70,7 @@ final class ChatPhotoBrowserVideoCell: UICollectionViewCell, JXPhotoBrowserCellP
 }
 
 private struct ChatPhotoBrowserVideoContent: View {
+    @Environment(\.locale) private var localizationLocale
     let message: ChatMessageRecord
     let player: AVPlayer?
     let isActive: Bool
@@ -88,7 +89,7 @@ private struct ChatPhotoBrowserVideoContent: View {
         }
         .ignoresSafeArea()
         .environment(\.colorScheme, .dark)
-        .accessibilityLabel("视频")
+        .accessibilityLabel(L10n.tr("视频"))
     }
 
     @ViewBuilder private var cover: some View {
@@ -105,6 +106,7 @@ private struct ChatPhotoBrowserVideoContent: View {
 
 /// 每页持有稳定的系统播放界面；准备完成前用封面遮住尚未出帧的黑色表面。
 private struct ChatPhotoBrowserPlayerView<Cover: View>: View {
+    @Environment(\.locale) private var localizationLocale
     let player: AVPlayer
     let isActive: Bool
     @ViewBuilder var cover: () -> Cover
@@ -122,6 +124,7 @@ private struct ChatPhotoBrowserPlayerView<Cover: View>: View {
 }
 
 private struct ChatPhotoBrowserPlayerSurface: UIViewControllerRepresentable {
+    @Environment(\.locale) private var localizationLocale
     let player: AVPlayer
     let isActive: Bool
     @Binding var readyForDisplay: Bool

@@ -17,6 +17,7 @@ struct ddlNewApp: App {
     
     /// 根页面根据共享路由状态在邀请码、登录和主界面之间切换。
     @StateObject var router = RouterTool.shared
+    @StateObject private var language = AppLanguageStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var loginSecurity = LoginSecurityCoordinator.shared
 
@@ -46,12 +47,12 @@ struct ddlNewApp: App {
                     }
                 } else {
                     // 只等待本地入口校验，不等待 TCP 或 AUTH。
-                    LaunchWaitingView()
+                    Color(uiColor: .systemBackground)
                         .ignoresSafeArea()
                         .overlay(alignment: .bottom) {
                             VStack(spacing: 10) {
                                 ProgressView()
-                                Text("正在恢复本地入口…")
+                                Text(L10n.tr("正在恢复本地入口…"))
                                     .font(.footnote)
                                     .multilineTextAlignment(.center)
                             }
@@ -62,11 +63,13 @@ struct ddlNewApp: App {
                 }
             }
             .environmentObject(clubStore)
+            .environment(\.locale, language.locale)
             .callPresentation()
             .fullScreenCover(item: Binding(get: { loginSecurity.request }, set: { _ in loginSecurity.dismiss() })) { request in
                 PasswordChangeView(request: request, coordinator: loginSecurity)
             }
             .onChange(of: scenePhase) { phase in
+                if phase == .active { language.refreshSystemLanguage() }
                 MessageConnectionMonitor.shared.setForeground(phase == .active)
                 PushCoordinator.shared.setForeground(phase == .active)
                 loginSecurity.setForegroundActive(phase == .active)

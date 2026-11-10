@@ -54,7 +54,8 @@ nonisolated struct ContactRecord: Identifiable, Equatable, Sendable {
 
     var isDeleted: Bool { disableStatus == 4 }
     var displayName: String {
-        if isDeleted { return "账号已注销" }
+        if isDeleted { return L10n.tr("账号已注销") }
+        if id == "100002", remarks.isEmpty { return L10n.tr("文件助手") }
         return [remarks, nickname, account, id].first { !$0.isEmpty } ?? id
     }
     var initial: String {

@@ -54,7 +54,7 @@ import ObjectiveC
         if current.sessionUnreadCount != 0 || current.readTag != 0 {
             current.sessionUnreadCount = 0; current.readTag = 0
             guard sdk.toolUpdateSession(with: current) else {
-                throw ChatClientError.unavailable("本机会话未读数未能清除，请返回聊天后重试")
+                throw ChatClientError.unavailable(L10n.tr("本机会话未读数未能清除，请返回聊天后重试"))
             }
         }
         // 本机清除成功即撤销原计数成员，避免随后正文已读再扣到新到消息。
@@ -82,9 +82,9 @@ import ObjectiveC
         // 此接口只转发运输请求，不自行写库；成功回执不回写旧快照，保留后来到达的新消息。
         sdk.conversationReadedStatus(NSMutableDictionary(dictionary: values), onSuccess: { data, _ in
             let accepted = data == nil || data is NSNull || (data as? NSNumber) == 1
-            if !accepted { reportFailure("会话已读同步未被接受，请返回聊天后重试") }
+            if !accepted { reportFailure(L10n.tr("会话已读同步未被接受，请返回聊天后重试")) }
         }, onFailure: { code, _, _ in
-            reportFailure("会话已读同步失败（\(code)），请返回聊天后重试")
+            reportFailure(L10n.tr("会话已读同步失败（\(code)），请返回聊天后重试"))
         })
     }
 
@@ -366,22 +366,22 @@ import ObjectiveC
         if context.route.kind == .single {
             if context.route.id == "100002" {
                 value.canSend = authority?.allows("isShowFileAssistant") == true
-                if !value.canSend { value.reason = "文件助手权限已关闭" }
+                if !value.canSend { value.reason = L10n.tr("文件助手权限已关闭") }
             } else {
                 let friend: LingIMFriendModel? = sdk.toolCheckMyFriend(with: context.route.id)
                 value.canSend = [0, 1].contains(friend?.status ?? -1) && friend?.disableStatus != 4
-                if !value.canSend { value.reason = "当前好友关系不可用，请返回资料页确认" }
+                if !value.canSend { value.reason = L10n.tr("当前好友关系不可用，请返回资料页确认") }
             }
         }
         if let sourceID = context.route.sourceGroupID {
             let source: LingIMGroupModel? = sdk.toolCheckMyGroup(with: sourceID)
             guard let source, source.groupStatus == 1, source.leaveGroupStatus == 0,
                   source.userGroupRole > 0 || !source.isPrivateChat || authority?.allows("groupSecurity") == true else {
-                value.canSend = false; value.isActive = false; value.reason = "来源群当前禁止成员私聊"; return value
+                value.canSend = false; value.isActive = false; value.reason = L10n.tr("来源群当前禁止成员私聊"); return value
             }
         }
         if context.route.kind == .group {
-            guard let group = (sdk.toolCheckMyGroup(with: context.route.id) as LingIMGroupModel?) else { value.canSend = false; value.isActive = false; value.reason = "群资料尚不可用"; return value }
+            guard let group = (sdk.toolCheckMyGroup(with: context.route.id) as LingIMGroupModel?) else { value.canSend = false; value.isActive = false; value.reason = L10n.tr("群资料尚不可用"); return value }
             value.role = [0, 1, 2].contains(group.userGroupRole) ? group.userGroupRole : 0; value.isPrivateChat = group.isPrivateChat
             value.isActive = group.groupStatus == 1 && group.leaveGroupStatus == 0
             value.sendInterval = Double(AccountSettingsStore.shared.current.groupMessageIntervalMilliseconds) / 1000
@@ -392,7 +392,7 @@ import ObjectiveC
             // 禁言接口在详情之后返回，使用这份最新状态，避免旧群缓存阻止已解除禁言的成员。
             let allMuted = ChatGroupPermissionPayload.boolean(groupMute?["isGroupChat"]) ?? true
             value.canSend = value.isActive && verified && inGroup && !personalMuted && (value.role > 0 || !allMuted)
-            value.reason = !value.isActive ? "已离开群聊或群聊已停用" : (!verified ? "正在确认群发送权限" : "当前已被禁言")
+            value.reason = !value.isActive ? L10n.tr("已离开群聊或群聊已停用") : (!verified ? L10n.tr("正在确认群发送权限") : L10n.tr("当前已被禁言"))
             if !value.canSend { value.canUpload = false; value.canUploadFile = false }
         }
         return value
@@ -421,12 +421,12 @@ import ObjectiveC
         if [1, 2, 5].contains(message.type) {
             let key = message.type == 5 ? "upFile" : "upImageVideoFile"
             let authority = UserRoleAuthorityStore.shared.current
-            guard authority?.allows(key) == true, ChatAttachmentPolicy.allowedBytes(message.size, maximumMB: Int64(authority?.configurationData[key] ?? "") ?? 0) else { throw ChatClientError.permission("附件上传权限或大小限制已变化，请重新选择") }
+            guard authority?.allows(key) == true, ChatAttachmentPolicy.allowedBytes(message.size, maximumMB: Int64(authority?.configurationData[key] ?? "") ?? 0) else { throw ChatClientError.permission(L10n.tr("附件上传权限或大小限制已变化，请重新选择")) }
         }
         let model = makeModel(message, context: context)
         sdk.toolSendChatMessage(with: model)
         let saved: NoaIMChatMessageModel? = sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id)
-        guard saved != nil else { throw ChatClientError.unavailable("消息未能保存，请重试") }
+        guard saved != nil else { throw ChatClientError.unavailable(L10n.tr("消息未能保存，请重试")) }
     }
 
     /// 上传失败写入现有SDK消息表，本机路径只写local字段，不作为云资源发送。
@@ -442,7 +442,7 @@ import ObjectiveC
         model.localImgName = message.type == 1 ? ChatUploadFiles.storedPath(message.localMediaFileURL) : nil
         model.localVideoName = message.type == 2 ? ChatUploadFiles.storedPath(message.localMediaFileURL) : nil
         model.localVideoCover = message.type == 2 ? ChatUploadFiles.storedPath(message.localMediaPreviewURL) : nil
-        guard sdk.toolInsertOrUpdateChatMessage(with: model) else { throw ChatClientError.unavailable("失败消息保存失败，请保留当前聊天后重试") }
+        guard sdk.toolInsertOrUpdateChatMessage(with: model) else { throw ChatClientError.unavailable(L10n.tr("失败消息保存失败，请保留当前聊天后重试")) }
     }
 
     /// 只更新同一消息当前结果的展示标记，迟到动画不能标记重试后的新结果。
@@ -457,7 +457,7 @@ import ObjectiveC
         let previous = model.isGameAnimationed; model.isGameAnimationed = true
         guard sdk.toolInsertOrUpdateChatMessage(with: model) else {
             model.isGameAnimationed = previous
-            throw ChatClientError.unavailable("游戏展示状态保存失败")
+            throw ChatClientError.unavailable(L10n.tr("游戏展示状态保存失败"))
         }
     }
 
@@ -525,7 +525,7 @@ import ObjectiveC
             originals.append(original)
         }
         guard !originals.isEmpty else {
-            if missingOriginal { throw ChatClientError.unavailable("消息状态已变化，请返回聊天后重试") }
+            if missingOriginal { throw ChatClientError.unavailable(L10n.tr("消息状态已变化，请返回聊天后重试")) }
             return
         }
         let model = NoaIMChatMessageModel()
@@ -547,7 +547,7 @@ import ObjectiveC
         try validate(context)
         try flushReadTransitions(context: context)
         // type13沿用SDK无ACK上报；这里不增加haveReadCount，也不将本地写入当作服务端已读回执。
-        if writeFailed { throw ChatClientError.unavailable("本机已读状态未能保存，请返回聊天后重试") }
+        if writeFailed { throw ChatClientError.unavailable(L10n.tr("本机已读状态未能保存，请返回聊天后重试")) }
     }
 
     /// 部分消息已写入但会话写失败时保留待扣身份，正文已读重试也会先修复计数。
@@ -556,13 +556,13 @@ import ObjectiveC
         defer { objc_sync_exit(sdk) }
         try validate(context)
         guard let current = (sdk.toolCheckMySession(with: context.route.id) as LingIMSessionModel?) else {
-            if ChatRuntime.shared.hasPendingVisibleReadCount(context: context) { throw ChatClientError.unavailable("本机会话已读计数暂不可用，请返回聊天后重试") }
+            if ChatRuntime.shared.hasPendingVisibleReadCount(context: context) { throw ChatClientError.unavailable(L10n.tr("本机会话已读计数暂不可用，请返回聊天后重试")) }
             return
         }
         let latest = current.sessionLatestServerMsgID?.isEmpty == false ? current.sessionLatestServerMsgID ?? "" : current.sessionLatestMessage?.serviceMsgID ?? ""
         guard let plan = ChatRuntime.shared.visibleReadCountPlan(context: context, count: current.sessionUnreadCount, latestID: latest) else { return }
         current.sessionUnreadCount = plan.remaining
-        guard sdk.toolUpdateSession(with: current) else { throw ChatClientError.unavailable("本机会话已读计数未能保存，请返回聊天后重试") }
+        guard sdk.toolUpdateSession(with: current) else { throw ChatClientError.unavailable(L10n.tr("本机会话已读计数未能保存，请返回聊天后重试")) }
         ChatRuntime.shared.commitVisibleReadCount(plan, context: context)
     }
 
@@ -574,7 +574,7 @@ import ObjectiveC
         guard let current = (sdk.toolCheckMySession(with: context.route.id) as LingIMSessionModel?), current.readTag > 0 else { return }
         current.readTag = 0
         // 不调用conversationReadedStatus，不设置服务端最新已读边界，屏外未读数原样保留。
-        guard sdk.toolUpdateSession(with: current) else { throw ChatClientError.unavailable("本机未读标记未能更新，请返回聊天后重试") }
+        guard sdk.toolUpdateSession(with: current) else { throw ChatClientError.unavailable(L10n.tr("本机未读标记未能更新，请返回聊天后重试")) }
     }
 
     /// 禁言到期后回查真实权限；取消、换号或旧窗口失败都不能自行放开发送。
@@ -605,13 +605,13 @@ import ObjectiveC
     func perform(_ action: ChatMessageAction, message: ChatMessageRecord, context: ChatContext) async throws {
         try validate(context)
         let permission = try permissions(context: context)
-        guard ChatActionPolicy.allowed(for: message, userUID: context.userUID, permission: permission).contains(action) else { throw ChatClientError.permission("当前消息不允许此操作") }
+        guard ChatActionPolicy.allowed(for: message, userUID: context.userUID, permission: permission).contains(action) else { throw ChatClientError.permission(L10n.tr("当前消息不允许此操作")) }
         var params: [String: Any] = ["userUid": context.userUID, "chatType": context.route.kind == .group ? 1 : 0,
             "receiveId": context.route.id, "msgId": message.localID, "sMsgId": message.serverID]
         if action == .delete || action == .deleteBoth {
             if action == .delete && (message.state != .sent || message.serverID.isEmpty || message.type == 20) {
                 guard let model = (sdk.toolGetOneChatMessage(withMessageID: message.localID, sessionID: context.route.id) as NoaIMChatMessageModel?),
-                    sdk.toolDeleteChatMessage(with: model) else { throw ChatClientError.unavailable("无法保存本机删除状态，请重试") }
+                    sdk.toolDeleteChatMessage(with: model) else { throw ChatClientError.unavailable(L10n.tr("无法保存本机删除状态，请重试")) }
                 return
             }
             params["operationStatus"] = action == .delete ? 1 : 2
@@ -620,8 +620,8 @@ import ObjectiveC
         } else if action == .recall {
             params["uid"] = message.senderID; params["status"] = 2; params["operateNick"] = UserSessionStore.shared.currentUser?.nickname ?? ""
             let result = try await request(context: context) { success, failure in self.sdk.recallMessage(NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure) }
-            guard (result["_value"] as? NSNumber)?.boolValue == true else { throw ChatClientError.unavailable("撤回未被服务器确认，请重试") }
-        } else { throw ChatClientError.unavailable("此操作需要通过对应编辑或转发页面完成") }
+            guard (result["_value"] as? NSNumber)?.boolValue == true else { throw ChatClientError.unavailable(L10n.tr("撤回未被服务器确认，请重试")) }
+        } else { throw ChatClientError.unavailable(L10n.tr("此操作需要通过对应编辑或转发页面完成")) }
         let sdk = self.sdk
         objc_sync_enter(sdk)
         defer { objc_sync_exit(sdk) }
@@ -631,11 +631,11 @@ import ObjectiveC
             model = sdk.toolGetOneChatMessage(withServiceMessageID: message.serverID, sessionID: context.route.id)
         }
         guard let model, SDKChatMessageMapper.record(model, userUID: context.userUID).conversationID == context.route.id else {
-            throw ChatClientError.unavailable("消息已受理，但无法找到本机原消息，请刷新后重试")
+            throw ChatClientError.unavailable(L10n.tr("消息已受理，但无法找到本机原消息，请刷新后重试"))
         }
         // 服务端受理后必须真正写入SDK墓碑；本机失败不能只隐藏页面并宣称成功。
         if model.messageStatus != 0 { model.messageStatus = action == .recall ? 2 : 0 }
-        guard sdk.toolInsertOrUpdateChatMessage(with: model) else { throw ChatClientError.unavailable("消息已受理，但无法保存本机状态，请重试") }
+        guard sdk.toolInsertOrUpdateChatMessage(with: model) else { throw ChatClientError.unavailable(L10n.tr("消息已受理，但无法保存本机状态，请重试")) }
     }
 
     /// 草稿与当前SDK用户库共用隔离，不从其他俱乐部缓存恢复输入。
@@ -653,7 +653,7 @@ import ObjectiveC
         let session: LingIMSessionModel? = sdk.toolCheckMySession(with: context.route.id)
         guard let session else { return }
         session.draftDict = ["draftContent": draft.text, "referenceMsgId": draft.referenceID, "atSegmentsJSON": String(data: try JSONEncoder().encode(draft.mentions), encoding: .utf8) ?? "[]"]
-        guard sdk.toolUpdateSession(with: session) else { throw ChatClientError.unavailable("草稿未能保存") }
+        guard sdk.toolUpdateSession(with: session) else { throw ChatClientError.unavailable(L10n.tr("草稿未能保存")) }
     }
 
     /// 所有回执在身份校验后收口，取消和退出不会把旧结果写进新库。
@@ -666,13 +666,13 @@ import ObjectiveC
             start({ [weak self] data, _ in
                 Task { @MainActor in
                     guard let self, self.generation == run, self.validSession(context) else { waiter.cancel(); return }
-                    if let value = data as? NSNumber, !value.boolValue { waiter.finish(.failure(ChatClientError.unavailable("操作未被服务器确认"))); return }
+                    if let value = data as? NSNumber, !value.boolValue { waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("操作未被服务器确认")))); return }
                     if let data { waiter.finish(.success(data as? [String: Any] ?? ["_value": data])) } else { waiter.finish(.success([:])) }
                 }
             }, { [weak self] _, _, _ in
                 Task { @MainActor in
                     guard let self, self.generation == run, self.validSession(context) else { waiter.cancel(); return }
-                    waiter.finish(.failure(ChatClientError.unavailable("操作失败，请检查网络后重试")))
+                    waiter.finish(.failure(ChatClientError.unavailable(L10n.tr("操作失败，请检查网络后重试"))))
                 }
             })
         }

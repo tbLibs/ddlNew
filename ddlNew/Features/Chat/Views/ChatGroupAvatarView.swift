@@ -10,6 +10,7 @@ import Kingfisher
 import UIAdapter
 
 struct ChatGroupAvatarView: View {
+    @Environment(\.locale) private var localizationLocale
     let route: ChatRoute
     @ObservedObject var store: ChatSettingsStore
     @State private var photo: PhotosPickerItem?
@@ -30,21 +31,21 @@ struct ChatGroupAvatarView: View {
                         .setProcessor(LegacyRemoteImageProcessor())
                         .placeholder { Image(systemName: "person.3.fill").font(.largeTitle).foregroundStyle(MessagingTheme.secondaryText).frame(width: 240.zoom(), height: 240.zoom()).background(MessagingTheme.avatarBackground) }
                         .resizable().scaledToFit().frame(maxWidth: 280.zoom(), maxHeight: 280.zoom())
-                        .clipShape(RoundedRectangle(cornerRadius: 12.zoom())).frame(maxWidth: .infinity).accessibilityLabel("当前群头像")
+                        .clipShape(RoundedRectangle(cornerRadius: 12.zoom())).frame(maxWidth: .infinity).accessibilityLabel(L10n.tr("当前群头像"))
                 }
                 if busy {
                     VStack(spacing: 12.zoom()) {
-                        Button("取消上传") { preparation?.cancel(); client.cancel() }.frame(minHeight: 44)
+                        Button(L10n.tr("取消上传")) { preparation?.cancel(); client.cancel() }.frame(minHeight: 44)
                     }
                 }
                 if [1, 2].contains(store.snapshot?.group?.role ?? 0) {
-                    PhotosPicker(selection: $photo, matching: .images) { Label("选择新群头像", systemImage: "photo").frame(maxWidth: .infinity) }
+                    PhotosPicker(selection: $photo, matching: .images) { Label(L10n.tr("选择新群头像"), systemImage: "photo").frame(maxWidth: .infinity) }
                         .buttonStyle(MessagingActionButtonStyle()).disabled(busy || store.busy)
                 }
             }.padding(16.zoom())
-        }.navigationTitle("群头像").modifier(MessagingPageChrome())
+        }.navigationTitle(L10n.tr("群头像")).modifier(MessagingPageChrome())
         .messagingFeedbackToast(errorMessage ?? store.errorMessage ?? feedback)
-        .messagingLoadingToast(busy || store.busy, title: "正在更新群头像")
+        .messagingLoadingToast(busy || store.busy, title: L10n.tr("正在更新群头像"))
         .onChange(of: photo) { item in preparation?.cancel(); preparation = Task { await upload(item) } }
         .onDisappear { preparation?.cancel(); client.cancel() }
     }
@@ -55,7 +56,7 @@ struct ChatGroupAvatarView: View {
         ChatRuntime.shared.registerCleanup(owner: client, conversationID: route.id) { [weak client] in client?.cancel() }
         busy = true; errorMessage = nil; feedback = nil; progress = 0; defer { busy = false; photo = nil }
         await store.reload()
-        guard [1, 2].contains(store.snapshot?.group?.role ?? 0), store.snapshot?.group?.isActive == true else { errorMessage = "群头像编辑权限已变化"; return }
+        guard [1, 2].contains(store.snapshot?.group?.role ?? 0), store.snapshot?.group?.isActive == true else { errorMessage = L10n.tr("群头像编辑权限已变化"); return }
         do {
             guard let data = try await item.loadTransferable(type: Data.self), !Task.isCancelled else { return }
             let prepared = try await Task.detached { try ChatAttachmentPreparation.image(data) }.value
@@ -63,7 +64,7 @@ struct ChatGroupAvatarView: View {
             let attachment = ChatAttachment(file: prepared.file, type: 101, name: prepared.name, bytes: prepared.bytes)
             let result = try await client.upload(attachment, context: context) { progress = $0 }
             guard !Task.isCancelled, ChatRuntime.shared.isCurrent(context) else { return }
-            if await store.groupAction(.avatar(result.resource)), store.errorMessage == nil { feedback = "群头像已更新" }
+            if await store.groupAction(.avatar(result.resource)), store.errorMessage == nil { feedback = L10n.tr("群头像已更新") }
         } catch { if !(error is CancellationError) { errorMessage = error.localizedDescription } }
     }
 }

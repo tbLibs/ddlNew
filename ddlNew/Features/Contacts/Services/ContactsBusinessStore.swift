@@ -168,7 +168,7 @@ import Combine
         clearSearch()
         let revision = searchRevision
         guard let identity, !query.isEmpty else { return }
-        if query == ownAccount()?.trimmingCharacters(in: .whitespacesAndNewlines) { errorMessage = "这是你自己的账号"; return }
+        if query == ownAccount()?.trimmingCharacters(in: .whitespacesAndNewlines) { errorMessage = L10n.tr("这是你自己的账号"); return }
         isSearching = true
         defer { if self.identity == identity, searchRevision == revision { isSearching = false } }
         do {
@@ -195,7 +195,7 @@ import Combine
         do {
             let result = try await client.request(.groupAccess(groupID), identity: identity)
             guard self.identity == identity, accessRevisions[groupID] == revision else { return false }
-            if !result.canAccessProfile { errorMessage = "当前群不允许查看成员资料或发起私聊" }
+            if !result.canAccessProfile { errorMessage = L10n.tr("当前群不允许查看成员资料或发起私聊") }
             return result.canAccessProfile
         } catch { if self.identity == identity { errorMessage = error.localizedDescription }; return false }
     }
@@ -302,7 +302,7 @@ import Combine
             guard await checkGroupAccess(sourceGroupID), self.identity == identity, operationRevision == revision else { return false }
             let response = try await client.request(operation, identity: identity)
             guard self.identity == identity, operationRevision == revision else { return false }
-            guard response.success else { throw ContactBusinessError.invalidInput("服务器未完成此操作，请刷新状态后重试") }
+            guard response.success else { throw ContactBusinessError.invalidInput(L10n.tr("服务器未完成此操作，请刷新状态后重试")) }
             qrContent = response.qrCode; qrExpiry = response.expiry; qrTarget = response.qrTarget
             switch operation {
             case .setBlack(let id, let blocked):
@@ -310,11 +310,11 @@ import Combine
                 loadingBlackIDs.remove(id)
                 blackStates[id] = blocked
                 if !blocked { blacklist.removeAll { $0.id == id } }
-                notice = blocked ? "已加入黑名单" : "已移出黑名单"
+                notice = blocked ? L10n.tr("已加入黑名单") : L10n.tr("已移出黑名单")
             case .apply(let friendID):
                 pendingApplicationIDs.insert(friendID)
                 pendingApplicationSnapshots[friendID] = applications.filter { $0.fromUID == identity.userUID && $0.targetUID == friendID }
-                notice = "好友申请已发送，等待对方验证"
+                notice = L10n.tr("好友申请已发送，等待对方验证")
             case .setRemark(let friendID, _, _):
                 guard let profile = response.profile, profile.id == friendID else { throw ContactBusinessError.malformedResponse }
                 profileRevisions[friendID] = UUID()
@@ -322,23 +322,23 @@ import Combine
                 if response.isFriend { friendIDs.insert(friendID) }
                 await reload()
                 guard self.identity == identity, operationRevision == revision else { return false }
-                notice = "操作完成"
+                notice = L10n.tr("操作完成")
             case .accept(let friendID), .moveFriend(let friendID, _):
                 let accepting: Bool
                 if case .accept = operation { accepting = true } else { accepting = false }
                 let refreshed = await loadProfile(friendID, sourceGroupID: sourceGroupID, allowCreatingFriend: accepting)
                 await reload()
                 guard self.identity == identity, operationRevision == revision else { return false }
-                notice = refreshed ? "操作完成" : "操作已提交，资料待同步，请刷新确认"
+                notice = refreshed ? L10n.tr("操作完成") : L10n.tr("操作已提交，资料待同步，请刷新确认")
             case .deleteFriend(let id):
                 profiles.removeValue(forKey: id); friendIDs.remove(id); await reload()
                 guard self.identity == identity, operationRevision == revision else { return false }
-                notice = "好友及本机聊天记录已删除"
+                notice = L10n.tr("好友及本机聊天记录已删除")
             case .createGroup, .renameGroup, .reorderGroup, .deleteGroup:
                 await reload()
                 guard self.identity == identity, operationRevision == revision else { return false }
-                notice = "分组已更新"
-            case .joinGroup: notice = "入群请求已提交，请刷新群列表确认结果"
+                notice = L10n.tr("分组已更新")
+            case .joinGroup: notice = L10n.tr("入群请求已提交，请刷新群列表确认结果")
             default: break
             }
             return true
@@ -353,22 +353,22 @@ import Combine
     private func validate(_ operation: ContactBusinessOperation) throws {
         switch operation {
         case .setBlack(let id, _):
-            guard !id.isEmpty, id != identity?.userUID, id != "100002" else { throw ContactBusinessError.invalidInput("不能对该用户操作黑名单") }
+            guard !id.isEmpty, id != identity?.userUID, id != "100002" else { throw ContactBusinessError.invalidInput(L10n.tr("不能对该用户操作黑名单")) }
         case .apply(let id):
-            guard !pendingApplicationIDs.contains(id) else { throw ContactBusinessError.invalidInput("好友申请已发送，等待对方验证") }
-            guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput("当前账号不能添加该用户") }
+            guard !pendingApplicationIDs.contains(id) else { throw ContactBusinessError.invalidInput(L10n.tr("好友申请已发送，等待对方验证")) }
+            guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput(L10n.tr("当前账号不能添加该用户")) }
         case .accept(let id):
-            guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput("当前账号不能添加该用户") }
+            guard permission("allowAddFriend"), id != identity?.userUID else { throw ContactBusinessError.invalidInput(L10n.tr("当前账号不能添加该用户")) }
         case .setRemark(_, let remark, let description):
-            guard remark.utf16.count <= 50, description.utf16.count <= 200 else { throw ContactBusinessError.invalidInput("备注最多50字，描述最多200字") }
-            guard remark.isEmpty || !remark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ContactBusinessError.invalidInput("备注不能只包含空格") }
-            if case .setRemark(let id, _, _) = operation, !friendIDs.contains(id) { throw ContactBusinessError.invalidInput("好友关系已变化，请刷新资料") }
+            guard remark.utf16.count <= 50, description.utf16.count <= 200 else { throw ContactBusinessError.invalidInput(L10n.tr("备注最多50字，描述最多200字")) }
+            guard remark.isEmpty || !remark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ContactBusinessError.invalidInput(L10n.tr("备注不能只包含空格")) }
+            if case .setRemark(let id, _, _) = operation, !friendIDs.contains(id) { throw ContactBusinessError.invalidInput(L10n.tr("好友关系已变化，请刷新资料")) }
         case .deleteFriend(let id), .moveFriend(let id, _):
-            guard friendIDs.contains(id) else { throw ContactBusinessError.invalidInput("好友关系已变化，请刷新资料") }
+            guard friendIDs.contains(id) else { throw ContactBusinessError.invalidInput(L10n.tr("好友关系已变化，请刷新资料")) }
         case .createGroup(let name), .renameGroup(_, let name):
-            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ContactBusinessError.invalidInput("请输入分组名称") }
+            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ContactBusinessError.invalidInput(L10n.tr("请输入分组名称")) }
         case .deleteGroup(let id):
-            guard groups.contains(where: { $0.id == id && !$0.isDefault }) else { throw ContactBusinessError.invalidInput("默认分组不可删除") }
+            guard groups.contains(where: { $0.id == id && !$0.isDefault }) else { throw ContactBusinessError.invalidInput(L10n.tr("默认分组不可删除")) }
         default: break
         }
     }

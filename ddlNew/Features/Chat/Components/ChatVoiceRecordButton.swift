@@ -10,6 +10,7 @@ import UIKit
 
 /// UIControl保留旧端touchDown/dragExit/dragEnter/upOutside和系统取消语义。
 struct ChatVoiceRecordButton: UIViewRepresentable {
+    @Environment(\.locale) private var localizationLocale
     let holding: Bool
     let onBegin: () -> Void
     let onMove: (Bool) -> Void
@@ -23,9 +24,9 @@ struct ChatVoiceRecordButton: UIViewRepresentable {
         view.isEnabled = isEnabled; view.holding = holding
         view.onBegin = onBegin; view.onMove = onMove; view.onEnd = onEnd; view.onCancel = onCancel
         view.isAccessibilityElement = true; view.accessibilityTraits = .button
-        view.accessibilityLabel = holding ? "结束并发送语音" : "开始录音"
-        view.accessibilityHint = "按住说话，松开发送，移出按钮松开取消。旁白模式下双击开始，再次双击发送。"
-        view.accessibilityCustomActions = holding ? [UIAccessibilityCustomAction(name: "取消录音", target: view, selector: #selector(VoiceControl.cancelAccessibleRecording))] : []
+        view.accessibilityLabel = holding ? L10n.tr("结束并发送语音") : L10n.tr("开始录音")
+        view.accessibilityHint = L10n.tr("按住说话，松开发送，移出按钮松开取消。旁白模式下双击开始，再次双击发送。")
+        view.accessibilityCustomActions = holding ? [UIAccessibilityCustomAction(name: L10n.tr("取消录音"), target: view, selector: #selector(VoiceControl.cancelAccessibleRecording))] : []
     }
 
     final class VoiceControl: UIControl {

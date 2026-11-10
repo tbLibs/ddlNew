@@ -1,4 +1,5 @@
 #!/bin/bash
+localization_source="$(cd "$(dirname "$0")/../.." && pwd)/ddlNew/Common/Localization/L10n.swift"
 set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 test_dir="$(mktemp -d "${TMPDIR:-/tmp}/ddlNew-login-security.XXXXXX")"
@@ -12,7 +13,7 @@ if [[ -z "$task_mapper_sources" ]]; then
 fi
 if [[ ! -f "$task_mapper_sources/Mappable.swift" ]]; then echo "未找到已锁定 ObjectMapper；请设置 CONTACTS_OBJECTMAPPER_SOURCES。" >&2; exit 1; fi
 xcrun swiftc -swift-version 5 -emit-library -emit-module -module-name ObjectMapper "$task_mapper_sources"/*.swift -o "$test_dir/libObjectMapper.dylib" -emit-module-path "$test_dir/ObjectMapper.swiftmodule"
-xcrun swiftc -swift-version 5 -parse-as-library \
+xcrun swiftc "$localization_source" -swift-version 5 -parse-as-library \
   -I "$test_dir" -L "$test_dir" -lObjectMapper \
   "$repo_root/ddlNew/Features/Login/Models/LoginSecurityNotice.swift" \
   "$repo_root/ddlNew/Features/Login/Models/AccountLoginError.swift" \

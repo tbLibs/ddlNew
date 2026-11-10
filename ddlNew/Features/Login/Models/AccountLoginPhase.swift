@@ -27,15 +27,15 @@ enum AccountLoginPhase: Equatable {
 
     var buttonTitle: String {
         switch self {
-        case .checkingAccount: return "正在检查账号…"
-        case .fetchingKey: return "正在获取加密密钥…"
-        case .submitting: return "正在登录…"
-        case .verifying: return "等待完成验证…"
-        case .savingSession: return "正在保存会话…"
-        case .configuringSDK: return "正在配置用户…"
-        case .authenticating: return "正在认证 TCP 用户…"
-        case .succeeded: return "已登录"
-        default: return "登录"
+        case .checkingAccount: return L10n.tr("正在检查账号…")
+        case .fetchingKey: return L10n.tr("正在获取加密密钥…")
+        case .submitting: return L10n.tr("正在登录…")
+        case .verifying: return L10n.tr("等待完成验证…")
+        case .savingSession: return L10n.tr("正在保存会话…")
+        case .configuringSDK: return L10n.tr("正在配置用户…")
+        case .authenticating: return L10n.tr("正在认证 TCP 用户…")
+        case .succeeded: return L10n.tr("已登录")
+        default: return L10n.tr("登录")
         }
     }
 }

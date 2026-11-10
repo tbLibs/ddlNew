@@ -93,7 +93,7 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
             }, onFailure: { code, _, _ in
                 // 验证码响应仅用于显示图片，错误提示和日志不包含响应内容。
                 Task { @MainActor in
-                    waiter.finish(.failure(.businessFailure(code: code, message: "获取验证码失败，请重新登录")))
+                    waiter.finish(.failure(.businessFailure(code: code, message: L10n.tr("获取验证码失败，请重新登录"))))
                 }
             })
         }
@@ -135,7 +135,7 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
                 Task { @MainActor in waiter.finish(result) }
             }, onFailure: { code, message, _ in
                 // 白名单错误仅传递实际 IP；其他响应可能携带短期验证凭据，不转发原始消息。
-                let notice = code == 90018 ? LoginSecurityNotice.whitelistAddress(from: message ?? "") : "安全码验证失败，请重新登录"
+                let notice = code == 90018 ? LoginSecurityNotice.whitelistAddress(from: message ?? "") : L10n.tr("安全码验证失败，请重新登录")
                 Task { @MainActor in
                     waiter.finish(.failure(.businessFailure(code: code, message: notice)))
                 }

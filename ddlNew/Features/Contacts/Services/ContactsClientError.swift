@@ -11,5 +11,5 @@ import Foundation
 nonisolated enum ContactsClientError: LocalizedError {
     case cacheReadFailed
 
-    var errorDescription: String? { "SDK 好友数据库读取失败" }
+    var errorDescription: String? { L10n.tr("SDK 好友数据库读取失败") }
 }

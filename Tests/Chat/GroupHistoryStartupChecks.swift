@@ -1,5 +1,13 @@
 import Foundation
 
+// The activity-sync service is outside this history/permission harness.
+// Record requests so successful and stale production callbacks remain observable.
+@MainActor final class SDKGroupActivitySyncCoordinator {
+    static let shared = SDKGroupActivitySyncCoordinator()
+    private(set) var requests: [ChatContext] = []
+    func refreshIfNeeded(context: ChatContext) { requests.append(context) }
+}
+
 // 仅替换网络与SDK代理边界；启动、去重、完成、失败和stop均运行生产方法。
 @MainActor final class StartupSDK {
     func removeMessageDelegate(_ delegate: NSObject) {}
@@ -7,6 +15,7 @@ import Foundation
     func removeUserDelegate(_ delegate: NSObject) {}
 }
 @MainActor final class StartupClient {
+    var settingsObservation: Task<Void, Never>?
     var context: ChatContext?
     var generation = UUID(), groupRefreshRevision = UUID(), muteExpiryRevision = UUID()
     var groupPermissionTask: Task<Void, Never>?
@@ -43,6 +52,7 @@ import Foundation
         let first = client.groupPermissionTask
         client.requests.removeFirst().resume()
         await first?.value
+        check(SDKGroupActivitySyncCoordinator.shared.requests == [group], "成功权限刷新触发当前群积分同步")
         check(events.count == 1 && client.groupPermissionTask == nil, "成功通知权限变更并释放任务")
         if case .permissionsChanged = events[0] {} else { fatalError("错误成功事件") }
 
@@ -64,6 +74,7 @@ import Foundation
         oldRequest.resume()
         await old?.value
         check(events.count == 2, "同群重进后旧成功不能发布权限")
+        check(SDKGroupActivitySyncCoordinator.shared.requests == [group], "旧成功不触发新身份积分同步")
         check(client.groupPermissionRequest == currentID && client.groupPermissionTask != nil, "旧完成不能清掉新权限任务")
         client.requests.removeFirst().resume(); await current?.value
         check(events.count == 3 && client.groupPermissionTask == nil, "只由新轮次完成自己的权限刷新")

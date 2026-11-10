@@ -12,6 +12,7 @@ import UIAdapter
 
 /// 黑底由库独占并随下拉淡出，SwiftUI 外层保持透明。
 struct ChatPhotoBrowserView: View {
+    @Environment(\.locale) private var localizationLocale
     let gallery: ChatPhotoBrowserRequest
     let context: ChatContext
     var allowSharing = true
@@ -109,10 +110,10 @@ struct ChatPhotoBrowserView: View {
         } else if preview.errorMessage != nil {
             if !preview.isInvalidated, let message = currentMessage {
                 Button { resources.retry(message, context: context); retryRevision += 1 } label: {
-                    Label("重新加载", systemImage: "arrow.clockwise").padding(16.zoom())
+                    Label(L10n.tr("重新加载"), systemImage: "arrow.clockwise").padding(16.zoom())
                 }.foregroundStyle(.white).background(.black.opacity(0.7), in: Capsule())
             } else {
-                Image(systemName: "photo.badge.exclamationmark").font(.largeTitle).foregroundStyle(.white.opacity(0.6)).accessibilityLabel("原消息已失效")
+                Image(systemName: "photo.badge.exclamationmark").font(.largeTitle).foregroundStyle(.white.opacity(0.6)).accessibilityLabel(L10n.tr("原消息已失效"))
                     .allowsHitTesting(false)
             }
         }
@@ -133,11 +134,11 @@ struct ChatPhotoBrowserView: View {
             Spacer()
             if allowSharing, let file = preview.file, !preview.isInvalidated, let message = currentMessage {
                 Menu {
-                    Button { save(file, message: message) } label: { Label("保存到相册", systemImage: "square.and.arrow.down") }.disabled(isSaving)
-                    Button { share(file, message: message) } label: { Label("分享", systemImage: "square.and.arrow.up") }
+                    Button { save(file, message: message) } label: { Label(L10n.tr("保存到相册"), systemImage: "square.and.arrow.down") }.disabled(isSaving)
+                    Button { share(file, message: message) } label: { Label(L10n.tr("分享"), systemImage: "square.and.arrow.up") }
                 } label: {
                     Image(systemName: "ellipsis").font(.system(size: 22.zoom(), weight: .semibold)).frame(width: max(44, 44.zoom()), height: max(44, 44.zoom()))
-                }.accessibilityLabel("更多操作")
+                }.accessibilityLabel(L10n.tr("更多操作"))
             }
         }
         .foregroundStyle(.white)
@@ -150,7 +151,7 @@ struct ChatPhotoBrowserView: View {
               currentID == message.id, preview.file == file, ChatRuntime.shared.isCurrent(context),
               !ChatRuntime.shared.isMessageDeleted(message, context: context) else { return }
         guard FileManager.default.fileExists(atPath: file.path) else {
-            saveFeedback = "附件已不可用，请重新加载后分享"
+            saveFeedback = L10n.tr("附件已不可用，请重新加载后分享")
             return
         }
         saveFeedback = nil
@@ -177,8 +178,8 @@ struct ChatPhotoBrowserView: View {
         guard !Task.isCancelled, !isClosing, currentID == message.id, scenePhase == .active, calls.session == nil,
               ChatRuntime.shared.isCurrent(context), !preview.isInvalidated, let file = preview.file, message.type == 2 else { return }
         do {
-            try playback.play(file: file) { [weak preview] in preview?.errorMessage = "视频无法播放，请重试" }
-        } catch { preview.errorMessage = "视频无法播放，请重试" }
+            try playback.play(file: file) { [weak preview] in preview?.errorMessage = L10n.tr("视频无法播放，请重试") }
+        } catch { preview.errorMessage = L10n.tr("视频无法播放，请重试") }
     }
 
     /// 与旧端一样补齐本机缓存中的图片视频，复用现有 SDK 分类查询，不拉取远端历史。
@@ -215,15 +216,15 @@ struct ChatPhotoBrowserView: View {
             guard !Task.isCancelled, ChatRuntime.shared.isCurrent(context), currentID == message.id,
                   !preview.isInvalidated, !ChatRuntime.shared.isMessageDeleted(message, context: context),
                   FileManager.default.fileExists(atPath: file.path) else { return }
-            guard status == .authorized || status == .limited else { saveFeedback = "请在系统设置中允许添加照片"; return }
+            guard status == .authorized || status == .limited else { saveFeedback = L10n.tr("请在系统设置中允许添加照片"); return }
             do {
                 try await PHPhotoLibrary.shared().performChanges {
                     if message.type == 2 { PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: file) }
                     else { PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: file) }
                 }
-                if !Task.isCancelled, ChatRuntime.shared.isCurrent(context) { saveFeedback = "已保存到相册" }
+                if !Task.isCancelled, ChatRuntime.shared.isCurrent(context) { saveFeedback = L10n.tr("已保存到相册") }
             } catch {
-                if !Task.isCancelled, ChatRuntime.shared.isCurrent(context) { saveFeedback = "保存失败，请重试" }
+                if !Task.isCancelled, ChatRuntime.shared.isCurrent(context) { saveFeedback = L10n.tr("保存失败，请重试") }
             }
         }
     }

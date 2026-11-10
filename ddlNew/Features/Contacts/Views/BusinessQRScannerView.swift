@@ -13,6 +13,7 @@ import AlertToast
 
 /// 业务扫码只到用户资料或群申请，不恢复导航和PC认证路径。
 struct BusinessQRScannerView: View {
+    @Environment(\.locale) private var localizationLocale
     @ObservedObject var businessStore: ContactsBusinessStore
     @State private var cameraRevision = UUID()
     @State private var photo: PhotosPickerItem?
@@ -37,10 +38,10 @@ struct BusinessQRScannerView: View {
                 camera
             }
         }
-        .navigationTitle("扫一扫")
+        .navigationTitle(L10n.tr("扫一扫"))
         .navigationBarTitleDisplayMode(.inline)
         .toast(isPresenting: Binding(get: { businessStore.isSubmitting }, set: { _ in }), duration: 0, tapToDismiss: false) {
-            AlertToast(type: .loading, title: "正在处理",
+            AlertToast(type: .loading, title: L10n.tr("正在处理"),
                        style: .style(backgroundColor: MessagingTheme.toastBackground, titleColor: MessagingTheme.toastText))
         }
         .toast(isPresenting: $showingFeedback, duration: 3, alert: {
@@ -77,9 +78,9 @@ struct BusinessQRScannerView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 12.zoom()) {
-                    Text("将好友或群二维码放入取景区域").font(.subheadline).multilineTextAlignment(.center)
+                    Text(L10n.tr("将好友或群二维码放入取景区域")).font(.subheadline).multilineTextAlignment(.center)
                     PhotosPicker(selection: $photo, matching: .images) {
-                        Label("从相册选择", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
+                        Label(L10n.tr("从相册选择"), systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
                     }.buttonStyle(MessagingActionButtonStyle(fill: .white.opacity(0.12), foreground: .white, border: .white))
                         .disabled(businessStore.isSubmitting)
                 }.foregroundStyle(.white).tint(.white).padding(16.zoom()).background(.black.opacity(0.75))
@@ -105,11 +106,11 @@ struct BusinessQRScannerView: View {
             Section(name) {
                 if isMember { EmptyView() }
                 else {
-                    if needsApproval { TextField("填写入群理由", text: $reason) }
-                    Button(needsApproval ? "申请加入群聊" : "加入群聊") { Task {
+                    if needsApproval { TextField(L10n.tr("填写入群理由"), text: $reason) }
+                    Button(needsApproval ? L10n.tr("申请加入群聊") : L10n.tr("加入群聊")) { Task {
                         let identity = businessStore.identity
                         if await businessStore.perform(.joinGroup(id: id, inviter: inviter, reason: reason)), businessStore.identity == identity {
-                            if needsApproval { showFeedback("申请已提交，请等待群管理员审核") }
+                            if needsApproval { showFeedback(L10n.tr("申请已提交，请等待群管理员审核")) }
                             else { joinedRoute = ChatRoute(id: id, kind: .group, title: name, avatarURL: avatar) }
                         } else if businessStore.identity == identity, let error = businessStore.errorMessage { showFeedback(error) }
                     } }.disabled(businessStore.isSubmitting || (needsApproval && reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
@@ -127,7 +128,7 @@ struct BusinessQRScannerView: View {
         let succeeded = await businessStore.perform(.decodeQR(content))
         guard scanRevision == revision, businessStore.identity == identity else { return }
         guard succeeded, let decoded = businessStore.qrTarget else {
-            showFeedback(businessStore.errorMessage ?? "此二维码暂时无法识别", resumeCamera: resumeCameraOnFailure)
+            showFeedback(businessStore.errorMessage ?? L10n.tr("此二维码暂时无法识别"), resumeCamera: resumeCameraOnFailure)
             return
         }
         // 服务端转换确认后的用户和已入群目标直接push，未入群仍展示真实申请表单。
@@ -150,9 +151,9 @@ struct BusinessQRScannerView: View {
             guard scanRevision == revision, businessStore.identity == identity else { return }
             guard let data, let image = CIImage(data: data),
                   let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: CIContext(), options: [CIDetectorAccuracy: CIDetectorAccuracyHigh]),
-                  let code = detector.features(in: image).compactMap({ ($0 as? CIQRCodeFeature)?.messageString }).first else { showFeedback("图片中没有识别到二维码"); return }
+                  let code = detector.features(in: image).compactMap({ ($0 as? CIQRCodeFeature)?.messageString }).first else { showFeedback(L10n.tr("图片中没有识别到二维码")); return }
             guard scanRevision == revision, businessStore.identity == identity else { return }
             await decode(code)
-        } catch { if scanRevision == revision, businessStore.identity == identity { showFeedback("图片读取失败，请重新选择") } }
+        } catch { if scanRevision == revision, businessStore.identity == identity { showFeedback(L10n.tr("图片读取失败，请重新选择")) } }
     }
 }

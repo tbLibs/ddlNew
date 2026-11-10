@@ -22,7 +22,7 @@ import NoaChatCore
                 guard let uid = friend.friendUserUID, !uid.isEmpty,
                       friend.userType == 0 || (uid == "100002" && showAssistant) else { continue }
                 results.append(GlobalSearchResult(id: "friend.\(uid)", kind: .friend, peerID: uid,
-                    title: friend.disableStatus == 4 ? "账号已注销" : (friend.showName ?? friend.nickname ?? uid),
+                    title: friend.disableStatus == 4 ? L10n.tr("账号已注销") : (friend.showName ?? friend.nickname ?? uid),
                     detail: friend.userName ?? "", avatar: friend.disableStatus == 4 ? "" : (friend.avatar ?? ""), messageID: nil, date: nil))
             }
             let foundGroups: [LingIMGroupModel]? = sdk.toolSearchMyGroup(with: query)
@@ -32,7 +32,7 @@ import NoaChatCore
                 let avatar: String? = group.groupAvatar
                 guard let id = identifier, !id.isEmpty else { continue }
                 results.append(GlobalSearchResult(id: "group.\(id)", kind: .group, peerID: id,
-                    title: name.flatMap { $0.isEmpty ? nil : $0 } ?? id, detail: "群聊", avatar: avatar ?? "", messageID: nil, date: nil))
+                    title: name.flatMap { $0.isEmpty ? nil : $0 } ?? id, detail: L10n.tr("群聊"), avatar: avatar ?? "", messageID: nil, date: nil))
             }
             let foundMessages: [NoaIMChatMessageModel]? = sdk.toolSearchMessage(with: query)
             var seen: Set<String> = []

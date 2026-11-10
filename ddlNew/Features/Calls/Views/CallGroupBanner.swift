@@ -2,6 +2,7 @@ import SwiftUI
 import UIAdapter
 
 struct CallGroupBanner: View {
+    @Environment(\.locale) private var localizationLocale
     let room: CallGroupRoom
     let join: () -> Void
     @State private var expanded = false
@@ -11,7 +12,7 @@ struct CallGroupBanner: View {
             Button { expanded.toggle() } label: {
                 HStack {
                     Image(systemName: room.kind == .audio ? "phone.fill" : "video.fill")
-                    Text("\(room.participants.count)人正在\(room.kind == .audio ? "语音" : "视频")通话").font(.subheadline)
+                    Text(L10n.tr("\(room.participants.count)人正在\(room.kind == .audio ? L10n.tr("语音") : L10n.tr("视频"))通话")).font(.subheadline)
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                 }.padding(.horizontal, 16.zoom()).frame(minHeight: 44)
@@ -26,7 +27,7 @@ struct CallGroupBanner: View {
                             }
                         }
                     }
-                    Button("加入", action: join).buttonStyle(.borderedProminent).frame(minHeight: 44)
+                    Button(L10n.tr("加入"), action: join).buttonStyle(.borderedProminent).frame(minHeight: 44)
                 }.padding(.horizontal, 16.zoom()).padding(.bottom, 8.zoom())
             }
         }.foregroundStyle(MessagingTheme.accent).background(MessagingTheme.accent.opacity(0.08))

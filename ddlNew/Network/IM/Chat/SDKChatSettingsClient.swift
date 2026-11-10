@@ -82,7 +82,7 @@ import ObjectiveC
     /// 不直接乐观更新开关，真实回执后SDK缓存会话字段一起更新。
     func setConversation(context: ChatContext, pinned: Bool?, muted: Bool?) async throws {
         bind(context); try client.validate(context)
-        guard context.route.id != "100002" || muted == nil else { throw ChatClientError.permission("文件助手不支持免打扰") }
+        guard context.route.id != "100002" || muted == nil else { throw ChatClientError.permission(L10n.tr("文件助手不支持免打扰")) }
         let group = context.route.kind == .group
         var params: [String: Any] = ["userUid": context.userUID, group ? "groupId" : "friendUserUid": context.route.id]
         if let pinned {
@@ -110,25 +110,25 @@ import ObjectiveC
     /// 清空后只删对应聊天SDK历史，接口失败不清缓存。
     func clear(context: ChatContext) async throws {
         bind(context); try client.validate(context)
-        guard UserRoleAuthorityStore.shared.current?.allows("deleteMessage") == true else { throw ChatClientError.permission("当前账号不允许清空聊天记录") }
+        guard UserRoleAuthorityStore.shared.current?.allows("deleteMessage") == true else { throw ChatClientError.permission(L10n.tr("当前账号不允许清空聊天记录")) }
         _ = try await client.request(context: context) { success, failure in self.sdk.clearChatMessageHistory(NSMutableDictionary(dictionary: ["chatType": context.route.kind == .group ? 1 : 0, "userUid": context.userUID, "receiveId": context.route.id]), onSuccess: success, onFailure: failure) }
         try client.validate(context)
         ChatRuntime.shared.markCleared(context)
-        guard sdk.toolDeleteAllChatMessage(with: context.route.id) else { throw ChatClientError.unavailable("服务器已受理清空，本地清理失败，请重新进入聊天") }
+        guard sdk.toolDeleteAllChatMessage(with: context.route.id) else { throw ChatClientError.unavailable(L10n.tr("服务器已受理清空，本地清理失败，请重新进入聊天")) }
         try ChatMediaPreviewStore.clearCache(context: context)
     }
 
     /// 每项群操作真实刷新角色后按独立参数提交，群主退出必须先转让。
     func groupAction(_ action: ChatGroupAction, context: ChatContext) async throws {
         guard let detail = try await load(context: context).group,
-              ChatGroupPolicy.permits(action, detail: detail, userUID: context.userUID) else { throw ChatClientError.permission("群权限已变化，请刷新后重试") }
+              ChatGroupPolicy.permits(action, detail: detail, userUID: context.userUID) else { throw ChatClientError.permission(L10n.tr("群权限已变化，请刷新后重试")) }
         var params: [String: Any] = ["groupId": context.route.id, "userUid": context.userUID]
         _ = try await client.request(context: context) { success, failure in
             switch action {
             case .rename(let value): params["groupName"] = value.trimmingCharacters(in: .whitespacesAndNewlines); self.sdk.changeGroupName(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
             case .nickname(let value):
                 let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard trimmed.utf16.count <= 30 else { failure(-1, "昵称最多30字", nil); return }
+                guard trimmed.utf16.count <= 30 else { failure(-1, L10n.tr("昵称最多30字"), nil); return }
                 params["groupNickname"] = trimmed.isEmpty ? UserSessionStore.shared.currentUser?.nickname ?? "" : trimmed
                 self.sdk.groupMyNickname(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
             case .avatar(let value): params["avatar"] = value; self.sdk.changeGroupAvatar(with: NSMutableDictionary(dictionary: params), onSuccess: success, onFailure: failure)
