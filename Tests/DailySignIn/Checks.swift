@@ -12,13 +12,14 @@ import Foundation
     func info(context: ChatContext) async throws -> DailySignInInfo {
         if suspend { await withCheckedContinuation { pending = $0 } }
         if fail { throw DailySignInError.invalidResponse }
-        return DailySignInInfo(signed: signed, todayPoints: 3, totalDays: 2, totalPoints: 6, monthDays: 2)
+        return DailySignInInfo(signed: signed, todayPoints: "3", totalDays: 2, totalPoints: 6, monthDays: 2)
     }
     func records(month: SignInMonth, context: ChatContext) async throws -> DailySignInRecords { DailySignInRecords(total: 6, rows: []) }
     func points(month: SignInMonth, context: ChatContext) async throws -> DailySignInPoints { DailySignInPoints(used: 0, gained: 6, rows: []) }
     func rule(context: ChatContext) async throws -> DailySignInRule { DailySignInRule(enabled: enabled, mode: 1, daily: 0, minimum: 1, maximum: 5, description: "", rewards: []) }
     func sign(context: ChatContext) async throws -> Int64? {
         submissions += 1
+        if !enabled { throw DailySignInError.message("系统未开启签到功能") }
         if suspendSign { await withCheckedContinuation { pending = $0 } }
         signed = true; fail = failAfterSign; return 3
     }
@@ -33,6 +34,23 @@ import Foundation
         let info: [String: Any] = ["isSignIn": "1", "loyalty": "12", "signTotalDay": 10, "signTotalLoyalty": "9223372036854775806", "monthTotalDay": "3"]
         let parsed = try DailySignInInfo.parse(info)
         check(parsed.signed && parsed.totalPoints == 9223372036854775806, "数字字符串及64位积分")
+        // 真机捕获：随机模式未签到时，loyalty是展示区间，不是整型奖励。
+        var randomInfo = info
+        randomInfo["isSignIn"] = 0
+        randomInfo["loyalty"] = "100-200"
+        do {
+            let random = try DailySignInInfo.parse(randomInfo)
+            check(!random.signed && String(random.todayPoints) == "100-200", "随机模式保留服务端积分区间")
+        } catch {
+            print("FAIL: 打开随机签到详情：\(error.localizedDescription)")
+            exit(1)
+        }
+        check(try SignInPayload.pointsText(100) == "100", "固定积分兼容JSON数字")
+        check(try SignInPayload.pointsText("100") == "100", "已签到积分兼容数字字符串")
+        check((try? SignInPayload.pointsText(NSNull())) == nil && (try? SignInPayload.pointsText(" ")) == nil, "空积分展示值仍拒绝")
+        check((try? SignInPayload.pointsText(true)) == nil, "布尔不能伪造积分展示")
+        var badTotal = randomInfo; badTotal["signTotalLoyalty"] = "100-200"
+        check((try? DailySignInInfo.parse(badTotal)) == nil, "区间仅限今日可领展示，不放宽累计积分")
         check((try? DailySignInInfo.parse([:])) == nil, "空详情不能伪造未签到")
         check((try? SignInPayload.integer(true)) == nil, "布尔不能作为积分")
         check(try SignInPayload.flag(true), "开关兼容JSON布尔")
@@ -62,7 +80,12 @@ import Foundation
         check(failing.signed && !failing.canSign && failing.error != nil && failing.feedback != nil, "受理后刷新失败不误报提交失败")
         let disabledClient = FakeSignInClient(); disabledClient.enabled = false
         let disabled = DailySignInStore(context: context, client: disabledClient, isCurrent: { _ in true })
-        await disabled.refresh(); await disabled.sign(); check(disabledClient.submissions == 0, "配置关闭禁止写入")
+        await disabled.refresh()
+        check(disabled.canSign, "与xgd一致，由签到接口判断是否开放")
+        await disabled.sign()
+        check(disabledClient.submissions == 1 && disabled.feedback == "系统未开启签到功能" && !disabled.signed, "服务端未开启时提示原始原因且不伪造成功")
+        await disabled.sign()
+        check(disabledClient.submissions == 2 && disabled.canSign && !disabled.signed && disabled.feedbackRevision == 2, "重复失败再次Toast且可重试，不锁成已签到")
         let lateClient = FakeSignInClient(); lateClient.suspend = true
         var valid = true
         let late = DailySignInStore(context: context, client: lateClient, isCurrent: { _ in valid })

@@ -282,7 +282,7 @@ struct ChatRoomView: View {
     /// 业务观察和确认操作独立于展示组件，继续保留原回调边界。
     var body: some View {
         chatPresentations
-        .messagingFeedbackToast(chatFeedbackMessage, isEnabled: !showSettings && !showForward && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && pinningMessage == nil)
+        .messagingFeedbackToast(chatFeedbackMessage, isEnabled: !showSettings && !showForward && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && pinningMessage == nil, trigger: store.inputLimitRevision)
         .onChange(of: store.messages) { _ in
             // 同一可见ID的服务端身份/已读资格可能补齐，消息变化时主动重查一次。
             updateVisibleMessages(recheck: true)

@@ -15,6 +15,7 @@ struct ChatComposerTextInput: UIViewRepresentable {
     var focused: Binding<Bool>
     var maximumLines: Int
     var onAtSign: ((NSRange) -> Void)?
+    var onLimitExceeded: (() -> Void)?
     @Environment(\.isEnabled) private var isEnabled
 
     /// 使用原生文本编辑器保留中文输入法、选区与组合字素删除行为。
@@ -89,17 +90,40 @@ struct ChatComposerTextInput: UIViewRepresentable {
 
         /// 原生编辑先完成，再将附件还原为wire文本；不拦截输入法的组合过程。
         func textViewDidChange(_ textView: UITextView) {
-            guard !rendering else { return }
-            parent.text = EmojiTextView.wire(textView.attributedText)
+            guard !rendering, textView.markedTextRange == nil else { return }
+            let wire = EmojiTextView.wire(textView.attributedText)
+            if !ChatInputLimit.allows(wire), let view = textView as? EmojiTextView {
+                let accepted = ChatInputLimit.committing(wire, over: parent.text)
+                parent.text = accepted.text; parent.selection = accepted.selection
+                pendingAt = nil; lastWire = nil; render(view)
+                parent.onLimitExceeded?()
+                return
+            }
+            parent.text = wire
             updateSelection(textView)
             if let range = pendingAt { pendingAt = nil; parent.onAtSign?(range) }
         }
 
         /// 只对一次实际输入的@调起成员，粘贴整段带@的文本不误触发。
         func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            guard textView.markedTextRange == nil else { pendingAt = nil; return true }
+            let value = textView.attributedText ?? NSAttributedString(string: "")
+            guard range.location >= 0, range.location <= value.length, range.length >= 0,
+                  range.length <= value.length - range.location else { return false }
+            let prefix = EmojiTextView.wire(value.attributedSubstring(from: NSRange(location: 0, length: range.location)))
+            let selected = EmojiTextView.wire(value.attributedSubstring(from: range))
+            let wire = EmojiTextView.wire(value)
+            let rawRange = NSRange(location: prefix.utf16.count, length: selected.utf16.count)
+            let proposed = ChatEmojiCatalog.replacing(wire, range: rawRange, with: text)
+            if !ChatInputLimit.allows(proposed.text), let view = textView as? EmojiTextView {
+                let accepted = ChatInputLimit.replacing(wire, range: rawRange, with: text)
+                parent.text = accepted.text; parent.selection = accepted.selection
+                pendingAt = nil; lastWire = nil; render(view)
+                parent.onLimitExceeded?()
+                return false
+            }
             if text == "@", parent.onAtSign != nil {
-                let prefix = textView.attributedText.attributedSubstring(from: NSRange(location: 0, length: range.location))
-                pendingAt = NSRange(location: EmojiTextView.wire(prefix).utf16.count, length: 1)
+                pendingAt = NSRange(location: prefix.utf16.count, length: 1)
             } else { pendingAt = nil }
             return true
         }
@@ -108,6 +132,7 @@ struct ChatComposerTextInput: UIViewRepresentable {
         func textViewDidEndEditing(_ textView: UITextView) { if parent.focused.wrappedValue { parent.focused.wrappedValue = false } }
         /// 选区由实际富文本反算，中文组合与表情附件均不猜字符长度。
         private func updateSelection(_ view: UITextView) {
+            guard view.markedTextRange == nil else { return }
             let range = view.selectedRange, value = view.attributedText ?? NSAttributedString(string: "")
             guard range.location <= value.length, range.length <= value.length - range.location else { return }
             let prefix = EmojiTextView.wire(value.attributedSubstring(from: NSRange(location: 0, length: range.location)))

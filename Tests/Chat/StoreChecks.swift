@@ -264,7 +264,22 @@ import Combine
         gameStore.sendGame(.dice)
         expect(gameClient.sent.count == sentGames && gameStore.input == "保留草稿🙂", "禁言不得发送游戏或清草稿")
         gameStore.close()
-        print("Chat checks: existing regression, cursor mentions and game sending passed")
+        let limitClient = SuspendedChatClient()
+        let boundedStore = ChatStore(client: limitClient)
+        await boundedStore.open(groupContext)
+        boundedStore.input = String(repeating: "中", count: 1_001)
+        boundedStore.sendText()
+        expect(limitClient.sent.isEmpty && boundedStore.input.count == 1_001 && boundedStore.errorMessage != nil, "超长文本发送兜底拒绝并保留草稿")
+        expect(boundedStore.inputLimitRevision == 1, "超长发送触发Toast事件")
+        boundedStore.sendText()
+        expect(boundedStore.inputLimitRevision == 2, "相同超限提示必须可再次触发")
+        boundedStore.input = String(repeating: "中", count: 1_000)
+        boundedStore.insertMention(ChatGroupMember(id: "limit-peer", name: "成员", avatar: "", role: 0, isDeleted: false))
+        expect(boundedStore.input.count == 1_000 && boundedStore.mentions.isEmpty, "满额不追加或截断成员片段")
+        boundedStore.sendText()
+        expect(limitClient.sent.count == 1 && limitClient.sent[0].text.count == 1_000 && boundedStore.input.isEmpty, "1000字符允许正常发送")
+        boundedStore.close()
+        print("Chat checks: existing regression, cursor mentions, game sending and input limit passed")
     }
     /// 构造含双ID的普通消息。
     static func message(_ id: String, server: String, type: Int = 0) -> ChatMessageRecord {

@@ -10,6 +10,7 @@ import Combine
     @Published private(set) var month = SignInMonth()
     @Published private(set) var busy = false
     @Published private(set) var feedback: String?
+    @Published private(set) var feedbackRevision = 0
     @Published private(set) var error: String?
     @Published private(set) var reminders: [DailySignInReminder] = []
     @Published private(set) var hasMoreReminders = true
@@ -26,7 +27,8 @@ import Combine
         self.context = context; self.client = client; self.isCurrent = isCurrent
     }
     var signed: Bool { acceptedDay == SignInMonth.calendar.startOfDay(for: Date()) || info?.signed == true }
-    var canSign: Bool { !closed && !busy && isCurrent(context) && info != nil && rule?.enabled == true && !signed && error == nil }
+    // 与xgd一致，签到开关由写接口判定；规则快照不能代替服务端受理结果。
+    var canSign: Bool { !closed && !busy && isCurrent(context) && info != nil && !signed && error == nil }
 
     func refresh(month newMonth: SignInMonth? = nil) async {
         guard !busy, !closed, isCurrent(context) else { return }
@@ -56,12 +58,18 @@ import Combine
             let reward = try await client.sign(context: context); try validate(run)
             acceptedDay = SignInMonth.calendar.startOfDay(for: Date())
             feedback = reward.map { L10n.tr("签到成功，获得\($0)积分") } ?? L10n.tr("签到成功")
+            feedbackRevision += 1
             do { try await load(SignInMonth(), run: run) }
             catch {
                 try validate(run)
                 self.error = L10n.tr("签到已受理，数据刷新失败，请重新加载")
             }
-        } catch { report(error, run: run) }
+        } catch {
+            guard !closed, revision == run, isCurrent(context), !(error is CancellationError) else { return }
+            // 包括“系统未开启签到功能”在内的服务端失败原文作为Toast展示；失败可再次点击。
+            feedback = error.localizedDescription
+            feedbackRevision += 1
+        }
     }
 
     func loadReminders(sessionID: String, reset: Bool = false) {

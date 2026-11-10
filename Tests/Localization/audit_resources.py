@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Audit the three language tables against production L10n call sites."""
-import re, pathlib, json, subprocess, sys
+import re, pathlib, json, sys
 from collections import Counter
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -26,6 +26,9 @@ def keys():
     # CallParticipant.stateText is a stable internal state used by call coordination.
     result = {"呼叫中", "已加入", "已拒绝", "未应答", "已离开"}
     for path in (ROOT/'ddlNew').rglob('*.swift'):
+        # The user excludes homepage and activity source from inspection.
+        if set(path.relative_to(ROOT/'ddlNew').parts) & {'Home', 'Activities', 'Club'}:
+            continue
         s = path.read_text()
         for match in re.finditer(r'L10n\.(?:tr|lookup)\(\s*(?=")', s):
             value, _ = swift_string(s, match.end())
@@ -35,18 +38,32 @@ def keys():
             for match in re.finditer(r'(?:case\s+|,\s*)\w+\s*=\s*(?=")', s):
                 value, _ = swift_string(s, match.end())
                 if re.search('[\u3400-\u9fff]',value): result.add(value)
-    # These bundled activity examples explicitly opt into render-time lookup.
-    # Other activity/user content is intentionally not treated as a translation key.
-    sample_path = ROOT/'ddlNew/Features/Activities/Models/ClubActivity.swift'
-    for line in sample_path.read_text().splitlines():
-        if '.init(' not in line or 'isBuiltInSample: true' not in line: continue
-        for match in re.finditer(r'\b(?:title|category|date|place|meetingPoint|requirement|notice):\s*(?=")', line):
-            value, _ = swift_string(line, match.end())
-            result.add(value)
     return result
 
-def read_table(path):
-    return json.loads(subprocess.check_output(['plutil','-convert','json','-o','-',str(path)]))
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result: raise ValueError(f'Duplicate catalog key: {key}')
+        result[key] = value
+    return result
+
+def read_catalog(name):
+    path = ROOT/'ddlNew/Resources/Localization'/f'{name}.xcstrings'
+    catalog = json.loads(path.read_text(), object_pairs_hook=unique_object)
+    assert catalog['sourceLanguage'] == 'zh-Hans'
+    assert catalog['version'] in {'1.0', '1.1'}
+    tables = {language: {} for language in ['zh-Hans', 'zh-Hant', 'en']}
+    for key, entry in catalog['strings'].items():
+        if entry.get('shouldTranslate') is False:
+            continue
+        assert entry.get('extractionState') == 'manual', f'{name}: {key}: unmanaged dynamic key'
+        assert entry.get('generatesSymbol') is False, f'{name}: {key}: dynamic lookup must not generate colliding symbols'
+        assert entry['localizations'].keys() == tables.keys(), f'{name}: {key}: incomplete languages'
+        for language in tables:
+            unit = entry['localizations'][language]['stringUnit']
+            assert unit['state'] == 'translated', f'{name}: {key}: incomplete {language}'
+            tables[language][key] = unit['value']
+    return tables
 
 def format_arguments(value):
     # Include integer/float specifiers: a translated %@ must never become %d.
@@ -59,34 +76,29 @@ def format_arguments(value):
         result[(index, (token.group(2) or '') + token.group(3))] += 1
     return result
 
-def duplicate_keys(path):
-    literals = re.findall(r'^\s*("(?:\\.|[^"\\])*")\s*=',path.read_text(),re.MULTILINE)
-    return [key for key,count in Counter(json.loads(s) for s in literals).items() if count>1]
-
 def main():
     expected = keys(); errors = []
+    tables = read_catalog('Localizable')
+    privacy_tables = read_catalog('InfoPlist')
+    assert not list((ROOT/'ddlNew/Resources/Localization').glob('*.lproj/*.strings')), 'Legacy source tables remain'
     for language in ['zh-Hans','zh-Hant','en']:
-        path = ROOT/'ddlNew/Resources/Localization'/f'{language}.lproj/Localizable.strings'
-        table = read_table(path)
-        duplicates = duplicate_keys(path)
-        if duplicates: errors.append(f'{language}: duplicate keys: {duplicates}')
-        stale = table.keys() - expected
-        if stale: errors.append(f'{language}: stale keys: {sorted(stale)}')
+        table = tables[language]
+        # Do not infer stale keys from a deliberately partial source scan.
         missing = expected-table.keys()
         if missing: errors.append(f'{language}: missing {len(missing)}: {sorted(missing)}')
-        for key in expected & table.keys():
+        for key in table:
             source = format_arguments(key)
             target = format_arguments(table[key])
             if source != target: errors.append(f'{language}: placeholder mismatch: {key}')
             if language=='en' and re.search('[\u3400-\u9fff]',table[key]) and key!='简体中文、繁體中文、English':
                 errors.append(f'en: Chinese text: {key}')
-        privacy = read_table(path.with_name('InfoPlist.strings'))
+        privacy = privacy_tables[language]
         required = {'NSCameraUsageDescription', 'NSMicrophoneUsageDescription', 'NSPhotoLibraryUsageDescription', 'NSPhotoLibraryAddUsageDescription'}
         if privacy.keys() != required or any(not v.strip() for v in privacy.values()):
             errors.append(f'{language}: incomplete privacy descriptions')
         if language == 'en' and any(re.search('[\u3400-\u9fff]', v) for v in privacy.values()):
             errors.append('en: untranslated privacy description')
-        print(f'{language}: {len(table)} keys, {len(expected)} used keys, {len(missing)} missing')
+        print(f'{language}: {len(table)} keys, {len(expected)} inspected source keys, {len(missing)} missing (homepage/activity source excluded)')
     if errors:
         print('\n'.join(errors)); return 1
     return 0

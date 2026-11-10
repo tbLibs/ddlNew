@@ -30,19 +30,21 @@ typealias LingIMSessionModel = FakeSignInSession
     static func sharedTool() -> NoaIMSDKManager { shared }
     var uid = "a", ready = true, suspended = false, requestCount = 0, writeCount = 0
     var endpoint = "", parameters: NSDictionary = [:], response: Any = [:]
+    var failureMessage: String?
     var pending: LingIMSuccessCallback?
     var session = FakeSignInSession()
     func myUserID() -> String { uid }
     func isUserDatabaseReady() -> Bool { ready }
-    func invoke(_ name: String, _ params: NSMutableDictionary, _ success: @escaping LingIMSuccessCallback) {
+    func invoke(_ name: String, _ params: NSMutableDictionary, _ success: @escaping LingIMSuccessCallback, _ failure: LingIMFailureCallback) {
         endpoint = name; parameters = params; requestCount += 1
+        if let failureMessage { failure(-1, failureMessage, nil); return }
         if suspended { pending = success } else { success(response, nil); success(response, nil) }
     }
-    func imSignIn(withInfo p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("info", p, s) }
-    func imSignIn(withRecord p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("records", p, s) }
-    func imSignIn(withIntergralDetail p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("points", p, s) }
-    func imSignIn(withRule p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("rule", p, s) }
-    func imSignInRecord(withSign p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("sign", p, s) }
+    func imSignIn(withInfo p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("info", p, s, onFailure) }
+    func imSignIn(withRecord p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("records", p, s, onFailure) }
+    func imSignIn(withIntergralDetail p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("points", p, s, onFailure) }
+    func imSignIn(withRule p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("rule", p, s, onFailure) }
+    func imSignInRecord(withSign p: NSMutableDictionary, onSuccess s: @escaping LingIMSuccessCallback, onFailure: LingIMFailureCallback) { invoke("sign", p, s, onFailure) }
     func messageGetSignInHistoryRecord(with id: String, offset: Int) -> NSArray { [NoaIMChatMessageModel()] }
     func toolCheckMySession(with id: String) -> FakeSignInSession? { session }
     func toolUpdateSession(with session: FakeSignInSession) -> Bool { writeCount += 1; return true }
@@ -54,8 +56,9 @@ typealias LingIMSessionModel = FakeSignInSession
         func check(_ value: Bool, _ label: String) { precondition(value, label); count += 1 }
         let context = ChatContext(userUID: "a", tenantID: "t", sessionID: UUID(), route: ChatRoute(id: "a", kind: .single, title: "", avatarURL: ""))
         let sdk = NoaIMSDKManager.shared, client = SDKDailySignInClient()
-        sdk.response = ["isSignIn": 0, "loyalty": 2, "signTotalDay": 0, "signTotalLoyalty": 0, "monthTotalDay": 0]
-        _ = try await client.info(context: context)
+        sdk.response = ["isSignIn": 0, "loyalty": "100-200", "signTotalDay": 0, "signTotalLoyalty": 0, "monthTotalDay": 0]
+        let info = try await client.info(context: context)
+        check(info.todayPoints == "100-200" && !info.signed, "真实适配器保留随机签到积分区间")
         check(sdk.endpoint == "info" && sdk.parameters == ["userUid": "a"], "详情仅传真实UID，重复回调单次收口")
         let month = SignInMonth()
         sdk.response = ["totalLoyalty": 0, "signInRecords": []]
@@ -68,6 +71,10 @@ typealias LingIMSessionModel = FakeSignInSession
         _ = try await client.rule(context: context); check(sdk.endpoint == "rule", "规则接口")
         sdk.response = ["loyalty": "7"]
         check(try await client.sign(context: context) == 7 && sdk.endpoint == "sign" && sdk.parameters.count == 1, "签到不提交本地奖励或日期")
+        sdk.failureMessage = "系统未开启签到功能"
+        do { _ = try await client.sign(context: context); preconditionFailure("服务端关闭却成功") }
+        catch { check(error.localizedDescription == "系统未开启签到功能", "SDK失败回调保留服务端未开启提示") }
+        sdk.failureMessage = nil
         sdk.response = false
         do { _ = try await client.sign(context: context); preconditionFailure("false受理") } catch { count += 1 }
         let reminders = try client.reminders(sessionID: "s", offset: 0, context: context)

@@ -66,6 +66,7 @@ struct ChatEmojiPanel: View {
 
     /// 外部编辑与键盘走同一个草稿/提及核对入口，不创建或直接发送消息。
     private func edit(_ result: (text: String, selection: NSRange)) {
+        guard ChatInputLimit.allows(result.text) else { chat.reportInputLimit(); return }
         chat.input = result.text; chat.reconcileMentions(); selection = result.selection; chat.persistDraft()
     }
 }

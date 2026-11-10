@@ -21,6 +21,13 @@ enum SignInPayload {
         if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() { throw DailySignInError.invalidResponse }
         guard let value, let result = Int64(String(describing: value)) else { throw DailySignInError.invalidResponse }; return result
     }
+    /// xgd直接展示loyalty；随机签到未领取时服务端可返回“100-200”区间。
+    /// 仅用于今日积分展示，累计值和实际入账奖励仍按整数解析。
+    static func pointsText(_ value: Any?) throws -> String {
+        if let text = value as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return text }
+        if let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite { return number.stringValue }
+        throw DailySignInError.invalidResponse
+    }
     static func rows(_ value: Any?) throws -> [[String: Any]] {
         guard let rows = value as? [[String: Any]] else { throw DailySignInError.invalidResponse }; return rows
     }
@@ -59,13 +66,13 @@ struct SignInMonth: Equatable, Sendable {
 
 struct DailySignInInfo: Equatable {
     let signed: Bool
-    let todayPoints: Int64
+    let todayPoints: String
     let totalDays: Int64
     let totalPoints: Int64
     let monthDays: Int64
     static func parse(_ value: Any) throws -> Self {
         let d = try SignInPayload.object(value)
-        return try Self(signed: SignInPayload.flag(d["isSignIn"]), todayPoints: SignInPayload.integer(d["loyalty"]), totalDays: SignInPayload.integer(d["signTotalDay"]), totalPoints: SignInPayload.integer(d["signTotalLoyalty"]), monthDays: SignInPayload.integer(d["monthTotalDay"]))
+        return try Self(signed: SignInPayload.flag(d["isSignIn"]), todayPoints: SignInPayload.pointsText(d["loyalty"]), totalDays: SignInPayload.integer(d["signTotalDay"]), totalPoints: SignInPayload.integer(d["signTotalLoyalty"]), monthDays: SignInPayload.integer(d["monthTotalDay"]))
     }
 }
 

@@ -97,7 +97,7 @@ private struct DailySignInDashboard: View {
         .task { await store.refresh() }
         .refreshable { await store.refresh() }
         .onChange(of: phase) { value in if value == .active { Task { await store.refresh() } } }
-        .messagingFeedbackToast(store.feedback)
+        .messagingFeedbackToast(store.feedback, trigger: store.feedbackRevision)
     }
     private func summary(_ info: DailySignInInfo) -> some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -106,9 +106,9 @@ private struct DailySignInDashboard: View {
             LabeledContent(L10n.tr("累计签到积分"), value: String(info.totalPoints))
             Divider()
             Text(store.signed ? L10n.tr("今日已领积分") : L10n.tr("今日可领积分")).foregroundStyle(.secondary)
-            Text(String(info.todayPoints)).font(.largeTitle.bold()).monospacedDigit()
+            Text(info.todayPoints).font(.largeTitle.bold()).monospacedDigit()
             Button { Task { await store.sign() } } label: {
-                Text(store.rule?.enabled == false ? L10n.tr("签到暂未开放") : store.signed ? L10n.tr("今日已签到") : L10n.tr("立即签到"))
+                Text(store.signed ? L10n.tr("今日已签到") : L10n.tr("立即签到"))
                     .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
             }.buttonStyle(.borderedProminent).disabled(!store.canSign).accessibilityIdentifier("dailySignIn.submit")
             Text(L10n.tr("本月已累计签到\(info.monthDays)天")).font(.footnote).foregroundStyle(.secondary)

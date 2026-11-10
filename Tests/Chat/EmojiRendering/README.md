@@ -30,3 +30,16 @@ xcodebuild test \
 ```
 
 测试不代表真实群发送／网络收发已验收；它覆盖收发消息共用的正文渲染崩溃路径。
+
+## 输入长度限制
+
+此宿主也包含生产UIKit输入框的 `ChatInputLimitTests`，覆盖1000字符边界、
+粘贴／选区替换保留原稿、表情附件算1个以及输入法markedText提交后才限长。
+只运行输入框检查时给上面的xcodebuild命令追加：
+
+```bash
+-only-testing:EmojiTests/ChatInputLimitTests
+```
+
+纯模型和发送兜底检查分别为 `bash Tests/Chat/run-input-limit-checks.sh` 与
+`bash Tests/Chat/run-checks.sh`。

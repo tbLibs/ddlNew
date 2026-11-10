@@ -18,8 +18,8 @@ extension View {
     }
 
     /// 只提示新发生的业务结果，返回页面不重播Store遗留提示。
-    func messagingFeedbackToast(_ message: String?, isEnabled: Bool = true, presentInitial: Bool = false) -> some View {
-        modifier(MessagingFeedbackToast(message: message, isEnabled: isEnabled, presentInitial: presentInitial))
+    func messagingFeedbackToast(_ message: String?, isEnabled: Bool = true, presentInitial: Bool = false, trigger: Int = 0) -> some View {
+        modifier(MessagingFeedbackToast(message: message, isEnabled: isEnabled, presentInitial: presentInitial, trigger: trigger))
     }
 }
 
@@ -27,6 +27,11 @@ private struct MessagingFeedbackToast: ViewModifier {
     let message: String?
     let isEnabled: Bool
     let presentInitial: Bool
+    let trigger: Int
+    private struct Event: Equatable {
+        let message: String?
+        let trigger: Int
+    }
     @State private var feedback: String?
     @State private var revision = UUID()
 
@@ -40,10 +45,10 @@ private struct MessagingFeedbackToast: ViewModifier {
                     }.id(presentedRevision).allowsHitTesting(false)
                 }
             }
-            .onChange(of: message) { value in
+            .onChange(of: Event(message: message, trigger: trigger)) { value in
                 guard isEnabled else { return }
                 revision = UUID()
-                feedback = value.flatMap { $0.isEmpty ? nil : $0 }
+                feedback = value.message.flatMap { $0.isEmpty ? nil : $0 }
             }
             .onChange(of: isEnabled) { enabled in if !enabled { feedback = nil } }
             .onAppear { if presentInitial && isEnabled { feedback = message } }

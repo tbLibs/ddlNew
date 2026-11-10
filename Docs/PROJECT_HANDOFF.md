@@ -1,5 +1,31 @@
 # ddlNew 项目交接文档
 
+## 2026-11-10 每日签到积分区间与未开启提示修复
+
+用户打开我的→每日签到出现“签到数据无效，请重试”。真机Xcode临时条件断点捕获生产DailySignInInfo.parse→SignInPayload.integer输入为字符串`100-200`：服务端随机模式的loyalty是今日可领积分展示区间，旧端CandyTalkSignInViewController使用`%@`直接展示，新端误作Int64。已将todayPoints改为展示字符串，保留服务端区间和数字文本；累计积分、天数、记录和真实奖励仍按原整数校验。离线回归先复现相同中文错误，再修复通过；没有把空数据或坏累计值统一当成0。
+
+用户补充xgd点击签到提示“系统未开启签到功能”，要求按该逻辑。核对旧端atOnceSignAction，未签时调用真实签到接口、失败由HUD展示服务端原因。新端移除规则快照对签到按钮的禁用，仍检查当前身份、加载状态和今日已签；点击由写接口决定开放状态，失败原文以Toast展示，保留未签到状态并可再次点击。feedbackRevision确保重复同文案再次提示，失败不写acceptedDay、不伪造积分入账。规则页仍能展示已关闭状态。
+
+验证：31项模型／Store与14项生产SDK适配器检查通过，覆盖真实区间、固定积分、空值／布尔拒绝、累计值严格校验、服务端未开启失败、重复Toast、旧AUTH和取消。完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-sign-in-range-verified-build.log`）。现场仅观察读取，没有执行真实签到；本次两个临时断点已删除并确认Xcode仅保留原有Objective-C异常断点，App恢复Running。尚未安装修复包做真机验收，未读取首页源码、未修改xgd、未提交推送。
+
+检查中发现用户Xcode保存目录后已升级为xcstrings 1.1并自动补充纯格式／数字／示例域名及Bundle名称条目。资源审计兼容1.0／1.1，这些无需翻译的条目标记shouldTranslate=false；原1662条三语文案和4项权限说明完整性、占位符及编译产物回归通过，后续维护继续使用xcstrings。目录调整后的终版完整无签名构建同样exit0／BUILD SUCCEEDED（`/tmp/ddlNew-sign-in-final-build.log`），最终App译文逐条比对通过。
+
+## 2026-11-10 多语言迁移至 String Catalog
+
+按用户要求，将应用自有三语资源从六份 `.lproj/*.strings` 合并为 `Resources/Localization/Localizable.xcstrings`（1662键）和 `InfoPlist.xcstrings`（4项权限说明），源语言zh-Hans，保留zh-Hans／zh-Hant／en全部键值，包括1000字符上限Toast。逐条比对迁移前快照完全一致。现有L10n／AppLanguageStore与调用方无需改动；Xcode编译目录生成运行时lproj表，保持应用内语言切换、系统语言映射及英文回退。启动画面仍采用此前固定简体中文资源。
+
+目录条目使用manual提取状态与generatesSymbol=false。首次完整构建发现“聊天记录”和“[聊天记录]”等键自动生成同名Swift符号；已关闭条目符号生成，保留动态L10n查询与全部原键。资源审计已改读xcstrings，校验重复键、三语完整性、占位符、翻译状态和符号设置；源码扫描明确跳过Home／Activities／Club，不从部分扫描判定过期键。运行时回归编译真实目录，逐条核对三语产物，并通过生产L10n检查语言切换、英文回退、插值与缺键回退。维护说明见 `Docs/Localization/README.md`。
+
+验证：目录编译／符号检查、三语资源审计和生产L10n运行时回归通过；完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-xcstrings-verified-build.log`），最终App产物三语共4998条译文与目录逐条一致。git diff --check通过。未读取首页源码，未安装真机或进行页面交互验收，未提交推送；保留输入限制及其他已有修改。
+
+## 2026-11-10 聊天输入正文限制1000字符
+
+用户将上一轮1500上限调整为1000，并明确要求输入／粘贴超限Toast提示。`ChatInputLimit`统一按可见字素计数：中文／字母／Unicode组合emoji各1，已识别的内置表情完整标记算1，换行计1；UTF16仍用于UIKit光标和成员片段范围。键盘／粘贴在选区替换时只裁剪新插入内容，保留光标两侧原稿；不拆emoji或内置表情标记。中文输入法markedText期间不裁剪、不发布临时拼音，提交后限制并同步富文本／光标。键盘和粘贴超限通过onLimitExceeded回调统一调用ChatStore.reportInputLimit；Toast使用inputLimitRevision事件计数，相同文案的再次超限仍触发，不因message未变而漏提示。普通删除／未超限输入／未提交拼音不弹超限Toast。
+
+表情面板与两种@成员插入路径超限时拒绝整次插入，并以三语提示“最多可输入1000个字符”，不创建半截成员片段。旧草稿恢复限制正文并核对提及；发送前独立兜底拒绝超限输入，保留草稿，1000整允许发送。收到的消息及历史正文不受此输入限制，保留前轮平衡拼接防栈溢出修复。
+
+当前1000版验证：纯模型长度／选区／组合字素检查、ChatStore发送及成员上限回归、原焦点检查通过。原生UIKit测试3/3、0跳过、TEST SUCCEEDED（`/tmp/ddlNew-input-limit-1000.xcresult`），覆盖999内置表情附件到1000上限、粘贴中间插入／选区替换、重复超限通知、组合期间不通知／提交后通知和删除不通知。三语资源plutil通过。完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-input-limit-1000-build.log`），git diff --check通过。1500阶段工作保留并按新要求调整；未提交推送、未覆盖安装手机、未发送真实消息、未读取首页源码。
+
 ## 2026-11-10 大量内联表情导致正文渲染栈溢出
 
 用户在群里发送上千表情后闪退。Xcode真机现场为主线程EXC_BAD_ACCESS(code2)，栈深2154层；栈顶`___chkstk_darwin`，重复`Text.resolve / ConcatenatedTextStorage.resolve / Text.Storage.resolve`。`ChatMessageBubble`的正文通过`ChatEmojiText`渲染，旧实现`runs.reduce(Text(""))`逐个用`+`拼接，N个片段形成N层嵌套。这是已捕获的正文渲染栈溢出，不据此推断独立GIF／贴纸下载、发送队列或堆内存问题。

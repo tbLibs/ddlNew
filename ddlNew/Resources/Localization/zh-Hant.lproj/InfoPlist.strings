@@ -1,5 +1,0 @@
-/* App-owned UI text. Chinese keys remain stable; interpolated values use %@. */
-"NSCameraUsageDescription" = "用於掃描二維碼、拍攝頭像和聊天照片、進行視訊通話";
-"NSMicrophoneUsageDescription" = "用於錄製語音訊息及進行語音和視訊通話";
-"NSPhotoLibraryAddUsageDescription" = "用於將聊天圖片、影片和二維碼儲存到相簿";
-"NSPhotoLibraryUsageDescription" = "用於選擇並裁切個人頭像";

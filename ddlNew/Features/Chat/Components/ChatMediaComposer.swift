@@ -80,7 +80,8 @@ struct ChatMediaComposer: View {
                             .padding(.leading, 12).padding(.top, 10).allowsHitTesting(false).accessibilityHidden(true)
                     }
                     ChatComposerTextInput(text: $chat.input, selection: $inputSelection, focused: focused,
-                        maximumLines: dynamicTypeSize.isAccessibilitySize ? 2 : 5, onAtSign: onAtSign)
+                        maximumLines: dynamicTypeSize.isAccessibilitySize ? 2 : 5, onAtSign: onAtSign,
+                        onLimitExceeded: { chat.reportInputLimit() })
                 }
                 Button {
                     if mode.panel == .stickers { mode.beginTyping(); focused.wrappedValue = true }

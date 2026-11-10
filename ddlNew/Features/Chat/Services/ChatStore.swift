@@ -18,6 +18,7 @@ import Combine
     @Published private(set) var initialHistoryRevision = 0
     @Published private(set) var hasMore = true
     @Published var errorMessage: String?
+    @Published private(set) var inputLimitRevision = 0
     @Published var reference: ChatMessageRecord?
     @Published private(set) var mentions: [ChatMentionSegment] = []
     private var previousInput = ""
@@ -84,7 +85,8 @@ import Combine
             if messages.contains(where: \.isVisible) { initialHistoryRevision += 1 }
             permission = try client.permissions(context: context)
             let draft = try client.draft(context: context)
-            input = draft.text; previousInput = input; mentions = draft.mentions
+            input = ChatInputLimit.prefix(draft.text); previousInput = draft.text; mentions = draft.mentions
+            reconcileMentions()
             if !draft.referenceID.isEmpty { reference = messages.first { $0.serverID == draft.referenceID } ?? ChatMessageRecord(localID: "reference:" + draft.referenceID, serverID: draft.referenceID, conversationID: context.route.id, senderID: "", senderName: "", text: L10n.tr("引用原文尚未加载，点击定位"), timestamp: 0, state: .sent) }
         } catch { errorMessage = error.localizedDescription }
         await loadPage(before: nil)
@@ -172,6 +174,7 @@ import Combine
     /// 提交前复核权限；原文入SDK队列后清输入，失败记录保留可重发内容。
     func sendText() {
         guard let context, !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard ChatInputLimit.allows(input) else { reportInputLimit(); return }
         errorMessage = nil
         do {
             try checkSend(context)
@@ -538,10 +541,17 @@ import Combine
         catch { errorMessage = error.localizedDescription }
     }
 
+    /// 相同文案的每次超限都产生新事件，Toast消失后再次输入仍会提示。
+    func reportInputLimit() {
+        errorMessage = L10n.tr("最多可输入1000个字符")
+        inputLimitRevision += 1
+    }
+
     /// 从成员选择追加完整片段，重名依然持有对应UID。
     func insertMention(_ member: ChatGroupMember) {
         guard permission.canSend, !(permission.role == 0 && permission.isPrivateChat), !member.isDeleted else { return }
         let display = "@" + member.name + " "
+        guard ChatInputLimit.allows(input + display) else { reportInputLimit(); return }
         let start = (input as NSString).length
         mentions.append(ChatMentionSegment(id: UUID(), userUID: member.id, name: member.name, location: start, length: (display as NSString).length))
         input += display; previousInput = input; persistDraft()
@@ -554,6 +564,7 @@ import Combine
         reconcileMentions()
         guard let result = ChatMentionEngine.inserting(userUID: member.id, name: member.name,
             replacingAt: range, in: input, segments: mentions) else { return nil }
+        guard ChatInputLimit.allows(result.0) else { reportInputLimit(); return nil }
         input = result.0; mentions = result.1; previousInput = input; persistDraft()
         return result.2
     }
