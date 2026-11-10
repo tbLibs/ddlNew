@@ -29,6 +29,7 @@ struct LoginVerificationChecks {
         let firstTask = Task { try await coordinator.present(first) }
         try await awaitRequest(first.id, in: coordinator)
         coordinator.submit(LoginVerificationAnswer(), for: first.id)
+        coordinator.submit(LoginVerificationAnswer(requestsImageFallback: true), for: first.id)
         try require(coordinator.request?.id == first.id, "empty answer closed the sheet")
         coordinator.submit(LoginVerificationAnswer(imageCode: "fixture-code"), for: first.id)
         let firstAnswer = try await firstTask.value
@@ -54,6 +55,14 @@ struct LoginVerificationChecks {
         try await expectCancellation(thirdTask)
         try require(coordinator.request == nil, "task cancellation left a sheet open")
         coordinator.cancel(requestID: third.id)
+
+        let provider = LoginVerificationRequest(kind: .aliyunCaptcha(interactive: true))
+        let providerTask = Task { try await coordinator.present(provider) }
+        try await awaitRequest(provider.id, in: coordinator)
+        coordinator.submit(LoginVerificationAnswer(requestsImageFallback: true), for: provider.id)
+        let providerAnswer = try await providerTask.value
+        try require(providerAnswer.requestsImageFallback && coordinator.request == nil, "provider failure must return a fallback action")
+        coordinator.cancel(requestID: provider.id)
 
         let finite = LoginVerificationCoordinator(timeoutNanoseconds: 10_000_000)
         let timedRequest = LoginVerificationRequest(kind: .aliyunCaptcha(interactive: false))

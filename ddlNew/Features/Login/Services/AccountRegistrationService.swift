@@ -6,7 +6,7 @@ protocol AccountRegistrationServicing {
                   progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> AccountLoginResponse
 }
 
-/// 账号注册不发短信/邮箱验证码，参数 type=1 与旧项目一致。
+/// 账号、手机号共用注册端点，账号预检，手机号通过验证码校验归属。
 @MainActor
 final class AccountRegistrationService: AccountRegistrationServicing {
     static let shared = AccountRegistrationService(
@@ -49,9 +49,11 @@ final class AccountRegistrationService: AccountRegistrationServicing {
         try Task<Never, Never>.checkCancellation()
         guard let original = context() else { throw AccountLoginError.connectionNotReady }
         try input.validate(in: original)
-        progress(.checkingAccount)
-        let exists = try await checked(original) { try await self.driver.checkAccountExists(account: input.account) }
-        guard !exists else { throw AccountRegistrationError.accountExists }
+        if input.kind == .account {
+            progress(.checkingAccount)
+            let exists = try await checked(original) { try await self.driver.checkAccountExists(account: input.identity.value) }
+            guard !exists else { throw AccountRegistrationError.accountExists }
+        }
         progress(.fetchingKey)
         let key = try await checked(original) { try await self.driver.fetchEncryptKey() }
         guard !key.isEmpty else { throw AccountLoginError.invalidEncryptKey }
@@ -59,8 +61,8 @@ final class AccountRegistrationService: AccountRegistrationServicing {
         guard !cipher.isEmpty else { throw AccountLoginError.encryptionFailed }
         try check(original)
         let parameters: [String: Any] = [
-            "loginInfo": input.account, "loginType": 1, "code": "", "encryptKey": key,
-            "registerType": 1, "type": 1, "areaCode": "", "userPw": cipher,
+            "loginInfo": input.identity.value, "loginType": input.kind.rawValue, "code": input.kind == .account ? "" : input.code, "encryptKey": key,
+            "registerType": 1, "type": 1, "areaCode": input.identity.requestAreaCode, "userPw": cipher,
             "inviteCode": original.requiresInviteCode ? input.inviteCode.trimmingCharacters(in: .whitespacesAndNewlines) : ""
         ]
         progress(.submitting)

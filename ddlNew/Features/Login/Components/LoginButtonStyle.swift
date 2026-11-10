@@ -13,15 +13,15 @@ struct LoginButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundColor(.white)
+            .font(.body.weight(.semibold))
+            .foregroundColor(LoginPalette.onAction)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 52)
             .background {
                 LoginPalette.action.opacity(isEnabled ? 1 : 0.42)
             }
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: LoginPalette.teal.opacity(isEnabled ? 0.14 : 0), radius: 14, y: 10)
+
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

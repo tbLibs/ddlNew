@@ -48,48 +48,50 @@ final class AccountLoginService: AccountLoginServicing {
 
     func login(account: String, password: String,
                progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> AccountLoginResponse {
+        try await login(AccountLoginInput(identity: AccountIdentity(value: account), password: password), progress: progress)
+    }
+
+    func login(_ input: AccountLoginInput,
+               progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> AccountLoginResponse {
         try Task<Never, Never>.checkCancellation()
-        let account = account.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !account.isEmpty else { throw AccountLoginError.emptyAccount }
-        // 密码不能 trim；前后空格可能属于用户真实密码。
-        guard !password.isEmpty else { throw AccountLoginError.emptyPassword }
+        try input.validate()
+        let identity = input.identity
+        let account = identity.value
+        let password = input.password
         guard let originalContext = context() else { throw AccountLoginError.connectionNotReady }
-        // 对应旧项目账号登录组合，不把邮箱/手机号误作账号登录。
-        guard ["1", "5", "6", "7"].contains(originalContext.loginMethod) else {
-            throw AccountLoginError.unsupportedAccountLogin
-        }
+        guard identity.kind.allowed(by: originalContext.loginMethod) else { throw AccountLoginError.unsupportedAccountLogin }
         defer {
             // 本轮结束后恢复验证码渠道；连接变化时不修改新连接的渠道。
             if context() == originalContext { driver.restoreCaptchaChannel(originalContext.captchaChannel) }
         }
 
-        progress(.checkingAccount)
-        try check(originalContext)
-        debugPrint("[账号登录] 开始检查账号是否存在")
-        let accountExists: Bool
-        do {
-            accountExists = try await driver.checkAccountExists(account: account)
+        if !input.usesCode {
+            progress(.checkingAccount)
             try check(originalContext)
-        } catch {
-            try check(originalContext)
-            throw error
+            let accountExists: Bool
+            do {
+                accountExists = try await driver.checkIdentityExists(identity)
+                try check(originalContext)
+            } catch {
+                try check(originalContext)
+                throw error
+            }
+            guard accountExists else { throw AccountLoginError.businessFailure(code: identity.kind.missingCode, message: "") }
         }
-        // 旧项目在 userExit=false 时提示 2036，不继续领取密钥或提交登录。
-        guard accountExists else { throw AccountLoginError.businessFailure(code: 2036, message: "") }
 
         var answer = LoginVerificationAnswer()
         var captchaChannel = originalContext.captchaChannel
         var verificationAttempts = 0
         while true {
-            let encryptKey = try await freshKey(originalContext, progress: progress)
-            let userPw = try encrypt(encryptKey + password)
-            guard !userPw.isEmpty else { throw AccountLoginError.encryptionFailed }
+            let encryptKey = input.usesCode ? "" : try await freshKey(originalContext, progress: progress)
+            let userPw = input.usesCode ? "" : try encrypt(encryptKey + password)
+            guard input.usesCode || !userPw.isEmpty else { throw AccountLoginError.encryptionFailed }
             let parameters: [String: Any] = [
-                "loginInfo": account, "loginType": 1, "areaCode": "", "type": 2,
+                "loginInfo": account, "loginType": identity.kind.rawValue, "areaCode": identity.requestAreaCode, "type": 2,
                 "encryptKey": encryptKey, "userPw": userPw,
                 "loginFailVerifyCode": answer.imageCode, "ticket": answer.ticket,
                 "randstr": answer.randstr, "captchaVerifyParam": answer.captchaVerifyParam,
-                "code": ""
+                "code": input.usesCode ? input.code : ""
             ]
             progress(.submitting)
             try check(originalContext)
@@ -108,7 +110,7 @@ final class AccountLoginService: AccountLoginServicing {
                                                         verificationAttempts: &verificationAttempts,
                                                         progress: progress)
                 }
-                let kind: LoginVerificationKind
+                var kind: LoginVerificationKind
                 switch code {
                 case 40064, 50002:
                     switch captchaChannel {
@@ -125,7 +127,13 @@ final class AccountLoginService: AccountLoginServicing {
                                            message: code == 450010 || code == 50002 ? "验证码不正确，请重新验证" : "请完成验证码验证",
                                            originalContext: originalContext,
                                            verificationAttempts: &verificationAttempts,
-                                           progress: progress)
+                                           progress: progress, imageType: identity.kind == .phone ? 2 : 0)
+                if answer.requestsImageFallback {
+                    kind = .imageCaptcha
+                    answer = try await present(kind: kind, account: account, message: "请完成图片验证",
+                                               originalContext: originalContext, verificationAttempts: &verificationAttempts,
+                                               progress: progress, imageType: identity.kind == .phone ? 2 : 0)
+                }
                 // 与旧项目一致，图文回退请求使用渠道 2，连接轮次仍用于隔离旧请求。
                 if kind == .imageCaptcha { captchaChannel = 2 }
                 else if case .aliyunCaptcha = kind { captchaChannel = 4 }
@@ -151,7 +159,8 @@ final class AccountLoginService: AccountLoginServicing {
 
     private func present(kind: LoginVerificationKind, account: String, message: String,
                          originalContext: AccountLoginContext, verificationAttempts: inout Int,
-                         progress: @escaping @MainActor (AccountLoginPhase) -> Void) async throws -> LoginVerificationAnswer {
+                         progress: @escaping @MainActor (AccountLoginPhase) -> Void,
+                         imageType: Int = 0) async throws -> LoginVerificationAnswer {
         guard verificationAttempts < 3 else { throw AccountLoginError.verificationAttemptsExceeded }
         guard let challengePresenter else { throw AccountLoginError.verificationUnavailable }
         verificationAttempts += 1
@@ -160,7 +169,7 @@ final class AccountLoginService: AccountLoginServicing {
         var imageData: Data?
         if kind == .imageCaptcha {
             do {
-                imageData = try await driver.fetchImageCaptcha(account: account)
+                imageData = try await driver.fetchImageCaptcha(account: account, type: imageType)
                 try check(originalContext)
                 guard imageData?.isEmpty == false else { throw AccountLoginError.invalidResponse }
             } catch {
@@ -170,8 +179,23 @@ final class AccountLoginService: AccountLoginServicing {
         }
         try check(originalContext)
         do {
-            var answer = try await challengePresenter.present(LoginVerificationRequest(kind: kind, message: message, imageData: imageData))
+            var reloadImage: (@MainActor () async throws -> Data)?
+            if kind == .imageCaptcha {
+                reloadImage = { @MainActor () async throws -> Data in
+                    try self.check(originalContext)
+                    do {
+                        let data = try await self.driver.fetchImageCaptcha(account: account, type: imageType)
+                        try self.check(originalContext)
+                        guard !data.isEmpty else { throw AccountLoginError.invalidResponse }
+                        return data
+                    } catch { try self.check(originalContext); throw error }
+                }
+            }
+            var answer = try await challengePresenter.present(LoginVerificationRequest(kind: kind, message: message, imageData: imageData, reloadImage: reloadImage))
             try check(originalContext)
+            if answer.requestsImageFallback {
+                switch kind { case .tencentCaptcha, .aliyunCaptcha: return answer; default: throw AccountLoginError.invalidVerificationAnswer }
+            }
             switch kind {
             case .imageCaptcha:
                 answer.imageCode = answer.imageCode.trimmingCharacters(in: .whitespacesAndNewlines)

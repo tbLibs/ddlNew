@@ -102,6 +102,15 @@ typealias LoginSessionService = RegistrationSession
         try await cancellation()
         try await sessionAndNavigation()
         try await registrationSurvivesAuthFailure()
+        for kind in [AccountIdentity.Kind.phone] {
+            let f = RegistrationFixture()
+            f.context = AccountRegistrationContext(connectionID: UUID(), registerMethod: "7", requiresInviteCode: false, requiresPasswordSymbol: false)
+            let input = AccountRegistrationInput(account: "13800138000", password: "Ab1234", confirmation: "Ab1234", inviteCode: "", kind: kind, areaCode: "852", code: "123456")
+            _ = try await f.service.register(input, progress: { _ in })
+            try require(f.driver.calls == ["key", "register"], "Phone registration checks ownership by code, not account precheck")
+            try require(f.driver.parameters["loginType"] as? Int == kind.rawValue && f.driver.parameters["code"] as? String == "123456", "Multi-method registration payload")
+            try require(f.driver.parameters["areaCode"] as? String == (kind == .phone ? "+852" : ""), "Registration areaCode")
+        }
         print("PASS: 账号注册输入、真实协议、连接隔离、取消和 AUTH 跳转时序")
     }
 

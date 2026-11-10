@@ -1,0 +1,107 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "FC7742AC-0AF5-4D1F-A8D6-C53DA34F028C.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "captcha-refresh_0_C04853E4-4A88-4206-A953-958DB7F2EB0F.png",
+        "timestamp" : 1794278534.255
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testCaptchaRefreshClearsAnswer()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testCaptchaRefreshClearsAnswer"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "5D57C0EC-C9DC-4654-83A8-26293EAA9357.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "email-countdown_0_06C53DC9-6FF8-42DA-AB01-6F5B761E1AEA.png",
+        "timestamp" : 1794278544.991
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testEmailCodeDirectSend()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testEmailCodeDirectSend"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "59F8C894-FC66-41DE-BB9A-03C6F64C5AE8.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "method-switch_0_3BB07118-3B72-4E98-8545-53F044550024.png",
+        "timestamp" : 1794278557.052
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testIdentityAndPasswordSwitch()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testIdentityAndPasswordSwitch"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "A03B8E3D-CF11-4911-8B6B-DD3B53C9B646.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "bad-image-recovered_0_EFA886E5-650B-4E57-94E5-B4F3E0B26885.png",
+        "timestamp" : 1794278566.827
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testInvalidCaptchaImageCanRefresh()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testInvalidCaptchaImageCanRefresh"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "EE0DAB42-76B1-4FC3-BF41-D7528A40205B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "login-consent-success_0_A6A3A833-5DEA-43A0-AEFA-EDC04D24F6EB.png",
+        "timestamp" : 1794278580.569
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testLoginConsentCancelPreservesInputs()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testLoginConsentCancelPreservesInputs"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "86684D2D-D297-4727-A723-ADE54909BB1B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "phone-countdown_0_667ED4A3-1ED1-4AD2-B33A-8FCF879E4E47.png",
+        "timestamp" : 1794278595.87
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testPhoneCaptchaCancelAndSend()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testPhoneCaptchaCancelAndSend"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "13E2D2A9-DD0E-4FC1-B12A-A3A3776AD927.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "register-auth-failure_0_86887F96-82F0-4EE8-B55E-43AAA66C5957.png",
+        "timestamp" : 1794278615.396
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testRegisterAuthFailureCannotRegisterTwice()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testRegisterAuthFailureCannotRegisterTwice"
+  }
+]

@@ -11,6 +11,7 @@ struct LegalConsentRow: View {
                 Image(systemName: isAccepted ? "checkmark.square.fill" : "square")
                     .font(.system(size: 22))
                     .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("同意隐私政策和使用支持")
@@ -27,6 +28,7 @@ struct LegalConsentRow: View {
                     Button("使用支持") { openWebPage(usageSupportURLString) }
                         .accessibilityIdentifier("openSupport")
                 }
+                .buttonStyle(AuthenticationTextButtonStyle())
                 .frame(minHeight: 44)
             }
         }

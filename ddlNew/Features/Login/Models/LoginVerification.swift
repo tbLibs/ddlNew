@@ -15,12 +15,26 @@ nonisolated struct LoginVerificationRequest: Identifiable, Equatable {
     let kind: LoginVerificationKind
     let message: String
     let imageData: Data?
+    let title: String
+    let submitTitle: String
+    /// 只在当前验证窗口内刷新图片；加载器负责核验原连接身份。
+    let reloadImage: (@MainActor () async throws -> Data)?
 
-    init(id: UUID = UUID(), kind: LoginVerificationKind, message: String = "", imageData: Data? = nil) {
+    init(id: UUID = UUID(), kind: LoginVerificationKind, message: String = "", imageData: Data? = nil,
+         title: String = "登录验证", submitTitle: String = "继续登录",
+         reloadImage: (@MainActor () async throws -> Data)? = nil) {
         self.id = id
         self.kind = kind
         self.message = message
         self.imageData = imageData
+        self.title = title
+        self.submitTitle = submitTitle
+        self.reloadImage = reloadImage
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id && lhs.kind == rhs.kind && lhs.message == rhs.message && lhs.imageData == rhs.imageData
+            && lhs.title == rhs.title && lhs.submitTitle == rhs.submitTitle
     }
 }
 
@@ -33,6 +47,8 @@ nonisolated struct LoginVerificationAnswer: Equatable {
     var randstr: String = ""
     var captchaVerifyParam: String = ""
     var securityCode: String = ""
+    /// 第三方加载或执行失败时回退图文；主动关闭仍走取消，不能触发此标记。
+    var requestsImageFallback = false
 }
 
 @MainActor

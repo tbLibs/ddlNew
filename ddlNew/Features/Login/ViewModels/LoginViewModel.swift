@@ -55,7 +55,9 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    func login(account: String, password: String, rememberPassword: Bool = true) {
+    func login(account: String, password: String, rememberPassword: Bool = true,
+               kind: AccountIdentity.Kind = .account, areaCode: String = "86", code: String = "", usesCode: Bool = false) {
+        let input = AccountLoginInput(identity: AccountIdentity(kind: kind, value: account, areaCode: areaCode), password: password, code: code, usesCode: usesCode)
         guard !loginPhase.isBusy, loginPhase != .succeeded else { return }
         guard hasAcceptedLegalDocuments else {
             showsLegalConsentAlert = true
@@ -71,13 +73,13 @@ final class LoginViewModel: ObservableObject {
                 if self.loginRunID == runID { self.loginTask = nil }
             }
             do {
-                let response = try await self.loginService.login(account: account, password: password) { [weak self] phase in
+                let response = try await self.loginService.login(input) { [weak self] phase in
                     guard let self, self.loginRunID == runID, !Task.isCancelled else { return }
                     self.loginPhase = phase
                 }
                 try Task<Never, Never>.checkCancellation()
                 guard self.loginRunID == runID else { return }
-                try await self.sessionService.completeLogin(response, account: account) { [weak self] phase in
+                try await self.sessionService.completeLogin(response, account: input.identity.credentialKey) { [weak self] phase in
                     guard let self, self.loginRunID == runID, !Task.isCancelled else { return }
                     self.loginPhase = phase
                 }
@@ -85,8 +87,10 @@ final class LoginViewModel: ObservableObject {
                 guard self.loginRunID == runID else { return }
                 self.userInfo = response.userInfo
                 LoginSecurityNoticeStore.shared.clear()
-                self.updateRememberedLogin(account: account, password: password, enabled: rememberPassword)
-                if let club = OSSNavigationStore.shared.lastUsableLiceseId(), let userUID = response.userInfo?.userUID {
+                if !usesCode {
+                    self.updateRememberedLogin(account: account, password: password, enabled: rememberPassword, kind: kind, areaCode: input.identity.areaCode)
+                }
+                if !usesCode, let club = OSSNavigationStore.shared.lastUsableLiceseId(), let userUID = response.userInfo?.userUID {
                     LoginSecurityCoordinator.shared.prepareManualLoginPassword(password, userUID: userUID, lastLiceseId: club)
                 }
                 // 跳转会触发 LoginView.onDisappear；先结束任务，不能让页面退出取消已认证会话。
@@ -114,6 +118,8 @@ final class LoginViewModel: ObservableObject {
         do {
             let record = try RememberedLoginStore.shared.load(lastLiceseId: lastLiceseId)
             rememberedLoginMessage = nil
+            // 已移除的登录方式不能作为账号回填，避免沿用旧邮箱密码。
+            guard let record, AccountIdentity.Kind(rawValue: record.loginType) != nil else { return nil }
             return record
         } catch {
             rememberedLoginMessage = "无法读取已记住的密码，请手动输入"
@@ -131,7 +137,7 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    private func updateRememberedLogin(account: String, password: String, enabled: Bool) {
+    private func updateRememberedLogin(account: String, password: String, enabled: Bool, kind: AccountIdentity.Kind, areaCode: String) {
         guard enabled else {
             clearRememberedLogin()
             return
@@ -140,7 +146,7 @@ final class LoginViewModel: ObservableObject {
         do {
             let record = RememberedLoginCredentials(
                 account: account.trimmingCharacters(in: .whitespacesAndNewlines),
-                password: password, lastLiceseId: lastLiceseId
+                password: password, lastLiceseId: lastLiceseId, loginType: kind.rawValue, areaCode: areaCode
             )
             try RememberedLoginStore.shared.save(record)
             rememberedLoginMessage = nil

@@ -48,7 +48,7 @@ final class AccountRegistrationViewModel: ObservableObject {
                 try Task<Never, Never>.checkCancellation()
                 guard self.runID == id else { return }
                 self.accountWasRegistered = true
-                try await self.session.completeLogin(response, account: input.account) { [weak self] phase in
+                try await self.session.completeLogin(response, account: input.identity.credentialKey) { [weak self] phase in
                     guard let self, self.runID == id, !Task.isCancelled else { return }
                     self.phase = phase
                 }

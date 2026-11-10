@@ -21,7 +21,11 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
 
     /// 与旧项目一致，先检查账号；服务端字段名为 userExit。
     func checkAccountExists(account: String) async throws -> Bool {
-        let parameters: [String: Any] = ["loginInfo": account, "loginType": 1, "areaCode": ""]
+        try await checkIdentityExists(AccountIdentity(value: account))
+    }
+
+    func checkIdentityExists(_ identity: AccountIdentity) async throws -> Bool {
+        let parameters = identity.parameters
         let startedAt = Date()
         let waiter = SDKLoginRequestWaiter<Bool>()
         return try await waiter.run {
@@ -70,7 +74,11 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
     }
 
     func fetchImageCaptcha(account: String) async throws -> Data {
-        let parameters: [String: Any] = ["loginName": account, "type": 0]
+        try await fetchImageCaptcha(account: account, type: 0)
+    }
+
+    func fetchImageCaptcha(account: String, type: Int) async throws -> Data {
+        let parameters: [String: Any] = ["loginName": account, "type": type]
         let waiter = SDKLoginRequestWaiter<Data>()
         return try await waiter.run {
             self.sdk.authGetImgVerCode(with: NSMutableDictionary(dictionary: parameters), onSuccess: { data, _ in
@@ -136,9 +144,14 @@ final class SDKAccountLoginClient: AccountLoginSDKDriving {
     }
 
     func submit(parameters: [String: Any], captchaChannel: Int) async throws -> AccountLoginResponse {
+        guard let kind = AccountIdentity.Kind(rawValue: parameters["loginType"] as? Int ?? 1) else {
+            throw AccountLoginError.unsupportedAccountLogin
+        }
         // 只装载同一俱乐部、同一账号的设备凭据；不能把上个账号的凭据带进本次请求。
         let credentials = try UserCredentialStore.shared.load()
-        let matches = credentials?.loginInfo == parameters["loginInfo"] as? String
+        let identity = AccountIdentity(kind: kind,
+            value: parameters["loginInfo"] as? String ?? "", areaCode: parameters["areaCode"] as? String ?? "")
+        let matches = credentials?.loginInfo == identity.credentialKey
             && credentials?.lastLiceseId == sdk.currentLiceseId()
         let startedAt = Date()
         let waiter = SDKLoginRequestWaiter<AccountLoginResponse>()

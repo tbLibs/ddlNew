@@ -8,7 +8,7 @@ final class SDKAccountRegistrationClient: AccountRegistrationSDKDriving {
     private let loginClient = SDKAccountLoginClient()
 
     func checkAccountExists(account: String) async throws -> Bool {
-        try await loginClient.checkAccountExists(account: account)
+        try await SDKAccountCodeClient().isRegistered(AccountIdentity(value: account))
     }
 
     func fetchEncryptKey() async throws -> String {

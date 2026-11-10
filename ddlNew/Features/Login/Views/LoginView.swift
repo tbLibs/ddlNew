@@ -1,250 +1,155 @@
-//
-//  LoginView.swift
-//  ddlNew
-//
-//  Created by taobo on 2026/9/21.
-//
-
 import SwiftUI
 
-/// 独立的登录页面，支持更换俱乐部和打开网页，不依赖旧版页面或会员状态。
+/// 账号、手机号共用连接、验证及AUTH流程，页面只管理当前表单。
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
+    @StateObject private var codeSender = AccountCodeViewModel()
     @ObservedObject private var securityNotice = LoginSecurityNoticeStore.shared
-    /// 共享登录前连接状态；页面显示不代表 SDK 已完成握手。
     @ObservedObject private var connection = IMConnectionCoordinator.shared
-    /// AUTH 与访客连接分开，登录后继续显示 SDK 的重连和认证状态。
-    @ObservedObject private var authentication = IMUserAuthenticationService.shared
-    /// 验证弹窗按请求标识隔离；旧弹窗关闭不能取消下一次验证。
     @ObservedObject private var verification = LoginVerificationCoordinator.shared
-    /// 用户输入的会员卡号与密码；勾选记住密码时仅写入 Keychain。
-    @State private var card = ""
+    @State private var kind = AccountIdentity.Kind.account
+    @State private var accounts: [AccountIdentity.Kind: String] = [:]
+    @State private var areaCode = "86"
     @State private var password = ""
-    /// 首次打开默认开启；普通偏好只保存开关，不保存账号密码。
+    @State private var code = ""
+    @State private var usesCode = false
     @AppStorage(loginRememberPasswordAppStorageKey) private var rememberPassword = true
-    /// 一个页面生命周期内只回填一次，避免弹窗关闭后覆盖正在编辑的输入。
     @State private var didRestoreRememberedLogin = false
     @State private var showingRegistration = false
-    /// 输入焦点仅用于键盘展示和收起，不影响 App 路由。
-    @FocusState private var cardFocused: Bool
-    @FocusState private var passwordFocused: Bool
+    @FocusState private var focus: AuthenticationFocus?
 
+    private var identity: AccountIdentity { AccountIdentity(kind: kind, value: accounts[kind] ?? "", areaCode: areaCode) }
+    private var scope: String { OSSNavigationStore.shared.lastUsableLiceseId() ?? "" }
+    private var busy: Bool { viewModel.loginPhase.isBusy || codeSender.isSending }
+    private var accountBinding: Binding<String> {
+        Binding(get: { accounts[kind] ?? "" }, set: { accounts[kind] = $0; codeSender.cancel(); code = "" })
+    }
+    private var verificationBinding: Binding<LoginVerificationRequest?> {
+        Binding(get: { showingRegistration ? nil : verification.request }, set: { if !showingRegistration { verification.request = $0 } })
+    }
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                brandHeader
-                loginForm
-                LegalConsentRow(isAccepted: $viewModel.hasAcceptedLegalDocuments, onOpenDocument: dismissKeyboard)
-                    .disabled(viewModel.loginPhase.isBusy)
-                auxiliaryActions
+            VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("登录叮咚聊").font(.largeTitle.bold()).foregroundStyle(LoginPalette.ink)
+                }.padding(.top, 28)
+                VStack(alignment: .leading, spacing: 20) {
+                    AuthenticationMethodPicker(selection: Binding(get: { kind }, set: changeKind))
+                        .disabled(busy)
+                    AccountIdentityField(kind: kind, value: accountBinding, areaCode: $areaCode, focus: $focus)
+                        .disabled(busy)
+                    if usesCode {
+                        AccountCodeField(code: $code, identity: identity, purpose: .login, scope: scope, sender: codeSender, focus: $focus)
+                            .disabled(viewModel.loginPhase.isBusy)
+                    } else {
+                        AuthenticationField(title: "密码", placeholder: "请输入密码", text: $password, field: .password, focus: $focus, secure: true, contentType: .password)
+                            .disabled(busy)
+                    }
+                    if kind != .account {
+                        Button(usesCode ? "使用密码登录" : "使用验证码登录") {
+                            focus = nil; codeSender.cancel(); code = ""; password = ""; usesCode.toggle()
+                            viewModel.cancelLogin()
+                        }
+                        .buttonStyle(AuthenticationTextButtonStyle())
+                        .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                        .disabled(busy).accessibilityIdentifier("toggleCodeLogin")
+                    }
+                    if !usesCode {
+                        Toggle("记住密码", isOn: $rememberPassword)
+                            .font(.subheadline).frame(minHeight: 44).disabled(busy)
+                            .accessibilityIdentifier("rememberPassword")
+                    }
+                    LegalConsentRow(isAccepted: $viewModel.hasAcceptedLegalDocuments) { focus = nil }
+                        .disabled(busy)
+                    Button(viewModel.loginPhase.buttonTitle, action: login)
+                        .buttonStyle(LoginButtonStyle())
+                        .disabled(identity.value.isEmpty || (usesCode ? code.isEmpty : password.isEmpty) || busy || viewModel.loginPhase == .succeeded)
+                        .accessibilityIdentifier("login")
+                    connectionStatus
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack { registrationButton; Spacer(minLength: 24); changeClubButton }
+                    VStack(alignment: .leading, spacing: 8) { registrationButton; changeClubButton }
+                }.font(.subheadline.weight(.medium))
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 28)
-            .frame(maxWidth: 460)
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24).padding(.bottom, 28)
+            .frame(maxWidth: 460).frame(maxWidth: .infinity)
         }
-        .background(LoginBackground())
+        .background(LoginBackground()).tint(LoginPalette.darkTeal)
+        .scrollDismissesKeyboard(.interactively).onSubmit { focus = nil }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if focus != nil {
+                HStack { Spacer(); Button("完成") { focus = nil }.buttonStyle(AuthenticationTextButtonStyle()) }
+                    .padding(.horizontal, 24).background(LoginPalette.card)
+            }
+        }
         .messagingLoadingToast(viewModel.loginPhase.isBusy && verification.request == nil, title: viewModel.loginPhase.buttonTitle)
         .messagingFeedbackToast(loginFeedback, isEnabled: verification.request == nil && !showingRegistration, presentInitial: true)
-        .scrollDismissesKeyboard(.interactively)
-        .onSubmit(dismissKeyboard)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if cardFocused || passwordFocused {
-                keyboardDismissBar
-            }
+        .sheet(item: verificationBinding) { request in
+            LoginVerificationSheet(request: request, submit: { verification.submit($0, for: request.id) }, cancel: { verification.cancel(requestID: request.id) })
+                .onDisappear { verification.cancel(requestID: request.id) }
         }
-        .sheet(item: $verification.request) { request in
-            LoginVerificationSheet(
-                request: request,
-                submit: { verification.submit($0, for: request.id) },
-                cancel: { verification.cancel(requestID: request.id) }
-            )
-            .onDisappear { verification.cancel(requestID: request.id) }
-        }
-        .sheet(isPresented: $showingRegistration) { AccountRegistrationView() }
+        .sheet(isPresented: $showingRegistration) { AccountRegistrationView(initialKind: kind) }
         .alert("提示", isPresented: $viewModel.showsLegalConsentAlert) {
             Button("取消", role: .cancel) {}
-            Button("同意并继续") {
-                viewModel.hasAcceptedLegalDocuments = true
-                login()
-            }
-        } message: {
-            Text("请阅读并同意《隐私政策》和《使用支持》")
+            Button("同意并继续") { viewModel.hasAcceptedLegalDocuments = true; login() }
+        } message: { Text("请阅读并同意《隐私政策》和《使用支持》") }
+        .onChange(of: verification.request?.id) { _ in focus = nil }
+        .onChange(of: areaCode) { _ in codeSender.cancel(); code = "" }
+        .onChange(of: connection.loginConnectionID) { _ in codeSender.cancel() }
+        .onChange(of: rememberPassword) { if !$0 { viewModel.clearRememberedLogin() } }
+        .onAppear { restoreRememberedLogin(); connection.ensureCachedReconnect() }
+        .onDisappear { codeSender.cancel(); viewModel.cancelLogin(); password = ""; code = "" }
+        .onChange(of: viewModel.loginPhase) { if $0 == .succeeded { password = ""; code = "" } }
+    }
+    @ViewBuilder private var connectionStatus: some View {
+        if viewModel.loginPhase != .succeeded {
+            Text(connection.phase.message).font(.footnote).foregroundStyle(LoginPalette.secondary)
+                .accessibilityIdentifier("loginConnectionStatus")
         }
-        .onChange(of: verification.request?.id) { _ in dismissKeyboard() }
-        .onAppear {
-            restoreRememberedLogin()
-            connection.ensureCachedReconnect()
-        }
-        .onChange(of: rememberPassword) { enabled in
-            if !enabled { viewModel.clearRememberedLogin() }
-        }
-        .onDisappear {
-            viewModel.cancelLogin()
-            password = ""
-        }
-        .onChange(of: viewModel.loginPhase) { phase in
-            if phase == .succeeded { password = "" }
+        if case .failed = connection.phase {
+            Button("重试连接") { codeSender.cancel(); viewModel.cancelLogin(); connection.startCachedReconnect() }
+                .frame(minHeight: 44).disabled(busy).accessibilityIdentifier("retryLoginConnection")
         }
     }
-
-    /// 保留旧版品牌展示，后续接入系统配置时再替换名称和图标。
-    private var brandHeader: some View {
-        VStack(spacing: 16) {
-            Text("远山")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(LoginPalette.darkTeal)
-                .frame(width: 74, height: 74)
-                .background(LoginPalette.wash)
-                .clipShape(RoundedRectangle(cornerRadius: 25))
-
-            Text("远山户外俱乐部")
-                .font(.system(size: 25, weight: .bold))
-
-        }
-        .padding(.top, 48)
+    private var registrationButton: some View {
+        Button("注册新账号") { focus = nil; codeSender.cancel(); viewModel.cancelLogin(); password = ""; code = ""; showingRegistration = true }
+            .buttonStyle(AuthenticationTextButtonStyle())
+            .frame(minHeight: 44).disabled(busy || verification.request != nil).accessibilityIdentifier("openAccountRegistration")
     }
-
-    private var loginForm: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            LoginField(
-                title: "账号",
-                placeholder: "请输入会员卡号",
-                icon: "person",
-                text: $card,
-                focus: $cardFocused
-            )
-            .disabled(viewModel.loginPhase.isBusy)
-
-
-            LoginField(
-                title: "密码",
-                placeholder: "请输入密码",
-                icon: "lock",
-                text: $password,
-                secure: true,
-                focus: $passwordFocused
-            )
-            .disabled(viewModel.loginPhase.isBusy)
-            .padding(.top, 12)
-
-            Toggle("记住密码", isOn: $rememberPassword)
-                .font(.system(size: 14))
-                .tint(LoginPalette.darkTeal)
-                .frame(minHeight: 44)
-                .disabled(viewModel.loginPhase.isBusy)
-                .accessibilityIdentifier("rememberPassword")
-
-
-
-            // 不因缓存重连禁用按钮；请求期间防止重复提交，发送前由服务检查真实连接。
-            Button(viewModel.loginPhase.buttonTitle, action: login)
-                .buttonStyle(LoginButtonStyle())
-                .disabled(card.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
-                          || viewModel.loginPhase.isBusy || viewModel.loginPhase == .succeeded)
-                .padding(.top, 10)
-                .accessibilityIdentifier("login")
-
-
-            if viewModel.loginPhase != .succeeded {
-                Text(connection.phase.message)
-                    .font(.footnote)
-                    .foregroundColor(LoginPalette.secondary)
-                    .accessibilityIdentifier("loginConnectionStatus")
-            }
-            if case .failed = connection.phase {
-                Button("重试连接") {
-                    viewModel.cancelLogin()
-                    connection.startCachedReconnect()
-                }
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("retryLoginConnection")
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(LoginPalette.card)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(LoginPalette.border, lineWidth: 1)
-        }
+    private var changeClubButton: some View {
+        Button("更换俱乐部") {
+            focus = nil; codeSender.cancel(); accounts = [:]; password = ""; code = ""; viewModel.changeClub()
+        }.buttonStyle(AuthenticationTextButtonStyle()).frame(minHeight: 44).disabled(busy).accessibilityIdentifier("changeClub")
     }
-
     private var loginFeedback: String? {
+        if let feedback = codeSender.feedback { return feedback }
         if case .failed(let message) = viewModel.loginPhase { return message }
         return viewModel.rememberedLoginMessage ?? securityNotice.message
     }
-
-    private var auxiliaryActions: some View {
-        HStack(spacing: 32) {
-            if AccountRegistrationService.currentContext()?.allowsAccountRegistration == true {
-                Button("注册账号") {
-                    dismissKeyboard()
-                    viewModel.cancelLogin()
-                    password = ""
-                    showingRegistration = true
-                }
-                .disabled(viewModel.loginPhase.isBusy || verification.request != nil)
-                .accessibilityIdentifier("openAccountRegistration")
-            }
-            Button("更换俱乐部", action: changeClub)
-                .accessibilityIdentifier("changeClub")
-        }
-        .font(.system(size: 14))
-        .foregroundColor(LoginPalette.darkTeal)
-        .padding(.top, 5)
+    private func changeKind(_ value: AccountIdentity.Kind) {
+        guard value != kind else { return }
+        focus = nil; codeSender.cancel(); viewModel.cancelLogin()
+        password = ""; code = ""; usesCode = false; kind = value
     }
-
-    private var keyboardDismissBar: some View {
-        HStack {
-            Spacer()
-            Button("完成", action: dismissKeyboard)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(LoginPalette.darkTeal)
-                .frame(minWidth: 60, minHeight: 44)
-                .accessibilityIdentifier("keyboardDone")
-        }
-        .padding(.horizontal, 16)
-        .background(LoginPalette.card)
-    }
-
-    private func dismissKeyboard() {
-        cardFocused = false
-        passwordFocused = false
-    }
-
     private func login() {
-        dismissKeyboard()
-        guard viewModel.hasAcceptedLegalDocuments else {
-            viewModel.showsLegalConsentAlert = true
-            return
-        }
+        focus = nil
+        codeSender.cancel()
         securityNotice.clear()
-        viewModel.login(account: card, password: password, rememberPassword: rememberPassword)
+        viewModel.login(account: identity.value, password: password, rememberPassword: rememberPassword,
+            kind: kind, areaCode: areaCode, code: code, usesCode: usesCode)
     }
-
     private func restoreRememberedLogin() {
         guard !didRestoreRememberedLogin else { return }
         didRestoreRememberedLogin = true
-        guard rememberPassword else {
-            // 上次删除失败时，下次进入仍会重试；关闭状态绝不回填密码。
-            viewModel.clearRememberedLogin()
-            return
-        }
-        guard card.isEmpty, password.isEmpty, let record = viewModel.rememberedLogin() else { return }
-        card = record.account
+        guard rememberPassword else { viewModel.clearRememberedLogin(); return }
+        guard accounts.isEmpty, password.isEmpty, let record = viewModel.rememberedLogin(),
+              let restoredKind = AccountIdentity.Kind(rawValue: record.loginType) else { return }
+        kind = restoredKind
+        accounts[kind] = record.account
+        areaCode = record.areaCode.isEmpty ? "86" : record.areaCode
         password = record.password
     }
-
-    private func changeClub() {
-        dismissKeyboard()
-        card = ""
-        password = ""
-        viewModel.changeClub()
-    }
 }
 
-#Preview {
-    LoginView()
-}
+#Preview { LoginView() }

@@ -8,9 +8,12 @@ struct LoginVerificationSheet: View {
     let cancel: () -> Void
 
     @State private var input = ""
-    @State private var attemptID = UUID()
     @State private var loadState = LoginCaptchaLoadState.loading
     @State private var submitted = false
+    @State private var refreshedImage: Data?
+    @State private var refreshingImage = false
+    @State private var refreshRevision = 0
+    @State private var imageRefreshError: String?
 
     var body: some View {
         NavigationStack {
@@ -32,6 +35,21 @@ struct LoginVerificationSheet: View {
             .background(LoginPalette.background)
             .messagingLoadingToast(isProviderCaptcha && loadState == .loading, title: "正在加载验证")
             .messagingFeedbackToast(verificationFeedback, presentInitial: true)
+            .task(id: refreshRevision) {
+                guard refreshRevision > 0, let reload = request.reloadImage else { return }
+                let revision = refreshRevision
+                do {
+                    let data = try await reload()
+                    guard !Task.isCancelled, revision == refreshRevision else { return }
+                    guard UIImage(data: data) != nil else { throw AccountLoginError.invalidResponse }
+                    refreshedImage = data
+                    refreshingImage = false
+                } catch {
+                    guard !Task.isCancelled, revision == refreshRevision else { return }
+                    imageRefreshError = "图片刷新失败，请重试或取消"
+                    refreshingImage = false
+                }
+            }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -49,38 +67,55 @@ struct LoginVerificationSheet: View {
         switch request.kind { case .tencentCaptcha, .aliyunCaptcha: return true; default: return false }
     }
     private var verificationFeedback: String? {
-        if request.kind == .imageCaptcha, request.imageData.flatMap({ UIImage(data: $0) }) == nil { return "验证码图片加载失败，请取消后重新登录。" }
+        if let imageRefreshError { return imageRefreshError }
+        if request.kind == .imageCaptcha, captchaImage == nil { return "验证码图片加载失败，请换一张或取消后重试。" }
         if isProviderCaptcha, case .failed(let message) = loadState { return message }
         return nil
     }
 
     private var title: String {
-        request.kind == .securityCode ? "安全码验证" : "登录验证"
+        request.kind == .securityCode ? "安全码验证" : request.title
     }
 
+    private var captchaImage: UIImage? { (refreshedImage ?? request.imageData).flatMap { UIImage(data: $0) } }
+
     @ViewBuilder private var imageCaptcha: some View {
-        if let data = request.imageData, let image = UIImage(data: data) {
+        if let image = captchaImage {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: 260, maxHeight: 100)
                 .accessibilityLabel("图片验证码")
-            TextField("请输入图片中的验证码", text: $input)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("loginImageCode")
-                .onSubmit(submitInput)
-            continueButton
         } else {
             Color.clear.frame(height: 100)
         }
+        if request.reloadImage != nil {
+            Button(refreshingImage ? "正在刷新…" : "换一张") {
+                input = ""
+                imageRefreshError = nil
+                refreshingImage = true
+                refreshRevision += 1
+            }
+            .buttonStyle(AuthenticationTextButtonStyle())
+            .disabled(refreshingImage || submitted)
+            .accessibilityIdentifier("refreshLoginImageCode")
+        }
+        TextField("图片验证码", text: $input,
+                  prompt: Text("请输入图片中的验证码").foregroundColor(LoginPalette.secondary))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textFieldStyle(.roundedBorder)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("loginImageCode")
+            .onSubmit(submitInput)
+            .disabled(refreshingImage || imageRefreshError != nil || captchaImage == nil)
+        continueButton
     }
 
     private var securityCode: some View {
         VStack(spacing: 16) {
-            SecureField("请输入安全码", text: $input)
+            SecureField("安全码", text: $input,
+                        prompt: Text("请输入安全码").foregroundColor(LoginPalette.secondary))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
@@ -92,19 +127,25 @@ struct LoginVerificationSheet: View {
     }
 
     private var continueButton: some View {
-        Button("继续登录", action: submitInput)
+        Button(request.submitTitle, action: submitInput)
             .buttonStyle(LoginButtonStyle())
-            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submitted)
+            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submitted || refreshingImage || imageRefreshError != nil || (request.kind == .imageCaptcha && captchaImage == nil))
             .accessibilityIdentifier("submitLoginVerification")
     }
 
     private var providerCaptcha: some View {
-        // 网页验证统一展示加载、失败和重试状态；每次重试重建 WebView，隔离旧网页回调。
+        // 网页验证失败交回服务层改走图文；主动关闭仍取消本轮。
         VStack(spacing: 16) {
             ZStack {
                 LoginCaptchaWebView(
                     kind: request.kind,
-                    stateChanged: { loadState = $0 },
+                    stateChanged: {
+                        loadState = $0
+                        if $0.isFailed, !submitted {
+                            submitted = true
+                            submit(LoginVerificationAnswer(requestsImageFallback: true))
+                        }
+                    },
                     completed: { answer in
                         guard !submitted else { return }
                         submitted = true
@@ -112,26 +153,19 @@ struct LoginVerificationSheet: View {
                     },
                     cancelled: cancel
                 )
-                .id(attemptID)
                 .opacity(loadState.isFailed ? 0 : 1)
 
 
             }
             .frame(minHeight: 340, maxHeight: .infinity)
-            if loadState.isFailed {
-                Button("重试验证") {
-                    loadState = .loading
-                    attemptID = UUID()
-                }
-                .buttonStyle(LoginButtonStyle())
-                .accessibilityIdentifier("retryLoginVerification")
-            }
+
         }
     }
 
     private func submitInput() {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty, !submitted else { return }
+        guard !value.isEmpty, !submitted, !refreshingImage, imageRefreshError == nil else { return }
+        guard request.kind != .imageCaptcha || captchaImage != nil else { return }
         var answer = LoginVerificationAnswer()
         switch request.kind {
         case .imageCaptcha: answer.imageCode = value

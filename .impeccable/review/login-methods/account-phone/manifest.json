@@ -1,0 +1,26 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "58B01065-9461-4652-807A-48F5C40A1D1E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "two-methods-phone-register_0_B82ECDC0-9D7A-4466-9858-FFB52B0DC687.png",
+        "timestamp" : 1794278938.409
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "7F9D9E0F-C943-4032-8227-1353B6AE052A",
+        "deviceName" : "ddlNew Home Layout 375",
+        "exportedFileName" : "A6FA29A3-0D72-4BEE-8F56-6987BEE1516D.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "two-methods-account_0_91E8097A-72A5-4D08-99B6-C5D069B963E2.png",
+        "timestamp" : 1794278934.043
+      }
+    ],
+    "testIdentifier" : "AuthUITests/testOnlyAccountAndPhoneOnBothForms()",
+    "testIdentifierURL" : "test://com.apple.xcode/AuthAudit/AuthUITests/AuthUITests/testOnlyAccountAndPhoneOnBothForms"
+  }
+]

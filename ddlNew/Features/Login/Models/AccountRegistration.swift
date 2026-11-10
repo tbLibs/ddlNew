@@ -1,6 +1,6 @@
 import Foundation
 
-/// 对应旧项目账号注册；手机号和邮箱注册由独立流程处理。
+/// 账号、手机号共用密码规则，手机号另外要求6位验证码。
 nonisolated struct AccountRegistrationContext: Equatable {
     let connectionID: UUID
     let registerMethod: String
@@ -19,10 +19,20 @@ nonisolated struct AccountRegistrationInput {
     let confirmation: String
     let inviteCode: String
 
+    var kind: AccountIdentity.Kind = .account
+    var areaCode = "86"
+    var code = ""
+    var identity: AccountIdentity { AccountIdentity(kind: kind, value: account, areaCode: areaCode) }
+
     func validate(in context: AccountRegistrationContext) throws {
-        guard context.allowsAccountRegistration else { throw AccountRegistrationError.disabled }
+        guard kind == .account ? context.allowsAccountRegistration : kind.allowed(by: context.registerMethod) else { throw AccountRegistrationError.disabled }
+        try identity.validate()
+        if kind == .account {
         guard account.range(of: "^[A-Za-z]{2}[A-Za-z0-9]{4,14}$", options: .regularExpression) != nil else {
             throw AccountRegistrationError.invalidAccount
+        }
+        } else {
+            guard code.utf16.count == 6 else { throw AccountInputError.invalidCode }
         }
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*-+=/\\?;:,.~`_\"'")
         let letters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")

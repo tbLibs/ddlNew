@@ -103,6 +103,9 @@ final class LoginVerificationCoordinator: ObservableObject, AccountLoginChalleng
 
 private extension LoginVerificationAnswer {
     func isValid(for kind: LoginVerificationKind) -> Bool {
+        if requestsImageFallback {
+            switch kind { case .tencentCaptcha, .aliyunCaptcha: return true; default: return false }
+        }
         switch kind {
         case .imageCaptcha: return !imageCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .tencentCaptcha: return !ticket.isEmpty && !randstr.isEmpty

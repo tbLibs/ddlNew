@@ -40,6 +40,12 @@ typealias SDKAccountLoginClient = FakeLoginSDK
         if let error = checkError { throw error }
         return exists
     }
+    var checkedIdentity: AccountIdentity?
+    var imageTypes: [Int] = []
+    func checkIdentityExists(_ identity: AccountIdentity) async throws -> Bool {
+        checkedIdentity = identity
+        return try await checkAccountExists(account: identity.value)
+    }
     func fetchEncryptKey() async throws -> String {
         calls.append("key")
         keyCount += 1
@@ -61,6 +67,10 @@ typealias SDKAccountLoginClient = FakeLoginSDK
         afterImage()
         return Data([1, 2, 3])
     }
+    func fetchImageCaptcha(account: String, type: Int) async throws -> Data {
+        imageTypes.append(type)
+        return try await fetchImageCaptcha(account: account)
+    }
     func submitSecurityCode(parameters: [String: Any]) async throws -> AccountLoginResponse {
         calls.append("safe")
         safeSubmissions.append(parameters)
@@ -75,9 +85,11 @@ typealias SDKAccountLoginClient = FakeLoginSDK
     var answers: [LoginVerificationAnswer] = []
     var error: Error?
     var afterPresent: () -> Void = {}
+    var inspectRequest: ((LoginVerificationRequest) async throws -> Void)?
     func present(_ request: LoginVerificationRequest) async throws -> LoginVerificationAnswer {
         requests.append(request)
         afterPresent()
+        try await inspectRequest?(request)
         if let error { throw error }
         return answers.isEmpty ? LoginVerificationAnswer() : answers.removeFirst()
     }
@@ -113,6 +125,42 @@ enum CheckFailure: Error { case assertion(String) }
     @MainActor static func main() async {
         var failures = 0
         let checks: [(String, @MainActor () async throws -> Void)] = [
+            ("only account and phone identities are supported", {
+                try require(AccountIdentity.Kind.displayOrder == [.account, .phone], "Email must not appear in either form")
+                try require(AccountIdentity.Kind(rawValue: 2) == nil, "Removed email identity must not decode")
+                try require(LocalAccountPolicy.loginMethod == "5" && LocalAccountPolicy.registerMethod == "5", "Local policy must select account and phone")
+            }),
+            ("provider failure falls back to a fresh image and channel 2", {
+                let f = LoginFixture()
+                f.driver.submitFailures = [.businessFailure(code: 51002, message: "")]
+                f.presenter.answers = [LoginVerificationAnswer(requestsImageFallback: true), LoginVerificationAnswer(imageCode: "1234")]
+                try await f.login()
+                try require(f.presenter.requests.map(\.kind) == [.aliyunCaptcha(interactive: true), .imageCaptcha], "Provider failure must request image")
+                try require(f.driver.submittedChannels == [2, 2], "Fallback must submit channel 2")
+            }),
+            ("image refresh preserves purpose and rejects changed connection", {
+                let f = LoginFixture()
+                f.driver.submitFailures = [.businessFailure(code: 40064, message: "")]
+                f.presenter.answers = [LoginVerificationAnswer(imageCode: "1234")]
+                f.presenter.inspectRequest = { request in
+                    guard let reload = request.reloadImage else { throw CheckFailure.assertion("Refresh loader missing") }
+                    _ = try await reload()
+                    try require(f.driver.imageTypes == [0, 0], "Refresh changed purpose")
+                    f.connection = AccountLoginContext(connectionID: UUID(), loginMethod: "1", captchaChannel: 2)
+                    do { _ = try await reload(); throw CheckFailure.assertion("Stale refresh succeeded") }
+                    catch AccountLoginError.connectionChanged {}
+                }
+                do { try await f.login(); throw CheckFailure.assertion("Old login succeeded") }
+                catch AccountLoginError.connectionChanged {}
+            }),
+            ("phone password captcha uses xgd purpose 2", {
+                let f = LoginFixture()
+                f.connection = AccountLoginContext(connectionID: UUID(), loginMethod: "7", captchaChannel: 2)
+                f.driver.submitFailures = [.businessFailure(code: 40064, message: "")]
+                f.presenter.answers = [LoginVerificationAnswer(imageCode: "1234")]
+                _ = try await f.service.login(AccountLoginInput(identity: AccountIdentity(kind: .phone, value: "13800000000"), password: "Ab1234"), progress: { _ in })
+                try require(f.driver.imageTypes == [2], "Phone password captcha purpose must be 2")
+            }),
             ("production login works without system configuration", {
                 IMConnectionCoordinator.shared.configuration = nil
                 defer { IMConnectionCoordinator.shared.configuration = TestConfiguration() }
@@ -316,11 +364,11 @@ enum CheckFailure: Error { case assertion(String) }
             }),
             ("existing account uses normal login and preserves password spaces", {
                 let fixture = LoginFixture()
-                try await fixture.login(account: "  fixture-account  ", password: " fixture-password ")
+                try await fixture.login(account: "  fixture-account  ", password: " Ab1234 ")
                 try require(fixture.driver.calls == ["check", "key", "submit"], "Precheck must precede key/login")
                 try require(fixture.driver.checkedAccount == "fixture-account", "Precheck account not normalized")
                 try require(fixture.driver.submittedParameters["loginInfo"] as? String == "fixture-account", "Account changed after precheck")
-                try require(fixture.encryptedValues == ["fixture-key fixture-password "], "Password was trimmed")
+                try require(fixture.encryptedValues == ["fixture-key Ab1234 "], "Password was trimmed")
             }),
             ("connection change during precheck stops login", {
                 let fixture = LoginFixture()
@@ -349,11 +397,26 @@ enum CheckFailure: Error { case assertion(String) }
                 try require(fixture.driver.calls == ["check"], "Transport failure continued to login")
             })
         ]
+        for kind in [AccountIdentity.Kind.phone] {
+            do {
+                let f = LoginFixture(); f.connection = AccountLoginContext(connectionID: UUID(), loginMethod: "7", captchaChannel: 2)
+                let identity = AccountIdentity(kind: kind, value: "13800138000", areaCode: "86")
+                _ = try await f.service.login(AccountLoginInput(identity: identity, password: "Ab1234"), progress: { _ in })
+                try require(f.driver.checkedIdentity == identity, "Password precheck loses identity")
+                try require(f.driver.submittedParameters["loginType"] as? Int == kind.rawValue, "Wrong loginType")
+                try require(f.driver.submittedParameters["areaCode"] as? String == (kind == .phone ? "+86" : ""), "Wrong area code")
+                let code = LoginFixture(); code.connection = f.connection
+                _ = try await code.service.login(AccountLoginInput(identity: identity, code: "123456", usesCode: true), progress: { _ in })
+                try require(code.driver.calls == ["submit"] && code.encryptedValues.isEmpty, "OTP login must not fetch key or precheck")
+                try require(code.driver.submittedParameters["userPw"] as? String == "" && code.driver.submittedParameters["code"] as? String == "123456", "OTP request malformed")
+                print("PASS: \(kind) password and OTP login")
+            } catch { failures += 1; print("FAIL: multi-method: \(error)") }
+        }
         for (name, check) in checks {
             do { try await check(); print("PASS: \(name)") }
             catch { failures += 1; print("FAIL: \(name): \(error)") }
         }
-        print("\(checks.count - failures)/\(checks.count) checks passed")
+        print("\(checks.count + 1 - failures)/\(checks.count + 1) checks passed")
         if failures > 0 { exit(1) }
     }
 }

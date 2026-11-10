@@ -1,5 +1,35 @@
 # ddlNew 项目交接文档
 
+## 2026-11-10 移除邮箱登录与注册
+
+用户明确不再需要邮箱登录／注册。当前仅保留账号、手机号，登录和注册入口共享两项选择器；删除邮箱身份枚举、邮箱键盘／占位、校验错误和发码提示。接口枚举仍为账号1、手机3，本地 loginMethod/registerMethod 改为5（xgd的账号＋手机组合）。手机号密码／短信验证码登录、短信注册、区号、协议确认及AUTH链路保留。
+
+历史记住密码中的邮箱类型2不再回填，也不会降级成账号类型；旧账号和手机号密码记录继续可用。SDK登录边界拒绝不支持的身份类型。未修改用户资料里的邮箱字段或已有认证会话恢复。
+
+新增回归先复现邮箱入口仍存在及旧邮箱凭据回填，再删除实现。六组离线入口全部exit0，Login32/32、发码、LoginConsent、AccountLifecycle、Verification、SessionRestore；日志 `/tmp/ddlNew-remove-email-*-run-*.sh.log`。generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-remove-email-build.log`）。原生XCTest7项通过，exit0／TEST SUCCEEDED，报告summary Passed，0失败／0跳过。结果 `/tmp/ddlNew-remove-email-ui/DerivedData/Logs/Test/Test-AuthAudit-2026.11.10_10-47-49-+0800.xcresult`，截图 `.impeccable/review/login-methods/account-phone/`；两个页面均仅账号、手机号。既有注册页键盘frame警告仍出现，未扩大本次改动处理。不使用Mobile MCP，未操作真实账号或实体设备，未提交推送。
+
+## 2026-11-10 登录注册对照自测与验证码修复
+
+按用户要求自测 UI、传参与 xgd 逻辑；用户要求停用 Mobile MCP 后，后续交互验证改用原生 XCTest／xcodebuild。独立源码复核发现并修复手机密码登录图片用途（2，账号／邮箱保持0）、第三方验证失败自动回退图文、图片“换一张”入口。刷新清旧答案，刷新中／失败／坏图时禁止提交；初始坏图可刷新恢复，异步结果继续受连接轮次与取消保护。此处纠正下节历史“密码登录保持0”。
+
+六组离线入口通过：Login32/32、发码19项、LoginConsent、AccountLifecycle、Verification、SessionRestore。主 App generic iOS Debug 无签名构建通过（`/tmp/ddlNew-auth-audit-final-build.log`）。独立原生宿主编译生产页面和真实登录／注册 ViewModel，仅隔离外部服务、会话、Keychain、路由、Toast；iPhone SE3／iOS26.5的7项XCTest全部通过，exit0／TEST SUCCEEDED、xcresult summary Passed。结果 `/tmp/ddlNew-auth-audit-ui/DerivedData/Logs/Test/Test-AuthAudit-2026.11.10_10-41-59-+0800.xcresult`，可复现代码 `Tests/LoginUI/`，7张截图 `.impeccable/review/login-methods/audit/`。早期显式resultBundlePath收尾失败，最终默认结果目录已正常完成。
+
+尚非完全对齐：封禁详情查询／解封相关UI未迁移，验证码挑战／发码保留客户端3轮限制；登录页本地配置与项目UI样式是用户明确要求的差异。完整XCTest另记录一条注册页唤起键盘时的Invalid frame dimension警告，未定位来源，截图未见布局破坏。真实短信／邮件、第三方服务、线上注册／登录、AUTH、设备Keychain及VoiceOver未验收；未操作实体设备，未提交推送。完整报告 `Docs/LOGIN_REGISTRATION_PARITY_AUDIT_2026-11-10.md`。
+
+## 2026-11-10 三方式登录注册与原生表单
+
+按用户要求对齐 xgd 的账号、手机号、邮箱登录注册，UI 使用 Impeccable 与 ui-ux-pro-max；本地 `LocalAccountPolicy.loginMethod/registerMethod` 固定为7，不恢复 getSystemConfig 或已经移除的 userSettings 登录字段。xgd 保持只读。登录页仍负责访客连接，已有账号冷启动仍走消息页恢复；认证成功后继续复用原 UserInfo、账号配置与业务激活链路。
+
+`AccountIdentity` 明确接口枚举账号1、邮箱2、手机3。三类密码登录先检查 userExit，再获取新 encryptKey 并加密密码；手机／邮箱 OTP 登录直接提交6位 code，encryptKey/userPw为空。账号注册先检查存在性；手机／邮箱在获取验证码时检查已注册，最终注册携带验证码与加密密码。手机发码按本地图文渠道先验证，邮箱直接发码；复用既有第三方验证回退、连接轮次检查与取消机制，成功后才倒计时60秒。图片用途为注册1／验证码登录2，密码登录保持0。
+
+区号合同以 xgd 从页面到 SDK／TCP 的实际源码为准：登录、注册及存在性预检仅手机发送带 `+` 的区号，另外两类为空；短信／邮箱发码均发送当前带 `+` 区号，默认 `+86`。目录包含 `+1-441` 等带连字符值并原样发出。本地身份键和记住密码记录的区号不带 `+`；手机／邮箱凭据按方式与区号隔离，旧账号记忆格式继续兼容。OTP 不写入记住密码或手动密码安全检查。
+
+登录注册使用项目 HomeTheme 的森林绿浅深色，三方式入口直接可见，手机／邮箱提供密码与验证码切换、可搜索的214项区号目录、显示密码、动态字号与滚动表单。换方式清除密码／验证码，取消或连接更替拒收迟到发码结果；注册页自己呈现验证码弹窗，避免父登录页同时呈现。协议仍默认未勾选，打开链接不代表同意，取消确认不丢表单；注册成功但 AUTH 失败仍只允许返回登录，不能重复注册。
+
+验证：Login（29组）、新增发码（17组）、LoginConsent（含OTP不记密码和手机记忆区号）、AccountLifecycle、Verification、SessionRestore 六个脚本入口通过；带连字符区号及 `+` 参数先复现失败再修复。最终 generic iOS Debug 无签名 workspace 构建 exit0、BUILD SUCCEEDED，日志 `/tmp/ddlNew-login-methods-final-build.log`，PATH排除 sentry-cli；`git diff --check` 通过。独立代码复核及区号专项复核已完成。独立UI复核发现安全验证提示过浅，修正图片验证码／安全码提示色后浅深色复拍，复核将该项评为resolved、ship；此结论仅覆盖修复评分。
+
+匿名 iPhone SE3 iOS26.5 模拟器宿主编译生产 SwiftUI 页面／组件，SDK、会话和主要 ViewModel 使用替身；检查小屏、浅深色、辅助字号、滚动底部，并实际点通手机输入／键盘完成、安全验证提交与60秒倒计时、区号搜索切换、注册嵌套安全验证与取消。截图与限制见 `.impeccable/review/login-methods/README.md`。这些不是真实短信／邮件、账号注册、AUTH、Keychain设备存取或VoiceOver验收；未操作实体设备、真实账号，未提交或推送。实施合同：`Docs/superpowers/plans/2026-11-10-login-methods.md`。
+
 ## 2026-11-10 userSettings 账号配置生效与群成员活跃积分同步
 
 用户要求按 xgd 接入剩余字段，并明确需要群成员活跃积分同步、不需要版本检查和日志上传。本节覆盖下方历史“功能接线待确认”的状态。配置唯一远端来源为 `/biz/user/userInfo.userSettings`，不恢复 getSystemConfig；登录前继续本地默认，已删除35项字段不恢复，SDK租户／签名和登录密码规则仍取本地参数。

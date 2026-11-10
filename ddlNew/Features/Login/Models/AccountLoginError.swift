@@ -27,7 +27,7 @@ nonisolated enum AccountLoginError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .emptyAccount: return "请输入会员卡号"
+        case .emptyAccount: return "请输入账号"
         case .emptyPassword: return "请输入密码"
         case .connectionNotReady: return "连接尚未就绪，请稍后重试"
         case .connectionChanged: return "连接已发生变化，请重新登录"

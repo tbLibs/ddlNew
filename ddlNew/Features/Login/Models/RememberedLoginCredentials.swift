@@ -14,7 +14,12 @@ nonisolated struct RememberedLoginCredentials: Mappable, Sendable {
     /// 避免更换俱乐部后回填另一俱乐部的账号密码。
     private(set) var lastLiceseId = ""
 
-    init(account: String, password: String, lastLiceseId: String) {
+    private(set) var loginType = 1
+    private(set) var areaCode = ""
+
+    init(account: String, password: String, lastLiceseId: String, loginType: Int = 1, areaCode: String = "") {
+        self.loginType = loginType
+        self.areaCode = areaCode
         self.account = account
         self.password = password
         self.lastLiceseId = lastLiceseId
@@ -23,6 +28,8 @@ nonisolated struct RememberedLoginCredentials: Mappable, Sendable {
     init?(map: Map) {}
 
     mutating func mapping(map: Map) {
+        loginType <- map["loginType"]
+        areaCode <- map["areaCode"]
         account <- map["account"]
         password <- map["password"]
         lastLiceseId <- map["lastLiceseId"]
