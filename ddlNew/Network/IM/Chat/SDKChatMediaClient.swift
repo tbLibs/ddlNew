@@ -10,6 +10,8 @@ import UniformTypeIdentifiers
 
 /// Minio现有签名与分片合同；第三方云路由由独立provider扩展。
 @MainActor final class SDKChatMediaClient: ChatMediaClient {
+    private let mediaSnapshot: AccountSettingsSnapshot.Media?
+    init(mediaSnapshot: AccountSettingsSnapshot.Media? = nil) { self.mediaSnapshot = mediaSnapshot }
     private var session: URLSession?
     private var generation = UUID()
     private var cloudClient: (any ChatMediaClient)?
@@ -17,11 +19,14 @@ import UniformTypeIdentifiers
 
     /// 视频封面独立上传后填入封面URI，原视频URI保持真实资源身份。
     func upload(_ attachment: ChatAttachment, context: ChatContext, progress: @escaping @MainActor (Double) -> Void) async throws -> ChatUploadedAttachment {
-        let primary = try await uploadSingle(attachment, context: context, progress: progress)
+        guard let media = mediaSnapshot ?? AccountSettingsStore.shared.current.media else {
+            throw ChatClientError.unavailable("文件存储配置不可用，请稍后重试")
+        }
+        let primary = try await uploadSingle(attachment, context: context, media: media, progress: progress)
         let run = generation
         if let preview = attachment.previewFile {
             let bytes = Int64(try preview.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0)
-            let child = SDKChatMediaClient(); previewTransfer = child
+            let child = SDKChatMediaClient(mediaSnapshot: media); previewTransfer = child
             defer { previewTransfer = nil }
             let uploaded = try await child.upload(ChatAttachment(file: preview, type: 1, name: preview.lastPathComponent, bytes: bytes), context: context, progress: { _ in })
             try validate(run, context: context)
@@ -31,12 +36,12 @@ import UniformTypeIdentifiers
     }
 
     /// 上传全程绑定认证身份，字节上传完成不代表聊天ACK。
-    private func uploadSingle(_ attachment: ChatAttachment, context: ChatContext, progress: @escaping @MainActor (Double) -> Void) async throws -> ChatUploadedAttachment {
+    private func uploadSingle(_ attachment: ChatAttachment, context: ChatContext, media: AccountSettingsSnapshot.Media, progress: @escaping @MainActor (Double) -> Void) async throws -> ChatUploadedAttachment {
         cancel(); let run = generation
         guard ChatRuntime.shared.isCurrent(context), let plan = OSSConnectionBootstrap.shared.current,
               plan.lastLiceseId == context.tenantID else { throw ChatClientError.sessionExpired }
-        if LocalMediaSettings.ossConfigType != "0" {
-            let cloud = SDKCloudChatMediaClient(); cloudClient = cloud
+        if media.provider != "0" {
+            let cloud = SDKCloudChatMediaClient(mediaSnapshot: media); cloudClient = cloud
             defer { cloudClient = nil }
             let result = try await cloud.upload(attachment, context: context, progress: progress)
             try validate(run, context: context)

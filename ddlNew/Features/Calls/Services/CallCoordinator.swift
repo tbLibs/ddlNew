@@ -156,7 +156,7 @@ import Combine
             if pendingCreation?.stamp == stamp { pendingCreation = nil; pendingSignals.removeAll() }
         }
         let response = try await client.perform(.create, descriptor: room, context: context, ids: members.map(\.id))
-        guard current(stamp, context), session == nil, canOfferCall(context: context), configuration.current?.provider == provider, !endedRooms.contains(roomKey(response)) else {
+        guard current(stamp, context), session == nil, canOfferCall(context: context), configuration.current == configurationSnapshot, !endedRooms.contains(roomKey(response)) else {
             if current(stamp, context), endedRooms.contains(roomKey(response)) {
                 for case .ended(let ended) in pendingSignals where roomKey(ended) == roomKey(response) { errorMessage = endMessage(ended) }
             }

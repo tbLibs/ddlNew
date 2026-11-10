@@ -34,5 +34,10 @@ struct CallConfiguration: Equatable, Sendable {
     func configure(tenantID: String) {
         current = makeConfiguration(tenantID)
     }
+    /// 同一已激活租户的账号配置刷新，不接受其它租户迟到结果。
+    func apply(_ value: CallConfiguration) {
+        guard current?.tenantID == value.tenantID, current != value else { return }
+        current = value
+    }
     func clear() { current = nil }
 }

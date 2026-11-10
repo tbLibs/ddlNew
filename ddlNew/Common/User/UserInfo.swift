@@ -59,7 +59,7 @@ nonisolated struct UserInfo: Mappable, Sendable {
         var updates = fields
         // 资料或配置可能只下发部分字段；省略和 null 不清空旧配置，显式空字符串可以清空。
         if let settings = fields["userSettings"] as? [String: Any] {
-            updates["userSettings"] = (userSettings?.toJSON() ?? [:]).merging(settings.filter { !($0.value is NSNull) }) { _, value in value }
+            updates["userSettings"] = userSettings?.merging(settings) ?? settings.filter { !($0.value is NSNull) }
         } else {
             updates.removeValue(forKey: "userSettings")
         }

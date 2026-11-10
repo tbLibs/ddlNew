@@ -7,7 +7,7 @@
 import Foundation
 @main struct GroupSendPermissionChecks {
     /// 用户实际字段形状与旧缓存冲突均执行生产判断，不请求服务器或改真实禁言。
-    static func main() {
+    @MainActor static func main() {
         let detail: [String: Any] = ["userInGroup": true, "isGroupChat": false]
         let missingPersonal: [String: Any] = ["isGroupChat": false]
         let group = LingIMGroupModel()
@@ -28,6 +28,8 @@ import Foundation
         precondition(!productionGroupPermission(group: group, detail: detail, mute: ["isGroupForbid": NSNull(), "isGroupChat": false]).canSend)
         precondition(productionGroupPermission(group: group, detail: nil, mute: nil).isChecking, "独立权限请求等待中不冒充已确认的禁言")
         precondition(!productionGroupPermission(group: group, detail: detail, mute: missingPersonal).isChecking, "真实权限确认后结束等待状态")
-        print("Group send permission checks: 14 passed")
+        AccountSettingsStore.shared.current.groupMessageIntervalMilliseconds = 2500
+        precondition(productionGroupPermission(group: group, detail: detail, mute: missingPersonal).sendInterval == 2.5, "账号配置更新必须反映到实际群发送权限")
+        print("Group send permission checks: 15 passed")
     }
 }

@@ -59,6 +59,7 @@ import ObjectiveC
             try client.validate(context)
             group?.members = members.values.sorted { $0.role == $1.role ? $0.name.localizedCompare($1.name) == .orderedAscending : $0.role > $1.role }
             group?.membersSyncReady = true
+            SDKGroupActivitySyncCoordinator.shared.refreshIfNeeded(context: context)
             ChatRuntime.shared.updatedGroupMembers(group?.members ?? [], context: context)
             let mute = try await client.request(context: context) { success, failure in self.sdk.groupGetUserNotalkState(with: NSMutableDictionary(dictionary: ["groupId": context.route.id, "userUid": context.userUID]), onSuccess: success, onFailure: failure) }
             group?.isPersonallyMuted = integer(mute["isGroupForbid"]) == 1

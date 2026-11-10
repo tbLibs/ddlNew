@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import NoaChatCore
 import MMKV
 import UniformTypeIdentifiers
@@ -27,6 +28,7 @@ import ObjectiveC
     private var muteExpiryRevision = UUID()
     private var muteExpiryTask: Task<Void, Never>?
     private var muteExpiryState = ChatGroupMuteExpiryState()
+    private var settingsObservation: AnyCancellable?
     private var eventHandler: (@MainActor (ChatEvent) -> Void)?
 
     /// 当前登录所有者由runtime注入，避免相同UID重新登录误接旧请求。
@@ -108,6 +110,15 @@ import ObjectiveC
     func observe(context: ChatContext, onEvent: @escaping @MainActor (ChatEvent) -> Void) {
         stop(); self.context = context; eventHandler = onEvent
         let run = generation
+        settingsObservation = AccountSettingsStore.shared.$current.dropFirst().sink { [weak self] _ in
+            // Published在willSet发出事件；下一次主线程调度才能读取新快照。
+            Task { @MainActor [weak self] in
+                guard let self, self.generation == run, self.validSession(context) else { return }
+                self.eventHandler?(.permissionsChanged)
+                if context.route.kind == .group { SDKGroupActivitySyncCoordinator.shared.refreshIfNeeded(context: context) }
+            }
+        }
+        if context.route.kind == .group { SDKGroupActivitySyncCoordinator.shared.refreshIfNeeded(context: context) }
         let delegate = SDKChatDelegate(userUID: context.userUID, conversationID: context.route.id, sourceGroupID: context.route.sourceGroupID, isGroup: context.route.kind == .group) { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == run, self.validSession(context) else { return }
@@ -131,6 +142,7 @@ import ObjectiveC
 
     /// 同步撤销等待、代理和群详情，迟到回调只被丢弃。
     func stop() {
+        settingsObservation?.cancel(); settingsObservation = nil
         generation = UUID(); groupRefreshRevision = UUID(); muteExpiryRevision = UUID()
         groupPermissionTask?.cancel(); groupPermissionTask = nil; groupPermissionRequest = nil
         muteExpiryTask?.cancel(); muteExpiryTask = nil; muteExpiryState = ChatGroupMuteExpiryState()
@@ -265,6 +277,7 @@ import ObjectiveC
                 guard !Task.isCancelled, self.generation == run, self.context == context,
                       self.groupPermissionRequest == requestID else { return }
                 self.eventHandler?(.permissionsChanged)
+                SDKGroupActivitySyncCoordinator.shared.refreshIfNeeded(context: context)
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError), self.generation == run,
                       self.context == context, self.groupPermissionRequest == requestID else { return }
@@ -338,13 +351,13 @@ import ObjectiveC
     func permissions(context: ChatContext) throws -> ChatPermission {
         try validate(context)
         let authority = UserRoleAuthorityStore.shared.current
-        let recallMinutes = LocalMessagingSettings.messageRecallMinutes
+        let recallMinutes = AccountSettingsStore.shared.current.messageRecallMinutes
         let editMinutes = authority?.positiveMinutes("edited_message_sent") ?? 0
         var value = ChatPermission(canUpload: authority?.allows("upImageVideoFile") == true, canUploadFile: authority?.allows("upFile") == true,
             // 旧端任一删除权限都会开放“从我的设备删除”；remoteDeleteMessage 另外控制双方删除。
             canDelete: authority?.allows("deleteMessage") == true || authority?.allows("remoteDeleteMessage") == true,
             canDeleteBoth: authority?.allows("remoteDeleteMessage") == true,
-            canRecallOthers: LocalMessagingSettings.managersCanRecallOthers,
+            canRecallOthers: AccountSettingsStore.shared.current.managersCanRecallOthers,
             canRecall: recallMinutes > 0, canEdit: editMinutes > 0,
             canPin: authority?.allows(context.route.kind == .group ? "group_msg_pinning" : "user_dialog_msg_pinning") == true,
             isGroup: context.route.kind == .group,
@@ -371,7 +384,7 @@ import ObjectiveC
             guard let group = (sdk.toolCheckMyGroup(with: context.route.id) as LingIMGroupModel?) else { value.canSend = false; value.isActive = false; value.reason = "群资料尚不可用"; return value }
             value.role = [0, 1, 2].contains(group.userGroupRole) ? group.userGroupRole : 0; value.isPrivateChat = group.isPrivateChat
             value.isActive = group.groupStatus == 1 && group.leaveGroupStatus == 0
-            value.sendInterval = Double(LocalMessagingSettings.groupMessageIntervalMilliseconds) / 1000
+            value.sendInterval = Double(AccountSettingsStore.shared.current.groupMessageIntervalMilliseconds) / 1000
             let verified = groupDetail != nil && groupMute != nil
             value.isChecking = value.isActive && !verified
             let inGroup = ChatGroupPermissionPayload.boolean(groupDetail?["userInGroup"]) ?? false
@@ -583,6 +596,7 @@ import ObjectiveC
                 try await self.refreshGroup(context: context)
                 guard self.generation == run, self.validSession(context) else { return }
                 self.eventHandler?(.permissionsChanged)
+                SDKGroupActivitySyncCoordinator.shared.refreshIfNeeded(context: context)
             } catch { /* 到期接口失败仍保留已确认禁言，不以时钟计算结果当作解禁。 */ }
         }
     }

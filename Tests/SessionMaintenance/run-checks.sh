@@ -29,9 +29,24 @@ xcrun swiftc -swift-version 6 -parse-as-library -I "$task_output" -L "$task_outp
  "$task_root/ddlNew/Common/User/UserRoleAuthority.swift" \
  "$task_root/ddlNew/Common/User/UserInfo.swift" \
  "$task_root/ddlNew/Common/User/UserSettings.swift" \
+ "$task_root/ddlNew/Common/User/UserProfileCache.swift" \
  "$task_root/ddlNew/Features/Login/Models/AccountLoginResponse.swift" \
  "$task_root/Tests/SessionMaintenance/RoleProfileChecks.swift" -o "$task_output/role-checks"
 DYLD_LIBRARY_PATH="$task_output" "$task_output/role-checks"
 
 xcrun clang -fobjc-arc -framework Foundation "$task_root/Tests/SessionMaintenance/SDKRequestFenceChecks.m" -o "$task_output/sdk-fence-checks"
 "$task_output/sdk-fence-checks"
+
+xcrun swiftc -swift-version 6 -parse-as-library -I "$task_output" -L "$task_output" -lObjectMapper \
+ "$task_root/ddlNew/Common/User/UserInfo.swift" \
+ "$task_root/ddlNew/Common/User/UserSettings.swift" \
+ "$task_root/ddlNew/Common/User/UserProfileCache.swift" \
+ "$task_root/ddlNew/Configuration/LocalMessagingSettings.swift" \
+ "$task_root/ddlNew/Configuration/AccountSettingsSnapshot.swift" \
+ "$task_root/ddlNew/Configuration/AccountSettingsStore.swift" \
+ "$task_root/Tests/SessionMaintenance/SettingsChecks.swift" -o "$task_output/settings-checks"
+DYLD_LIBRARY_PATH="$task_output" "$task_output/settings-checks"
+
+xcrun swiftc -swift-version 6 -parse-as-library "$task_root/ddlNew/Configuration/GroupActivitySyncPolicy.swift" "$task_root/Tests/SessionMaintenance/GroupActivityChecks.swift" -o "$task_output/activity-checks"
+"$task_output/activity-checks"
+bash "$task_root/Tests/SessionMaintenance/run-activity-integration-checks.sh"

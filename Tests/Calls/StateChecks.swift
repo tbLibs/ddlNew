@@ -246,6 +246,19 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
   let acceptActions = Array(client.actions.dropFirst(beforeIncomingAccept).map { $0.0 })
   check(acceptActions == [.token, .accept] && media.connects == 1, "Zego incoming fetches own token before accept")
   await coordinator.hangUp()
+  // 服务商不变但AppID改变，也不能接收旧配置创建的房间。
+  client.suspendCreate = true
+  let changingConfig = Task { await coordinator.start(context: context, kind: .audio) }
+  while client.createWaiter == nil { await Task.yield() }
+  let previousConfig = config.current!
+  config.apply(CallConfiguration(tenantID: "other", enabled: false, provider: .zego, zegoAppID: 88))
+  check(config.current == previousConfig, "foreign tenant settings cannot replace call configuration")
+  config.apply(CallConfiguration(tenantID: "t", enabled: true, provider: .zego, zegoAppID: 99))
+  var obsolete = zegoRoom; obsolete.id = "obsolete-app-id"; obsolete.callerID = "a"; obsolete.recipientID = "b"
+  client.createWaiter?.resume(returning: obsolete); client.createWaiter = nil
+  await changingConfig.value
+  check(coordinator.session == nil && client.actions.contains(where: { $0.0 == .end && $0.1.id == "obsolete-app-id" }), "AppID change cancels pending room without opening media")
+  client.suspendCreate = false
   fixture = CallConfiguration(tenantID: "t", enabled: false, provider: .zego, zegoAppID: 1); config.configure(tenantID: "t")
   check(!coordinator.canOfferCall(context: context), "disabled injected call configuration blocks entry")
   print("Calls: \(checked) coordinator lifecycle checks passed")

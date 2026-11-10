@@ -12,6 +12,7 @@ struct AccountLoginResponse { let userInfo: UserInfo? }
 struct UserSessionSnapshot { let user: UserInfo; let credentials: UserSessionCredentials }
 @MainActor final class SessionMaintenanceCoordinator {
     static let shared = SessionMaintenanceCoordinator()
+    func prepareSettings(userUID: String, lastLiceseId: String, sessionID: UUID) {}
     var startCount = 0
     var stopCount = 0
     func start(userUID: String, lastLiceseId: String) { startCount += 1 }

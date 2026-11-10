@@ -26,7 +26,7 @@ final class UserSessionStore: ObservableObject {
     @discardableResult
     func save(_ response: AccountLoginResponse, account: String, lastLiceseId: String) throws -> UserSessionCredentials {
         guard response.isValid, let user = response.userInfo,
-              let json = Mapper<UserInfo>().toJSONString(user) else { throw UserSessionError.invalidData }
+              let json = UserProfileCache.encode(user) else { throw UserSessionError.invalidData }
         let previous = try credentials.load()
         // 未下发 deviceSecret 时只允许保留同一用户、同一俱乐部、同一账号的旧凭据。
         let matches = previous?.userUID == user.userUID && previous?.lastLiceseId == lastLiceseId
@@ -44,7 +44,7 @@ final class UserSessionStore: ObservableObject {
     /// 成对读取，避免 Keychain 遗留凭据与另一份用户资料组成错误会话。
     func cachedSession() throws -> UserSessionSnapshot? {
         guard !userInfoJSON.isEmpty else { return nil }
-        guard let user = Mapper<UserInfo>().map(JSONString: userInfoJSON),
+        guard let user = UserProfileCache.decode(userInfoJSON),
               !user.userUID.isEmpty, let record = try credentials.load(), record.isValid,
               record.userUID == user.userUID else {
             throw UserSessionError.invalidData
@@ -74,7 +74,7 @@ final class UserSessionStore: ObservableObject {
         let record = try credentials.load()
         if userInfoJSON.isEmpty, record == nil { return nil }
         guard let record, record.isValid, record.lastLiceseId == lastLiceseId,
-              let user = Mapper<UserInfo>().map(JSONString: userInfoJSON),
+              let user = UserProfileCache.decode(userInfoJSON),
               !user.userUID.isEmpty, record.userUID == user.userUID else {
             throw UserSessionError.invalidData
         }
@@ -108,7 +108,7 @@ final class UserSessionStore: ObservableObject {
             throw UserSessionError.invalidData
         }
         guard let updated = user.applyingProfile(fields, expectedUID: userUID),
-              let json = Mapper<UserInfo>().toJSONString(updated) else { throw UserSessionError.invalidData }
+              let json = UserProfileCache.encode(updated) else { throw UserSessionError.invalidData }
         userInfoJSON = json
         profileRevision = UUID()
         currentUser = updated

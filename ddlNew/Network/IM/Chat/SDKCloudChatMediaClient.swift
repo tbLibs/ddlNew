@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 
 /// 阿里云、AWS、腾讯和华为使用旧端STS与对象目录，上传和聊天ACK独立确认。
 @MainActor final class SDKCloudChatMediaClient: ChatMediaClient {
+    private let mediaSnapshot: AccountSettingsSnapshot.Media
+    init(mediaSnapshot: AccountSettingsSnapshot.Media) { self.mediaSnapshot = mediaSnapshot }
     private var session: URLSession?
     private var generation = UUID()
 
@@ -14,7 +16,7 @@ import UniformTypeIdentifiers
         cancel(); let run = generation
         try validate(run, context: context)
         guard let plan = OSSConnectionBootstrap.shared.current, plan.lastLiceseId == context.tenantID,
-              let provider = CloudStorageProvider(rawValue: LocalMediaSettings.ossConfigType) else { throw ChatClientError.invalidResponse }
+              let provider = CloudStorageProvider(rawValue: mediaSnapshot.provider) else { throw ChatClientError.invalidResponse }
         try checkPermission(attachment)
         let credentials = try await temporaryCredentials(provider: provider, context: context, run: run)
         try validate(run, context: context)
@@ -29,12 +31,12 @@ import UniformTypeIdentifiers
             .components(separatedBy: .controlCharacters).joined()
         // 头像沿用旧端独立目录，不能写入聊天附件目录或套用聊天发送配额。
         let key = attachment.type == ChatAttachment.complaintEvidenceType ? "universal/\(filename)" : attachment.type == 101 ? "avatar_group/\(filename)" : attachment.type == ChatAttachment.miniAppIconType ? "miniApp/\(filename)" : attachment.type == ChatAttachment.userAvatarType ? "avatar/\(filename)" : "chat/\(day.string(from: Date()))/\(directory)/\(filename)"
-        let bucket = provider == .huawei ? LocalMediaSettings.ossOBSBucketName : LocalMediaSettings.ossConfigBucketName
-        let endpoint = provider == .huawei ? LocalMediaSettings.ossOBSEndPoint : LocalMediaSettings.ossConfigEndPoint
-        let uploadURL = try objectURL(endpoint: provider == .huawei && !LocalMediaSettings.ossOBSUploadDomain.isEmpty ? LocalMediaSettings.ossOBSUploadDomain : endpoint,
-            bucket: bucket, key: key, customDomain: provider == .huawei && !LocalMediaSettings.ossOBSUploadDomain.isEmpty)
-        let downloadURL = try objectURL(endpoint: provider == .huawei && !LocalMediaSettings.ossOBSDownloadDomain.isEmpty ? LocalMediaSettings.ossOBSDownloadDomain : endpoint,
-            bucket: bucket, key: key, customDomain: provider == .huawei && !LocalMediaSettings.ossOBSDownloadDomain.isEmpty)
+        let bucket = mediaSnapshot.bucket
+        let endpoint = mediaSnapshot.endpoint
+        let uploadURL = try objectURL(endpoint: provider == .huawei && !mediaSnapshot.uploadDomain.isEmpty ? mediaSnapshot.uploadDomain : endpoint,
+            bucket: bucket, key: key, customDomain: provider == .huawei && !mediaSnapshot.uploadDomain.isEmpty)
+        let downloadURL = try objectURL(endpoint: provider == .huawei && !mediaSnapshot.downloadDomain.isEmpty ? mediaSnapshot.downloadDomain : endpoint,
+            bucket: bucket, key: key, customDomain: provider == .huawei && !mediaSnapshot.downloadDomain.isEmpty)
         let hashTask = Task.detached { try CloudRequestSigner.fileHash(prepared) }
         let hash = try await withTaskCancellationHandler { try await hashTask.value } onCancel: { hashTask.cancel() }
         try validate(run, context: context); try checkPermission(attachment)
@@ -43,7 +45,7 @@ import UniformTypeIdentifiers
         let size = (try prepared.resourceValues(forKeys: [.fileSizeKey])).fileSize ?? 0
         request.setValue(String(size), forHTTPHeaderField: "Content-Length")
         request = try CloudRequestSigner.sign(request, provider: provider, credentials: credentials, bucket: bucket,
-            objectKey: key, region: LocalMediaSettings.ossConfigRegionID, payloadHash: hash)
+            objectKey: key, region: mediaSnapshot.region, payloadHash: hash)
         let delegate = CloudUploadSessionDelegate { [weak self] value in
             guard let self, self.generation == run, ChatRuntime.shared.isCurrent(context) else { return }
             progress(value)

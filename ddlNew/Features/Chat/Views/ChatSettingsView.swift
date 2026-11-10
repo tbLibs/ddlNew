@@ -11,6 +11,7 @@ import UIAdapter
 struct ChatSettingsView: View {
     let route: ChatRoute
     @StateObject private var store = ChatRuntime.shared.makeSettingsStore()
+    @ObservedObject private var accountSettings = AccountSettingsStore.shared
     @ObservedObject private var groups = LoginSessionService.shared.groups
     @Environment(\.dismiss) private var dismiss
     @State private var showHistorySearch = false
@@ -185,7 +186,7 @@ struct ChatSettingsView: View {
     /// 人数角色开关独立于群成员资料访问权限。
     private func canShowCount(_ group: ChatGroupDetail) -> Bool {
         let authority = UserRoleAuthorityStore.shared.current
-        return authority?.allows("showGroupPersonNum") == true || [1, 2].contains(group.role) || !LocalMessagingSettings.onlyAdminsViewGroupPersonCount
+        return authority?.allows("showGroupPersonNum") == true || [1, 2].contains(group.role) || !accountSettings.current.onlyAdminsViewGroupPersonCount
     }
 }
 

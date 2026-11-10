@@ -20,6 +20,23 @@ final class SessionMaintenanceCoordinator {
     }
     private init() {}
 
+    /// AUTH之后、业务激活之前安装同账号缓存；离线展示身份不能调用此入口。
+    func prepareSettings(userUID: String, lastLiceseId: String, sessionID: UUID) {
+        guard IMUserAuthenticationService.shared.isAuthenticated,
+              UserSessionStore.shared.currentUser?.userUID == userUID,
+              LoginSessionService.shared.maintenanceSessionID == sessionID else { return }
+        AccountSettingsStore.shared.activate(userUID: userUID, tenantID: lastLiceseId,
+            sessionID: sessionID, settings: UserSessionStore.shared.currentUser?.userSettings)
+        applyCallSettings(tenantID: lastLiceseId)
+    }
+
+    private func applyCallSettings(tenantID: String) {
+        let value = AccountSettingsStore.shared.current
+        CallConfigurationStore.shared.apply(CallConfiguration(tenantID: tenantID,
+            enabled: value.callsEnabled, provider: value.callProvider.flatMap(CallProvider.init(rawValue:)),
+            zegoAppID: value.zegoAppID))
+    }
+
     func start(userUID: String, lastLiceseId: String) {
         self.userUID = userUID
         license = lastLiceseId
@@ -35,6 +52,8 @@ final class SessionMaintenanceCoordinator {
         userUID = nil
         license = nil
         UserRoleAuthorityStore.shared.reset()
+        AccountSettingsStore.shared.reset()
+        SDKGroupActivitySyncCoordinator.shared.reset()
     }
     func setForegroundActive(_ active: Bool) { engine.setForegroundActive(active) }
     func setAuthenticated(_ value: Bool) { engine.setAuthenticated(value) }
@@ -71,6 +90,11 @@ final class SessionMaintenanceCoordinator {
             // 主动编辑已提交时，忽略这次更早发起的资料读取；角色维护仍继续。
             if UserSessionStore.shared.profileRevision == profileRevision {
                 try UserSessionStore.shared.updateProfile(fields, userUID: uid, lastLiceseId: license)
+                if let sessionID {
+                    AccountSettingsStore.shared.update(settings: UserSessionStore.shared.currentUser?.userSettings,
+                        userUID: uid, tenantID: license, sessionID: sessionID)
+                    applyCallSettings(tenantID: license)
+                }
             }
         } catch { if valid() { debugPrint("[会话维护] 用户资料刷新失败，保留原资料") } }
         guard valid() else { return }

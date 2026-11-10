@@ -3,7 +3,7 @@ set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 TASK_TMP=$(mktemp -d /tmp/ddlNew-group-send-permission.XXXXXX)
 trap 'rm -rf "$TASK_TMP"' EXIT
-# 运行SDK实际群发送判断；仅SDK群表使用匿名形状，消息间隔读取真实本地策略。
+# 运行SDK实际群发送判断；SDK群表和配置发布器使用匿名边界替身。
 python3 - "$TASK_ROOT" "$TASK_TMP" <<'PY'
 from pathlib import Path
 import sys
@@ -16,6 +16,11 @@ while depth:
     depth += (source[cursor]=='{')-(source[cursor]=='}'); cursor+=1
 body = source[start:cursor]
 code = '''import Foundation
+@MainActor final class AccountSettingsStore {
+    static let shared = AccountSettingsStore()
+    struct Snapshot { var groupMessageIntervalMilliseconds = LocalMessagingSettings.groupMessageIntervalMilliseconds }
+    var current = Snapshot()
+}
 struct LingIMGroupModel {
     var groupStatus = 1
     var leaveGroupStatus = 0
@@ -27,7 +32,7 @@ struct GroupSDKShape {
     let group: LingIMGroupModel?
     func toolCheckMyGroup(with: String) -> LingIMGroupModel? { group }
 }
-func productionGroupPermission(group: LingIMGroupModel?, detail: [String: Any]?, mute: [String: Any]?) -> ChatPermission {
+@MainActor func productionGroupPermission(group: LingIMGroupModel?, detail: [String: Any]?, mute: [String: Any]?) -> ChatPermission {
     let context = ChatContext(userUID: "anonymous", tenantID: "test", sessionID: UUID(), route: ChatRoute(id: "g", kind: .group, title: "", avatarURL: ""))
     let sdk = GroupSDKShape(group: group)
     let groupDetail = detail, groupMute = mute

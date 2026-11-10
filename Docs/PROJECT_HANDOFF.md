@@ -1,5 +1,43 @@
 # ddlNew 项目交接文档
 
+## 2026-11-10 userSettings 账号配置生效与群成员活跃积分同步
+
+用户要求按 xgd 接入剩余字段，并明确需要群成员活跃积分同步、不需要版本检查和日志上传。本节覆盖下方历史“功能接线待确认”的状态。配置唯一远端来源为 `/biz/user/userInfo.userSettings`，不恢复 getSystemConfig；登录前继续本地默认，已删除35项字段不恢复，SDK租户／签名和登录密码规则仍取本地参数。
+
+新增 `AccountSettingsSnapshot` 与 `AccountSettingsStore`：AUTH 成功、业务激活前恢复同账号缓存；后续复用 SessionMaintenance 的资料刷新发布配置，按企业、UID、认证轮次隔离，退出重置，普通断线不清空。UserSettings 记录字段存在性并稀疏序列化；UserProfileCache 在缓存顶层标记版本，旧缓存保留用户资料但不启用无法辨别缺失／空值的旧设置。同供应商部分字段可合并，切换存储供应商时清除旧组，参数不完整禁止新上传，不混用旧桶。
+
+已接入群发送间隔（毫秒，0按xgd回退2000）、普通撤回窗口（分钟，0关闭）、群管理撤回开关、群人数显示、通话总开关／供应商／Zego AppID，以及所有保留的OSS／OBS上传配置。聊天权限和群设置会响应配置刷新；上传主文件与封面使用开始时同一快照；未完成建房回执核对完整配置，现有通话维持其会话快照。`showUserRead` 继续取角色权限，`isEncrypt` 不改变现有协议；Zego AppSign／主备WebSocket在xgd只是赋值，当前直接SDK继续使用AppID与房间token。版本检查／日志上传字段只保留解析，不新增功能。
+
+新增 `SDKGroupActivitySyncCoordinator`：进入群、群资料／设置成员同步完成、当前群配置刷新时，按 `member_active_points_interval`（秒）检查SDK毫秒游标，不新增后台全群轮询。先读取完整成员，再分页取增量积分，写回现有SDK成员表的 `activityScroe`；同群在途去重、失败最短5秒后允许下次触发重试，不阻塞聊天展示。使用服务端校准时间，全部分页及成员写入成功后才推进游标；写库前核验AUTH、企业、UID、认证轮次和数据库身份。原SDK异步写库封装不具备此轮次守卫，故复用其请求接口并在Swift边界统一提交。
+
+独立复核发现成员分页不能按数量少于100提前结束，已先用完整生产协调器加匿名SDK替身复现失败，再改为严格验证 `pages/currentPage`、拒收错页／重复UID／空中间页；全量成员请求不传积分游标，`pageStart=0`对齐xgd。复核确认无剩余重要问题。最终 SessionMaintenance 调度17、Role/Profile37、SDK隔离7、配置14、积分策略13、生产协调器边界9项通过（`/tmp/ddlNew-account-settings-maintenance-reviewed.log`），Calls56项通过；聊天、设置、群发送权限15项、成员分页、媒体、群列表、登录与启动恢复共9入口通过（`/tmp/ddlNew-account-settings-regressions.json`）。无签名generic iOS构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-account-settings-reviewed-build.log`），PATH排除sentry-cli。未操作真实账号或设备，真实积分接口／通话／云上传仍待联调；未提交推送，xgd未修改。
+
+## 2026-11-10 删除 xgd 无业务消费的25项配置
+
+用户明确要求删除上一轮对照清单中的18项无对应配置字段和7项仅模型声明字段，现已从 `UserSettings` 删除全部25项的属性、注释及JSON映射，当前保留23字段。`showUserRead`、`isEncrypt` 不属于本次删除清单，继续保留；本地认证配置及现有业务行为未变。设计同步缩小字段范围，业务接线仍待确认。
+
+完整往返夹具调整为23键，部分更新的清空检查改用OBS上传域名，数字转换改用群消息间隔，移除已删除systemSecurity对应的专属检查。SessionMaintenance 17项、Role/Profile 36项、SDK请求隔离7项全部通过，日志 `/tmp/ddlNew-settings-pruned-25-checks.log`；23字段注释和映射完整，无被删除属性的业务引用，`git diff --check`通过。未重跑完整App构建、未操作设备、未提交推送。
+
+## 2026-11-10 继续精简 userSettings
+
+按用户要求删除 `projectLogo`、`tenantCode`、`registerInviteCode`、`projectName`、`checkEnglishSymbol`、`captchaVersion` 的模型属性、注释及JSON映射；连同上一轮删除的四项，当前保留48字段。SDK和自建上传仍使用 `LocalSDKSettings.tenantCode`，登录／注册及修改密码仍使用 `LocalAccountPolicy`，不删除本地参数或改变其业务行为。设计同步移除远端租户参数、密码规则和动态签名切换改造，其他功能接线仍待确认。
+
+现有资料往返、部分合并及null保留检查改用仍保留的存储桶／欢迎语字段，SessionMaintenance 17项、Role/Profile 37项及SDK请求隔离7项通过，日志 `/tmp/ddlNew-settings-pruned-six-checks.log`。48/48字段有注释和映射，被删除属性无业务引用，`git diff --check`通过。未重跑完整App构建、未操作设备、未提交推送。
+
+## 2026-11-09 移除 userSettings 的纯登录配置
+
+按用户明确要求，从 `UserSettings` 删除 `loginMethod`、`registerMethod`、`isMustInviteCode`、`captchaChannel` 的属性、注释和映射；当前保留54字段。服务端或旧缓存中残留这四个键会被 ObjectMapper 忽略。登录／注册仍使用 `LocalAccountPolicy`，本地属性、验证码流程和 SDK 初始配置未改动。功能接线设计也移除这四项，其他账号配置接线仍待设计确认。
+
+同步调整完整字段往返检查，SessionMaintenance 17项、Role/Profile 37项及SDK请求隔离7项通过，日志 `/tmp/ddlNew-settings-pruned-checks.log`；54/54字段均有注释与映射，无被删除属性的业务引用，`git diff --check`通过。未重跑完整App构建、未操作设备、未提交推送。
+
+## 2026-11-09 userSettings 字段注释与遗漏补齐
+
+按用户要求，为 `Common/User/UserSettings.swift` 的全部字段补充中文文档注释，涵盖用途、已确认枚举／单位与 xgd 消费情况；未在 xgd 找到消费逻辑的字段明确标注语义边界，不推断额外业务。重新核对用户提供的响应，发现上一轮遗漏 `oss_obs_bucket_name` 与 `oss_config_end_point_jia_su`，现补齐属性及 ObjectMapper 映射，实际完整字段数为58；上节历史“全部56字段”的说法由本节纠正。
+
+回归先以58键夹具复现往返丢字段，再修复并通过 SessionMaintenance 17项、Role/Profile 37项、SDK请求隔离7项，日志 `/tmp/ddlNew-settings-comments-checks.log`；58/58属性都有文档注释、58个JSON键映射完整，`git diff --check` 通过。本轮仅注释和两个字符串字段映射，未重跑完整App构建、未操作设备、未提交推送。
+
+用户另要求以 `/biz/user/userInfo.userSettings` 驱动 xgd 对应配置功能，明确不恢复 getSystemConfig，已确认登录前用本地默认值、登录后应用账号配置。对照设计见 `Docs/superpowers/specs/2026-11-09-user-settings-runtime-design.md`，功能接线仍处于设计待确认阶段，尚未改变当前本地配置消费行为。
+
 ## 2026-11-09 用户资料加入完整 userSettings
 
 按用户提供的 `/biz/user/userInfo` 返回结构新增 `Common/User/UserSettings.swift`，覆盖全部56个字段，并由 `UserInfo.userSettings` 持有。沿现有 ObjectMapper 接入登录响应、资料刷新与用户资料 JSON 缓存；旧缓存缺少该字段仍可读取。属性采用 Swift 命名，序列化沿用服务端原键名，包括历史拼写 `android_kepplive_url`、`groupMangerMessageRecallTime` 等。
