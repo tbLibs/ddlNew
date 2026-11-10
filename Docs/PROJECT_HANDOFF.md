@@ -1,5 +1,112 @@
 # ddlNew 项目交接文档
 
+## 2026-11-10 大量内联表情导致正文渲染栈溢出
+
+用户在群里发送上千表情后闪退。Xcode真机现场为主线程EXC_BAD_ACCESS(code2)，栈深2154层；栈顶`___chkstk_darwin`，重复`Text.resolve / ConcatenatedTextStorage.resolve / Text.Storage.resolve`。`ChatMessageBubble`的正文通过`ChatEmojiText`渲染，旧实现`runs.reduce(Text(""))`逐个用`+`拼接，N个片段形成N层嵌套。这是已捕获的正文渲染栈溢出，不据此推断独立GIF／贴纸下载、发送队列或堆内存问题。
+
+`ChatEmojiText.rendered`改为先生成原有文字／图片Text，再相邻片段逐层合并，拼接深度从O(N)降到O(log N)。保持表情基线偏移、动态字号、图片缓存、正文顺序、换行、未知标记、缺图回退、文字选择和无障碍原文；不截断消息，不限制发送数量，不改SDK或网络协议。该组件由收发正文共用，同样保护收到／再次打开已有长表情消息的渲染。
+
+回归：`Tests/Chat/run-emoji-depth-checks.sh`编译提取生产方法，旧版本1000片段深度1000（预期最多10）失败，修复后空／单项／奇数／1000／5000／10000片段等8组通过；原词典、UTF16光标、增删表情检查通过。新增`Tests/Chat/EmojiRendering`匿名iOS原生测试宿主，直接编译生产视图和词典、打包真实表情图片，强制SwiftUI解析和排版。旧版原生回归在10000图片表情处Crash，xcresult为2通过／1失败（`/tmp/ddlNew-emoji-rendering-baseline-run.xcresult`）；修复后同3项全部通过、0跳过、TEST SUCCEEDED（`/tmp/ddlNew-emoji-rendering-fixed.xcresult`），包含1000／5000／10000表情及混合中文／Unicode／换行／未知标记／辅助字号。高度随数量增加，未用截断绕过测试；极长混合文本排版仍有成本，本轮不声称任意长度均流畅。
+
+完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-emoji-balanced-build.log`）；git diff --check通过。原生宿主初次搭建曾遇到AppIcon配置及CGFloat常量推断编译错误，已修正测试夹具后完成上述红／绿验证。未发送真实群消息、未覆盖安装修复包，原真机崩溃现场保留；需重新Run后回到原群确认设备表现。未读取首页代码、未修改xgd、未提交推送，保留既有签到／支付通知隐藏／扫码和打包改动。
+
+## 2026-11-10 扫码添加好友立即提示操作失败
+
+用户确认失败发生在扫到二维码后、进入资料页之前。Xcode连接iPhone捕获真实二维码转换响应：传输status200，业务code90026、message“操作失败”，实际请求路径为`biz/scan/group/readScanContent`。SDK直接把该路径写入TCP请求，并且签名只移除`/biz/`前缀；缺少首个斜杠会使路由与签名接口名都不符合合同。xgd同一常量也缺少斜杠，本轮只修新项目SDK，不修改xgd。
+
+`NoaIMHttpManager+Group.h` 的 `Transform_Qrcode_Content_Url` 补为 `/biz/scan/group/readScanContent`，保留二维码原文、userUid、SDK认证和会话隔离。用户重扫同一码，调试器只替换该次请求路径后，真实服务端业务码由90026变为10000，确认这一变量能消除转换失败。临时断点已删除，App恢复运行；没有记录二维码正文／认证凭据，也未发送好友申请。该真机证据来自运行时路径对照，不代表已把源码修复重新签名安装到设备；最终资料页导航和添加好友申请结果未验收。
+
+新增 `Tests/Contacts/run-qr-route-checks.sh`／`QRRouteChecks.m` 编译提取生产常量、HTTP/TCP分派和签名方法，修复前复现路径及签名失败，修复后6项通过；通讯录业务回归通过（`/tmp/ddlNew-qr-business-checks.log`）。完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-qr-route-build.log`）。未读取首页代码，保留每日签到、支付通知隐藏及打包相关既有改动，未提交推送。
+
+后续用户反馈扫码出现“目标服务拒绝连接”。本轮保留路径修复，移除旧请求路径替换／响应断点，仅监听真实业务失败。用户再次扫码后明确确认“这次进入对方资料页了，好了”；该次未捕获业务失败，扫码到资料页由用户真机确认通过，未执行添加好友申请。此前连接拒绝未再次复现，也未取得其错误码和具体失败接口，原因仍未确认，不能据此断言服务端故障已被修复。本轮不再改业务代码，路径／签名6项回归继续通过。清理时发现旧临时断点在Xcode仍有保存，本次通过断点导航器删除最后一个诊断断点，已确认导航器为空、App处于Running；不只凭LLDB删除命令判断清理成功。
+
+## 2026-11-10 隐藏支付通知会话
+
+用户明确暂不接支付功能，并要求支付通知不在列表展示。`ConversationsStore.publishVisibleConversations` 在共用展示边界过滤paymentAssistant；在线同步、离线缓存和角色权限变化统一适用，消息Tab及由本机可见会话计算的角标不计其未读。保留SDK类型／数据库原记录，不新增支付接口；签到助手、单群聊与文件助手既有权限行为保持。
+
+新增生产Store回归先复现旧行为失败，再验证本地缓存／在线同步／文件助手权限变化均不展示支付通知、不计其未读且签到助手保留。会话排序、Store、操作和预览四组检查通过（`/tmp/ddlNew-hide-payment-checks.log`）。完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED（`/tmp/ddlNew-hide-payment-build.log`），git diff --check通过。未读取或修改首页代码、未操作设备，未提交推送。
+
+## 2026-11-10 xgd每日签到迁移与非首页功能差异盘点
+
+用户要求先列xgd未迁移功能，再接每日签到，并明确整个首页代码排除读取、首页活动签到不处理。本轮新增差异清单 `Docs/XGD_MIGRATION_GAPS_2026-11-10.md`，区分尚未接线、已有底层兼容和此前明确删除／不接入项；支付助手旧端无可达支付流程，不推断真实支付能力。没有读取或修改新项目首页模块源码；xgd只读，原project.pbxproj／Podfile.lock改动保留。当前feature-all-5，打包脚本和已有交接改动保留，不提交推送。
+
+新增 `Features/DailySignIn` 与 `Network/IM/DailySignIn`，我的→每日签到；消息type6→签到助手→每日签到。两个入口使用独立sheet导航，不改首页路由。包含真实签到提交、今日可领／已领积分、累计天数／积分、本月日历、按月签到记录／积分明细、随机／连续签到规则与连签奖励表；App自有文案三语，服务端规则原文保留。复用SDK五接口及userUid/year/month合同，不新建签到数据库，不恢复getSystemConfig。签到助手按旧端每页15条读SDK本机历史，进入锁内清本机提醒未读，不调用单群聊服务端已读接口。
+
+Store与SDK双层按UID／租户／AUTH轮次隔离；未AUTH入口禁用，退出取消等待与清理，旧回包不发布。提交互斥，已受理后回读失败单独提示；同日旧详情不能重新开放签到。月查询完整成功才一起替换标题与数据，失败保留旧快照。奖励由服务器返回，不本地计算入账；成功回执缺少奖励数字不误报提交失败。接口无底层取消句柄，关闭仅停止本端等待与回执消费。
+
+验证：`bash Tests/DailySignIn/run-checks.sh` 23项模型／Store＋12项生产SDK适配器边界检查通过；个人资料21项与会话排序／Store／操作／预览回归通过。签到涉及48个本地化键三语覆盖／占位符／无重复与plutil验证通过（新增37键/语言）。最终完整workspace generic iOS Debug无签名构建exit0、BUILD SUCCEEDED，日志 `/tmp/ddlNew-daily-sign-in-verified-build.log`；git diff --check通过。中间增量曾因SDK非可选导入失败，已按现有项目显式可选桥接修正并完成终版构建；不是忽略失败。构建保留既有SDK头文件、可选值插值等警告，PATH排除sentry-cli，无符号上传。
+
+本轮未操作设备／真实账号，没有执行真实签到或积分写入，也未验收服务端各模式、跨天／时区、真实提醒推送和设备UI。离线检查与编译不等同真实签到入账。实现合同 `Docs/superpowers/specs/2026-11-10-daily-sign-in-design.md`。
+
+## 2026-11-10 Ad Hoc 打包与自动上传：当前交接
+
+脚本已实现，默认在打包成功后上传 IPA 与安装清单。当前仅完成离线流程验证和现有 IPA 的清单生成检查，**尚未通过新脚本实际归档、签名导出或上传服务器**。整理时分支为 `feature-all-5`；脚本、专项说明和测试仍为未跟踪文件，交接文档有未提交修改。未执行提交或推送，后续以实时 Git 状态为准。
+
+### 文件入口
+
+| 文件 | 用途 |
+| --- | --- |
+| [Scripts/package-adhoc.sh](../Scripts/package-adhoc.sh) | Release 归档、Ad Hoc 导出、清单生成、默认调用上传 |
+| [Scripts/upload-adhoc.sh](../Scripts/upload-adhoc.sh) | 上传已有产物、校验摘要、备份和替换服务器文件 |
+| [Scripts/ssh-password.exp](../Scripts/ssh-password.exp) | SSH/SCP 密码认证，密码不放进命令行参数 |
+| `Scripts/adhoc-upload-config.sh` | 用户要求将密码直接写入此配置脚本，且不排除 Git；文档不复制密码 |
+| [Docs/AD_HOC_PACKAGING.md](AD_HOC_PACKAGING.md) | 使用方法、环境要求和发布边界 |
+| [Tests/Packaging](../Tests/Packaging) | 打包与上传的隔离流程检查 |
+
+### 常用命令
+
+在仓库根目录执行，以下版本仅为使用示例，不代表已发布：
+
+```bash
+# 查看参数，使用 --help 或 -h，不支持 -help
+./Scripts/package-adhoc.sh --help
+
+# 指定版本和 Build，成功后自动上传
+./Scripts/package-adhoc.sh --version 1.3.1 --build-number 2
+
+# 只打包；不传版本参数则沿用工程配置
+./Scripts/package-adhoc.sh --no-upload
+
+# 复用已有归档并导出上传，不能同时指定版本／Build
+./Scripts/package-adhoc.sh --archive "/完整路径/ddlNew.xcarchive"
+
+# 上传失败后重试本次产物，无需重新归档
+./Scripts/upload-adhoc.sh "/完整路径/本次产物目录"
+```
+
+`--build` 是 `--build-number` 的别名；版本接受1至3段数字，Build接受正整数。参数只覆盖本次 xcodebuild 的 `MARKETING_VERSION`／`CURRENT_PROJECT_VERSION`，不修改工程文件。`--output` 必须指定尚不存在的目录；`--allow-provisioning-updates` 显式允许 Xcode 更新签名资源。
+
+### 打包和发布合同
+
+依赖 Xcode、支持 xcode archive/export 的 asc、Python 3、macOS Expect，以及与 Podfile.lock 一致的 Pods。使用 ddlNew.xcworkspace／ddlNew／Release，导出方式 `release-testing`（Ad Hoc），自动签名团队 `DGK6VR7P2D`；测试设备需在对应描述文件中。默认输出为已被 Git 忽略的 `build/adhoc/<唯一目录>/`，包含固定名称 `ddlNew.ipa`、`manifest.plist`、导出配置和日志；新归档另含 `.xcarchive` 与独立 DerivedData。构建限定系统工具 PATH，跳过项目可选 sentry-cli 符号／源码上传，归档保留 dSYM。
+
+清单从本次导出的 IPA 读取真实元数据：`bundle-identifier` 取 CFBundleIdentifier，`bundle-version` 取 CFBundleShortVersionString，`build-version` 取 CFBundleVersion。下载页按用户要求读取 `bundle-version`。
+
+| 项目 | 配置 |
+| --- | --- |
+| SSH | `root@8.210.96.3:22` |
+| 服务器目录 | `/data/static-site/ddlnew/` |
+| IPA 地址 | `https://static.xingqitongim.com/ddlnew/ddlNew.ipa` |
+| 清单地址 | `https://static.xingqitongim.com/ddlnew/manifest.plist` |
+| 图标地址 | 沿用 `https://static.xingqitongim.com/ios/512.png` |
+
+仅上传 IPA 和清单，不上传归档、日志、认证配置或 index.html。文件先传至远端 `.upload-<UUID>/`，两项 SHA-256 均通过后获取发布锁、备份旧文件、依次替换 IPA 和清单，再复验正式文件摘要。旧文件保留为临时目录中的 `previous-*`。传输／预校验失败不会替换正式文件；每个文件独立 rename，两个文件并非整体原子事务。首次 SSH 接受新主机密钥，已记录密钥变更则拒绝连接；强制中止残留的发布锁需核实无在途发布后处理。
+
+下载页面的修改位于仓库外 `/Users/taobotaobo/Downloads/index.html`，旁边有 `manifest.plist`；页面安装链接与二维码已指向 `/ddlnew/`。这些本地文件修改不代表已部署，上传脚本不包含页面发布。
+
+### 验证记录与后续工作
+
+已通过8项打包检查、3项上传检查，覆盖参数传递／非法值、归档复用、空格路径、失败日志、输出保护、Pods一致性、上传触发、摘要失败与传输失败保留旧文件。归档和网络工具均为隔离替身，未访问真实签名或服务器。Bash语法、`--help`入口及diff空白检查通过；已修复macOS Bash 3.2空数组与set -u的兼容问题。
+
+另用桌面现有真实 IPA 单独执行清单生成，核验 `com.sigua.ddlNewapp`、`bundle-version=1.3.0`、`build-version=1`、目标 URL 及 plutil 格式通过；没有将旧 IPA 当作新脚本的打包成果。
+
+后续实际发布时，需取得新脚本归档／导出日志、服务器两项摘要回执，再检查 HTTPS／CDN 返回文件及符合描述文件要求的设备安装。当前无上述发布证据，不应将离线检查或“脚本已完成”表述为已部署、已安装。
+
+```bash
+python3 Tests/Packaging/check_package_adhoc.py
+python3 Tests/Packaging/check_upload_adhoc.py
+```
+
 ## 2026-11-10 启动图取消多语言
 
 用户明确要求 `AppLaunchScreen` 不再配置多语言。保留简体中文文案“叮咚聊／一起发现，一起参与”，将文件移动到 `Resources/AppLaunchScreen.storyboard`；删除简体、繁体、英文目录内的启动storyboard。系统启动入口名仍为AppLaunchScreen，其他页面、验证码及权限说明的多语言保持不变。更新启动资源检查及多语言维护文档。启动资源检查、验证码9组检查、App三语资源审计（各1624键）及git diff --check通过；ibtool独立编译启动storyboard成功，无错误／警告，编译nib不含运行时本地化对象。完整App构建遇到现有Xcode并行构建的build.db锁（`/tmp/ddlNew-launch-single-language-build.log`），未终止他人构建，未将独立资源编译视为完整App构建通过。本轮未安装或运行真机、未提交推送。

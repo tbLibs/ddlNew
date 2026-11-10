@@ -95,6 +95,21 @@ private struct StoreChecks {
         completion?.resume(returning: [first])
         await staleRead.value
         precondition(store.conversations.isEmpty && !store.hasLoadedSnapshot, "logout rejects late local cache")
+        let payment = ConversationRecord(id: "payment", title: "支付通知", avatarURL: "", kind: .paymentAssistant,
+                                         preview: "notice", latestTime: .now, unreadCount: 12,
+                                         isMarkedUnread: true, isPinned: true, isMuted: false, isDraft: false)
+        let signIn = ConversationRecord(id: "sign-in", title: "签到助手", avatarURL: "", kind: .signInReminder,
+                                        preview: "reminder", latestTime: .now, unreadCount: 1,
+                                        isMarkedUnread: false, isPinned: false, isMuted: false, isDraft: false)
+        await store.loadLocalSnapshot(for: "A") { [first, payment, signIn] }
+        precondition(store.conversations.map(\.id).sorted() == ["a", "sign-in"] && store.totalUnreadCount == 3,
+                     "本地缓存隐藏支付通知与其未读数，保留签到助手")
+        client.recordsByUser["A"] = [first, payment, signIn, assistant]
+        store.prepare(for: "A", preservingSnapshot: true)
+        await store.reload()
+        store.setFileAssistantVisible(true)
+        precondition(!store.conversations.contains { $0.kind == .paymentAssistant } && store.totalUnreadCount == 10,
+                     "在线同步及文件助手权限变化不能恢复支付通知")
         print("ConversationsStore checks passed")
     }
 }

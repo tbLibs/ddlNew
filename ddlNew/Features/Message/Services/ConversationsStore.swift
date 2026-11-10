@@ -149,9 +149,11 @@ final class ConversationsStore: ObservableObject {
         publishVisibleConversations()
     }
 
-    /// 按当前角色权限生成列表与角标。
+    /// 支付通知不展示；文件助手继续按角色权限生成列表与角标。
     private func publishVisibleConversations() {
-        conversations = allConversations.filter { fileAssistantVisible || $0.kind != .single || $0.id != "100002" }
+        conversations = allConversations.filter {
+            $0.kind != .paymentAssistant && (fileAssistantVisible || $0.kind != .single || $0.id != "100002")
+        }
         // 角标与实际可见列表保持一致，权限关闭不能残留隐藏会话未读数。
         totalUnreadCount = ConversationUnread.total(conversations)
     }

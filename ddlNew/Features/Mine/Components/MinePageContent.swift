@@ -18,6 +18,8 @@ struct MinePageContent<Avatar: View>: View {
     let copyAccount: () -> Void
     let openProfile: () -> Void
     let openComplaint: () -> Void
+    var openDailySignIn: () -> Void = {}
+    var canOpenDailySignIn = true
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .title2) private var nameSize = 24
 
@@ -98,6 +100,10 @@ struct MinePageContent<Avatar: View>: View {
 
     private var accountServices: some View {
         VStack(spacing: 0) {
+            Button(action: openDailySignIn) { menuRow(L10n.tr("每日签到"), symbol: "calendar.badge.checkmark") }
+                .disabled(!isSignedIn || !canOpenDailySignIn)
+                .accessibilityIdentifier("mine.dailySignIn")
+            divider
             NavigationLink(value: SafetyRoute.blacklist) { menuRow(L10n.tr("黑名单"), symbol: "person.crop.circle.badge.minus") }
                 .accessibilityIdentifier("mine.blacklist")
             divider

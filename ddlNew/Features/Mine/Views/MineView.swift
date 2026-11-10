@@ -15,12 +15,14 @@ struct MineView: View {
     @Environment(\.locale) private var localizationLocale
     @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
+    @ObservedObject private var chatRuntime = ChatRuntime.shared
     @State private var showSettings = false
     @State private var profileDestination: MineProfileDestination?
     @State private var showingCopyToast = false
     @State private var showingComplaint = false
     @State private var complaintSubmitted = false
     @State private var feedback: String?
+    @State private var dailySignIn: DailySignInDestination?
     var body: some View {
         ScrollView {
             MinePageContent(
@@ -30,7 +32,9 @@ struct MineView: View {
                 avatar: profileAvatar,
                 copyAccount: copyAccount,
                 openProfile: openProfile,
-                openComplaint: { feedback = nil; showingComplaint = true }
+                openComplaint: { feedback = nil; showingComplaint = true },
+                openDailySignIn: { dailySignIn = DailySignInDestination.current() },
+                canOpenDailySignIn: chatRuntime.userUID != nil
             )
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
@@ -54,6 +58,7 @@ struct MineView: View {
             MineProfileView(context: destination.context, nickname: destination.nickname)
         }
         .sheet(isPresented: $showSettings) { SettingsScreen() }
+        .sheet(item: $dailySignIn) { DailySignInView(destination: $0) }
         .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = L10n.tr("投诉已提交"); complaintSubmitted = false } }) {
             ComplaintView(target: .general, targetName: L10n.tr("系统投诉")) { complaintSubmitted = true }
         }

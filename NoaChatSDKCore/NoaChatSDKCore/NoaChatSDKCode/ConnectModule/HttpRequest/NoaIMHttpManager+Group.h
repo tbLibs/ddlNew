@@ -73,7 +73,7 @@ NS_ASSUME_NONNULL_BEGIN
 //获取生成二维码是的内容，然后由App端根据内容生产二维码
 #define Group_Creat_Qrcode_Content_Url  @"/biz/scan/createScanContent/v2"
 //识别扫一扫二维码内容信息
-#define Transform_Qrcode_Content_Url    @"biz/scan/group/readScanContent"
+#define Transform_Qrcode_Content_Url    @"/biz/scan/group/readScanContent"
 //申请加入群聊
 #define Apply_Join_Group_Url            @"/biz/group/groupMemberApplyJoin"
 //获取申请进群列表-群管理

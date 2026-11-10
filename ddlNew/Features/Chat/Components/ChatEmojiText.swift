@@ -17,12 +17,25 @@ struct ChatEmojiText: View {
     }
 
     private var rendered: Text {
-        ChatEmojiCatalog.runs(in: value).reduce(Text("")) { result, run in
+        var fragments = ChatEmojiCatalog.runs(in: value).map { run -> Text in
             if let item = run.emoji, let image = ChatEmojiArtwork.image(item.image, size: size) {
-                return result + Text(Image(uiImage: image)).baselineOffset(-3)
+                return Text(Image(uiImage: image)).baselineOffset(-3)
             }
-            return result + Text(verbatim: run.text)
+            return Text(verbatim: run.text)
         }
+        // Text + Text保留嵌套结构。逐个累加会使大量表情在SwiftUI解析时栈溢出。
+        // 相邻片段逐层合并，保持原顺序和全部内容，把嵌套深度从N降为log2(N)。
+        while fragments.count > 1 {
+            var merged: [Text] = []
+            merged.reserveCapacity((fragments.count + 1) / 2)
+            for index in stride(from: 0, to: fragments.count, by: 2) {
+                merged.append(index + 1 < fragments.count
+                    ? fragments[index] + fragments[index + 1]
+                    : fragments[index])
+            }
+            fragments = merged
+        }
+        return fragments.first ?? Text("")
     }
 }
 

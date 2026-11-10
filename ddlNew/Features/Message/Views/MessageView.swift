@@ -26,6 +26,7 @@ struct MessageView: View {
     @FocusState private var searchFocused: Bool
     @State private var deletingConversation: ConversationRecord?
     @State private var selectingMembers = false
+    @State private var dailySignIn: DailySignInDestination?
     @EnvironmentObject private var navigation: ActivityNavigation
 
     private enum ConversationFilter: String, CaseIterable, Identifiable {
@@ -98,6 +99,7 @@ struct MessageView: View {
         .frame(maxWidth: 720).frame(maxWidth: .infinity)
         .background(MessagingTheme.background)
         .navigationTitle(L10n.tr("消息"))
+        .sheet(item: $dailySignIn) { DailySignInView(destination: $0) }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { navigationTitle }
@@ -219,6 +221,10 @@ struct MessageView: View {
                 .buttonStyle(MessagingRowStyle())
         case .systemMessage:
             NavigationLink(value: ContactsPageRoute.groupAssistant) { conversationRow(conversation) }.buttonStyle(MessagingRowStyle())
+        case .signInReminder:
+            Button { dailySignIn = DailySignInDestination.current(reminderSessionID: conversation.id) } label: { conversationRow(conversation) }
+                .buttonStyle(MessagingRowStyle())
+                .disabled(chatRuntime.userUID == nil)
         default: conversationRow(conversation)
         }
     }
