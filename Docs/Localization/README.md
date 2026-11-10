@@ -9,13 +9,13 @@
 - `LanguageSettingsView.swift`：共享选择页。依赖运行时文案的SwiftUI页面显式读取 `@Environment(\.locale)`，避免只切换偏好而页面未刷新。
 - `Resources/Localization/<language>.lproj/Localizable.strings`：三语文案。已有适用翻译取自xgd，新项目文案补齐。
 - `Resources/Localization/<language>.lproj/InfoPlist.strings`：相机、麦克风、相册读取及写入用途。
-- `Resources/{zh-Hans,zh-Hant,en}.lproj/AppLaunchScreen.storyboard`：各语言独立编译的系统启动页；文字嵌入 storyboard，不依赖启动时查找 `.strings`。修改布局需同步三份文件，`Tests/Localization/check_launch_resources.py` 校验文案与布局一致性。
+- `Resources/AppLaunchScreen.storyboard`：单一、非本地化的系统启动页，按用户要求固定简体中文，不随系统或App语言切换。`Tests/Localization/check_launch_resources.py` 校验中文文案及无多语言启动资源残留。
 
 稳定的枚举rawValue、数据库标识、文件名、协议参数不得翻译；仅在显示时 `L10n.lookup(rawValue)`。不要对聊天正文、昵称、备注、群名、服务端原始文本直接调用lookup。活动仅在 `isBuiltInSample` 为true时翻译内置示例；外部数据即使ID相同也保留原文。
 
 消息页语言变化时只重读已有SDK本地快照，更新文件助手和类型摘要；不发起远端同步。已经生成的临时错误／通知权限描述和历史系统消息展示快照，在下一次正常生成／读取时采用新语言；不通过重新登录或重建会话强制刷新。
 
-系统启动画面和系统权限弹窗由iOS选取语言，和运行中的App手动选择不是同一生命周期。验证码网页使用原生注入的应用语言配置：阿里云cn/tw/en、腾讯zh-cn/zh-tw/en。真实挑战的语言支持仍取决于服务商验证类型，参数依据[腾讯文档](https://cloud.tencent.com.cn/document/product/1110/36841)、[阿里云文档](https://help.aliyun.com/en/captcha/captcha2-0/user-guide/custom-copy-and-multi-language-settings)。没有联网调用真实验证码做验收。
+系统启动画面固定简体中文；系统权限弹窗由iOS选取语言，和运行中的App手动选择不是同一生命周期。验证码网页使用原生注入的应用语言配置：阿里云cn/tw/en、腾讯zh-cn/zh-tw/en。真实挑战的语言支持仍取决于服务商验证类型，参数依据[腾讯文档](https://cloud.tencent.com.cn/document/product/1110/36841)、[阿里云文档](https://help.aliyun.com/en/captcha/captcha2-0/user-guide/custom-copy-and-multi-language-settings)。没有联网调用真实验证码做验收。
 
 ## 检查
 

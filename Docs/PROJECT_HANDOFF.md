@@ -1,5 +1,9 @@
 # ddlNew 项目交接文档
 
+## 2026-11-10 启动图取消多语言
+
+用户明确要求 `AppLaunchScreen` 不再配置多语言。保留简体中文文案“叮咚聊／一起发现，一起参与”，将文件移动到 `Resources/AppLaunchScreen.storyboard`；删除简体、繁体、英文目录内的启动storyboard。系统启动入口名仍为AppLaunchScreen，其他页面、验证码及权限说明的多语言保持不变。更新启动资源检查及多语言维护文档。启动资源检查、验证码9组检查、App三语资源审计（各1624键）及git diff --check通过；ibtool独立编译启动storyboard成功，无错误／警告，编译nib不含运行时本地化对象。完整App构建遇到现有Xcode并行构建的build.db锁（`/tmp/ddlNew-launch-single-language-build.log`），未终止他人构建，未将独立资源编译视为完整App构建通过。本轮未安装或运行真机、未提交推送。
+
 ## 2026-11-10 删除启动包装视图与启动图语言排查
 
 按用户要求删除 `LaunchWaitingView.swift` 和未引用的 `SplashScreen.swift`。根入口在本地恢复完成前仅以系统背景色及原有本地化进度提示占位，不再手动实例化启动 storyboard；本地入口校验、消息页连接／AUTH恢复及离线列表逻辑不变。系统启动 storyboard 保留，随后更名为 `AppLaunchScreen.storyboard`（见下段）。
