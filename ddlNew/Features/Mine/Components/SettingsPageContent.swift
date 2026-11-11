@@ -2,10 +2,11 @@ import SwiftUI
 import UIAdapter
 
 /// 设置页展示，账户来源与敏感操作由父页面持有。
-struct SettingsPageContent<DeleteDestination: View>: View {
+struct SettingsPageContent<Avatar: View, DeleteDestination: View>: View {
     @Environment(\.locale) private var localizationLocale
     let displayName: String
     let account: String
+    let avatar: Avatar
     let deleteDestination: DeleteDestination
     let openPrivacyPolicy: () -> Void
     let openSupport: () -> Void
@@ -90,12 +91,7 @@ struct SettingsPageContent<DeleteDestination: View>: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16.zoom()))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 16.zoom()))
         return layout {
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: 28.zoom(), weight: .regular))
-                .foregroundStyle(HomeTheme.forest)
-                .frame(width: 56.zoom(), height: 56.zoom())
-                .background(HomeTheme.surface, in: RoundedRectangle(cornerRadius: 18.zoom()))
-                .accessibilityHidden(true)
+            avatar.accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 7.zoom()) {
                 Text(L10n.tr("当前账户")).font(.caption.weight(.medium))
                     .foregroundStyle(HomeTheme.secondaryText)

@@ -19,6 +19,11 @@ nonisolated struct ContactRequestVersions {
 
     func accepts(_ version: UUID, for friendUID: String) -> Bool { latest[friendUID] == version }
 
+    mutating func beginIfIdle(for friendUID: String) -> UUID? {
+        guard latest[friendUID] == nil else { return nil }
+        return begin(for: friendUID)
+    }
+
     mutating func finish(_ version: UUID, for friendUID: String) {
         if accepts(version, for: friendUID) { latest.removeValue(forKey: friendUID) }
     }

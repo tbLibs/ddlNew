@@ -80,6 +80,8 @@ struct MessageView: View {
             } else {
                 ForEach(visibleConversations) { conversation in
                     conversationLink(conversation)
+                        .modifier(VisibleContactProfileRefresh(friendUID: conversation.kind == .single ? conversation.id : nil,
+                                                               store: LoginSessionService.shared.contacts))
                         .contextMenu { conversationActions(conversation) }
                         .accessibilityActions { conversationActions(conversation) }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -99,7 +101,12 @@ struct MessageView: View {
         .frame(maxWidth: 720).frame(maxWidth: .infinity)
         .background(MessagingTheme.background)
         .navigationTitle(L10n.tr("消息"))
-        .sheet(item: $dailySignIn) { DailySignInView(destination: $0) }
+        .navigationDestination(isPresented: Binding(
+            get: { dailySignIn != nil },
+            set: { if !$0 { dailySignIn?.close(); dailySignIn = nil } }
+        )) {
+            if let destination = dailySignIn { DailySignInView(destination: destination) }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { navigationTitle }

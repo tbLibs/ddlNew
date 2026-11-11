@@ -11,7 +11,8 @@ import UIKit
 
 /// 铃声、屏幕常亮和权限由当前通话拥有，清理不依赖之后变化的配置开关。
 @MainActor final class CallSystemResources {
-    private var ringtone: Timer?
+    private var vibrationTimer: Timer?
+    private var ringingID: UUID?
     private var previousIdleTimer: Bool?
     private var generation = UUID()
     private var interruption: NSObjectProtocol?
@@ -20,14 +21,28 @@ import UIKit
     func startRinging(incoming: Bool) {
         stopRinging()
         retainScreen()
-        AudioServicesPlaySystemSound(1004)
-        if incoming { AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) }
-        ringtone = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
-            AudioServicesPlaySystemSound(1004)
-            if incoming { AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) }
+        let id = UUID()
+        ringingID = id
+        playRingtone(id: id)
+        if incoming {
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+            vibrationTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
+                AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+            }
         }
     }
-    func stopRinging() { ringtone?.invalidate(); ringtone = nil }
+    private func playRingtone(id: UUID) {
+        guard ringingID == id else { return }
+        // 与 xgd 一致：系统音 1004 播放结束后循环，避免固定定时器造成间隔或重叠。
+        AudioServicesPlaySystemSoundWithCompletion(1004) { [weak self] in
+            Task { @MainActor [weak self] in self?.playRingtone(id: id) }
+        }
+    }
+    func stopRinging() {
+        ringingID = nil
+        vibrationTimer?.invalidate()
+        vibrationTimer = nil
+    }
     func retainScreen() {
         if previousIdleTimer == nil { previousIdleTimer = UIApplication.shared.isIdleTimerDisabled; UIApplication.shared.isIdleTimerDisabled = true }
         if interruption == nil {

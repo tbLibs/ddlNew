@@ -1,17 +1,21 @@
 import SwiftUI
 
-struct DailySignInDestination: Identifiable {
+@MainActor struct DailySignInDestination: Identifiable {
     let id = UUID()
     let context: ChatContext
     let reminderSessionID: String?
+    let store: DailySignInStore
+    /// 从所属导航栈真正返回时关闭；push子页不会关闭共享Store。
+    func close() { store.close() }
     @MainActor static func current(reminderSessionID: String? = nil) -> Self? {
         guard let uid = ChatRuntime.shared.userUID,
               let context = ChatRuntime.shared.context(for: ChatRoute(id: uid, kind: .single, title: "", avatarURL: "")) else { return nil }
-        return Self(context: context, reminderSessionID: reminderSessionID)
+        return Self(context: context, reminderSessionID: reminderSessionID,
+                    store: DailySignInStore(context: context, client: SDKDailySignInClient(), isCurrent: { ChatRuntime.shared.isCurrent($0) }))
     }
 }
 
-/// 两个入口共享独立导航容器，避免读取或修改首页的导航实现。
+/// 复用入口所属导航栈，两个入口均以push展示。
 struct DailySignInView: View {
     @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
@@ -20,15 +24,12 @@ struct DailySignInView: View {
     let destination: DailySignInDestination
     init(destination: DailySignInDestination) {
         self.destination = destination
-        _store = StateObject(wrappedValue: DailySignInStore(context: destination.context, client: SDKDailySignInClient(), isCurrent: { ChatRuntime.shared.isCurrent($0) }))
+        _store = StateObject(wrappedValue: destination.store)
     }
     var body: some View {
-        NavigationStack {
-            Group {
-                if let sessionID = destination.reminderSessionID { reminderList(sessionID) }
-                else { DailySignInDashboard(store: store) }
-            }
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { dismiss() } } }
+        Group {
+            if let sessionID = destination.reminderSessionID { reminderList(sessionID) }
+            else { DailySignInDashboard(store: store) }
         }
         .tint(MessagingTheme.accent)
         .onAppear {
@@ -38,7 +39,6 @@ struct DailySignInView: View {
         .onChange(of: runtime.revision) { _ in
             if !runtime.isCurrent(destination.context) { store.close(); dismiss() }
         }
-        .onDisappear { store.close() }
     }
 
     private func reminderList(_ sessionID: String) -> some View {
@@ -102,6 +102,12 @@ private struct DailySignInDashboard: View {
     private func summary(_ info: DailySignInInfo) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.tr("签到领积分")).font(.title2.bold())
+            TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                LabeledContent(L10n.tr("当前日期")) {
+                    Text(timeline.date, format: .dateTime.year().month().day().weekday(.wide))
+                        .accessibilityIdentifier("dailySignIn.currentDate")
+                }.font(.subheadline).foregroundStyle(.secondary)
+            }
             LabeledContent(L10n.tr("累计签到"), value: L10n.tr("\(info.totalDays)天"))
             LabeledContent(L10n.tr("累计签到积分"), value: String(info.totalPoints))
             Divider()
@@ -134,7 +140,10 @@ private struct DailySignInMonthSelector: View {
             Spacer(minLength: 0)
             Button { Task { await store.refresh(month: store.month.shifted(1)) } } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
                 .accessibilityLabel(L10n.tr("下个月")).disabled(store.month.date >= SignInMonth().date)
-        }.disabled(store.busy)
+        }
+        // List默认automatic按钮会让整行响应多个按钮，必须分别处理左右点击。
+        .buttonStyle(.borderless)
+        .disabled(store.busy)
     }
 }
 
@@ -147,22 +156,45 @@ private struct DailySignInCalendar: View {
     private var days: Int { calendar.range(of: .day, in: .month, for: month.date)?.count ?? 0 }
     private var signedDays: Set<Int> { Set(records.filter { SignInMonth(date: $0.date) == month }.map { calendar.component(.day, from: $0.date) }) }
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 10) {
-            ForEach(0..<7, id: \.self) { index in
-                Text(calendar.veryShortStandaloneWeekdaySymbols[(calendar.firstWeekday - 1 + index) % 7]).font(.caption).foregroundStyle(.secondary)
+        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+            calendarGrid(today: timeline.date)
+        }
+    }
+    private func calendarGrid(today: Date) -> some View {
+        let todayDay = SignInMonth(date: today) == month ? calendar.component(.day, from: today) : nil
+        return VStack(spacing: 14) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 10) {
+                // 负数ID与下方日期ID分开，避免LazyVGrid把首周日期与星期标题复用。
+                ForEach(-7..<0, id: \.self) { index in
+                    Text(calendar.veryShortStandaloneWeekdaySymbols[(calendar.firstWeekday - 1 + index + 7) % 7]).font(.caption).foregroundStyle(.secondary)
+                }
+                ForEach(0..<(offset + days), id: \.self) { index in
+                    let day = index - offset + 1
+                    let isToday = day == todayDay
+                    let isSigned = signedDays.contains(day)
+                    VStack(spacing: 4) {
+                        Text(day > 0 ? String(day) : " ")
+                            .font(.callout.weight(isToday ? .bold : .regular)).monospacedDigit()
+                        HStack(spacing: 2) {
+                            if isToday { Text(L10n.tr("今天")).lineLimit(1).minimumScaleFactor(0.6) }
+                            if isSigned { Image(systemName: "checkmark.circle.fill") }
+                        }.font(.system(size: 10, weight: .semibold)).frame(height: 14)
+                    }.frame(maxWidth: .infinity, minHeight: 52)
+                        .foregroundStyle(isToday || isSigned ? MessagingTheme.accent : MessagingTheme.text)
+                        .background(isSigned ? MessagingTheme.accent.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(isToday ? MessagingTheme.accent : Color.clear, lineWidth: 1.5)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(day > 0 ? L10n.tr("\(day)日") : "")
+                        .accessibilityValue([isToday ? L10n.tr("今天") : nil, isSigned ? L10n.tr("已签到") : nil].compactMap { $0 }.joined(separator: "，"))
+                        .accessibilityIdentifier("dailySignIn.calendar.\(month.year)-\(month.month)-\(day)")
+                        .accessibilityHidden(day <= 0)
+                }
             }
-            ForEach(0..<(offset + days), id: \.self) { index in
-                let day = index - offset + 1
-                VStack(spacing: 3) {
-                    Text(day > 0 ? String(day) : " ").font(.callout).monospacedDigit()
-                    Image(systemName: "checkmark").font(.caption2.bold()).opacity(signedDays.contains(day) ? 1 : 0)
-                }.frame(maxWidth: .infinity, minHeight: 44)
-                    .foregroundStyle(signedDays.contains(day) ? MessagingTheme.accent : MessagingTheme.text)
-                    .background(signedDays.contains(day) ? MessagingTheme.accent.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(day > 0 ? L10n.tr("\(day)日") + (signedDays.contains(day) ? L10n.tr("已签到") : "") : "")
-                    .accessibilityHidden(day <= 0)
-            }
+            Label(L10n.tr("已签到"), systemImage: "checkmark.circle.fill")
+                .font(.caption).foregroundStyle(MessagingTheme.accent)
         }.padding(12).background(MessagingTheme.surface, in: RoundedRectangle(cornerRadius: 16))
     }
 }
@@ -208,17 +240,16 @@ private struct DailySignInRules: View {
     let rule: DailySignInRule
     var body: some View {
         List {
-            if !rule.enabled { Text(L10n.tr("签到暂未开放")) }
+            if rule.content.isEmpty { Text(L10n.tr("签到暂未开放")) }
             else {
-                Section {
-                    if rule.mode == 1 { Text(L10n.tr("每日签到可获得\(rule.minimum)～\(rule.maximum)积分。")) }
-                    else { Text(L10n.tr("每日签到可获得\(rule.daily)积分，连续签到可获得额外奖励。")) }
-                    Text(L10n.tr("每日最多签到一次，积分仅限本人使用，不可转移。"))
-                    if rule.mode == 2 { Text(L10n.tr("连签中断后保留已有积分，连续天数重新计算；达到最高连签档位后，每日继续获得该档奖励。")) }
-                }
-                if !rule.description.isEmpty { Section { Text(rule.description) } }
-                if !rule.rewards.isEmpty {
-                    Section(L10n.tr("连续签到奖励")) {
+                Section { Text(rule.content).lineSpacing(5) }
+                if rule.mode == 2 {
+                    Section {
+                        HStack {
+                            Text(L10n.tr("当月连续签到成功天数"))
+                            Spacer()
+                            Text(L10n.tr("奖励积分"))
+                        }.font(.subheadline.bold())
                         ForEach(rule.rewards) { reward in
                             HStack { Text(L10n.tr("\(reward.days)天")); Spacer(); Text(L10n.tr("\(reward.points)积分")) }
                         }

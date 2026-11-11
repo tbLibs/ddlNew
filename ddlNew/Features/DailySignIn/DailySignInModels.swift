@@ -131,10 +131,21 @@ struct DailySignInRule {
     let maximum: Int64
     let description: String
     let rewards: [DailySignInReward]
+    /// 与xgd签到规则页相同的编号、条款和服务端配置参数。
+    var content: String {
+        switch mode {
+        case 1:
+            return L10n.tr("1、每日签到积分由管理员设置一个最低值和最高值（例如区间值\(minimum)～\(maximum)），点击签到按钮后，即可获得本日签到积分。\n2、每日最多可签到1次，重复签到不会重复计数。\n3、积分只限本人使用，不可转移至其他账户。")
+        case 2:
+            return L10n.tr("1、每日签到可以获得固定日签积分(\(daily)分)，连续签到可以获得连签奖励。\n2、每日最多可签到1次，重复签到不会重复计数。\n3、当连续签到中断后，之前攒下的积分会保留，不会清零，但会重新累计连续签到天数。\n4、只要连签天数满足当月连续签到成功天数设置最大值，之后用户连签的每一天都将额外获得连签最大值的奖励积分。\n5、积分只限用户本人使用，不可转移至其他账户。")
+        default: return ""
+        }
+    }
     static func parse(_ value: Any) throws -> Self {
         let d = try SignInPayload.object(value)
         let enabled = try SignInPayload.flag(d["signInSwitch"])
-        if !enabled { return Self(enabled: false, mode: 0, daily: 0, minimum: 0, maximum: 0, description: "", rewards: []) }
+        // 开关关闭时仍保留已有规则配置，xgd规则页也不以开关隐藏规则。
+        if !enabled && (d["signMode"] == nil || d["signMode"] is NSNull) { return Self(enabled: false, mode: 0, daily: 0, minimum: 0, maximum: 0, description: "", rewards: []) }
         let mode = try SignInPayload.integer(d["signMode"])
         guard mode == 1 || mode == 2 else { throw DailySignInError.invalidResponse }
         var rewards: [DailySignInReward] = []
@@ -150,7 +161,7 @@ struct DailySignInRule {
                 return DailySignInReward(days: days, points: points)
             }.sorted { $0.days < $1.days }
         }
-        return try Self(enabled: true, mode: mode, daily: mode == 2 ? SignInPayload.integer(d["signDayMoney"]) : 0,
+        return try Self(enabled: enabled, mode: mode, daily: mode == 2 ? SignInPayload.integer(d["signDayMoney"]) : 0,
                         minimum: mode == 1 ? SignInPayload.integer(d["signMinMoney"]) : 0,
                         maximum: mode == 1 ? SignInPayload.integer(d["signMaxMoney"]) : 0,
                         description: d[mode == 1 ? "signRandomRule" : "signContinueRule"] as? String ?? "", rewards: rewards)

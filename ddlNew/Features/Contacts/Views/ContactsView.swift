@@ -260,6 +260,7 @@ struct ContactsView: View {
         }
         .buttonStyle(MessagingRowStyle())
         .id(presentationIdentity)
+        .modifier(VisibleContactProfileRefresh(friendUID: contact.id, store: store))
         .accessibilityIdentifier("contact.\(contact.id)")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(contact.displayName + (contact.isDeleted ? L10n.tr("，账号已注销") : contact.isOnline ? L10n.tr("，在线") : L10n.tr("，离线")))

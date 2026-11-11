@@ -39921,6 +39921,150 @@
           }
         }
       }
+    },
+    "1、每日签到可以获得固定日签积分(%@分)，连续签到可以获得连签奖励。\n2、每日最多可签到1次，重复签到不会重复计数。\n3、当连续签到中断后，之前攒下的积分会保留，不会清零，但会重新累计连续签到天数。\n4、只要连签天数满足当月连续签到成功天数设置最大值，之后用户连签的每一天都将额外获得连签最大值的奖励积分。\n5、积分只限用户本人使用，不可转移至其他账户。": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1、每日签到可以获得固定日签积分(%@分)，连续签到可以获得连签奖励。\n2、每日最多可签到1次，重复签到不会重复计数。\n3、当连续签到中断后，之前攒下的积分会保留，不会清零，但会重新累计连续签到天数。\n4、只要连签天数满足当月连续签到成功天数设置最大值，之后用户连签的每一天都将额外获得连签最大值的奖励积分。\n5、积分只限用户本人使用，不可转移至其他账户。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1、每日簽到可以獲得固定日簽點數(%@分)，連續簽到可以拿到連簽獎勵。\n2、每日最多可簽到1次，重複簽到不會重複數數。\n3、當連續簽到中斷後，之前存下的積分會保留，不會清除零，但會重新累積連續簽到天數。\n4、只要連簽天數滿足當月連續簽到成功天數設定最大值，之後用戶連簽的每一天都將額外獲得連簽最大值的獎勵積分。\n5、積分只限用戶本人使用，不可轉移至其他帳戶。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1、Daily sign-in can earn fixed daily sign-in points (%@ points), and continuous sign-in can earn consecutive sign-in bonuses.\n2、You can sign in once a day at most, and repeated sign-ins will not be counted again.\n3、When the consecutive sign-in is interrupted, the points accumulated before will be retained and will not be reset, but the consecutive sign-in days will be accumulated again.\n4、As long as the consecutive sign-in days meet the maximum number of consecutive sign-in days set for the month, the user will receive additional bonus points for each consecutive sign-in day.\n5、Points are only for the user himself and cannot be transferred to other accounts."
+          }
+        }
+      }
+    },
+    "1、每日签到积分由管理员设置一个最低值和最高值（例如区间值%@～%@），点击签到按钮后，即可获得本日签到积分。\n2、每日最多可签到1次，重复签到不会重复计数。\n3、积分只限本人使用，不可转移至其他账户。": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1、每日签到积分由管理员设置一个最低值和最高值（例如区间值%@～%@），点击签到按钮后，即可获得本日签到积分。\n2、每日最多可签到1次，重复签到不会重复计数。\n3、积分只限本人使用，不可转移至其他账户。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1、每日簽到積分由管理員設定一個最低值和最高值（例如區間值%@～%@），點擊簽到按鈕後，即可獲得本日簽到積分。\n2、每日最多可簽到1次，重複簽到不會重複數數。\n3、積分只限本人使用，不可轉移至其他帳戶。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1、The administrator sets a minimum and maximum value for daily sign-in points (e.g., interval value %@ to %@). After clicking the sign-in button, you can get the sign-in points for the day.\n2、You can sign in once a day at most, and repeated sign-ins will not be counted again.\n3、Points are for personal use only and cannot be transferred to other accounts."
+          }
+        }
+      }
+    },
+    "当月连续签到成功天数": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当月连续签到成功天数"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當月連續簽到成功天數"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuous sign-in days in the month"
+          }
+        }
+      }
+    },
+    "奖励积分": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "奖励积分"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "獎勵積分"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bonus points"
+          }
+        }
+      }
+    },
+    "当前日期": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前日期"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前日期"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current date"
+          }
+        }
+      }
+    },
+    "今天": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

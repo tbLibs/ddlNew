@@ -11,4 +11,5 @@ protocol ContactsClient: AnyObject {
     func observe(_ onChange: @escaping @MainActor (ContactsChange) -> Void)
     func stopObserving()
     func loadContacts(for userUID: String) async throws -> [ContactRecord]
+    func refreshProfile(_ friendUID: String, for userUID: String) async throws
 }

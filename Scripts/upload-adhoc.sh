@@ -35,7 +35,7 @@ run_auth /usr/bin/scp "${SSH_OPTIONS[@]}" -P 22 \
     "$ARTIFACTS/ddlNew.ipa" "$ARTIFACTS/manifest.plist" "$TARGET:$STAGING/"
 
 # Values interpolated below are fixed paths, UUIDs or SHA-256 digests.
-# Verify both files before replacing anything. Keep the previous files for recovery.
+# Verify both files before replacing anything. Keep backups only until publication succeeds.
 remote "set -eu
 cd '$STAGING'
 printf '%s  %s\n' '$IPA_SHA' ddlNew.ipa '$MANIFEST_SHA' manifest.plist | sha256sum -c -
@@ -53,6 +53,8 @@ if ! mv -f manifest.plist '$REMOTE/manifest.plist'; then
 fi
 cd '$REMOTE'
 printf '%s  %s\n' '$IPA_SHA' ddlNew.ipa '$MANIFEST_SHA' manifest.plist | sha256sum -c -
-echo '服务器文件校验通过'"
+echo '服务器文件校验通过'
+rm -f '$STAGING/previous-ddlNew.ipa' '$STAGING/previous-manifest.plist'
+rmdir '$STAGING'"
 printf '上传完成：%s/ddlNew.ipa 和 manifest.plist\n' "$REMOTE"
-printf '上一版本备份（如有）：%s/previous-*\n' "$STAGING"
+printf '上传临时目录已清理\n'

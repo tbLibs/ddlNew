@@ -17,6 +17,7 @@ final class SDKContactsClient: ContactsClient {
     private var delegate: SDKContactsDelegate?
     private var generation = UUID()
     private var remarkRequests = ContactRequestVersions()
+    private var profileWaiters: [UUID: ContactBusinessRequestWaiter<ContactProfilePayload>] = [:]
 
     /// AUTH前注册好友同步代理，旧会话事件由客户端轮次隔离。
     func observe(_ onChange: @escaping @MainActor (ContactsChange) -> Void) {
@@ -40,6 +41,8 @@ final class SDKContactsClient: ContactsClient {
     func stopObserving() {
         generation = UUID()
         remarkRequests = ContactRequestVersions()
+        for waiter in profileWaiters.values { waiter.cancel() }
+        profileWaiters = [:]
         ContactProfileRequestGate.shared.reset()
         if let delegate { sdk.removeUserDelegate(delegate) }
         delegate = nil
@@ -63,6 +66,60 @@ final class SDKContactsClient: ContactsClient {
                               nicknamePinyin: friend.nicknamePinyin ?? "", remarksPinyin: friend.remarksPinyin ?? "", roleID: friend.roleId)
             }
         }.value
+    }
+
+    /// 与 xgd 聊天页相同，读取对方公开资料后更新已有好友；不覆盖本人的备注或关系设置。
+    func refreshProfile(_ friendUID: String, for userUID: String) async throws {
+        let runID = generation
+        let gate = ContactProfileRequestGate.shared
+        let request: (license: String, version: UUID)? = {
+            let sdk = self.sdk
+            objc_sync_enter(sdk)
+            defer { objc_sync_exit(sdk) }
+            guard sdk.myUserID() == userUID, sdk.isUserDatabaseReady(),
+                  IMUserAuthenticationService.shared.isAuthenticated,
+                  let license = OSSNavigationStore.shared.lastUsableLiceseId(),
+                  !friendUID.isEmpty, let friend = sdk.toolCheckMyFriend(with: friendUID),
+                  friend.userType == 0, friend.disableStatus != 4,
+                  let version = gate.beginIfIdle(userUID: userUID, license: license, friendUID: friendUID) else { return nil }
+            return (license, version)
+        }()
+        guard let (license, version) = request else { return }
+        defer { gate.finish(version, userUID: userUID, license: license, friendUID: friendUID) }
+        let waiter = ContactBusinessRequestWaiter<ContactProfilePayload>()
+        profileWaiters[version] = waiter
+        defer { profileWaiters[version] = nil }
+        let payload = try await waiter.run {
+            let params: NSMutableDictionary = ["userUid": friendUID]
+            sdk.getUserInfo(with: params, onSuccess: { data, _ in
+                let payload = (data as? [String: Any]).flatMap { Mapper<ContactProfilePayload>().map(JSON: $0) }
+                Task { @MainActor in
+                    if let payload { waiter.finish(.success(payload)) }
+                    else { waiter.finish(.failure(ContactBusinessError.malformedResponse)) }
+                }
+            }, onFailure: { code, message, _ in
+                Task { @MainActor in waiter.finish(.failure(ContactBusinessError.server(code: code, message: message ?? ""))) }
+            })
+        }
+        try Task.checkCancellation()
+        let sdk = self.sdk
+        objc_sync_enter(sdk)
+        defer { objc_sync_exit(sdk) }
+        guard generation == runID, sdk.myUserID() == userUID, sdk.isUserDatabaseReady(),
+              IMUserAuthenticationService.shared.isAuthenticated,
+              OSSNavigationStore.shared.lastUsableLiceseId() == license,
+              gate.accepts(version, userUID: userUID, license: license, friendUID: friendUID),
+              let friend = sdk.toolCheckMyFriend(with: friendUID) else { return }
+        var changed = false
+        if let nickname = payload.nickname, nickname != friend.nickname {
+            friend.nickname = nickname
+            friend.nicknamePinyin = payload.nicknamePinyin ?? ContactSorter.searchPinyin(for: nickname)
+            friend.showName = (friend.remarks ?? "").isEmpty ? nickname : friend.remarks
+            changed = true
+        }
+        if let avatar = payload.avatar, avatar != friend.avatar { friend.avatar = avatar; changed = true }
+        if let status = payload.disableStatus, status != friend.disableStatus { friend.disableStatus = status; changed = true }
+        if changed, !sdk.toolUpdateMyFriend(with: friend) { throw ContactsClientError.cacheReadFailed }
     }
 
     /// 和老项目相同：跨端修改备注后获取最新资料，写回 SDK 再由好友变化代理刷新。

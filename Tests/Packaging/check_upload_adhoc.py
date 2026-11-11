@@ -65,15 +65,35 @@ for line in sys.stdin:
         return subprocess.run(['/bin/bash', str(self.script), str(self.artifacts)],
                               env=self.env, capture_output=True, text=True, timeout=20)
 
-    def test_upload_checksums_and_previous_files(self):
+    def test_upload_checksums_and_cleanup(self):
         result = self.run_upload()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for name in ['ddlNew.ipa', 'manifest.plist']:
             self.assertEqual((self.remote / name).read_bytes(), (self.artifacts / name).read_bytes())
-        self.assertEqual(next(self.remote.glob('.upload-*/previous-ddlNew.ipa')).read_bytes(), b'old IPA')
+        self.assertFalse(list(self.remote.glob('.upload-*')))
         self.assertFalse((self.remote / '.publish-lock').exists())
         self.assertFalse(list(self.remote.rglob('do-not-upload.log')))
         self.assertNotIn('fixture-only', result.stdout + result.stderr)
+        self.assertNotIn('上一版本备份', result.stdout)
+
+    def test_first_upload_removes_empty_staging(self):
+        (self.remote / 'ddlNew.ipa').unlink()
+        (self.remote / 'manifest.plist').unlink()
+        self.test_upload_checksums_and_cleanup()
+
+    def test_manifest_replacement_failure_keeps_rollback(self):
+        self.make_tool('mv', '''
+import subprocess, sys
+if sys.argv[-2] == 'manifest.plist': sys.exit(1)
+sys.exit(subprocess.call(['/bin/mv'] + sys.argv[1:]))
+''')
+        result = self.run_upload()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.remote / 'ddlNew.ipa').read_bytes(), b'old IPA')
+        self.assertEqual((self.remote / 'manifest.plist').read_bytes(), b'old manifest')
+        self.assertTrue(list(self.remote.glob('.upload-*/previous-ddlNew.ipa')))
+        self.assertFalse((self.remote / '.publish-lock').exists())
+        self.assertNotIn('上传完成', result.stdout)
 
     def test_corrupt_transfer_preserves_release(self):
         self.env['CORRUPT'] = '1'

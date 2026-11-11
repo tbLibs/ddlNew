@@ -18,6 +18,23 @@ final class MockContactsClient: ContactsClient {
     private(set) var loadCount = 0
     var pendingLoad: CheckedContinuation<[ContactRecord], Error>?
     var suspendNextLoad = false
+    var remoteContacts: [ContactRecord] = []
+    var refreshCount = 0
+    var refreshFailure: Error?
+    var profileWaiters: [String: CheckedContinuation<Void, Error>] = [:]
+    var suspendRefreshes = false
+
+    func refreshProfile(_ friendUID: String, for userUID: String) async throws {
+        refreshCount += 1
+        if let refreshFailure { throw refreshFailure }
+        if suspendRefreshes {
+            try await withCheckedThrowingContinuation { profileWaiters[friendUID] = $0 }
+        }
+        try Task.checkCancellation()
+        guard userUID == activeUserUID else { throw CancellationError() }
+        if let fresh = remoteContacts.first(where: { $0.id == friendUID }),
+           let index = contacts.firstIndex(where: { $0.id == friendUID }) { contacts[index] = fresh }
+    }
 
     func observe(_ onChange: @escaping @MainActor (ContactsChange) -> Void) { self.onChange = onChange }
     func stopObserving() { stopCount += 1; onChange = nil }

@@ -1,5 +1,51 @@
 # ddlNew 项目交接文档
 
+## 2026-11-11 上传成功后清理临时备份目录
+
+用户提供Ad Hoc导出和上传成功日志，并要求不保留服务器`.upload-<UUID>`目录。upload-adhoc.sh现保留发布过程中的暂存／回退备份，只有正式IPA与清单SHA-256复验均成功后，删除本轮两个previous文件并rmdir本轮目录；成功日志改为“上传临时目录已清理”。失败仍保留现场，不清理其他上传任务的目录；未改IPA或清单的正式路径。
+
+已通过SSH确认用户指定`.upload-bd95a3f8-4d5e-48ad-8cbf-f860c6f50394`只含旧IPA／清单备份，在发布锁保护下删除这两个文件及空目录；删除前后正式IPA与manifest的SHA-256相同。没有重新上传、重新打包或修改下载页面。上传离线检查5/5通过（成功清理、首次发布、清单替换失败回退、传输失败、摘要失败），Bash语法与diff空白检查通过。打包离线回归8/8通过；保留其他功能改动，未提交推送。
+
+## 2026-11-11 好友头像昵称自动刷新与消息列表订阅
+
+用户反馈通讯录和消息列表在好友改头像／昵称后不更新，进入详情后才更新。核对xgd：通讯录通过cimToolUserFriendChange消费SDK好友表更新；聊天页requestUserInfo调用getUserInfo，再更新已有好友并广播。当前源码未发现向所有好友分发独立头像／昵称变更事件的处理链路，不声称具备服务端即时推送能力。新项目ContactsStore已有好友变化订阅，但列表reload只读缓存；SDKConversationsClient仅订阅会话代理，好友表单独变更不会刷新消息列表。新增生产观察注册回归在修复前失败，输出“好友头像昵称已落库，但消息列表没有收到刷新事件”。
+
+SDKConversationsClient现同时注册SDKContactsDelegate，在好友变化、联系人同步完成／失败后重读会话展示字段；退出解除两个代理，generation拒绝排队及旧身份事件。通讯录／消息列表的普通好友可见行新增VisibleContactProfileRefresh，只有前台且AUTH有效才调ContactsStore.refreshVisibleProfile。两处共享每好友30秒间隔、最多4个并发、同UID请求合并及失败退避，离开页面／后台后停止轮询；已经发出的读取最多按既有20秒等待超时结束。这是可见行周期更新，不是保证毫秒级服务端推送；不轮询全量通讯录、不恢复配置接口。
+
+SDKContactsClient通过旧端相同getUserInfo接口读取对方UID，在SDK共用锁与账号／租户／观察轮次／资料版本门内，仅合并已有好友的昵称、拼音、头像和注销状态；不覆盖用户自己的备注、分组、权限或好友关系，不创建缺失好友，未变化不写库广播。静默请求使用beginIfIdle，不抢占详情或备注操作，后来的显式请求可使旧静默响应失效。失败保留旧列表，不反复弹Toast。
+
+生产观察注册、可见资料刷新限流／去重／失败退避／切账号，以及生产SDK请求方法的字段合并／备注保护／旧响应／好友删除／退出检查通过，入口Tests/Contacts/ProfileRefresh。原通讯录44项、SDK分页19项、响应字段、好友行11项与7组业务竞态检查通过；会话排序／Store／操作／预览及在线状态11项回归通过。最终完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-friend-profile-final-build.log`），git diff --check通过。未操作真实好友资料或安装真机，未读取首页源码、未修改xgd，保留签到／头像／等待音既有修改，未提交推送。
+
+## 2026-11-11 音视频等待音循环对齐 xgd
+
+核对 xgd 的 NoaIMMessageRemindTool，通话默认使用系统音1004，并在声音播放完成后继续循环；新项目原本同样使用1004，但固定每3秒触发一次。本轮 CallSystemResources 改为 AudioServicesPlaySystemSoundWithCompletion 完成后循环，适用于共用该资源的语音／视频呼叫。每轮等待音持有独立UUID，停止、释放或新通话替换后旧完成回调不再续播；保留现有来电震动节奏、屏幕常亮所有权及通话接通／结束的清理入口。系统正在播放的单次短音自然结束，停止后不再循环；没有新增音频文件或改动RTC／信令边界。
+
+生产资源所有权检查与新增循环／停止后排队回调／替换通话回调隔离检查通过，56项通话协调器生命周期回归通过。完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-call-ringtone-build.log`），git diff --check通过。未拨打真实电话或真机试听，未读取首页源码、未修改xgd、未提交推送，保留已有签到和头像修改。
+
+## 2026-11-11 设置账户卡片显示真实头像
+
+设置页原账户卡片固定展示person.crop.circle，未传入登录用户头像。SettingsScreen现观察UserSessionStore与文件节点，沿用我的页RemoteAvatarURL、NetworkImageDownloader、LegacyRemoteImageProcessor及Kingfisher降采样，将头像视图传给SettingsPageContent。保持56尺寸／18圆角；无头像、加载中或失败保留默认人物占位。账号切换、资料头像或文件节点变化随观察源更新；未改退出／注销等业务动作。
+
+完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-settings-avatar-build.log`），git diff --check通过。未读取首页源码、未修改用户头像、未安装手机或验收真实图片下载，保留签到相关既有修改，未提交推送。
+
+## 2026-11-11 日历今天与已签到标识
+
+按用户要求，DailySignInCalendar对本地当前年月日显示强调描边、“今天”文字及加粗日期；服务端月签到记录对应日期显示浅色背景和勾选图标，今日已签时同时保留两种状态。增加已签到图例和独立无障碍状态，不只依赖颜色。今天按完整年月匹配并每分钟更新，查看历史月份不误标同日号；星期标题改为负数ID，与日期格ID分开，避免首周日期复用。新文案“今天”通过xcstrings提供简繁英。
+
+匿名原生生产视图测试2/2通过：今日未签、今日已签组合、首周日期存在、切换历史月仅保留记录中的签到标识（`/tmp/ddlNew-signin-calendar.xcresult`），截图附件已核验。三语目录各1668键审计通过；完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-signin-calendar-build.log`），git diff --check通过。未读取首页源码、未执行真实签到或覆盖安装手机，保留前轮push／规则／日期修改，未提交推送。
+
+## 2026-11-10 每日签到push、日期与规则对齐
+
+用户依次要求修复签到记录／积分明细点击日期只向前翻月、显示当前日期、规则使用xgd文案、每日签到改为push。两个明细页共用的DailySignInMonthSelector处于List行内，automatic按钮样式让同一行多个按钮一起响应，先发出的上月刷新占据busy，导致右箭头也不能返回本月。原生宿主两个用例均复现失败；改为borderless独立按钮后左右方向回归2/2通过，当前月仍禁止查看未来月份，日期文字不再误触翻月。
+
+签到概览新增当前本地日期／星期，使用系统日期格式和应用locale，每分钟更新；与日历查询月份分开。随机规则完整三条、连签规则完整五条、奖励表“当月连续签到成功天数／奖励积分”直接对齐xgd，并复用旧端三语译文存入xcstrings，填入真实配置金额；不再展示简写条款或追加服务端自定义规则文本。开关关闭时仍保留并展示已有模式／奖励配置，真实签到继续由写接口判定开放状态。
+
+我的每日签到和消息签到助手入口由sheet改为所属导航栈navigationDestination，移除签到内部嵌套NavigationStack及关闭按钮。目的地持有共享Store，真正pop到入口时才close，push记录／积分／规则或从助手进入签到不会关闭Store；AUTH失效仍清理并退出。未读取首页／活动源码、未改首页导航或xgd，既有其他sheet保持。
+
+验证：33项模型／Store、14项SDK适配器回归通过；三语目录各1667键和4项权限说明完整性／占位符／编译运行时检查通过。完整workspace generic iOS Debug无签名构建BUILD SUCCEEDED（`/tmp/ddlNew-sign-in-navigation-build.log`）。月份点击旧版失败报告`/tmp/ddlNew-month-navigation-red.xcresult`，修复2/2通过报告`/tmp/ddlNew-month-navigation-green.xcresult`。匿名原生页面宿主直接编译生产视图与Store，测试不访问真实账号或签到服务，入口见`Tests/DailySignIn/MonthNavigation/README.md`。
+
+原生页面3项分别通过：随机规则与助手push／连签规则见`/tmp/ddlNew-signin-pages.xcresult`；日期与push／记录积分返回／重新进入见`/tmp/ddlNew-signin-push-verified.xcresult`。首轮日期断言忽略LabeledContent的无障碍合并标题而失败，调整为校验完整日期后单独复跑通过，生产代码未为测试修改。截图已检查当前日期、完整规则及奖励表。未覆盖安装手机、未执行真实签到、未提交推送；git diff --check通过。
+
 ## 2026-11-10 每日签到积分区间与未开启提示修复
 
 用户打开我的→每日签到出现“签到数据无效，请重试”。真机Xcode临时条件断点捕获生产DailySignInInfo.parse→SignInPayload.integer输入为字符串`100-200`：服务端随机模式的loyalty是今日可领积分展示区间，旧端CandyTalkSignInViewController使用`%@`直接展示，新端误作Int64。已将todayPoints改为展示字符串，保留服务端区间和数字文本；累计积分、天数、记录和真实奖励仍按原整数校验。离线回归先复现相同中文错误，再修复通过；没有把空数据或坏累计值统一当成0。
@@ -116,7 +162,7 @@ Store与SDK双层按UID／租户／AUTH轮次隔离；未AUTH入口禁用，退�
 | 清单地址 | `https://static.xingqitongim.com/ddlnew/manifest.plist` |
 | 图标地址 | 沿用 `https://static.xingqitongim.com/ios/512.png` |
 
-仅上传 IPA 和清单，不上传归档、日志、认证配置或 index.html。文件先传至远端 `.upload-<UUID>/`，两项 SHA-256 均通过后获取发布锁、备份旧文件、依次替换 IPA 和清单，再复验正式文件摘要。旧文件保留为临时目录中的 `previous-*`。传输／预校验失败不会替换正式文件；每个文件独立 rename，两个文件并非整体原子事务。首次 SSH 接受新主机密钥，已记录密钥变更则拒绝连接；强制中止残留的发布锁需核实无在途发布后处理。
+仅上传 IPA 和清单，不上传归档、日志、认证配置或 index.html。文件先传至远端 `.upload-<UUID>/`，两项 SHA-256 均通过后获取发布锁、备份旧文件、依次替换 IPA 和清单，再复验正式文件摘要。旧文件仅在发布过程中临时备份为 `previous-*`；正式文件复验成功后删除备份和本次 `.upload-<UUID>/` 目录，不长期保留历史包。失败时保留本次临时内容，传输／预校验失败不会替换正式文件；每个文件独立 rename，两个文件并非整体原子事务。首次 SSH 接受新主机密钥，已记录密钥变更则拒绝连接；强制中止残留的发布锁需核实无在途发布后处理。
 
 下载页面的修改位于仓库外 `/Users/taobotaobo/Downloads/index.html`，旁边有 `manifest.plist`；页面安装链接与二维码已指向 `/ddlnew/`。这些本地文件修改不代表已部署，上传脚本不包含页面发布。
 

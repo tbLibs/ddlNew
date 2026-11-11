@@ -13,6 +13,7 @@ import NoaChatCore
 final class SDKConversationsClient: ConversationsClient {
     private var sdk: NoaIMSDKManager { NoaIMSDKManager.sharedTool() }
     private var delegate: SDKConversationsDelegate?
+    private var contactsDelegate: SDKContactsDelegate?
     private var generation = UUID()
 
     /// 操作适配器通过同一订阅轮次拒绝退出后迟到的请求。
@@ -30,6 +31,20 @@ final class SDKConversationsClient: ConversationsClient {
         }
         self.delegate = delegate
         sdk.addSessionDelegate(delegate)
+        // 会话标题和头像来自好友表；好友资料落库不会必然触发会话表事件。
+        let contactsDelegate = SDKContactsDelegate { [weak self] change in
+            switch change {
+            case .changed, .syncFinished, .syncFailed:
+                Task { @MainActor [weak self] in
+                    guard let self, self.generation == runID else { return }
+                    onChange(.changed)
+                }
+            case .syncStarted, .remarkChanged:
+                break // 备注通知先由通讯录请求并落库，再消费 changed。
+            }
+        }
+        self.contactsDelegate = contactsDelegate
+        sdk.addUserDelegate(contactsDelegate)
     }
 
     /// 失效旧轮次并移除 SDK 代理。
@@ -40,6 +55,8 @@ final class SDKConversationsClient: ConversationsClient {
             sdk.removeSessionDelegate(delegate)
         }
         delegate = nil
+        if let contactsDelegate { sdk.removeUserDelegate(contactsDelegate) }
+        contactsDelegate = nil
     }
 
     /// 在数据库锁内读取当前用户的会话、草稿和消息预览。

@@ -24,6 +24,8 @@ final class ContactsStore: ObservableObject {
     private var reloadTask: Task<Void, Never>?
     private var readingCache = false
     private var reloadRequested = false
+    private var profileRefreshes: [String: Task<Void, Never>] = [:]
+    private var profileAttempts: [String: Date] = [:]
 
     init(client: any ContactsClient) { self.client = client }
 
@@ -106,8 +108,34 @@ final class ContactsStore: ObservableObject {
 
     private func updateErrorMessage() { errorMessage = syncError ?? cacheError }
 
+    /// 可见行共享限流；只更新已有普通好友，失败保留缓存并按同样间隔退避。
+    func refreshVisibleProfile(_ friendUID: String, now: Date = Date()) async {
+        guard let userUID, !Task.isCancelled,
+              let friend = contacts.first(where: { $0.id == friendUID }),
+              friend.userType == 0, !friend.isDeleted, friendUID != userUID else { return }
+        if let task = profileRefreshes[friendUID] { await task.value; return }
+        guard profileRefreshes.count < 4,
+              profileAttempts[friendUID].map({ now.timeIntervalSince($0) >= 30 }) ?? true else { return }
+        profileAttempts[friendUID] = now
+        let runID = generation
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer { if self.generation == runID { self.profileRefreshes[friendUID] = nil } }
+            do {
+                try await self.client.refreshProfile(friendUID, for: userUID)
+                guard !Task.isCancelled, self.generation == runID else { return }
+                await self.reload()
+            } catch { /* 静默刷新不打断列表，不清空已有资料。 */ }
+        }
+        profileRefreshes[friendUID] = task
+        await task.value
+    }
+
     func reset() {
         generation = UUID()
+        for task in profileRefreshes.values { task.cancel() }
+        profileRefreshes = [:]
+        profileAttempts = [:]
         reloadTask?.cancel()
         reloadTask = nil
         readingCache = false

@@ -58,7 +58,12 @@ struct MineView: View {
             MineProfileView(context: destination.context, nickname: destination.nickname)
         }
         .sheet(isPresented: $showSettings) { SettingsScreen() }
-        .sheet(item: $dailySignIn) { DailySignInView(destination: $0) }
+        .navigationDestination(isPresented: Binding(
+            get: { dailySignIn != nil },
+            set: { if !$0 { dailySignIn?.close(); dailySignIn = nil } }
+        )) {
+            if let destination = dailySignIn { DailySignInView(destination: destination) }
+        }
         .sheet(isPresented: $showingComplaint, onDismiss: { if complaintSubmitted { feedback = L10n.tr("投诉已提交"); complaintSubmitted = false } }) {
             ComplaintView(target: .general, targetName: L10n.tr("系统投诉")) { complaintSubmitted = true }
         }

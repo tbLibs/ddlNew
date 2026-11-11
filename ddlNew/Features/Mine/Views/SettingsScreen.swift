@@ -6,11 +6,14 @@
 //
 
 import SwiftUI
+import Kingfisher
+import UIAdapter
 
 struct SettingsScreen: View {
     @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var store: ClubStore
     @ObservedObject private var userSession = UserSessionStore.shared
+    @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @Environment(\.dismiss) private var dismiss
     @State private var confirmLogout = false
     @State private var legalDocument: LegalDocument?
@@ -20,6 +23,7 @@ struct SettingsScreen: View {
                 SettingsPageContent(
                     displayName: displayName,
                     account: userSession.currentUser?.userName ?? "",
+                    avatar: accountAvatar,
                     deleteDestination: DeleteAccountScreen(),
                     openPrivacyPolicy: { legalDocument = .privacy },
                     openSupport: { legalDocument = .support },
@@ -39,6 +43,28 @@ struct SettingsScreen: View {
                 } message: { Text(L10n.tr("退出登录后，活动记录会保留。")) }
                 .sheet(item: $legalDocument) { LegalDocumentScreen(document: $0) }
         }.navigationViewStyle(.stack).tint(HomeTheme.forest)
+    }
+
+    /// 与我的页共用头像地址、下载器和旧端图片解包方式。
+    private var accountAvatar: some View {
+        let host = connection.current?.getFileHost
+        let url = RemoteAvatarURL.resolve(userSession.currentUser?.avatar ?? "", relativeTo: host)
+        return KFImage(url)
+            .downloader(NetworkImageDownloader.downloader(for: host))
+            .setProcessor(LegacyRemoteImageProcessor() |> DownsamplingImageProcessor(size: CGSize(width: 56.zoom(), height: 56.zoom())))
+            .cancelOnDisappear(true)
+            .placeholder {
+                ZStack {
+                    HomeTheme.surface
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 28.zoom(), weight: .regular))
+                        .foregroundStyle(HomeTheme.forest)
+                }
+            }
+            .resizable().scaledToFill()
+            .frame(width: 56.zoom(), height: 56.zoom())
+            .clipShape(RoundedRectangle(cornerRadius: 18.zoom()))
+            .id(userSession.currentUser?.userUID)
     }
 
     private var displayName: String {
