@@ -281,7 +281,8 @@ struct MessageView: View {
             VStack(alignment: .leading, spacing: 6.zoom()) {
                 Text(conversation.title.isEmpty ? L10n.tr("未命名会话") : conversation.title)
                     .font(.body.weight(.medium)).foregroundStyle(MessagingTheme.text)
-                    .lineLimit(conversation.kind == .group ? 1 : 2).truncationMode(.tail)
+                    .lineLimit(conversation.kind == .single || conversation.kind == .group ? 1 : 2)
+                    .truncationMode(.tail)
                 preview(for: conversation)
             }.frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: 10.zoom()) {

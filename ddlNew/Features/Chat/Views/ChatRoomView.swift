@@ -152,6 +152,12 @@ struct ChatRoomView: View {
             }
             .background(MessagingTheme.background)
             .safeAreaInset(edge: .bottom, spacing: 0.zoom()) { composer }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                // 系统菜单会隐藏键盘但可能保留first responder；每次实际收键盘都结束输入。
+                guard composerFocused else { return }
+                composerFocused = false
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .onAppear { resumeChat(proxy) }
             .onChange(of: store.messages.last?.id) { id in
                 guard id != nil else { return }
@@ -636,7 +642,12 @@ struct ChatRoomView: View {
                     }
                     .onTapGesture { if composerMode.panel != .selection { activateMessage(message) } }
                     .accessibilityAction(named: openActionTitle(message)) { activateMessage(message) }
-                    .contextMenu { if composerMode.panel != .selection { messageMenu(message) } }
+                    .contextMenu {
+                        if composerMode.panel != .selection {
+                            messageMenu(message)
+                                .onAppear { composerFocused = false }
+                        }
+                    }
                     .accessibilityAction(named: L10n.tr("选择消息")) { composerMode.selectMessages(); composerFocused = false; store.toggleSelection(message.id) }
                 }
             }

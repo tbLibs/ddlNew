@@ -1,5 +1,23 @@
 # ddlNew 项目交接文档
 
+## 2026-11-11 用户资料页关闭横向回弹
+
+用户确认问题发生在保存后的用户资料整页：iPhone 16 Pro Max、iOS 26，填写长备注／描述后横向拖动会松手回弹；iPhone 12未出现。按用户要求保留SwiftUI横向basedOnSize策略，同时显式关闭资料页原生UIScrollView.bouncesHorizontally（iOS17.4起）。ContactRecordDetailView内容内的局部UIViewRepresentable寻找所属滚动容器，在布局及SwiftUI更新后应用开关，离开时恢复原值；不改纵向回弹、共享MessagingScroll或导航手势代理。
+
+新增Tests/Contacts/ProfileLayout匿名原生宿主，提取生产完整资料内容、detail行及两个局部滚动辅助类型，编译生产滚动／卡片／按钮样式和真实UIAdapter缩放。覆盖6种宽度输入、空备注／50字中文备注／50个连续英文字母备注，以及短描述／200字中文／200个连续英文字母／200 UTF-16单元表情，共72组。检查视口和内容宽度（容差0.01点）、长描述换行增高及原生横向关闭／纵向开启。UI拖动检查记录contentOffset.x，满备注加满描述横向拖动保持0。
+
+iPhone 17 Pro Max模拟器／iOS26.5中，改动前满备注及描述未出现padding撑宽（`/tmp/ddlNew-profile-remark-full.xcresult`）；仅加SwiftUI策略仍未关闭原生bouncesHorizontally，对应断言失败（`/tmp/ddlNew-profile-bounce-fixed.xcresult`）。加入局部原生开关后最终两项测试通过（`/tmp/ddlNew-profile-native-fixed.xcresult`）。这些验证了宽度约束和原生开关，不代表已复现或验收用户iPhone16 Pro Max的实际回弹问题；未安装真机。完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-profile-horizontal-workspace-build.log`），git diff --check通过。未读取首页源码、未改真实资料或xgd，保留既有聊天焦点及消息标题修改，未提交推送。
+
+## 2026-11-11 连续长按菜单每次同步清焦点与单聊标题限行
+
+用户真机反馈首次长按清焦点，取消后重新输入、第二次长按只隐藏键盘，焦点仍保留。前轮匿名宿主通过并不代表完整页面／真机已解决，且第二次菜单仍打开时缺少焦点断言。本轮补充连续四轮取消测试，同时观察composerFocused和生产UITextView.isFirstResponder。
+
+最终方案移除ChatMessageLongPressDismissal及消息行上的0.1秒窗口手势监听。ChatRoomView改为订阅keyboardWillHideNotification：每次键盘开始隐藏且composerFocused为true时，同步置false并主动resignFirstResponder，不依赖系统菜单内容是否重新触发onAppear。原菜单onAppear作为补充；复制／取消保持失焦，主动点击输入框和引用回复仍能重新编辑，草稿保留。不改菜单权限或业务动作。MessageView的单聊昵称／备注与群聊一样限制一行、尾部省略，保留完整数据及VoiceOver文案。
+
+Tests/Chat/ContextMenuFocus直接提取生产键盘通知处理和contextMenu，编译生产输入器。临时对照宿主只移除键盘通知处理，保留菜单onAppear，第二次菜单仍显示时composerFocused及isFirstResponder均未清除，两项断言失败（`/tmp/ddlNew-focus-menu-only.xcresult`）。保留通知处理后，连续四轮取消测试通过（`/tmp/ddlNew-focus-keyboard.xcresult`），每轮在菜单期间检查两层焦点，关闭后检查键盘不恢复、草稿保留及下一轮可重新编辑。探索用滚动夹具曾在第二次点击输入框阶段失败，症状不同，未把该失败作为根因证据；最终测试仍是匿名组件交互，并非完整ChatRoomView或真机验收。
+
+最终匿名原生回归3/3通过（`/tmp/ddlNew-focus-keyboard-final.xcresult`），包含上述连续四轮取消、复制后保持失焦、引用回复重新输入。既有输入焦点绑定回归及git diff --check通过。完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-focus-keyboard-build.log`）。未读取首页源码，未操作真实消息或安装真机，未提交推送。
+
 ## 2026-11-11 上传成功后清理临时备份目录
 
 用户提供Ad Hoc导出和上传成功日志，并要求不保留服务器`.upload-<UUID>`目录。upload-adhoc.sh现保留发布过程中的暂存／回退备份，只有正式IPA与清单SHA-256复验均成功后，删除本轮两个previous文件并rmdir本轮目录；成功日志改为“上传临时目录已清理”。失败仍保留现场，不清理其他上传任务的目录；未改IPA或清单的正式路径。

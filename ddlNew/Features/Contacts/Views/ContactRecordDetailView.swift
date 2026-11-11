@@ -102,8 +102,11 @@ struct ContactRecordDetailView: View {
                         }
                     }
                 } else if !businessStore.isLoading { EmptyClubState(title: L10n.tr("资料暂时不可用"), message: L10n.tr("好友关系可能已变化，请刷新资料后重试。")) }
-            }.padding(16.zoom())
+            }
+            .background(ContactProfileVerticalScrollGuard())
+            .padding(16.zoom())
         }
+        .modifier(ContactProfileScrollBehavior())
         .navigationTitle(L10n.tr("用户资料"))
         .modifier(MessagingPageChrome())
         .navigationDestination(isPresented: Binding(get: { requestedChat != nil }, set: { if !$0 { requestedChat = nil } })) {
@@ -246,5 +249,77 @@ struct ContactRecordDetailView: View {
     private func copyAccount(_ contact: ContactRecord) {
         UIPasteboard.general.string = contact.account.isEmpty ? contact.id : contact.account
         showingCopyToast = true
+    }
+}
+
+/// 横向按内容尺寸决定回弹，保留纵向滚动及导航交互。
+private struct ContactProfileScrollBehavior: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, *) {
+            content.scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        } else {
+            content
+        }
+    }
+}
+
+/// 仅配置当前资料内容所属的滚动容器，不修改全局UIScrollView或手势代理。
+private struct ContactProfileVerticalScrollGuard: UIViewRepresentable {
+    func makeUIView(context: Context) -> MarkerView {
+        let view = MarkerView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+    func updateUIView(_ view: MarkerView, context: Context) {
+        view.scheduleConfiguration()
+    }
+
+    static func dismantleUIView(_ view: MarkerView, coordinator: ()) {
+        view.isDismantled = true
+        view.restore()
+    }
+
+    final class MarkerView: UIView {
+        var isDismantled = false
+        private weak var configuredScroll: UIScrollView?
+        private var originalHorizontalBounce: Bool?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window == nil { restore() }
+            else { scheduleConfiguration() }
+        }
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            configure()
+        }
+        func scheduleConfiguration() {
+            // 在SwiftUI本轮滚动环境更新之后落实横向开关。
+            DispatchQueue.main.async { [weak self] in self?.configure() }
+        }
+        private func configure() {
+            guard #available(iOS 17.4, *), !isDismantled, window != nil else { return }
+            var ancestor = superview
+            while let view = ancestor {
+                if let scroll = view as? UIScrollView {
+                    if configuredScroll !== scroll {
+                        restore()
+                        configuredScroll = scroll
+                        originalHorizontalBounce = scroll.bouncesHorizontally
+                    }
+                    scroll.bouncesHorizontally = false
+                    return
+                }
+                ancestor = view.superview
+            }
+        }
+        func restore() {
+            if #available(iOS 17.4, *), let scroll = configuredScroll,
+               let originalHorizontalBounce, !scroll.bouncesHorizontally {
+                scroll.bouncesHorizontally = originalHorizontalBounce
+            }
+            configuredScroll = nil
+            originalHorizontalBounce = nil
+        }
     }
 }
