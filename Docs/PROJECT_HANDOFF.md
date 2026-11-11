@@ -1,5 +1,21 @@
 # ddlNew 项目交接文档
 
+## 2026-11-11 聊天滚动时导航与状态栏配色
+
+用户录屏显示约4.6秒起白色背景保留，聊天标题、时间及电量变浅看不清，返回和更多按钮仍在。ChatRoomView原先只声明动态导航背景及可见性，现读取页面colorScheme并显式设置toolbarColorScheme，使导航标题和状态栏按页面浅深色配对，避免依赖滚动时系统自动推断。只调整聊天页，不改变历史分页、消息、输入或共享导航。
+
+完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-chat-navigation-color-build.log`），git diff --check通过。临时匿名iOS26.5模拟器宿主提取生产导航背景／配色修饰器和MessagingTheme，程序滚动至第60条后浅深色截图均清晰（`/tmp/ddlNew-chat-navigation-preview/`）；去掉新增配色设置的对照宿主也未复现用户白字现象，因此只作为修改后的展示检查，不能证明真机根因或修复验收。仍需用户重新Run按录屏连续上翻复验。未安装真机、未操作真实消息、未提交推送；保留同期最近表情改动。
+
+## 2026-11-11 最近使用表情按账号持久保存
+
+ChatEmojiPanel此前只用面板内@State保存最近使用，面板关闭销毁后再次创建会恢复为空。新增ChatRecentEmojiHistory，通过UserDefaults按租户和用户UID保存目录中的稳定token；不以会话ID或登录sessionID分隔，同账号跨聊天和重启可恢复，账号／租户互不混用。维持最近7个；按用户后续要求，仅从“全部表情”选择时更新记录并移到最前，点击“最近使用”（包括无记录时的默认7项）只插入、不重排或改写历史。读取过滤失效或重复token；只保存ID，不保存图片或消息内容。
+
+面板出现及身份改变时加载历史，从全部表情成功插入输入框后立即记录。超出1000字符而被拒绝的插入不改变最近使用；无历史仍沿用原默认7项展示。不改贴纸收藏接口、SDK、发送或草稿业务，无新增文案。
+
+Tests/Chat/RecentEmoji包含生产存储的排序／去重／容量／账号租户隔离／损坏记录检查，以及直接编译生产面板的匿名原生UI宿主。旧实现在测试App重启后最近项消失（`/tmp/ddlNew-recent-emoji-baseline.xcresult`）；修复后关闭重建面板及终止重启App均恢复，iPhone17 Pro Max／iOS26.5测试通过（`/tmp/ddlNew-recent-emoji-verified.xcresult`）。初版宿主按钮随面板收起跳动导致开关步骤失败，固定测试入口后复验；不将该宿主问题当生产根因。存储回归及既有表情目录／光标检查通过，完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-recent-emoji-build.log`），git diff --check通过。未安装真机、未发送真实消息、未读取首页代码、未提交推送。
+
+后续“点击最近使用不重排”调整：存储回归及git diff --check通过，完整workspace无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-recent-emoji-order-build.log`）；本次未重跑原生UI测试。
+
 ## 2026-11-11 用户资料页关闭横向回弹
 
 用户确认问题发生在保存后的用户资料整页：iPhone 16 Pro Max、iOS 26，填写长备注／描述后横向拖动会松手回弹；iPhone 12未出现。按用户要求保留SwiftUI横向basedOnSize策略，同时显式关闭资料页原生UIScrollView.bouncesHorizontally（iOS17.4起）。ContactRecordDetailView内容内的局部UIViewRepresentable寻找所属滚动容器，在布局及SwiftUI更新后应用开关，离开时恢复原值；不改纵向回弹、共享MessagingScroll或导航手势代理。

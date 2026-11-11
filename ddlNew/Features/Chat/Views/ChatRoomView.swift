@@ -23,6 +23,7 @@ struct ChatRoomView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
     @State private var voicePlayback = ChatVoicePlayback()
     @State private var openedContext: ChatContext?
     @State private var conversationClosed = false
@@ -196,6 +197,8 @@ struct ChatRoomView: View {
         .tint(MessagingTheme.accent)
         .toolbarBackground(MessagingTheme.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        // 滚动内容经过导航栏时不重新推断明暗，标题与状态栏始终匹配页面背景。
+        .toolbarColorScheme(colorScheme, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(composerMode.panel == .selection ? L10n.tr("选择消息（\(store.selectedIDs.count)）") : chatTitle)

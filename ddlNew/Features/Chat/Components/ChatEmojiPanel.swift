@@ -40,22 +40,24 @@ struct ChatEmojiPanel: View {
                             }
                         }
                         Text(L10n.tr("最近使用")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
-                        grid(recent.isEmpty ? Array(ChatEmojiCatalog.items.prefix(7)) : recent)
+                        grid(recent.isEmpty ? Array(ChatEmojiCatalog.items.prefix(7)) : recent, updatesRecent: false)
                         Text(L10n.tr("全部表情")).font(.caption).foregroundStyle(MessagingTheme.secondaryText)
-                        grid(ChatEmojiCatalog.items)
+                        grid(ChatEmojiCatalog.items, updatesRecent: true)
                     }.padding(.horizontal, 12.zoom()).padding(.bottom, 12.zoom())
                 }
             } else { ChatStickersView(chat: chat, embedded: true) }
         }.disabled(!chat.permission.canSend)
+        .onAppear { recent = recentHistory?.load() ?? [] }
+        .onChange(of: recentScope) { _ in recent = recentHistory?.load() ?? [] }
     }
 
     /// 自适应列宽保留至少44pt的操作区，窄屏与辅助字号不会挤掉表情。
-    private func grid(_ items: [ChatEmojiItem]) -> some View {
+    private func grid(_ items: [ChatEmojiItem], updatesRecent: Bool) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 4)], spacing: 4) {
             ForEach(items) { item in
                 Button {
-                    edit(ChatEmojiCatalog.replacing(chat.input, range: selection, with: item.token))
-                    recent.removeAll { $0.id == item.id }; recent.insert(item, at: 0); recent = Array(recent.prefix(7))
+                    guard edit(ChatEmojiCatalog.replacing(chat.input, range: selection, with: item.token)) else { return }
+                    if updatesRecent { recent = recentHistory?.record(item) ?? [] }
                 } label: {
                     Image(item.image).resizable().scaledToFit().frame(width: 30.zoom(), height: 30.zoom())
                         .frame(maxWidth: .infinity, minHeight: 44)
@@ -64,9 +66,20 @@ struct ChatEmojiPanel: View {
         }
     }
 
+    private var recentScope: [String] {
+        [chat.context?.tenantID ?? "", chat.context?.userUID ?? ""]
+    }
+
+    private var recentHistory: ChatRecentEmojiHistory? {
+        guard let context = chat.context else { return nil }
+        return ChatRecentEmojiHistory(tenantID: context.tenantID, userUID: context.userUID)
+    }
+
     /// 外部编辑与键盘走同一个草稿/提及核对入口，不创建或直接发送消息。
-    private func edit(_ result: (text: String, selection: NSRange)) {
-        guard ChatInputLimit.allows(result.text) else { chat.reportInputLimit(); return }
+    @discardableResult
+    private func edit(_ result: (text: String, selection: NSRange)) -> Bool {
+        guard ChatInputLimit.allows(result.text) else { chat.reportInputLimit(); return false }
         chat.input = result.text; chat.reconcileMentions(); selection = result.selection; chat.persistDraft()
+        return true
     }
 }
