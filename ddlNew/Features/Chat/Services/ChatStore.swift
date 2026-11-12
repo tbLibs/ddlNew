@@ -81,7 +81,14 @@ import Combine
             }
         } catch { errorMessage = error.localizedDescription }
         do {
-            merge(try client.cached(context: context, offset: 0), history: true)
+            let initialCache = try client.cached(context: context, offset: 0)
+            #if DEBUG
+            let historyBuild = "Debug"
+            #else
+            let historyBuild = "Release"
+            #endif
+            NSLog("%@", "[ChatHistory] diagnostic=v1 build=\(historyBuild) initialCached=\(initialCache.count) kind=\(context.route.kind)")
+            merge(initialCache, history: true)
             if messages.contains(where: \.isVisible) { initialHistoryRevision += 1 }
             permission = try client.permissions(context: context)
             let draft = try client.draft(context: context)
@@ -134,9 +141,7 @@ import Combine
         let beganAt = eventRevision
         let clearAtStart = clearRevision
         isLoading = true
-        #if DEBUG
-        print("[ChatHistory] start older=\(before != nil) offset=\(offset) knownMore=\(hasMore)")
-        #endif
+        NSLog("%@", "[ChatHistory] start older=\(before != nil) offset=\(offset) knownMore=\(hasMore)")
         defer { if generation == run { isLoading = false } }
         do {
             let page = try await client.history(context: context, before: before, offset: offset)
@@ -159,13 +164,9 @@ import Combine
             offset = page.nextOffset ?? messages.count
             historyCursor = page.nextCursor ?? before
             hasMore = page.hasMore
-            #if DEBUG
-            print("[ChatHistory] finish received=\(page.messages.count) visible=\(messages.filter(\.isVisible).count) offset=\(offset) more=\(hasMore)")
-            #endif
+            NSLog("%@", "[ChatHistory] finish received=\(page.messages.count) visible=\(messages.filter(\.isVisible).count) offset=\(offset) more=\(hasMore)")
         } catch {
-            #if DEBUG
-            print("[ChatHistory] failed taskCancelled=\(Task.isCancelled) cancellationError=\(error is CancellationError) contextChanged=\(generation != run)")
-            #endif
+            NSLog("%@", "[ChatHistory] failed domain=\((error as NSError).domain) code=\((error as NSError).code) taskCancelled=\(Task.isCancelled) cancellationError=\(error is CancellationError) contextChanged=\(generation != run)")
             guard generation == run, !Task.isCancelled else { return }
             errorMessage = error.localizedDescription
         }

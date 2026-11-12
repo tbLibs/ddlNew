@@ -97,15 +97,15 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)toolDeleteGroupMemberAllSendMessageWith:(NSString *)memberID groupID:(nonnull NSString *)groupID;
 
 
-/// 根据某个消息ID获取消息
+/// 根据某个消息ID获取消息；本地未找到时返回nil。
 /// @param msgID 消息ID
 /// @param sessionID 会话对方ID(好友ID/群聊ID)
-- (NoaIMChatMessageModel *)toolGetOneChatMessageWithMessageID:(NSString *)msgID sessionID:(NSString *)sessionID;
+- (nullable NoaIMChatMessageModel *)toolGetOneChatMessageWithMessageID:(NSString *)msgID sessionID:(NSString *)sessionID;
 
 /// 根据某个服务端消息ID获取消息
 /// @param smsgID 服务端消息ID
 /// @param sessionID 会话对方ID(好友ID/群聊ID)
-- (NoaIMChatMessageModel *)toolGetOneChatMessageWithServiceMessageID:(NSString *)smsgID sessionID:(NSString *)sessionID;
+- (nullable NoaIMChatMessageModel *)toolGetOneChatMessageWithServiceMessageID:(NSString *)smsgID sessionID:(NSString *)sessionID;
 
 /// 获取某个会话的最新消息
 /// @param sessionID 会话对方ID(好友ID/群聊ID)
@@ -113,7 +113,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// 根据某个服务端消息ID获取消息（排除删除和撤回的消息）
 /// @param smsgID 服务端消息ID
 /// @param sessionID 会话对方ID(好友ID/群聊ID)
-- (NoaIMChatMessageModel *)toolGetOneChatMessageWithServiceMessageIDExcludeDeleted:(NSString *)smsgID sessionID:(NSString *)sessionID;
+- (nullable NoaIMChatMessageModel *)toolGetOneChatMessageWithServiceMessageIDExcludeDeleted:(NSString *)smsgID sessionID:(NSString *)sessionID;
 
 /// 消息已读
 /// @param message 已读消息

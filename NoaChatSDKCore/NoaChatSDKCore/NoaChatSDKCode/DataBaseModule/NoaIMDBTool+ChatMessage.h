@@ -85,20 +85,20 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param tableName 表名称
 - (BOOL)deleteAllChatMessageWith:(NSString *)tableName;
 
-/// 根据某个消息ID获取消息
+/// 根据某个消息ID获取消息；本地未找到时返回nil。
 /// @param msgID 消息ID
 /// @param tableName 会话表名称
-- (NoaIMChatMessageModel *)getOneChatMessageWithMessageID:(NSString *)msgID withTableName:(NSString *)tableName;
+- (nullable NoaIMChatMessageModel *)getOneChatMessageWithMessageID:(NSString *)msgID withTableName:(NSString *)tableName;
 
 /// 根据某个服务端消息ID获取消息
 /// @param smsgID 服务端消息ID
 /// @param tableName 会话表名称
-- (NoaIMChatMessageModel *)getOneChatMessageWithServiceMessageID:(NSString *)smsgID withTableName:(NSString *)tableName;
+- (nullable NoaIMChatMessageModel *)getOneChatMessageWithServiceMessageID:(NSString *)smsgID withTableName:(NSString *)tableName;
 
 /// 根据某个服务端消息ID获取消息（排除删除和撤回的消息）
 /// @param smsgID 服务端消息ID
 /// @param tableName 会话表名称
-- (NoaIMChatMessageModel *)getOneChatMessageWithServiceMessageIDExcludeDeleted:(NSString *)smsgID withTableName:(NSString *)tableName;
+- (nullable NoaIMChatMessageModel *)getOneChatMessageWithServiceMessageIDExcludeDeleted:(NSString *)smsgID withTableName:(NSString *)tableName;
 
 /// 获取某个会话的最新消息
 /// @param tableName 会话表名称

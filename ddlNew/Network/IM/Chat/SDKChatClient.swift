@@ -156,6 +156,7 @@ import ObjectiveC
         try validate(context)
         // 与旧端一样，群资料/禁言独立刷新，不能挡住本地或远端历史。
         startGroupPermissionRefresh(context: context)
+        NSLog("%@", "[ChatHistory] request kind=\(context.route.kind) older=\(before?.isEmpty == false) pageSize=100 pageNumber=1 offset=\(offset)")
         let contentAtStart = ChatRuntime.shared.contentRevision(context)
         let cacheAtStart = try cacheSnapshot(context: context)
         var params: [String: Any] = ["pageSize": 100, "pageNumber": 1, "userUid": context.userUID]
@@ -172,6 +173,7 @@ import ObjectiveC
             guard !Task.isCancelled, ChatRuntime.shared.contentRevision(context) == contentAtStart else { throw CancellationError() }
             // 与旧端一致，网络失败仍回读本机更早一页；远端结束状态未知，保留重试。
             let local = try cached(context: context, offset: offset)
+            NSLog("%@", "[ChatHistory] request_failed domain=\((error as NSError).domain) code=\((error as NSError).code) fallback=\(local.count)")
             guard !local.isEmpty else { throw error }
             return ChatPage(messages: local, hasMore: true, nextCursor: before, nextOffset: offset + local.count)
         }
@@ -181,9 +183,7 @@ import ObjectiveC
         var mapped: [ChatMessageRecord] = []
         var oldest: ChatMessageRecord?
         var restoredServerIDs: Set<String> = []
-        #if DEBUG
         var remoteStatusCounts: [Int: Int] = [:]
-        #endif
         // 只有当前轮次持有SDK锁，转换与落库不会污染另一账号数据库。
         objc_sync_enter(sdk)
         defer { objc_sync_exit(sdk) }
@@ -192,9 +192,7 @@ import ObjectiveC
             let model = SDKChatMessageMapper.historyModel(row, context: context)
             let record = SDKChatMessageMapper.record(model, userUID: context.userUID)
             guard record.conversationID == context.route.id else { continue }
-            #if DEBUG
             remoteStatusCounts[model.messageStatus, default: 0] += 1
-            #endif
             // 隐藏控制条也占远端历史位置，不能仅从最终可见正文推算下一次游标。
             if !record.serverID.isEmpty, oldest.map({ record.timestamp < $0.timestamp ||
                 (record.timestamp == $0.timestamp && record.serverID.compare($0.serverID, options: .numeric) == .orderedAscending) }) ?? true {
@@ -232,15 +230,13 @@ import ObjectiveC
         // 云端可能只保留部分历史或限制实际页长；补拉后仍以SDK库补齐本机分页。
         // 非空短页不能证明游标已到头，空页且本机不足一页时才停止下拉。
         let local = try cached(context: context, offset: offset)
-        #if DEBUG
         // 只输出分页计数，不输出聊天正文、用户或消息ID。
-        print("[ChatHistory] response rows=\(rows.count) mapped=\(mapped.count) cached=\(local.count) cursorAdvanced=\(oldest?.serverID != before)")
+        NSLog("%@", "[ChatHistory] response rows=\(rows.count) mapped=\(mapped.count) cached=\(local.count) cursorAdvanced=\(oldest != nil && oldest?.serverID != before)")
         let statusCounts = Dictionary(grouping: mapped, by: { $0.status.rawValue }).map { "\($0.key):\($0.value.count)" }.sorted().joined(separator: ",")
         let typeCounts = Dictionary(grouping: mapped, by: \.type).map { "\($0.key):\($0.value.count)" }.sorted().joined(separator: ",")
         let remoteStatuses = remoteStatusCounts.map { "\($0.key):\($0.value)" }.sorted().joined(separator: ",")
-        print("[ChatHistory] rawRemoteStatus=[\(remoteStatuses)]")
-        print("[ChatHistory] mappedStatus=[\(statusCounts)] mappedType=[\(typeCounts)] visibleCandidates=\(mapped.filter(\.isVisible).count)")
-        #endif
+        NSLog("%@", "[ChatHistory] rawRemoteStatus=[\(remoteStatuses)]")
+        NSLog("%@", "[ChatHistory] mappedStatus=[\(statusCounts)] mappedType=[\(typeCounts)] visibleCandidates=\(mapped.filter(\.isVisible).count)")
         // 本地100条窗口并不包含所有已收到的有效消息，写库/回读也可能失败。
         // 保留本轮已通过身份、删除及期间变更校验的远端结果，双ID合并而非按缓存裁剪。
         return ChatPage(messages: ChatMessageMerge.merge(local, with: mapped), hasMore: !rows.isEmpty || local.count == 100,

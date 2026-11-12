@@ -1,5 +1,35 @@
 # ddlNew 项目交接文档
 
+## 2026-11-12 Ad Hoc历史缺失根因：SDK未命中返回值的可空契约（真机复验通过）
+
+手机确认已装诊断Ad Hoc 1.3.0(2)。log collect读取旧设备日志需要root，未提升权限；移动日志工具未采到记录，改为devicectl重启并连接该App的标准输出，只保存ChatHistory行（`/tmp/ddlNew-release-history-live.log`）。在测试群只读进入／下拉，Release首屏远端rows=100、rawRemoteStatus=[1:100]，合并后mappedStatus=[0:99,1:1]、visible=1；下一页rows=96、远端全1，合并后全0、visible=0；最后才出现空页。此前仅看最终空页不能解释缺失，现确认大量正常历史已返回客户端。
+
+SDK的toolGetOneChatMessageWithMessageID／toolGetOneChatMessageWithServiceMessageID等声明置于NS_ASSUME_NONNULL_BEGIN内，但实现查不到数据库记录时返回nil。Swift Release优化信任错误的非空声明，使显式Optional变量的if-let／map不再正确识别缺失缓存，读取nil对象得到默认状态0，并在合并时替代正常远端记录。匿名ObjC桥接夹具提取生产方法声明，保留同型条件查询及Optional.map边界，-Onone输出状态1、-O输出状态0，复现仅Release失败（`/tmp/ddlNew-nullability-red2.log`）。修正SDK门面及DB层按本地ID／服务端ID／排除删除的三个查询返回值为nullable后，两种配置均通过（`/tmp/ddlNew-nullability-fixed.log`）。未改变真实删除保护或历史过滤规则。
+
+既有94项分页回归通过（`/tmp/ddlNew-history-nullability-checks.log`）；这些fake本来已正确标为Optional，不能覆盖此前ObjC导入错误。新增入口Tests/Chat/SDKNullability。修复版Release归档及Ad Hoc导出成功（`/tmp/ddlNew-history-fixed-archive.log`、`/tmp/ddlNew-history-fixed-export.log`），产物`build/diagnostics/history-fixed-20261112/ddlNew-history-fixed.ipa`为1.3.0(3)，仅通过构建参数区分版本，未改工程版本号。
+
+已覆盖安装至当前连接的iPhone 12／iOS26.6.1，保留诊断包数据。真实Ad Hoc日志`/tmp/ddlNew-history-fixed-live.log`：同一测试群初始本地2条，远端100条全部保持正常状态1，首屏显示99条；下拉再取97条，均保持状态1，最终显示196条。单聊初始本地1条，远端59条（正常57／撤回1／删除1），处理后显示57条；继续下拉确实返回空页，已显示消息保持57条。只读界面检查确认历史已出现。该验证证明原有缺失缓存可直接从服务端恢复，未再次卸载做全新安装复测，不据此宣称所有账号或所有服务端历史均完整。
+
+本轮未卸载App、未发送或删除消息、未读取首页代码、未上传或提交推送。头像加载问题未在本轮专项定位或验收。
+
+## 2026-11-12 重装历史差异补充：Ad Hoc Release 对比 Debug（诊断阶段记录）
+
+以下为取证前记录，后续根因、修复和真机结果见上一节。
+
+用户进一步确认：两边均先卸载再安装，同邀请码／同账号，Debug经Xcode Run恢复完整历史，Ad Hoc Release只显示少量且下拉无更早记录。问题包确认为`build/adhoc/20261111-165115.2WSOEM`（1.3.0 build1）。因此不能用“Debug保留旧缓存”解释，也不能由上一节某轮空响应判定服务端已删历史；此前现场日志不能代替同源码／同账号／同会话的Debug与Ad Hoc配对对照。
+
+当前源码两种配置Bundle ID及Info.plist相同，历史请求共用TCP转HTTP协议接口、pageNumber1与sMsgId更旧游标；所查分页DEBUG条件仅包裹诊断。`swiftc -O`下生产历史方法／Store匿名边界回归94/94通过（`/tmp/ddlNew-history-release-optimized.log`），只验证模型逻辑，不覆盖真实SDK传输、数据库、签名或服务端。
+
+为取得Release证据，现将ChatHistory计数诊断改用两种配置均可输出的NSLog，补请求类型／初始缓存条数／构建类型／错误domain与code；不输出聊天正文、UID、消息ID、token或完整URL。空页cursorAdvanced不再误报true。仅增加本机诊断，未改变历史请求、合并、数据库或发送逻辑；还未取得新Ad Hoc真机日志，根因及修复未验收。诊断代码的Release优化回归94/94通过（`/tmp/ddlNew-history-diagnostics-release-checks.log`）；完整Release无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-release-history-build.log`）。线上固定地址下载的IPA与指定16:51本地产物SHA-256一致（`2b66f490dcb593f8445b6892b517cfa5000057197007ef9d746d0e3a6fe62fc8`），不据此推断手机实际安装版本；当前下载地址未返回旧包。本地Release归档及Ad Hoc导出成功（`/tmp/ddlNew-history-diagnostic-archive.log`、`/tmp/ddlNew-history-diagnostic-export.log`），产物`build/diagnostics/history-release-20261112/ddlNew-history-diagnostic.ipa`为1.3.0(2)，导出内含诊断标记，描述文件为设备分发且get-task-allow关闭。临时build2只用于区分，未改工程版本号、未自动卸载／安装或发布。下一步需要该包的真机复现日志，不能把打包成功当作已修复。
+
+## 2026-11-12 重装后历史记录缺失排查（早期现场记录）
+
+以下只观察到最终空页，未捕获此前正常历史被客户端错误过滤的过程；后续证据已确认本次Ad Hoc差异来自客户端可空声明，见顶部章节。
+
+用户反馈卸载重装后单聊／群聊均只显示少量历史，下拉也无法补回。只读核对ChatStore与SDKChatClient：首屏读缓存并请求云端，手动下拉使用sMsgId／isThanMsgId=1／pageNumber=1继续查询，与xgd SDK参数一致。非空短页不关闭分页，空页后仍允许手动重试。历史分页离线94/94通过（`/tmp/ddlNew-history-reinstall-checks.log`），不作为服务端保留完整历史的证据。
+
+在用户连接Xcode的iPhone现场筛选现有ChatHistory日志，观察到多会话首批分别返回1、4、6、16等条数，随后older=true请求均返回rows=0；16条会话重复下拉仍返回0。本次可确认下拉有发起且服务器响应无更早记录，不能据此认定记录永久删除，也不能排除服务端保留期限、清理规则、账号可见范围或查询条件。重装失去原有本地缓存后，恢复范围依赖服务器可返回的数据，当前未新增自动全量拉取或绕过服务器限制。未修改生产代码、未删除数据、未发送消息、未读取首页源码；Xcode保留ChatHistory控制台筛选。服务端具体原因及旧记录可恢复性仍待后端证据。
+
 ## 2026-11-11 聊天滚动时导航与状态栏配色
 
 用户录屏显示约4.6秒起白色背景保留，聊天标题、时间及电量变浅看不清，返回和更多按钮仍在。ChatRoomView原先只声明动态导航背景及可见性，现读取页面colorScheme并显式设置toolbarColorScheme，使导航标题和状态栏按页面浅深色配对，避免依赖滚动时系统自动推断。只调整聊天页，不改变历史分页、消息、输入或共享导航。
