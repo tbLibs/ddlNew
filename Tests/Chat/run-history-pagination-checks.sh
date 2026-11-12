@@ -27,6 +27,16 @@ action = re.search(r'await store\.(\w+)\(\)', refresh).group(1)
 (out/'RefreshAction.swift').write_text('extension ChatStore { func invokePullToRefresh() async { await '+action+'() } }\n')
 
 mapper = (root/'ddlNew/Network/IM/Chat/SDKChatMessageMapper.swift').read_text()
+# 真实作者资料补全分支；只替代成员／好友数据库并统计访问次数。
+a = mapper.index('        let sdk = NoaIMSDKManager.sharedTool()')
+b = mapper.index('        return record', a)
+metadata = mapper[a:b]
+(out/'ProductionHistoryMetadata.swift').write_text('import Foundation\nenum ProductionHistoryMetadata { static func apply(_ input: ChatMessageRecord, userUID: String, resolveProfiles: Bool = true) -> ChatMessageRecord { var record = input; let model = MessageKind(chatType: Kind(rawValue: 1))\n'+metadata+'\nreturn record } }\n')
+boundary = (root/'Tests/Chat/AvatarChecks.swift').read_text().split('@main struct AvatarChecks')[0]
+boundary = boundary.replace('var uid = "me"', 'var profileReads = 0\n    var uid = "me"')
+boundary = boundary.replace('{ id == "peer" ? friend : nil }', '{ profileReads += 1; return id == "peer" ? friend : nil }')
+boundary = boundary.replace('{ member }', '{ profileReads += 1; return member }')
+(out/'ProfileBoundary.swift').write_text(boundary)
 status = re.search(r'status: (ChatMessageStatus\(rawValue: model.messageStatus\) \?\? \.\w+),', mapper).group(1)
 (out/'ProductionMessageStatus.swift').write_text('enum ProductionMessageStatus { static func map(_ rawValue: Int) -> ChatMessageStatus { '+status.replace('model.messageStatus', 'rawValue')+' } }\n')
 
@@ -40,6 +50,6 @@ PY
 swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Message/Models/ConversationRecord.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatStore.swift" \
- "$ROOT_DIR/Tests/Chat/HistoryPaginationChecks.swift" "$TMP_DIR/ProductionHistory.swift" "$TMP_DIR/RefreshAction.swift" "$TMP_DIR/ProductionMessageStatus.swift" "$TMP_DIR/ProductionTimelineStatus.swift" \
+ "$ROOT_DIR/Tests/Chat/HistoryPaginationChecks.swift" "$TMP_DIR/ProductionHistoryMetadata.swift" "$TMP_DIR/ProfileBoundary.swift" "$TMP_DIR/ProductionHistory.swift" "$TMP_DIR/RefreshAction.swift" "$TMP_DIR/ProductionMessageStatus.swift" "$TMP_DIR/ProductionTimelineStatus.swift" \
  "$ROOT_DIR/ddlNew/Network/IM/Chat/SDKChatRequestWaiter.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"

@@ -26,7 +26,7 @@ if argument.strip() == 'avatarResource':
     resource = bubble[start:end].replace('private var', 'var', 1)
 (temp/'Production.swift').write_text('''import Foundation
 struct ProductionMapper {
-    static func metadata(_ input: ChatMessageRecord, userUID: String, group: Bool = false) -> ChatMessageRecord {
+    static func metadata(_ input: ChatMessageRecord, userUID: String, group: Bool = false, resolveProfiles: Bool = true) -> ChatMessageRecord {
         var record = input
         let model = MessageKind(chatType: Kind(rawValue: group ? 1 : 0))
 '''+metadata+'''        return record

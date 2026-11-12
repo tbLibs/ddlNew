@@ -248,7 +248,8 @@ import ObjectiveC
         try validate(context); var values: [String: ChatMessageRecord] = [:]; var offset = 0
         while true {
             let rows = sdk.toolGetChatMessageHistoryIncludingInactive(with: context.route.id, offset: offset) as? [NoaIMChatMessageModel] ?? []
-            for model in rows { let item = SDKChatMessageMapper.record(model, userUID: context.userUID); if !item.serverID.isEmpty { values["s:" + item.serverID] = item }; if !item.localID.isEmpty { values["m:" + item.localID] = item } }
+            // 此快照只比较正文／状态版本，不展示作者资料；全量历史不能逐条查群成员和好友。
+            for model in rows { let item = SDKChatMessageMapper.record(model, userUID: context.userUID, resolveProfiles: false); if !item.serverID.isEmpty { values["s:" + item.serverID] = item }; if !item.localID.isEmpty { values["m:" + item.localID] = item } }
             if rows.count < 100 { break }; offset += rows.count
         }
         return values

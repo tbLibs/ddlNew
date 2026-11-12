@@ -11,7 +11,7 @@ import NoaChatCore
 /// ObjC可变消息在代理线程转换成Swift值，避免跨线程持有SDK对象。
 enum SDKChatMessageMapper {
     /// 用当前UID判断多端自己的消息方向，单聊收件人为自己时归发送者会话。
-    nonisolated static func record(_ model: NoaIMChatMessageModel, userUID: String) -> ChatMessageRecord {
+    nonisolated static func record(_ model: NoaIMChatMessageModel, userUID: String, resolveProfiles: Bool = true) -> ChatMessageRecord {
         let type = Int(model.messageType.rawValue)
         let conversation = Int(model.chatType.rawValue) == 1 ? model.toID ?? "" : (model.fromID == userUID ? model.toID ?? "" : model.fromID ?? "")
         var record = ChatMessageRecord(localID: model.msgID ?? "", serverID: model.serviceMsgID ?? "",
@@ -42,7 +42,7 @@ enum SDKChatMessageMapper {
                 record.nestedMessages = (forward.messageListArray as? [IMChatMessage] ?? []).compactMap { item -> ChatMessageRecord? in
                     guard item.mType.rawValue != 18 else { return nil }
                     let nested = LingIMModelTool.shared().getChatMessageModel(from: item)
-                    return SDKChatMessageMapper.record(nested, userUID: userUID)
+                    return SDKChatMessageMapper.record(nested, userUID: userUID, resolveProfiles: resolveProfiles)
                 }
             }
         case 20:
@@ -62,7 +62,7 @@ enum SDKChatMessageMapper {
             }
         }
         let sdk = NoaIMSDKManager.sharedTool()
-        if sdk.myUserID() == userUID, sdk.isUserDatabaseReady() {
+        if resolveProfiles, sdk.myUserID() == userUID, sdk.isUserDatabaseReady() {
             if Int(model.chatType.rawValue) == 1 {
                 let member: LingIMGroupMemberModel? = sdk.imSdkCheckGroupMember(with: record.senderID, groupID: record.conversationID)
                 let friend = sdk.toolCheckMyFriend(with: record.senderID)

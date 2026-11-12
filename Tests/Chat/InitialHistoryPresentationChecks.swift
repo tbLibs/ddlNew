@@ -59,7 +59,7 @@ import Combine
         screen.align(proxy)
         check(screen.initialMessagesReady && proxy.targets.count == targetsBeforeLayout, "后台补齐不隐藏正文，旧几何不能触发新批次滚动")
         screen.latestLayout = screen.layout(outside); screen.align(proxy)
-        check(screen.initialMessagesReady && proxy.targets.last == "latest", "合并后的正文保持可见，并按新布局无动画定位")
+        check(screen.initialMessagesReady && proxy.targets.last == store.messages.last?.id, "合并后的正文保持可见，并按新布局无动画定位")
         screen.latestLayout = screen.layout(bottom); screen.align(proxy)
         check(screen.initialMessagesReady && Set(store.messages.map(\.id)) == ["older", "latest", "live"], "最终布局完成后一次展示历史和在途实时消息")
         let more = Task { await store.loadMore() }
@@ -168,6 +168,49 @@ import Combine
         offlineClient.finish(ChatPage(messages: [], hasMore: false)); await newOpen.value
         check(offlineScreen.initialMessagesReady, "新轮次自己的首轮完成才放行")
         offline.close()
+        let stagedClient = PresentationClient()
+        stagedClient.cache = [message("cached-first", timestamp: 1)]
+        let staged = ChatStore(client: stagedClient)
+        var presentation: CheckedContinuation<Void, Never>?
+        let stagedOpen = Task { await staged.open(context, beforeRefresh: {
+            await withCheckedContinuation { presentation = $0 }
+        }) }
+        for _ in 0..<1000 { if presentation != nil { break }; await Task.yield() }
+        check(presentation != nil && staged.messages.count == 1 && staged.initialHistoryRevision > 0,
+              "缓存首屏先发布，能够在刷新任务开始前布局")
+        check(stagedClient.waiting == nil && !staged.isLoading,
+              "缓存还没有展示时不进入历史请求的同步准备阶段")
+        presentation?.resume(); presentation = nil
+        await waitForRequest(stagedClient)
+        check(staged.messages.first?.localID == "cached-first", "后台补拉期间不清空已显示的缓存")
+        stagedClient.finish(ChatPage(messages: [message("newest", timestamp: 2)], hasMore: false))
+        await stagedOpen.value
+        check(staged.messages.count == 2, "后台刷新按身份合并缓存与新记录")
+        staged.close()
+        let cancelledOpen = Task { await staged.open(context, beforeRefresh: {
+            await withCheckedContinuation { presentation = $0 }
+        }) }
+        for _ in 0..<1000 { if presentation != nil { break }; await Task.yield() }
+        cancelledOpen.cancel(); staged.close(); presentation?.resume(); presentation = nil
+        await cancelledOpen.value
+        check(stagedClient.waiting == nil && staged.context == nil, "首屏期间退出，不启动已过期会话的远端请求")
+        let interruptedOpen = Task { await staged.open(context, beforeRefresh: {
+            await withCheckedContinuation { presentation = $0 }
+        }) }
+        for _ in 0..<1000 { if presentation != nil { break }; await Task.yield() }
+        interruptedOpen.cancel(); presentation?.resume(); presentation = nil; await interruptedOpen.value
+        let resumedOpen = Task { await staged.open(context) }
+        await waitForRequest(stagedClient)
+        check(staged.messages.count == 1, "缓存展示期间进子页再返回，继续同一会话刷新并保留缓存")
+        stagedClient.finish(ChatPage(messages: [], hasMore: false)); await resumedOpen.value
+        staged.close()
+        stagedClient.cache = []
+        var waitedForEmpty = false
+        let noCacheOpen = Task { await staged.open(context, beforeRefresh: { waitedForEmpty = true }) }
+        await waitForRequest(stagedClient)
+        check(!waitedForEmpty, "无缓存直接拉取，不等待不存在的本地首屏")
+        stagedClient.finish(ChatPage(messages: [], hasMore: false)); await noCacheOpen.value
+        staged.close()
         if failures > 0 { print("首屏历史展示：\(checks - failures)/\(checks)通过"); exit(1) }
         print("首屏历史展示：\(checks)/\(checks)通过")
     }

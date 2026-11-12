@@ -13,6 +13,7 @@ import Kingfisher
 struct MessageView: View {
     @Environment(\.locale) private var localizationLocale
     @ObservedObject var store: ConversationsStore
+    let pullDown: MessagePullDownState
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @ObservedObject private var recovery = MessageSessionRecovery.shared
     @ObservedObject private var authentication = IMUserAuthenticationService.shared
@@ -62,6 +63,9 @@ struct MessageView: View {
             }
             .listRowInsets(EdgeInsets(top: 4.zoom(), leading: 16.zoom(), bottom: 12.zoom(), trailing: 16.zoom()))
             .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            .background(MessagePullDownGesture(state: pullDown) {
+                searchFocused = false
+            })
             if let apps = miniApps.store {
                 MiniAppsDisclosure(expanded: $miniAppsExpanded)
                     .id("miniApps.disclosure")
@@ -118,13 +122,12 @@ struct MessageView: View {
         .messagingFeedbackToast(store.operationError ?? store.errorMessage ?? chatRuntime.conversationCleanupWarning, isEnabled: !selectingMembers)
         .modifier(ClubKeyboardDismissal(isFocused: searchFocused, tint: MessagingTheme.accent, background: MessagingTheme.surface) { searchFocused = false })
         .onAppear { MessageConnectionMonitor.shared.setVisible(true) }
-        .onDisappear { MessageConnectionMonitor.shared.setVisible(false) }
+        .onDisappear { MessageConnectionMonitor.shared.setVisible(false); pullDown.reset() }
         // 重读本地展示快照，更新文件助手及消息类型摘要；不触发连接或远端同步。
         .task(id: localizationLocale.identifier) { if authentication.isAuthenticated { await store.reload() } }
         .task(id: miniApps.store.map(ObjectIdentifier.init)) {
             if let apps = miniApps.store, !apps.hasLoaded { await apps.refresh() }
         }
-        .refreshable { await store.reload() }
         .sheet(isPresented: $selectingMembers) {
             GroupMemberPickerView(contacts: LoginSessionService.shared.contacts.contacts,
                 recentIDs: store.conversations.filter { $0.kind == .single }.map(\.id),
@@ -156,6 +159,9 @@ struct MessageView: View {
                 Text("\(store.conversations.count)").font(.caption).foregroundStyle(MessagingTheme.secondaryText)
                     .accessibilityLabel(L10n.tr("\(store.conversations.count)个会话")).accessibilityIdentifier("conversationCount")
             }
+        }
+        .accessibilityAction(named: L10n.tr("展开顶部页面")) {
+            searchFocused = false; pullDown.open()
         }
     }
 

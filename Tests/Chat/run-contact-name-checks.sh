@@ -32,7 +32,7 @@ titleView=block(view,'    private var chatTitle:') if '    private var chatTitle
 groupUpdate=block(view,'    private func updateGroupTitle(').replace('private func', 'mutating func').replace('[ConversationRecord]', '[NameConversation]')
 code='''import Foundation
 struct ProductionNames {
- static func metadata(_ input: ChatMessageRecord, userUID: String, group: Bool = false) -> ChatMessageRecord {
+ static func metadata(_ input: ChatMessageRecord, userUID: String, group: Bool = false, resolveProfiles: Bool = true) -> ChatMessageRecord {
  var record = input
  let model = MessageKind(chatType: Kind(rawValue: group ? 1 : 0))
 METADATA

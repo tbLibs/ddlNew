@@ -30,8 +30,9 @@ final class NoaIMChatMessageModel {
     init(_ record: ChatMessageRecord) { self.record = record; messageStatus = record.status.rawValue }
 }
 enum SDKChatMessageMapper {
-    static func record(_ model: NoaIMChatMessageModel, userUID: String) -> ChatMessageRecord {
-        var value = model.record; value.status = ProductionMessageStatus.map(model.messageStatus); return value
+    static func record(_ model: NoaIMChatMessageModel, userUID: String, resolveProfiles: Bool = true) -> ChatMessageRecord {
+        var value = model.record; value.status = ProductionMessageStatus.map(model.messageStatus)
+        return ProductionHistoryMetadata.apply(value, userUID: userUID, resolveProfiles: resolveProfiles)
     }
     static func historyModel(_ row: [String: Any], context: ChatContext) -> NoaIMChatMessageModel {
         let model = NoaIMChatMessageModel(row["record"] as! ChatMessageRecord)
@@ -58,6 +59,7 @@ typealias LingIMFailureCallback = (Int, String?, String?) -> Void
     var suspend = false
     var pending: LingIMSuccessCallback?
     var requests: [[String: Any]] = []
+    var profileReadsBeforeRequest: Int?
     var kinds: [String] = []
     func toolGetChatMessageHistory(with id: String, offset: Int) -> Any {
         records.filter { $0.conversationID == id && (storedStatuses[$0.localID] ?? $0.status.rawValue) == 1 }
@@ -91,6 +93,7 @@ typealias LingIMFailureCallback = (Int, String?, String?) -> Void
     }
     func query(_ params: NSMutableDictionary, success: @escaping LingIMSuccessCallback, failure: @escaping LingIMFailureCallback) {
         let values = params as! [String: Any]; requests.append(values)
+        if profileReadsBeforeRequest == nil { profileReadsBeforeRequest = NoaIMSDKManager.instance.profileReads }
         if fails { failure(1, "网络不可用", nil); return }
         if suspend { pending = success; return }
         if malformed { success(["unexpected": []], nil); return }
@@ -141,6 +144,20 @@ typealias LingIMFailureCallback = (Int, String?, String?) -> Void
             if !value { failures += 1; print("FAIL: " + name) }
         }
         let groupContext = ChatContext(userUID: "me", tenantID: "club", sessionID: UUID(), route: ChatRoute(id: "peer", kind: .group, title: "", avatarURL: ""))
+        var startupReads: [Int] = []
+        for historySize in [100, 2000] {
+            NoaIMSDKManager.instance.profileReads = 0
+            let startup = HistoryClient(), startupStore: ChatStore
+            startupStore = ChatStore(client: startup)
+            startup.sdk.records = (1...historySize).map(message)
+            await startupStore.open(groupContext)
+            startupReads.append(startup.sdk.profileReadsBeforeRequest ?? -1)
+            check(startupStore.messages.count == 100, "大群首屏仍只显示最近100条缓存")
+            startupStore.close()
+        }
+        print("首个网络等待前的作者资料查询：100条历史=\(startupReads[0])，2000条历史=\(startupReads[1])")
+        check(startupReads[0] == startupReads[1] && startupReads[1] <= 200,
+              "首屏前的作者资料查询不能随全部历史增长，非展示快照不得逐条查询群成员和好友")
         let independent = HistoryClient(); independent.active = true; independent.failGroupRefresh = true
         independent.sdk.remote = [message(1)]
         let independentPage = try? await independent.history(context: groupContext, before: nil, offset: 0)

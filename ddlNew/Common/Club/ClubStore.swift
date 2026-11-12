@@ -8,21 +8,16 @@
 import Foundation
 import Combine
 
-/// 活动与旧演示账号的本地状态；真实身份仍由 SDK AUTH 决定。
+/// 根页面与旧演示账号的本地状态；真实身份仍由 SDK AUTH 决定。
 @MainActor final class ClubStore: ObservableObject {
     @Published var stage: SessionStage = .splash
     @Published var selectedTab: MemberTab = .messages
     @Published private(set) var snapshot = ClubSnapshot()
     @Published var toastMessage = ""
     @Published var showToast = false
-    let activities = ClubActivity.samples
     private let repository = ClubRepository()
     private let credentials = LocalCredentialStore()
     private var restored = false
-    var memberDisplayName: String { snapshot.activeAccount ?? "林夏" }
-    var memberAccountDescription: String {
-        L10n.tr("远山户外俱乐部 · \(snapshot.activeAccount ?? "YS****18")")
-    }
     func restore() async {
         guard !restored else { return }
         restored = true
@@ -96,7 +91,7 @@ import Combine
         stage = changeClub ? .invite : .login
     }
     func deleteAccount() async throws {
-        let deleted = ClubSnapshot(connected: false, signedIn: false, participation: [:], accountDeleted: true)
+        let deleted = ClubSnapshot(connected: false, signedIn: false, accountDeleted: true)
         let previous = try? credentials.load()
         try credentials.delete()
         do { try await repository.save(deleted) }
@@ -108,26 +103,6 @@ import Combine
         selectedTab = .messages
         stage = .invite
         notify(L10n.tr("账号已注销"))
-    }
-    func status(_ activity: ClubActivity) -> Participation { snapshot.participation[activity.id] ?? .available }
-    func activities(with states: Set<Participation>) -> [ClubActivity] { activities.filter { states.contains(status($0)) } }
-    func register(_ activity: ClubActivity) async {
-        guard status(activity) == .available else { return }
-        snapshot.participation[activity.id] = activity.capacity > 0 ? .registered : .waiting
-        await persist()
-    }
-    func cancel(_ activity: ClubActivity) async {
-        guard [.registered, .waiting].contains(status(activity)) else { return }
-        snapshot.participation[activity.id] = .available
-        await persist()
-        notify(L10n.tr("已取消参与"))
-    }
-    func checkIn(_ activity: ClubActivity, code: String) async -> Bool {
-        guard status(activity) == .registered, code == activity.checkInCode else { return false }
-        snapshot.participation[activity.id] = .checkedIn
-        await persist()
-        notify(L10n.tr("签到成功，享受这次活动吧"))
-        return true
     }
     func notify(_ text: String) { toastMessage = text; showToast = true }
     private func persist() async {

@@ -2212,30 +2212,6 @@
     "+%lld": {
       "shouldTranslate": false
     },
-    "4位签到码": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "4-digit check-in code"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "4位签到码"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "4位簽到碼"
-          }
-        }
-      }
-    },
     "6～16位，前两位为英文字母，只支持英文和数字": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -2304,102 +2280,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "6～16位，包含字母和數字，可使用英文符號"
-          }
-        }
-      }
-    },
-    "6公里轻徒步，需要基础体能": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "An easy 6 km hike requiring basic fitness"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "6公里轻徒步，需要基础体能"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "6公里輕徒步，需要基礎體能"
-          }
-        }
-      }
-    },
-    "10月15日 19:30": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oct 15, 19:30"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10月15日 19:30"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10月15日 19:30"
-          }
-        }
-      }
-    },
-    "10月16日 16:30": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oct 16, 16:30"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10月16日 16:30"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10月16日 16:30"
-          }
-        }
-      }
-    },
-    "10月24日 06:30": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oct 24, 06:30"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10月24日 06:30"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10月24日 06:30"
           }
         }
       }
@@ -2530,30 +2410,6 @@
         }
       }
     },
-    "一起出发，走进自然。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Head out together and explore nature."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一起出发，走进自然。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一起出發，走進自然。"
-          }
-        }
-      }
-    },
     "一起发现，一起参与": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -2574,30 +2430,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "一起發現，一起參與"
-          }
-        }
-      }
-    },
-    "一起走进自然": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Explore nature together"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一起走进自然"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一起走進自然"
           }
         }
       }
@@ -2718,30 +2550,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "下一步"
-          }
-        }
-      }
-    },
-    "下一站，去户外": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Next stop: the outdoors"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下一站，去户外"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下一站，去戶外"
           }
         }
       }
@@ -2886,30 +2694,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "不能對該用戶操作黑名單"
-          }
-        }
-      }
-    },
-    "东湖湿地入口": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "East Lake Wetland entrance"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "东湖湿地入口"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "東湖濕地入口"
           }
         }
       }
@@ -3562,78 +3346,6 @@
         }
       }
     },
-    "会员可参加": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open to members"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会员可参加"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "會員可參加"
-          }
-        }
-      }
-    },
-    "会员快捷入口": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Member shortcuts"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会员快捷入口"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "會員快捷入口"
-          }
-        }
-      }
-    },
-    "会员权益": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Member benefits"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会员权益"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "會員權益"
-          }
-        }
-      }
-    },
     "会员登录": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -3654,30 +3366,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "會員登錄"
-          }
-        }
-      }
-    },
-    "会员首页": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Member home"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会员首页"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "會員首頁"
           }
         }
       }
@@ -4234,30 +3922,6 @@
         }
       }
     },
-    "便捷管理参与记录": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manage your participation records easily"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "便捷管理参与记录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "便捷管理參與記錄"
-          }
-        }
-      }
-    },
     "保存": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -4618,30 +4282,6 @@
         }
       }
     },
-    "俱乐部公告": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Club announcements"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "俱乐部公告"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "俱樂部公告"
-          }
-        }
-      }
-    },
     "俱乐部要求修改密码后才能继续使用": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -4714,102 +4354,6 @@
         }
       }
     },
-    "候补中": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On waiting list"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候补中"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候補中"
-          }
-        }
-      }
-    },
-    "候补已确认": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Waiting-list place confirmed"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候补已确认"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候補已確認"
-          }
-        }
-      }
-    },
-    "候补等待中": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Waiting for a place"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候补等待中"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候補等待中"
-          }
-        }
-      }
-    },
-    "候补记录": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Waiting-list history"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候补记录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "候補記錄"
-          }
-        }
-      }
-    },
     "候选来源": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -4830,30 +4374,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "候選來源"
-          }
-        }
-      }
-    },
-    "值得一起出发": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Better together outdoors"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "值得一起出发"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "值得一起出發"
           }
         }
       }
@@ -5142,30 +4662,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部成員"
-          }
-        }
-      }
-    },
-    "全部活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "全部活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "全部活動"
           }
         }
       }
@@ -6514,30 +6010,6 @@
         }
       }
     },
-    "到达集合点后完成个人签到，活动中遵守领队指引并保护自然环境。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check in when you reach the meeting point. Follow the leader's guidance and protect the natural environment."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "到达集合点后完成个人签到，活动中遵守领队指引并保护自然环境。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "到達集合點後完成個人簽到，活動中遵守領隊指引並保護自然環境。"
-          }
-        }
-      }
-    },
     "刷新": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -6606,30 +6078,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "刷新網頁"
-          }
-        }
-      }
-    },
-    "前往签到": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Go to check-in"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前往签到"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前往簽到"
           }
         }
       }
@@ -6726,30 +6174,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "加入"
-          }
-        }
-      }
-    },
-    "加入候补": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Join waiting list"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "加入候补"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "加入候補"
           }
         }
       }
@@ -7018,30 +6442,6 @@
         }
       }
     },
-    "北山森林公园": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "North Mountain Forest Park"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "北山森林公园"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "北山森林公園"
-          }
-        }
-      }
-    },
     "北山游客中心": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -7306,30 +6706,6 @@
         }
       }
     },
-    "去山野，遇见同路人。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Explore the hills and meet fellow adventurers."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "去山野，遇见同路人。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "去山野，遇見同路人。"
-          }
-        }
-      }
-    },
     "去签到": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -7354,30 +6730,6 @@
         }
       }
     },
-    "参与状态": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Participation status"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "参与状态"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "參與狀態"
-          }
-        }
-      }
-    },
     "参与确认": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -7398,54 +6750,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "參與確認"
-          }
-        }
-      }
-    },
-    "参与须知": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Participation guidelines"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "参与须知"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "參與須知"
-          }
-        }
-      }
-    },
-    "参加一场感兴趣的活动，留下新的回忆。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Join an activity that interests you and make new memories."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "参加一场感兴趣的活动，留下新的回忆。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "參加一場感興趣的活動，留下新的回憶。"
           }
         }
       }
@@ -7614,102 +6918,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "發消息"
-          }
-        }
-      }
-    },
-    "发现下一场": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find your next activity"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "发现下一场"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "發現下一場"
-          }
-        }
-      }
-    },
-    "发现下一场精彩": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discover your next adventure"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "发现下一场精彩"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "發現下一場精彩"
-          }
-        }
-      }
-    },
-    "发现专属活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discover exclusive activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "发现专属活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "發現專屬活動"
-          }
-        }
-      }
-    },
-    "发现活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discover activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "发现活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "發現活動"
           }
         }
       }
@@ -8146,30 +7354,6 @@
         }
       }
     },
-    "取消后，活动参与状态将更新。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your participation status will update after cancellation."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消后，活动参与状态将更新。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消後，活動參與狀態將更新。"
-          }
-        }
-      }
-    },
     "取消多选": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -8262,78 +7446,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "取消我的置頂"
-          }
-        }
-      }
-    },
-    "取消报名请至少提前12小时": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please cancel at least 12 hours in advance"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消报名请至少提前12小时"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消報名請至少提前12小時"
-          }
-        }
-      }
-    },
-    "取消报名请至少提前12小时，名额将按顺序释放给候补会员。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please cancel at least 12 hours in advance. Places will be offered to waiting members in order."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消报名请至少提前12小时，名额将按顺序释放给候补会员。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消報名請至少提前12小時，名額將按順序釋放給候補會員。"
-          }
-        }
-      }
-    },
-    "取消报名请至少提前12小时；名额释放后，候补会员按顺序递补。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please cancel at least 12 hours in advance. Waiting members will be offered places in order as they become available."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消报名请至少提前12小时；名额释放后，候补会员按顺序递补。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消報名請至少提前12小時；名額釋放後，候補會員按順序遞補。"
           }
         }
       }
@@ -8622,30 +7734,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "可創建分組來整理好友。"
-          }
-        }
-      }
-    },
-    "可报名": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registration open"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可报名"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可報名"
           }
         }
       }
@@ -9514,30 +8602,6 @@
         }
       }
     },
-    "在个人中心查看报名、候补和签到记录。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View registration, waiting-list and check-in records in your profile."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在个人中心查看报名、候补和签到记录。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在個人中心查看報名、候補和簽到記錄。"
-          }
-        }
-      }
-    },
     "在成员资料中添加常用联系人，方便下次找到。": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -10234,30 +9298,6 @@
         }
       }
     },
-    "大字体首页": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Large-text home"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "大字体首页"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "大字體首頁"
-          }
-        }
-      }
-    },
     "失败消息保存失败，请保留当前聊天后重试": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -10906,54 +9946,6 @@
         }
       }
     },
-    "如何参与": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How to participate"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "如何参与"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "如何參與"
-          }
-        }
-      }
-    },
-    "如遇登录、报名或签到问题，请告知工作人员你的会员卡号和活动名称。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For sign-in, registration or check-in issues, give staff your membership number and activity name."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "如遇登录、报名或签到问题，请告知工作人员你的会员卡号和活动名称。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "如遇登錄、報名或簽到問題，請告知工作人員你的會員卡號和活動名稱。"
-          }
-        }
-      }
-    },
     "存在文化歧视": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -11214,30 +10206,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成(%@)"
-          }
-        }
-      }
-    },
-    "完成报名或加入候补": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Register or join the waiting list"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完成报名或加入候补"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完成報名或加入候補"
           }
         }
       }
@@ -12130,30 +11098,6 @@
         }
       }
     },
-    "将退出当前会员空间，已保存的活动记录会保留。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You will leave the current member area. Saved activity records will remain."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "将退出当前会员空间，已保存的活动记录会保留。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "將退出當前會員空間，已保存的活動記錄會保留。"
-          }
-        }
-      }
-    },
     "小山": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -12394,30 +11338,6 @@
         }
       }
     },
-    "已加入候补": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Joined waiting list"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已加入候补"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已加入候補"
-          }
-        }
-      }
-    },
     "已加入发送队列，等待消息回执": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -12486,30 +11406,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已勾選"
-          }
-        }
-      }
-    },
-    "已参加活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activities attended"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已参加活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已參加活動"
           }
         }
       }
@@ -12654,30 +11550,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已處理"
-          }
-        }
-      }
-    },
-    "已完成活动签到": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activity check-in complete"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已完成活动签到"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已完成活動簽到"
           }
         }
       }
@@ -14070,30 +12942,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "應用鏈接無效，請編輯後重試"
-          }
-        }
-      }
-    },
-    "建议携带望远镜、饮用水与防蚊用品。候补名额会按顺序通知。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bring binoculars, drinking water and insect repellent. Waiting-list places will be offered in order."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "建议携带望远镜、饮用水与防蚊用品。候补名额会按顺序通知。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "建議攜帶望遠鏡、飲用水與防蚊用品。候補名額會按順序通知。"
           }
         }
       }
@@ -15994,30 +14842,6 @@
         }
       }
     },
-    "我已阅读参与须知": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I have read the participation guidelines"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我已阅读参与须知"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我已閱讀參與須知"
-          }
-        }
-      }
-    },
     "我已阅读并同意以下内容": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -16062,30 +14886,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "我的"
-          }
-        }
-      }
-    },
-    "我的下一场": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My next activity"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的下一场"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的下一場"
           }
         }
       }
@@ -16162,54 +14962,6 @@
         }
       }
     },
-    "我的报名": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My registrations"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的报名"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的報名"
-          }
-        }
-      }
-    },
-    "我的活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的活動"
-          }
-        }
-      }
-    },
     "我的群昵称": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -16278,54 +15030,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "我知道了"
-          }
-        }
-      }
-    },
-    "户外 · 轻徒步": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Outdoors · Easy hiking"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "户外 · 轻徒步"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "戶外 · 輕徒步"
-          }
-        }
-      }
-    },
-    "户外 · 骑行": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Outdoors · Cycling"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "户外 · 骑行"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "戶外 · 騎行"
           }
         }
       }
@@ -16422,30 +15126,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "打開攝像頭"
-          }
-        }
-      }
-    },
-    "打开活动详情与参与信息": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open activity details and participation information"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开活动详情与参与信息"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打開活動詳情與參與信息"
           }
         }
       }
@@ -16686,30 +15366,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "揚聲器已開"
-          }
-        }
-      }
-    },
-    "把日常留在身后，把周末交给山野。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leave the everyday behind and spend the weekend in the hills."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "把日常留在身后，把周末交给山野。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "把日常留在身後，把週末交給山野。"
           }
         }
       }
@@ -17026,54 +15682,6 @@
         }
       }
     },
-    "报名会员": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registered members"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "报名会员"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "報名會員"
-          }
-        }
-      }
-    },
-    "报名后，到达集合点即可输入活动签到码。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "After registering, enter the activity check-in code when you arrive at the meeting point."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "报名后，到达集合点即可输入活动签到码。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "報名後，到達集合點即可輸入活動簽到碼。"
-          }
-        }
-      }
-    },
     "报名已确认": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -17094,54 +15702,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "報名已確認"
-          }
-        }
-      }
-    },
-    "报名成功": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registration successful"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "报名成功"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "報名成功"
-          }
-        }
-      }
-    },
-    "报名状态": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registration status"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "报名状态"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "報名狀態"
           }
         }
       }
@@ -17338,30 +15898,6 @@
         }
       }
     },
-    "按时到场并完成个人签到": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Arrive on time and check in"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "按时到场并完成个人签到"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "按時到場並完成個人簽到"
-          }
-        }
-      }
-    },
     "换一张": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -17478,30 +16014,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "推薦名片"
-          }
-        }
-      }
-    },
-    "推荐活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recommended activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "推荐活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "推薦活動"
           }
         }
       }
@@ -17958,30 +16470,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜索文件名"
-          }
-        }
-      }
-    },
-    "搜索活动或地点": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search activities or places"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索活动或地点"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索活動或地點"
           }
         }
       }
@@ -19618,30 +18106,6 @@
         }
       }
     },
-    "暂无可签到的活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No activities available for check-in"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "暂无可签到的活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "暫無可簽到的活動"
-          }
-        }
-      }
-    },
     "暂无可选对象，可切换到好友或群聊": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -19926,30 +18390,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "暫無消息預覽"
-          }
-        }
-      }
-    },
-    "暂无符合条件的活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No matching activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "暂无符合条件的活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "暫無符合條件的活動"
           }
         }
       }
@@ -20290,30 +18730,6 @@
         }
       }
     },
-    "更换俱乐部？": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch club?"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更换俱乐部？"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更換俱樂部？"
-          }
-        }
-      }
-    },
     "更换应用图标": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -20406,30 +18822,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "有新消息時，會顯示在這裡。"
-          }
-        }
-      }
-    },
-    "有空位时将按顺序递补": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Places will be offered in order when available"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "有空位时将按顺序递补"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "有空位時將按順序遞補"
           }
         }
       }
@@ -21154,30 +19546,6 @@
         }
       }
     },
-    "本周推荐": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recommended this week"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本周推荐"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本週推薦"
-          }
-        }
-      }
-    },
     "本地搜索失败，请重试": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -21222,30 +19590,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "本地附件已丟失，請重新選擇發送"
-          }
-        }
-      }
-    },
-    "本年活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activities this year"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本年活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本年活動"
           }
         }
       }
@@ -21802,30 +20146,6 @@
         }
       }
     },
-    "查看俱乐部公告": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View club announcements"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看俱乐部公告"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看俱樂部公告"
-          }
-        }
-      }
-    },
     "查看全部置顶消息": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -21846,30 +20166,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "查看全部置頂消息"
-          }
-        }
-      }
-    },
-    "查看参与信息": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View participation details"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看参与信息"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看參與信息"
           }
         }
       }
@@ -22038,54 +20334,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "查看更多%@"
-          }
-        }
-      }
-    },
-    "查看活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看活動"
-          }
-        }
-      }
-    },
-    "查看活动详情": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View activity details"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看活动详情"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看活動詳情"
           }
         }
       }
@@ -22806,30 +21054,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在保存暱稱"
-          }
-        }
-      }
-    },
-    "正在候补队列中": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You are on the waiting list"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在候补队列中"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在候補隊列中"
           }
         }
       }
@@ -24730,30 +22954,6 @@
         }
       }
     },
-    "每周走进自然，认真生活，也认真交朋友。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enjoy nature each week. Make time for life and friendship."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每周走进自然，认真生活，也认真交朋友。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每周走進自然，認真生活，也認真交朋友。"
-          }
-        }
-      }
-    },
     "每日最多签到一次，积分仅限本人使用，不可转移。": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -25426,150 +23626,6 @@
         }
       }
     },
-    "活动已结束": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activity ended"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活动已结束"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活動已結束"
-          }
-        }
-      }
-    },
-    "活动开始前可查看参与信息": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View participation details before the activity starts"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活动开始前可查看参与信息"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活動開始前可查看參與信息"
-          }
-        }
-      }
-    },
-    "活动开始前可查看或取消参与": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View or cancel participation before the activity starts"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活动开始前可查看或取消参与"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活動開始前可查看或取消參與"
-          }
-        }
-      }
-    },
-    "活动时间": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activity time"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活动时间"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活動時間"
-          }
-        }
-      }
-    },
-    "活动签到": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activity check-in"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活动签到"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活動簽到"
-          }
-        }
-      }
-    },
-    "活动规则": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activity rules"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活动规则"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活動規則"
-          }
-        }
-      }
-    },
     "活动详情": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -25590,78 +23646,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "活動詳情"
-          }
-        }
-      }
-    },
-    "浏览、筛选与报名活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browse, filter, and join activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浏览、筛选与报名活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "瀏覽、篩選與報名活動"
-          }
-        }
-      }
-    },
-    "浏览俱乐部发布的户外活动，查看时间、集合点和参与要求。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browse activities offered by the club, including times, meeting points, and participation requirements."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浏览俱乐部发布的户外活动，查看时间、集合点和参与要求。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "瀏覽俱樂部發佈的戶外活動，查看時間、集合點和參與要求。"
-          }
-        }
-      }
-    },
-    "浏览俱乐部活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browse club activities"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浏览俱乐部活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "瀏覽俱樂部活動"
           }
         }
       }
@@ -27826,30 +25810,6 @@
         }
       }
     },
-    "确认加入候补": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Join waiting list"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "确认加入候补"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "確認加入候補"
-          }
-        }
-      }
-    },
     "确认取消": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -27942,30 +25902,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "確認對%@的群操作"
-          }
-        }
-      }
-    },
-    "确认报名": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm registration"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "确认报名"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "確認報名"
           }
         }
       }
@@ -29002,30 +26938,6 @@
         }
       }
     },
-    "立即报名": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Register now"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "立即报名"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "立即報名"
-          }
-        }
-      }
-    },
     "立即签到": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -29458,30 +27370,6 @@
         }
       }
     },
-    "签到码不正确": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Incorrect check-in code"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "签到码不正确"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "簽到碼不正確"
-          }
-        }
-      }
-    },
     "签到规则": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -29526,30 +27414,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "簽到記錄"
-          }
-        }
-      }
-    },
-    "签到记录已保存，祝你度过愉快的活动时光。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your check-in has been saved. Enjoy the activity!"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "签到记录已保存，祝你度过愉快的活动时光。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "簽到記錄已保存，祝你度過愉快的活動時光。"
           }
         }
       }
@@ -32098,54 +29962,6 @@
         }
       }
     },
-    "自备自行车与头盔，适合有骑行经验的会员": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bring your own bicycle and helmet. Suitable for experienced riders."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自备自行车与头盔，适合有骑行经验的会员"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自備自行車與頭盔，適合有騎行經驗的會員"
-          }
-        }
-      }
-    },
-    "自然 · 观鸟": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nature · Birdwatching"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自然 · 观鸟"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自然 · 觀鳥"
-          }
-        }
-      }
-    },
     "草稿": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -32914,30 +30730,6 @@
         }
       }
     },
-    "试试其他关键词，或切换活动分类。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try different keywords or another activity category."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "试试其他关键词，或切换活动分类。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "試試其他關鍵詞，或切換活動分類。"
-          }
-        }
-      }
-    },
     "试试其他关键词，或切换消息分类。": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -33610,30 +31402,6 @@
         }
       }
     },
-    "请到达集合点后完成签到；遇到问题请联系活动负责人。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check in after arriving at the meeting point. Contact the activity organizer if you need help."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请到达集合点后完成签到；遇到问题请联系活动负责人。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請到達集合點後完成簽到；遇到問題請聯繫活動負責人。"
-          }
-        }
-      }
-    },
     "请在系统设置中允许摄像头访问": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -33874,30 +31642,6 @@
         }
       }
     },
-    "请提前到达集合点，阅读活动须知，并按领队指引完成个人签到。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Arrive early at the meeting point, read the activity instructions, and follow your leader's guidance to check in."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请提前到达集合点，阅读活动须知，并按领队指引完成个人签到。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請提前到達集合點，閱讀活動須知，並按領隊指引完成個人簽到。"
-          }
-        }
-      }
-    },
     "请查看系统通知设置": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -33942,30 +31686,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "請核對用戶賬號，或掃描對方的業務二維碼。"
-          }
-        }
-      }
-    },
-    "请检查车灯和刹车，全程佩戴头盔，遵守领队指引。取消报名请至少提前12小时。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check your lights and brakes, wear a helmet throughout, and follow your leader's instructions. Cancel at least 12 hours in advance."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请检查车灯和刹车，全程佩戴头盔，遵守领队指引。取消报名请至少提前12小时。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請檢查車燈和剎車，全程佩戴頭盔，遵守領隊指引。取消報名請至少提前12小時。"
           }
         }
       }
@@ -34134,54 +31854,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "請稍候，不要關閉 App"
-          }
-        }
-      }
-    },
-    "请穿防滑运动鞋，携带饮用水。取消报名请至少提前12小时。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wear non-slip sports shoes and bring drinking water. Cancel at least 12 hours in advance."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请穿防滑运动鞋，携带饮用水。取消报名请至少提前12小时。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請穿防滑運動鞋，攜帶飲用水。取消報名請至少提前12小時。"
-          }
-        }
-      }
-    },
-    "请联系向你提供邀请码的俱乐部工作人员，获取最新联系方式。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contact the club staff member who provided your invitation code for current contact details."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请联系向你提供邀请码的俱乐部工作人员，获取最新联系方式。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請聯繫向你提供邀請碼的俱樂部工作人員，獲取最新聯繫方式。"
           }
         }
       }
@@ -34782,30 +32454,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "賬號 %@"
-          }
-        }
-      }
-    },
-    "账号、活动、通讯录和消息相关信息用于提供对应功能。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Account, activity, contacts, and message information is used to provide the corresponding features."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "账号、活动、通讯录和消息相关信息用于提供对应功能。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "賬號、活動、通訊錄和消息相關信息用於提供對應功能。"
           }
         }
       }
@@ -35506,30 +33154,6 @@
         }
       }
     },
-    "输入活动签到码": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter activity check-in code"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入活动签到码"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輸入活動簽到碼"
-          }
-        }
-      }
-    },
     "输入消息": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -35818,30 +33442,6 @@
         }
       }
     },
-    "还没有相关记录": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No records yet"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有相关记录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "還沒有相關記錄"
-          }
-        }
-      }
-    },
     "这是你自己的账号": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -36006,30 +33606,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "遠山戶外俱樂部 · %@"
-          }
-        }
-      }
-    },
-    "远山户外俱乐部 · 下午好": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yuanshan Outdoor Club · Good afternoon"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "远山户外俱乐部 · 下午好"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "遠山戶外俱樂部 · 下午好"
           }
         }
       }
@@ -36514,30 +34090,6 @@
         }
       }
     },
-    "退出登录不会清除活动记录；如需注销账号，可前往“我的 → 设置 → 注销账号”。详细说明请查看隐私政策。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logging out does not delete activity records. To delete your account, go to Me → Settings → Delete Account. See the Privacy Policy for details."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "退出登录不会清除活动记录；如需注销账号，可前往“我的 → 设置 → 注销账号”。详细说明请查看隐私政策。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "退出登錄不會清除活動記錄；如需註銷賬號，可前往“我的 → 設置 → 註銷賬號”。詳細說明請查看隱私政策。"
-          }
-        }
-      }
-    },
     "退出登录后，活动记录会保留。": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -36606,30 +34158,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "退出群聊"
-          }
-        }
-      }
-    },
-    "适合所有会员，请轻声观察，保护自然": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suitable for all members. Observe quietly and protect nature."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "适合所有会员，请轻声观察，保护自然"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "適合所有會員，請輕聲觀察，保護自然"
           }
         }
       }
@@ -36898,30 +34426,6 @@
         }
       }
     },
-    "选择签到活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select an activity to check in"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择签到活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇簽到活動"
-          }
-        }
-      }
-    },
     "选择至少%@位好友，最多%@位。": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -36990,54 +34494,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "選擇轉發對象"
-          }
-        }
-      }
-    },
-    "选择适合自己的俱乐部活动": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find club activities that suit you"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择适合自己的俱乐部活动"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇適合自己的俱樂部活動"
-          }
-        }
-      }
-    },
-    "选择适合自身状态和体能的活动，报名前认真阅读参与须知。": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose activities suited to your health and fitness, and read the participation instructions before registering."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择适合自身状态和体能的活动，报名前认真阅读参与须知。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇適合自身狀態和體能的活動，報名前認真閱讀參與須知。"
           }
         }
       }
@@ -38770,30 +36226,6 @@
         }
       }
     },
-    "阅读参与条件与活动须知": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Read participation requirements and activity instructions"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "阅读参与条件与活动须知"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "閱讀參與條件與活動須知"
-          }
-        }
-      }
-    },
     "附件上传器尚未就绪，请稍后重试": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -40062,6 +37494,1182 @@
           "stringUnit": {
             "state": "translated",
             "value": "Today"
+          }
+        }
+      }
+    },
+    "事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks"
+          }
+        }
+      }
+    },
+    "事项保存在当前设备，按账号隔离。负责人和进度由你记录，不会通知其他成员。卸载应用会移除这些记录，当前不支持云端恢复。": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项保存在当前设备，按账号隔离。负责人和进度由你记录，不会通知其他成员。卸载应用会移除这些记录，当前不支持云端恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項儲存在目前裝置，按帳號隔離。負責人和進度由你記錄，不會通知其他成員。解除安裝應用程式會移除這些記錄，目前不支援雲端還原。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks are stored on this device, separately for each account. You record the people responsible and progress; other members are not notified. Uninstalling the app removes these records. Cloud recovery is not currently supported."
+          }
+        }
+      }
+    },
+    "事项保存失败，请重试": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项保存失败，请重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項儲存失敗，請重試"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to save tasks. Try again."
+          }
+        }
+      }
+    },
+    "事项内容": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项内容"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項內容"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task information"
+          }
+        }
+      }
+    },
+    "事项已删除": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项已删除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項已刪除"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This task has been deleted"
+          }
+        }
+      }
+    },
+    "事项已发生变化，请返回后重新编辑": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项已发生变化，请返回后重新编辑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項已發生變化，請返回後重新編輯"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This task has changed. Go back and edit it again."
+          }
+        }
+      }
+    },
+    "事项数据无法读取，原文件已保留，请重试": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项数据无法读取，原文件已保留，请重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項資料無法讀取，原檔案已保留，請重試"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to read tasks. The original file has been preserved. Try again."
+          }
+        }
+      }
+    },
+    "事项数据说明": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项数据说明"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項資料說明"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About task storage"
+          }
+        }
+      }
+    },
+    "事项暂不可用，请重新打开页面": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项暂不可用，请重新打开页面"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項暫不可用，請重新開啟頁面"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks are unavailable. Reopen this page."
+          }
+        }
+      }
+    },
+    "事项标题": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项标题"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項標題"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task title"
+          }
+        }
+      }
+    },
+    "事项筛选": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项筛选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項篩選"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter tasks"
+          }
+        }
+      }
+    },
+    "事项详情": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项详情"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事項詳情"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task details"
+          }
+        }
+      }
+    },
+    "保存成功": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved successfully"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存成功"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存成功"
+          }
+        }
+      }
+    },
+    "删除事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete task"
+          }
+        }
+      }
+    },
+    "删除事项？": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除事项？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除事項？"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete task?"
+          }
+        }
+      }
+    },
+    "删除后无法恢复。": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除后无法恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除後無法還原。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This cannot be undone."
+          }
+        }
+      }
+    },
+    "处理结果": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理结果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "處理結果"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outcome"
+          }
+        }
+      }
+    },
+    "安排": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安排"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安排"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule"
+          }
+        }
+      }
+    },
+    "展开顶部页面": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open top page"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开顶部页面"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開頂部頁面"
+          }
+        }
+      }
+    },
+    "已完成": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成"
+          }
+        }
+      }
+    },
+    "已逾期": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已逾期"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已逾期"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overdue"
+          }
+        }
+      }
+    },
+    "待办": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待办"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待辦"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        }
+      }
+    },
+    "待处理": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待處理"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To do"
+          }
+        }
+      }
+    },
+    "待确认": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待确认"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待確認"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To confirm"
+          }
+        }
+      }
+    },
+    "截止时间": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截止时间"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截止時間"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due date"
+          }
+        }
+      }
+    },
+    "搜索事项、负责人或聊天": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search tasks, owners or chats"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索事项、负责人或聊天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋事項、負責人或聊天"
+          }
+        }
+      }
+    },
+    "收起顶部页面": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close top page"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起顶部页面"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起頂部頁面"
+          }
+        }
+      }
+    },
+    "放弃事项修改？": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放弃事项修改？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放棄事項修改？"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard task changes?"
+          }
+        }
+      }
+    },
+    "新建事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New task"
+          }
+        }
+      }
+    },
+    "暂无符合条件的事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无符合条件的事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無符合條件的事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching tasks"
+          }
+        }
+      }
+    },
+    "更新进度": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新进度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新進度"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update progress"
+          }
+        }
+      }
+    },
+    "最多输入%@个字符": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多输入%@个字符"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多輸入%@個字元"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter up to %@ characters"
+          }
+        }
+      }
+    },
+    "来源单聊": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source direct chat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源单聊"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源單聊"
+          }
+        }
+      }
+    },
+    "来源群聊": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源群聊"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源群聊"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source group"
+          }
+        }
+      }
+    },
+    "标记为%@": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标记为%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標記為%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark as %@"
+          }
+        }
+      }
+    },
+    "添加一个事项，或在聊天中长按文字消息创建。": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a task, or press and hold a text message in a chat to create one."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加一个事项，或在聊天中长按文字消息创建。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增一個事項，或在聊天中長按文字訊息建立。"
+          }
+        }
+      }
+    },
+    "登录后查看事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录后查看事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入後查看事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to view tasks"
+          }
+        }
+      }
+    },
+    "移除来源关联": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除来源关联"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除來源關聯"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove source link"
+          }
+        }
+      }
+    },
+    "编辑事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編輯事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit task"
+          }
+        }
+      }
+    },
+    "群事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group tasks"
+          }
+        }
+      }
+    },
+    "记录处理结果或需要补充的内容": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记录处理结果或需要补充的内容"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記錄處理結果或需要補充的內容"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record the outcome or additional details"
+          }
+        }
+      }
+    },
+    "设置截止时间": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置截止时间"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定截止時間"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set a due date"
+          }
+        }
+      }
+    },
+    "说明": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Description"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说明"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "說明"
+          }
+        }
+      }
+    },
+    "请填写事项标题，并检查输入长度": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写事项标题，并检查输入长度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫事項標題，並檢查輸入長度"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a task title and check the text lengths"
+          }
+        }
+      }
+    },
+    "负责人备注": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "负责人备注"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "負責人備註"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person responsible"
+          }
+        }
+      }
+    },
+    "转为事项": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转为事项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轉為事項"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create task"
+          }
+        }
+      }
+    },
+    "进度": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進度"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progress"
+          }
+        }
+      }
+    },
+    "进度记录": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进度记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進度記錄"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progress history"
+          }
+        }
+      }
+    },
+    "进行中": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进行中"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進行中"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In progress"
           }
         }
       }

@@ -56,7 +56,7 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertEqual(agreement.value as? String, "已勾选")
         XCTAssertFalse(app.tabBars.firstMatch.exists)
         loginButton.tap()
-        XCTAssertTrue(app.staticTexts["林夏，欢迎回来"].waitForExistence(timeout: 8))
+        assertMainTabs(in: app)
     }
 
     func testRegisterAccountCanSignOutLogInAndRestoreSession() {
@@ -100,7 +100,7 @@ final class MemberJourneyTests: XCTestCase {
         enter("trailpass", in: app.secureTextFields["field.lock"])
         login(in: app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["trailuser，欢迎回来"].exists)
+        assertMainTabs(in: app)
 
         selectTab("我的", in: app)
         XCTAssertTrue(app.staticTexts["trailuser"].waitForExistence(timeout: 5))
@@ -120,7 +120,7 @@ final class MemberJourneyTests: XCTestCase {
         app.terminate()
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["trailuser，欢迎回来"].exists)
+        assertMainTabs(in: app)
     }
 
     func testProfileSecondaryNavigationHasOneBar() {
@@ -137,14 +137,6 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         selectTab("我的", in: app)
 
-        let records = app.buttons.containing(.staticText, identifier: "我的报名").firstMatch
-        XCTAssertTrue(records.waitForExistence(timeout: 5))
-        records.tap()
-        screenshot("我的报名-导航栏", app)
-        XCTAssertEqual(app.navigationBars.count, 1, app.navigationBars.debugDescription)
-        XCTAssertTrue(app.navigationBars["我的报名"].exists)
-        app.navigationBars.buttons.firstMatch.tap()
-
         app.buttons["打开设置"].tap()
         XCTAssertTrue(app.navigationBars["设置"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.navigationBars.count, 1, app.navigationBars.debugDescription)
@@ -155,11 +147,7 @@ final class MemberJourneyTests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         app.navigationBars.buttons["完成"].tap()
 
-        let more = app.tabBars.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "更多", "More")).firstMatch
-        more.tap()
-        let moreNavigation = app.navigationBars.matching(NSPredicate(format: "identifier == %@ OR identifier == %@", "更多", "More")).firstMatch
-        XCTAssertTrue(moreNavigation.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tables.cells.containing(.staticText, identifier: "我的").firstMatch.exists)
+        assertMainTabs(in: app)
     }
 
     func testLegalDocumentsBeforeLogin() {
@@ -212,107 +200,6 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(app.textFields["field.person"].waitForExistence(timeout: 5))
     }
 
-    func testMembershipJourneyAndPersistence() {
-        continueAfterFailure = false
-        let app = XCUIApplication()
-        app.launchEnvironment["CLUB_UI_TEST_DATABASE_ID"] = UUID().uuidString
-        app.launch()
-
-        let invite = app.textFields["field.shield"]
-        XCTAssertTrue(invite.waitForExistence(timeout: 10))
-        XCTAssertFalse(app.buttons["connectClub"].isEnabled)
-        screenshot("01-邀请码", app)
-        enter("000000", in: invite)
-        app.buttons["connectClub"].tap()
-        XCTAssertTrue(app.staticTexts["未找到对应的俱乐部"].waitForExistence(timeout: 5))
-        screenshot("02-邀请码错误", app)
-        replace("10001", in: invite)
-        app.buttons["connectClub"].tap()
-
-        let card = app.textFields["field.person"]
-        XCTAssertTrue(card.waitForExistence(timeout: 5))
-        screenshot("03-会员登录", app)
-        enter("YS20260018", in: card)
-        XCTAssertEqual(card.value as? String, "YS20260018")
-        dismissKeyboard(in: app)
-        enter("wrong", in: app.secureTextFields["field.lock"])
-        dismissKeyboard(in: app)
-        login(in: app)
-        XCTAssertTrue(app.staticTexts["账号或密码不正确，请重新输入。"].waitForExistence(timeout: 5))
-        enter("123456", in: app.secureTextFields["field.lock"])
-        login(in: app)
-        XCTAssertTrue(app.scrollViews["clubHome"].waitForExistence(timeout: 8))
-        screenshot("04-首页", app)
-
-        selectTab("活动", in: app)
-        XCTAssertTrue(app.buttons["activity.hike"].waitForExistence(timeout: 5))
-        let search = app.textFields["activitySearch"]
-        enter("park", in: search)
-        dismissKeyboard(in: app)
-        XCTAssertEqual(search.value as? String, "park")
-        app.buttons["清除"].tap()
-        screenshot("05-活动列表", app)
-        app.buttons["可报名"].tap()
-        app.buttons["activity.hike"].tap()
-        XCTAssertTrue(app.buttons["立即报名"].waitForExistence(timeout: 5))
-        screenshot("06-活动详情", app)
-        app.buttons["立即报名"].tap()
-        let confirm = app.buttons["confirmRegistration"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        XCTAssertFalse(confirm.isEnabled)
-        screenshot("07-报名确认", app)
-        app.switches["acceptRules"].tap()
-        confirm.tap()
-        XCTAssertTrue(app.staticTexts["报名成功"].waitForExistence(timeout: 5))
-        screenshot("08-报名成功", app)
-        app.buttons["viewParticipation"].tap()
-        app.buttons["前往签到"].tap()
-        let checkIn = app.textFields["checkInCode"]
-        XCTAssertTrue(checkIn.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["confirmCheckIn"].isEnabled)
-        enter("00", in: checkIn)
-        dismissKeyboard(in: app)
-        XCTAssertEqual(checkIn.value as? String, "00")
-        enter("00", in: checkIn)
-        app.buttons["confirmCheckIn"].tap()
-        XCTAssertTrue(app.staticTexts["签到码不正确"].waitForExistence(timeout: 5))
-        replace("6812", in: checkIn)
-        screenshot("09-签到", app)
-        app.buttons["confirmCheckIn"].tap()
-        XCTAssertTrue(app.staticTexts["签到成功"].waitForExistence(timeout: 5))
-        screenshot("10-签到成功", app)
-
-        app.terminate()
-        app.launch()
-        XCTAssertTrue(app.scrollViews["clubHome"].waitForExistence(timeout: 8))
-        selectTab("活动", in: app)
-        app.buttons["activity.hike"].tap()
-        XCTAssertTrue(app.buttons["已完成签到"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["已完成签到"].isEnabled)
-        app.navigationBars.buttons.firstMatch.tap()
-
-        // Cancel the initial waiting record, then join the full activity again.
-        app.buttons["activity.bird"].tap()
-        app.swipeUp()
-        app.buttons["取消候补"].tap()
-        app.alerts.buttons["确认取消"].tap()
-        XCTAssertTrue(app.buttons["加入候补"].waitForExistence(timeout: 5))
-        app.buttons["加入候补"].tap()
-        app.switches["acceptRules"].tap()
-        app.buttons["confirmRegistration"].tap()
-        XCTAssertTrue(app.staticTexts["已加入候补"].waitForExistence(timeout: 5))
-        app.buttons["viewParticipation"].tap()
-        XCTAssertTrue(app.buttons["候补等待中"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["候补等待中"].isEnabled)
-        app.navigationBars.buttons.firstMatch.tap()
-
-        selectTab("俱乐部", in: app)
-        XCTAssertTrue(app.staticTexts["如何参与"].waitForExistence(timeout: 5))
-        screenshot("11-俱乐部", app)
-        selectTab("我的", in: app)
-        XCTAssertTrue(app.staticTexts["林夏"].waitForExistence(timeout: 5))
-        screenshot("12-个人中心", app)
-    }
 
     func testContactChatAndMessages() {
         continueAfterFailure = false
@@ -409,8 +296,6 @@ final class MemberJourneyTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Hello Chen!"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["See you on Saturday!"].exists)
         app.navigationBars.buttons.firstMatch.tap()
-        selectTab("俱乐部", in: app)
-        XCTAssertTrue(app.staticTexts["如何参与"].waitForExistence(timeout: 5))
         selectTab("我的", in: app)
         XCTAssertTrue(app.staticTexts["林夏"].waitForExistence(timeout: 5))
     }
@@ -477,23 +362,14 @@ final class MemberJourneyTests: XCTestCase {
         app.buttons["login"].tap()
     }
 
+    private func assertMainTabs(in app: XCUIApplication) {
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertEqual(app.tabBars.buttons.count, 4)
+        for title in ["消息", "通讯录", "事项", "我的"] { XCTAssertTrue(app.tabBars.buttons[title].exists) }
+        XCTAssertFalse(app.tabBars.buttons["首页"].exists)
+    }
+
     private func selectTab(_ title: String, in app: XCUIApplication) {
-        // 活动和俱乐部已移到首页，不再从系统 More 列表进入。
-        if title == "活动" || title == "俱乐部" {
-            app.tabBars.buttons["首页"].tap()
-            let identifier = title == "活动" ? "home.activities" : "home.club"
-            let entry = app.buttons[identifier]
-            // 从首页的深层页面切换回来时，先沿当前导航栈返回首页。
-            for _ in 0..<8 {
-                if entry.isHittable { break }
-                let back = app.navigationBars.buttons.firstMatch
-                guard back.exists else { break }
-                back.tap()
-            }
-            XCTAssertTrue(entry.waitForExistence(timeout: 5))
-            entry.tap()
-            return
-        }
         let tab = app.tabBars.buttons[title]
         if tab.exists {
             tab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()

@@ -59,6 +59,8 @@ struct AvatarUser { let userUID: String; let avatar: String }
         check(ProductionMapper.metadata(peer, userUID: "me", group: true).avatarURL == "wire/peer.png", "空群成员缓存保留消息头像")
         member.userAvatar = "latest/member.png"
         check(ProductionMapper.metadata(peer, userUID: "me", group: true).avatarURL == "latest/member.png", "有效群成员头像更新")
+        let snapshot = ProductionMapper.metadata(peer, userUID: "me", group: true, resolveProfiles: false)
+        check(snapshot == peer, "历史校验快照不补全作者资料，也不修改正文、身份或消息状态")
         member.disableStatus = 4
         check(ProductionMapper.metadata(peer, userUID: "me", group: true).avatarURL.isEmpty, "注销成员不恢复历史头像")
         sdk.uid = "other-account"; friend.disableStatus = 0; sdk.friend = friend

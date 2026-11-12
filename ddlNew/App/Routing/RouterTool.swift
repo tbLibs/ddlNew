@@ -18,10 +18,7 @@ class RouterTool: ObservableObject{
     private init() {}
     
     /// 当前选中的 Tab。
-    @Published var selectTab: TabType = .main
-    
-    /// 首页 Path
-    @Published var mainRouterPath = NavigationPath()
+    @Published var selectTab: TabType = .message
     
     /// 消息 path
     @Published var messageRouterPath = NavigationPath()
@@ -37,8 +34,7 @@ class RouterTool: ObservableObject{
 
     /// 账号退出或重新登录时清空旧导航，避免带入上一会话的详情页。
     func resetTabNavigation() {
-        selectTab = .main
-        mainRouterPath = NavigationPath()
+        selectTab = .message
         messageRouterPath = NavigationPath()
         contactsRouterPath = NavigationPath()
         mineRouterPath = NavigationPath()

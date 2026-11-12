@@ -53,6 +53,7 @@ import Combine
     private var changedIDs: [String: Int] = [:]
     private var offset = 0
     private var historyCursor: String?
+    private var initialRefreshStarted = false
     private var refreshTask: Task<Void, Never>?
     private var refreshRequestID = UUID()
     private var lastSend: Date?
@@ -64,8 +65,28 @@ import Combine
     init(client: any ChatClient) { self.client = client }
 
     /// 订阅先于缓存与补页，避免首屏读取期间漏掉实时消息。
-    func open(_ context: ChatContext) async {
-        if self.context == context { isForeground = true; return }
+    func open(_ context: ChatContext, beforeRefresh: (@MainActor () async -> Void)? = nil) async {
+        if self.context != context { prepareCachedConversation(context) }
+        else { isForeground = true }
+        guard !initialRefreshStarted else { return }
+        let run = generation
+        // UI先完成缓存首屏展示，再启动包含SDK同步准备工作的远端补拉。
+        // 无缓存和显式搜索定位直接请求，不能等待一个不存在的本地末行。
+        if context.route.targetMessageID == nil, messages.contains(where: \.isVisible) {
+            await beforeRefresh?()
+        }
+        guard !Task.isCancelled, generation == run, self.context == context, !initialRefreshStarted else { return }
+        initialRefreshStarted = true
+        await loadPage(before: nil)
+        guard generation == run, self.context == context else { return }
+        if Task.isCancelled { initialRefreshStarted = false; return }
+        // 无缓存或请求失败也结束空白等待；有缓存时早已允许页面定位展示。
+        if initialHistoryRevision == 0 { initialHistoryRevision = 1 }
+        if let target = context.route.targetMessageID { await locate(target) }
+    }
+
+    /// 同步阶段仅恢复当前会话缓存和草稿；远端刷新由open在首屏展示后接续。
+    private func prepareCachedConversation(_ context: ChatContext) {
         close()
         self.context = context
         let run = generation
@@ -96,11 +117,6 @@ import Combine
             reconcileMentions()
             if !draft.referenceID.isEmpty { reference = messages.first { $0.serverID == draft.referenceID } ?? ChatMessageRecord(localID: "reference:" + draft.referenceID, serverID: draft.referenceID, conversationID: context.route.id, senderID: "", senderName: "", text: L10n.tr("引用原文尚未加载，点击定位"), timestamp: 0, state: .sent) }
         } catch { errorMessage = error.localizedDescription }
-        await loadPage(before: nil)
-        guard generation == run, self.context == context else { return }
-        // 无缓存或请求失败也结束空白等待；有缓存时早已允许页面定位展示。
-        if initialHistoryRevision == 0 { initialHistoryRevision = 1 }
-        if let target = context.route.targetMessageID { await locate(target) }
     }
 
     /// 下拉控件的任务可能随SwiftUI刷新取消，网络补页由当前聊天持有。
@@ -646,6 +662,7 @@ import Combine
         generation = UUID(); client.stop(); context = nil
         records.removeAll(); changedIDs.removeAll(); eventRevision = 0; messages.removeAll(); selectedIDs.removeAll(); busyIDs.removeAll()
         readIDs.removeAll(); pendingReadOwners.removeAll(); input = ""; previousInput = ""; mentions = []; reference = nil
+        initialRefreshStarted = false
         isLoading = false; initialHistoryRevision = 0; hasMore = true; offset = 0; historyCursor = nil; lastSend = nil; unreadArrivals = 0; pinRevision = 0
         permission = ChatPermission(canSend: false); locatedMessageID = nil; locationRevision = 0; locationRequest = UUID(); errorMessage = nil
     }

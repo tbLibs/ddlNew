@@ -27,6 +27,12 @@ struct ChatRoomView: View {
     @State private var voicePlayback = ChatVoicePlayback()
     @State private var openedContext: ChatContext?
     @State private var conversationClosed = false
+    @ObservedObject private var personalTasks = PersonalTaskStore.shared
+    @State private var taskDraft: TaskRecord?
+    @State private var taskDraftEpoch = UUID()
+    @State private var taskFeedback: String?
+    @State private var taskFeedbackRevision = 0
+    @State private var showGroupTasks = false
     @State private var confirmAction: ChatMessageAction?
     @State private var actionMessageID: String?
     @State private var pinnedNotice: ChatGroupNotice?
@@ -61,6 +67,7 @@ struct ChatRoomView: View {
     @State private var didInitialScroll = false
     @State private var alignedInitialHistoryRevision = 0
     @State private var followsInitialLatest = true
+    @State private var cachedPresentation = ChatCachedPresentation()
     @State private var showFullHistorySearch = false
     // UIKit输入器自己管理first responder，普通状态不会因缺少.focused目标而被系统复位。
     @State private var composerFocused = false
@@ -149,6 +156,16 @@ struct ChatRoomView: View {
                 .opacity(initialMessagesReady ? 1 : 0)
                 .allowsHitTesting(initialMessagesReady)
                 .accessibilityHidden(!initialMessagesReady)
+                .task(id: initialMessagesReady) {
+                    if initialMessagesReady { cachedPresentation.rendered() }
+                }
+                .overlay {
+                    if !initialMessagesReady {
+                        ProgressView(L10n.tr("正在加载"))
+                            .tint(MessagingTheme.accent)
+                            .foregroundStyle(MessagingTheme.secondaryText)
+                    }
+                }
                 if store.unreadArrivals > 0 { Button(L10n.tr("\(store.unreadArrivals)条新消息")) { store.returnToLatest(); if let id = store.messages.last?.id { proxy.scrollTo(id, anchor: .bottom) } }.padding(8.zoom()) }
             }
             .background(MessagingTheme.background)
@@ -232,11 +249,13 @@ struct ChatRoomView: View {
             guard !conversationClosed else { return }
             if let context = runtime.context(for: route) {
                 if store.context != context {
+                    cachedPresentation.reset()
                     didInitialScroll = false; alignedInitialHistoryRevision = 0; followsInitialLatest = true
                     pendingSheetLocation = nil; pendingLocatedMessageID = nil; pendingSendSuccessScroll = false
                     latestLayout = ChatLatestPreference.Value(); messageFrames.removeAll(); visibleMessageIDs.removeAll()
                 }
-                openedContext = context; await store.open(context)
+                openedContext = context
+                await store.open(context, beforeRefresh: { await cachedPresentation.wait() })
                 if route.kind == .group { await calls.refreshGroupRoom(context: context) }
             }
             else { store.close() }
@@ -251,7 +270,8 @@ struct ChatRoomView: View {
             if id != nil { composerFocused = false; voicePlayback.stop() }
         }
         .onAppear { PushCoordinator.shared.visibleConversation = .chat(id: route.id, group: route.kind == .group) }
-        .onDisappear { if PushCoordinator.shared.visibleConversation == .chat(id: route.id, group: route.kind == .group) { PushCoordinator.shared.visibleConversation = nil }; voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker && !calls.isPresented && calls.selection == nil { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
+        .onDisappear { cachedPresentation.reset() }
+        .onDisappear { if PushCoordinator.shared.visibleConversation == .chat(id: route.id, group: route.kind == .group) { PushCoordinator.shared.visibleConversation = nil }; voicePlayback.stop(); resizeFollowTask?.cancel(); resizeFollowTask = nil; store.isVisible = false; mentionTask?.cancel(); mentionTask = nil; if !showMentionPicker { mentionRequest = nil }; if taskDraft == nil && !showGroupTasks && detailDestination == nil && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && !showForward && !showCamera && forwardRecord == nil && locationMessage == nil && !showFullHistorySearch && pinningMessage == nil && !showPinnedMessages && !showNotices && !showMentionPicker && !calls.isPresented && calls.selection == nil { mentionTask?.cancel(); mentionRequest = nil; store.close() } }
     }
 
     /// 弹层仍使用原状态和上下文，不重新创建聊天Store。
@@ -260,6 +280,14 @@ struct ChatRoomView: View {
         .sheet(isPresented: $showNotices, onDismiss: {
             pinRefreshTask?.cancel(); pinRefreshTask = Task { await reloadPins() }
         }) { NavigationStack { ChatGroupNoticesView(route: route) } }
+        .navigationDestination(isPresented: Binding(get: { taskDraft != nil }, set: { if !$0 { taskDraft = nil } })) {
+            if let taskDraft { PersonalTaskEditor(record: taskDraft, creating: true, epoch: taskDraftEpoch) {
+                taskFeedback = L10n.tr("保存成功"); taskFeedbackRevision += 1
+            } }
+        }
+        .navigationDestination(isPresented: $showGroupTasks) {
+            PersonalTasksView(groupID: route.id, groupName: liveGroupTitle ?? route.title).id(personalTasks.epoch).toolbar(.hidden, for: .tabBar)
+        }
         .sheet(isPresented: $showPinnedMessages, onDismiss: locateAfterSheetDismissal) { NavigationStack { ChatPinnedMessagesView(messages: pinnedMessages, onLocate: queueSheetLocation).toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.tr("关闭")) { showPinnedMessages = false } } } } }
         .sheet(item: $pinningMessage) { message in if let context = store.context { NavigationStack { ChatPinActionView(message: message, context: context, permission: store.permission, onChange: { Task { await reloadPins() } }) } } }
         .sheet(isPresented: $showFullHistorySearch, onDismiss: locateAfterSheetDismissal) {
@@ -291,6 +319,7 @@ struct ChatRoomView: View {
     /// 业务观察和确认操作独立于展示组件，继续保留原回调边界。
     var body: some View {
         chatPresentations
+        .messagingFeedbackToast(taskFeedback, trigger: taskFeedbackRevision)
         .messagingFeedbackToast(chatFeedbackMessage, isEnabled: !showSettings && !showForward && mediaMessage == nil && mediaGallery == nil && editingMessage == nil && pinningMessage == nil, trigger: store.inputLimitRevision)
         .onChange(of: store.messages) { _ in
             // 同一可见ID的服务端身份/已读资格可能补齐，消息变化时主动重查一次。
@@ -400,9 +429,10 @@ struct ChatRoomView: View {
 
     /// 群顶部保留旧版消息/群公告入口；未批准的收藏链接标签不展示。
     private var groupNavigation: some View {
-        HStack(spacing: 24.zoom()) {
+        HStack(spacing: 12.zoom()) {
             Label(L10n.tr("消息"), systemImage: "message").font(.subheadline.weight(.semibold)).foregroundStyle(MessagingTheme.accent)
             Button { composerFocused = false; showNotices = true } label: { Label(L10n.tr("群公告"), systemImage: "megaphone").font(.subheadline) }.frame(minHeight: 44)
+            Button { composerFocused = false; showGroupTasks = true } label: { Label(L10n.tr("群事项"), systemImage: "checklist").font(.subheadline) }.frame(minHeight: 44)
             Spacer(minLength: 0)
             Button { composerFocused = false; showFullHistorySearch = true } label: { Image(systemName: "magnifyingglass").frame(width: 44, height: 44) }.accessibilityLabel(L10n.tr("搜索聊天记录"))
         }.padding(.horizontal, 16.zoom()).background(MessagingTheme.surface)
@@ -516,11 +546,11 @@ struct ChatRoomView: View {
     private func positionSendSuccess(_ proxy: ScrollViewProxy) {
         guard pendingSendSuccessScroll, store.isVisible,
               let lastID = displayedMessages.last?.id,
-              latestLayout.lastMessageID == lastID,
-              latestFrame.width > 0, viewport.width > 0, viewport.height > 0 else { return }
-        proxy.scrollTo("latest", anchor: .bottom)
+              viewport.width > 0, viewport.height > 0 else { return }
+        proxy.scrollTo(lastID, anchor: .bottom)
         // 懒加载先使用估算高度跳转，末条实际进入视口后才消费本次请求。
-        guard ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) else { return }
+        guard latestLayout.lastMessageID == lastID,
+              ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) else { return }
         store.returnToLatest()
         pendingSendSuccessScroll = false
     }
@@ -528,15 +558,18 @@ struct ChatRoomView: View {
     /// 沿旧端在真实布局回调无动画对齐首屏，用户翻历史或显式定位后停止首次跟随。
     private func positionInitialMessages(_ proxy: ScrollViewProxy) {
         guard followsInitialLatest, store.isVisible, route.targetMessageID == nil,
-              store.initialHistoryRevision > 0, latestLayout.initialHistoryRevision == store.initialHistoryRevision,
-              let lastID = displayedMessages.last?.id, latestLayout.lastMessageID == lastID,
-              viewport.width > 0, viewport.height > 0, latestFrame.width > 0 else { return }
+              store.initialHistoryRevision > 0, let lastID = displayedMessages.last?.id,
+              viewport.width > 0, viewport.height > 0 else { return }
+        // 末行在屏外时还没有几何回调；先按消息ID让懒布局实例化末行，不能等标记出现再滚动。
+        // 已取得的旧批次布局仍不用于新批次定位，等待本轮消息布局发布。
+        guard latestLayout.lastMessageID == nil ||
+              (latestLayout.lastMessageID == lastID && latestLayout.initialHistoryRevision == store.initialHistoryRevision) else { return }
         resizeFollowTask?.cancel(); resizeFollowTask = nil
         var transaction = Transaction(animation: nil); transaction.disablesAnimations = true
         withTransaction(transaction) {
             if ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport) {
                 didInitialScroll = true; alignedInitialHistoryRevision = store.initialHistoryRevision; store.isAtBottom = true
-            } else { proxy.scrollTo("latest", anchor: .bottom) }
+            } else { proxy.scrollTo(lastID, anchor: .bottom) }
         }
         if didInitialScroll { updateVisibleMessages() }
     }
@@ -548,7 +581,7 @@ struct ChatRoomView: View {
         resizeFollowTask = Task { @MainActor in
             do { try await Task.sleep(nanoseconds: 350_000_000) } catch { return }
             guard !Task.isCancelled, store.isVisible else { return }
-            proxy.scrollTo("latest", anchor: .bottom)
+            if let id = displayedMessages.last?.id { proxy.scrollTo(id, anchor: .bottom) }
             resizeFollowTask = nil
             store.isAtBottom = ChatViewportPolicy.isAtBottom(latest: latestFrame, viewport: viewport)
         }
@@ -718,6 +751,22 @@ struct ChatRoomView: View {
     @ViewBuilder private func messageMenu(_ message: ChatMessageRecord) -> some View {
         let allowed = ChatActionPolicy.allowed(for: message, userUID: store.context?.userUID ?? "", permission: store.permission)
         if let cardID = message.cardProfileID { Button(L10n.tr("查看名片")) { selectedProfile = ContactsRoute(contactID: cardID) } }
+        if [0, 10].contains(message.type), message.status == .normal,
+           message.state == .sent, message.isCompatible, message.snapchat == 0, !message.serverID.isEmpty {
+            Button(L10n.tr("转为事项")) {
+                guard let context = store.context, runtime.isCurrent(context),
+                      personalTasks.owner == TaskOwner(tenantID: context.tenantID, userUID: context.userUID), personalTasks.ready else {
+                    store.errorMessage = L10n.tr("事项暂不可用，请重新打开页面"); return
+                }
+                composerFocused = false
+                var draft = TaskRecord()
+                draft.title = String(message.text.prefix(80))
+                draft.notes = String(message.text.prefix(1000))
+                draft.source = TaskSource(conversationID: route.id, conversationName: chatTitle,
+                                          messageID: message.serverID, isGroup: route.kind == .group)
+                taskDraftEpoch = personalTasks.epoch; taskDraft = draft
+            }.disabled(!personalTasks.ready || personalTasks.busy)
+        }
         if allowed.contains(.copy) { Button(L10n.tr("复制")) { UIPasteboard.general.string = message.text } }
         if allowed.contains(.reply) { Button(L10n.tr("引用回复")) { store.reference = message; composerMode.beginTyping(); composerFocused = true } }
         if allowed.contains(.edit) { Button(L10n.tr("编辑")) { editingMessage = message } }

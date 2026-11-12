@@ -1,5 +1,72 @@
 # ddlNew 项目交接文档
 
+## 2026-11-12 消息页下拉展开顶部空白页
+
+用户明确要求先实现空白页面及手势：在消息列表顶部继续下拉，页面随手势从顶部露出；超过120pt后松手展开整页，不足则回收。展开后上滑80pt或较快上滑收回，也可点底部向上箭头关闭。页面覆盖导航栏和Tab，正文预留为空，未添加网络请求或恢复下拉刷新。关闭后保留原列表位置；切换Tab、离开消息页或App进入非活跃状态时重置。
+
+新增MessagePullDownState和MessagePullDownPresentation，由TabbarView持有状态、覆盖层单独订阅逐帧变化，避免拖动时重算消息列表。MessagePullDownGesture挂在列表顶部行，观察现有UIScrollView的pan，不替换delegate或抢占横向菜单手势；只接受从列表顶部开始的向下拖动，首次触发清除搜索焦点。拆卸时移除target并恢复原alwaysBounceVertical。减少动态效果时使用短过渡；导航标题的辅助功能操作可展开，关闭按钮支持退出操作。新增两条xcstrings文案，简中／繁中／英文齐全。
+
+验证：匿名原生UI宿主直接使用生产组件，在iPhone17 Pro Max／iOS26.5模拟器通过短拉回收、连续展开／上滑关闭、按钮关闭、底栏遮挡、列表中段不误展开和会话左滑菜单（`/tmp/ddlNew-message-pulldown-final.xcresult`）；展开截图确认导航栏与Tab完全遮挡，收起按钮保持独立44pt点击区域。完整workspace generic iOS签名Debug构建成功（`/tmp/ddlNew-message-pulldown-build.log`），三语1610键及权限4键编译／运行时检查通过。本轮未安装真机，未打包发布或提交推送；真实消息页搜索／小应用组合仍需真机体验验证。
+
+## 2026-11-12 移除消息首页下拉刷新
+
+按用户要求移除MessageView的`.refreshable`入口。SDK事件驱动的列表自动更新、语言变化时的本地重读、缓存读取失败后的“重新读取”和“我的应用”自身刷新保持原逻辑。仅删除一行视图修饰器，diff检查通过；本轮未重新构建或安装。
+
+## 2026-11-12 群聊空白复查与本地首屏优先
+
+用户再次确认每次入群正文短暂空白，群名／顶栏／输入框正常且无加载提示，并指出在加入消息转事项后出现。前一节减少作者资料查询的优化没有消除用户现象，不能当作已修复。真实连接iPhone（iOS26.6.1）曾捕获正文空白；LLDB中缓存100条、initialHistoryRevision=1、didInitialScroll=true、initialMessagesReady=true，而latest几何位于视口上方约2586点。该样本受调试暂停和布局变化影响，证明有数据时也可能出现空白，但不能据此断言事项菜单是唯一根因。录屏及xctrace附加失败，没有可靠的性能trace或首屏毫秒基准；临时11个诊断断点已删除、进程恢复。
+
+用户提出先显示本地数据库消息再后台更新。ChatStore现在明确分离同步缓存准备与异步刷新，open可接受beforeRefresh等待；ChatRoomView在本机缓存完成末尾布局并经过屏幕刷新后放行远端历史，避免刚发布缓存就连续进入全量快照准备。ChatCachedPresentation使用短期CADisplayLink响应实际帧，不设固定毫秒延迟，退出时取消并释放等待。无可见缓存及显式搜索定位直接请求；等待期间换号／退出时重新核对context、generation和取消；暂时进入子页后返回仍可继续尚未开始的刷新。
+
+首次／发送成功／键盘恢复定位改用真实末条消息ID，使懒列表先实例化目标；底部标记仍只用于核对实际布局。尝试把底部标记移入LazyVStack曾在匿名原生UI测试中导致无法出现末条，已撤销该尝试。保留原来独立标记和旧批次布局保护；没有删除群／单聊转事项、没有截断数据库历史。网络回包仍经SDK落库后合并发布，沿用在途编辑／删除／ACK及账号隔离规则。此轮没有把SDK单例及其全量数据库访问任意搬到并发线程；“后台刷新”指不阻塞首屏的异步流程，后续进一步降低刷新期间CPU占用仍需针对SDK存储边界评估。
+
+Tests/Chat/InitialLayout从真实ChatRoomView提取滚动容器和首屏定位方法，使用匿名100条不同高度记录、消息转事项菜单及两条事项导航，连续3次进入验证末条可见。旧版也能通过该夹具，因此它是导航／定位回归，不是完整复现用户真机短暂空白的测试。生产回调检查新增末行尚未布局时按真实ID发起定位；首屏Store检查新增缓存先发布／刷新后开始／补拉不清屏／取消和子页返回／无缓存直拉。
+
+最终验证：首屏历史32/32、首次定位12项、滚动16项、分页97/97、群权限独立启动13/13通过；匿名原生UI连续3次进入末条可见通过（`/tmp/ddlNew-chat-entry-actualrow.xcresult`）。最终签名Debug构建成功（`/tmp/ddlNew-entry-cache-final-build.log`），通过devicectl覆盖安装到连接iPhone并启动，未卸载／清库。15:29与15:30两次真实测试群进入的连续截图均在push过程中已有本地正文，后续才出现置顶群公告，未采到此前空白阶段；采样不是逐帧录像，不宣称所有机型零空白或给出精确性能基准。长按“转为事项”能push到预填编辑页，点取消返回后消息仍在；未保存事项、未发送／删除真实消息。分页日志显示两次均先恢复100条本机缓存、后发远端请求并合并100条；日志`/tmp/ddlNew-entry-cache-final-console.log`。保留工作区，不提交推送／不打包发布。
+
+## 2026-11-12 群聊进入空白：移除首屏前全量历史的作者资料查询
+
+用户确认每次进入群都会短暂空白，历史越多越明显。ChatStore先发布本机100条缓存，但紧接着同步调用SDKChatClient.history；其cacheSnapshot在首次异步网络等待前遍历完整历史，并经SDKChatMessageMapper.record为每条群消息额外查询成员及好友资料。全部工作位于主线程，会延后缓存首帧渲染。已有首屏25项检查通过，只证明定位／网络等待逻辑，不反映这段同步数据库访问成本。
+
+扩展Tests/Chat/run-history-pagination-checks.sh：执行生产cached/history/cacheSnapshot及真实作者资料补全分支，仅替换SDK数据库／运输边界并统计查询。未修改生产代码时，100条历史在首次网络等待前产生400次作者资料查询，2000条产生4200次，新回归失败（`/tmp/ddlNew-group-startup-red.log`，96/97通过）。这是确定的随历史增长的同步I/O开销，不是实机毫秒耗时测量，也不能断言它是所有机型空白的唯一原因。
+
+SDKChatMessageMapper.record新增默认开启的resolveProfiles参数；只有用于版本比较的完整缓存快照传false，合并转发内的嵌套记录透传该选项。实际消息、首屏缓存、远端显示映射继续读取最新头像／昵称／角色；ChatHistoryCachePolicy本来不比较这些展示字段，正文、状态、已读、期间删除／编辑保护及旧账号隔离保持原逻辑。完整历史快照仍保留，没有裁剪历史或跳过冲突保护。修改后100条与2000条场景均为200次作者资料查询，97/97分页检查通过（`/tmp/ddlNew-group-startup-fixed.log`）。
+
+ChatRoomView在首次数据／底部定位尚未就绪时显示现有三语“正在加载”进度提示，避免仅显示空白；不移除首次末尾定位或添加固定延时。头像17项（含不补资料时消息快照不变）、昵称24项、首屏25项、首次定位11项、群权限独立启动13项及滚动16项回归均通过（`/tmp/ddlNew-group-startup-regressions.log`）。完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-group-startup-build.log`），git diff --check通过。本轮未安装或操作真机、未发送消息、未打包发布或提交推送；实际手机的入群耗时仍需更新后复验。
+
+## 2026-11-12 单聊文字消息支持转为事项
+
+按用户要求去掉ChatRoomView消息菜单“转为事项”的群聊限制，单聊与群聊共享原有文字／正常状态／已发送／非阅后即焚等条件及账号校验。点击后仍清除输入框焦点、push事项编辑页，预填消息内容；来源名称使用聊天页当前标题，单聊包含最新联系人备注／昵称。
+
+TaskSource改用通用的conversationID／conversationName属性，持久化CodingKeys沿用旧groupID／groupName；新增可选isGroup，旧数据缺少该字段时仍解释为群聊。单聊来源使用单人图标，编辑／详情显示“来源单聊”；群聊保留“来源群聊”。群事项筛选同时判断会话类型和ID，避免单聊与群聊同ID混入。列表搜索及空态文案扩展为聊天，使用xcstrings简／繁／英翻译。未增加单聊顶部入口，用户从消息长按创建后可在事项Tab管理。
+
+事项模型／存储-Onone与-O检查通过，新增覆盖旧群来源解码、单聊落盘重读及相同ID的单／群隔离（`/tmp/ddlNew-direct-tasks-checks.log`）；事项56个文案键及全量三语1608键编译／运行时检查通过（`/tmp/ddlNew-direct-tasks-localization.log`）。完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-direct-tasks-build.log`），git diff --check通过；单聊长按入口尚未真机复验。本轮未操作真实聊天、未安装真机、未打包发布或提交推送。
+
+## 2026-11-12 新增事项 Tab、群消息转事项与独立持久化
+
+在此前删除首页的基础上，主栏现为消息／通讯录／事项／我的，默认仍进入消息。Features/Tasks 新增 TaskRecord、TaskRepository、PersonalTaskStore 与事项列表／编辑／详情；群聊顶部增加“群事项”，正常、已发送、非阅后即焚的文字消息长按增加“转为事项”。转换预填标题及说明并保留群 ID、群名、服务端消息 ID，保存前可编辑；标题最多80字符、说明／处理结果最多1000字符、负责人备注最多80字符，超限截断并Toast。消息预填分别取前80／1000字符。支持无消息来源的手动创建；从群事项新建自动关联该群。所有详情及编辑使用 push，隐藏底栏；离开聊天进入事项时保留原聊天 Store。
+
+列表提供待办／逾期／完成计数、全部／待办／已逾期／已完成筛选及标题／说明／负责人／群名搜索；优先显示逾期和更近的截止时间。详情支持编辑、删除确认、处理结果和待处理／进行中／待确认／已完成／已取消五种状态，可重新打开已完成事项，并保留最近200条状态变化。未填写的安排不渲染空分组。保存成功使用“保存成功”Toast，重复操作及超限提示可再次显示。界面不添加“仅自己可见”标签，也不显示虚构的上传成功／云端同步状态；列表信息按钮说明当前存储和恢复边界。
+
+本版不新增后端依赖：TaskRepository actor在 Application Support/PersonalTasks 原子保存带schema的JSON，以租户＋UID编码摘要分文件并启用iOS文件保护；重启／重新登录同账号可恢复，卸载后不提供云端恢复。PersonalTaskPersisting作为Actor存储接口，方便后续接入真实服务端仓库；当前负责人是文字备注，状态由当前用户手动记录，不代表其他成员接受或确认，不向群成员发送消息或通知。没有附件上传、定时提醒、跨设备同步、多人权限或消息定位跳转，这些仍需后续真实实现。
+
+ChatRuntime的认证激活／退出同步切换事项身份。Store用epoch拒绝旧账号结果及旧编辑页提交，用version拒绝过时编辑，写盘成功后才发布新列表；失败保留原状态，损坏或未知归档保留原文件且禁止覆盖为空列表。存储协议明确约束Actor，避免项目默认MainActor隔离把仓库初始化／协议调用推导到UI线程。聊天SDK及线上接口未改。
+
+新增文案沿用Localizable.xcstrings，简体／繁体／英语齐全；任务文案专项检查覆盖55个UI／状态／错误键。Tests/Tasks/run-checks.sh用-Onone及-O、与工程一致的默认MainActor隔离验证持久化、租户／账号隔离、逾期、状态记录、旧版本拒绝、失败写入、损坏保护和退出后的迟到加载；两种配置均通过。关联的读标记客户端／会话打开21+8项、读标记操作、运行期5项及退群8项回归通过；三语1607键和权限4键编译／运行时检查通过（`/tmp/ddlNew-personal-tasks-regressions-final.log`）。
+
+Tests/Tasks/UI使用独立匿名Bundle直接编译生产页面、存储、主题、Toast及语言资源；iPhone17 Pro Max／iOS26.5模拟器的创建、完成后重新打开、编辑、删除、进程重启恢复流程通过，截图确认空安排分组已移除（`/tmp/ddlNew-personal-tasks-ui-verified.xcresult`）。该宿主不包含真实登录、Tabbar或ChatRoom，不据此声称群消息入口及真机已验收。完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-personal-tasks-build-verified.log`）；最终资源补齐另经xcstringstool编译验证。保留此前首页删除变更，未安装真机、未打包发布、未提交推送。
+
+## 2026-11-12 移除首页及本地活动演示功能
+
+用户明确要求删除App首页。本次仅为删除核对此前禁止读取的首页及其依赖，删除Features/Home、Features/Activities、Features/Club中的首页／旧首页、活动浏览／报名／候补／签到／记录、俱乐部介绍和静态说明页面。主界面只保留消息、通讯录、我的，默认仍进入消息；MemberTab与旧TabType均去掉首页，RouterTool不再持有首页路径。我的页真实每日签到继续保留。
+
+ActivityNavigation和ActivityNavigationScope同时服务聊天、联系人和推送跳转，移至App/Routing，移除其中全部活动目的地注册，保留每栏独立NavigationPath及详情隐藏底栏逻辑。HomeTheme同时供消息、设置与我的页面使用，移至Common/Design并仅删除活动插画专用色值，不改变其他页面配色。网络诊断和关于页面共用的HomePressStyle移至Common/Components，保留按压反馈。ClubStore删除样例活动及报名／签到操作；ClubSnapshot不再保存participation，旧JSON多余字段可被解码器忽略，账号字段兼容检查通过；未删除真实数据库、聊天历史或用户数据，也未改SDK登录认证链路。
+
+移除107条仅供已删除页面使用的xcstrings文案，保留仍有引用和通用文案；更新导航／登录UI夹具路径，移除已废弃的活动离线测试及旧UI活动流程，补三栏断言。旧MemberJourneyTests包含更早演示账号交互，本次仅解析检查并清除已删页面断言，未将其当作现行真实登录验收。
+
+验证：资料发消息导航12项、每日签到模型Store33项与SDK14项、推送29+13+2项、三语1561键与权限4键编译／运行时检查均通过。临时编译生产ClubSnapshot验证含旧participation字段的快照可读且保留身份字段，MemberTab只含三个现行入口。首轮完整构建发现网络诊断／关于页仍依赖HomePressStyle，迁至公共组件后完整workspace generic iOS Debug无签名构建exit0／BUILD SUCCEEDED（`/tmp/ddlNew-remove-home-build-verified.log`）；git diff --check通过。未安装真机、未打包发布、未提交推送。
+
+
 ## 2026-11-12 Ad Hoc历史缺失根因：SDK未命中返回值的可空契约（真机复验通过）
 
 手机确认已装诊断Ad Hoc 1.3.0(2)。log collect读取旧设备日志需要root，未提升权限；移动日志工具未采到记录，改为devicectl重启并连接该App的标准输出，只保存ChatHistory行（`/tmp/ddlNew-release-history-live.log`）。在测试群只读进入／下拉，Release首屏远端rows=100、rawRemoteStatus=[1:100]，合并后mappedStatus=[0:99,1:1]、visible=1；下一页rows=96、远端全1，合并后全0、visible=0；最后才出现空页。此前仅看最终空页不能解释缺失，现确认大量正常历史已返回客户端。

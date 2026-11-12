@@ -16,22 +16,21 @@ struct TabbarView: View {
     @ObservedObject private var contacts = LoginSessionService.shared.contacts
     @ObservedObject private var contactBusiness = LoginSessionService.shared.contactBusiness
     @ObservedObject private var groups = LoginSessionService.shared.groups
-    @ObservedObject private var userSession = UserSessionStore.shared
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @ObservedObject private var session = LoginSessionService.shared
     @ObservedObject private var loginSecurity = LoginSecurityCoordinator.shared
+    @ObservedObject private var personalTasks = PersonalTaskStore.shared
     @StateObject private var community = ClubCommunity()
+    @State private var messagePullDown = MessagePullDownState()
 
     var body: some View {
         TabView(selection: $store.selectedTab) {
-            tab(.home) {
-                ClubHomeView(userName: userSession.currentUser?.nickname ?? "")
-            }
-            tab(.messages) { MessageView(store: conversations) }
+            tab(.messages) { MessageView(store: conversations, pullDown: messagePullDown) }
             tab(.contacts) {
                 ContactsView(store: contacts, businessStore: contactBusiness, groupsStore: groups,
                              fileHost: connection.current?.getFileHost)
             }
+            tab(.tasks) { PersonalTasksView().id(personalTasks.epoch) }
             tab(.profile) { MineView() }
         }
         .alert(L10n.tr("提示"), isPresented: Binding(
@@ -43,6 +42,8 @@ struct TabbarView: View {
             Text(verbatim: session.curfewMessage ?? "")
         }
         .modifier(MiniAppPresentation(feature: MiniAppsFeature.shared))
+        .modifier(MessagePullDownPresentation(state: messagePullDown))
+        .onChange(of: store.selectedTab) { _ in messagePullDown.reset() }
         .onAppear { updatePushBadge() }
         .onReceive(conversations.$totalUnreadCount) { _ in Task { @MainActor in updatePushBadge() } }
         .onReceive(conversations.$hasLoadedSnapshot) { _ in Task { @MainActor in updatePushBadge() } }
@@ -62,7 +63,7 @@ struct TabbarView: View {
             friends: contactBusiness.hasUnreadSnapshot ? contactBusiness.unreadCount : nil)
     }
 
-    /// 四栏首页统一使用系统导航工具栏，各自原导航栈和稳定ID路由保持不变。
+    /// 四个主页面使用独立导航栈，保留稳定ID路由与通知跳转。
     private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
         ActivityNavigationScope {
             content()

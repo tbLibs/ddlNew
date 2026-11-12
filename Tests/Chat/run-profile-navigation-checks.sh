@@ -48,7 +48,7 @@ SEND_METHOD
 }
 '''.replace('RETURNED',returned).replace('ENUM',enum_source).replace('SEND_METHOD',send_method).replace('METHOD',method))
 PY
-swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/Features/Home/Navigation/ActivityNavigation.swift" \
+swiftc "$localization_source" -parse-as-library "$TASK_ROOT/ddlNew/App/Routing/ActivityNavigation.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Components/ContactChatNavigationAction.swift" \
  "$TASK_ROOT/ddlNew/Features/Chat/Models/ChatRoute.swift" \
  "$TASK_ROOT/ddlNew/Features/Message/Models/ConversationRecord.swift" \

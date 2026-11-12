@@ -39,5 +39,8 @@ swiftc "$localization_source" -parse-as-library "$ROOT_DIR/ddlNew/Features/Messa
  "$ROOT_DIR/ddlNew/Features/Chat/Models/"*.swift \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatSettingsStore.swift" \
  "$ROOT_DIR/ddlNew/Features/Chat/Services/ChatRuntime.swift" \
+ "$ROOT_DIR/ddlNew/Features/Tasks/TaskRecord.swift" \
+ "$ROOT_DIR/ddlNew/Features/Tasks/TaskRepository.swift" \
+ "$ROOT_DIR/ddlNew/Features/Tasks/PersonalTaskStore.swift" \
  "$TMP_DIR/Dependencies.swift" "$TMP_DIR/Production.swift" "$ROOT_DIR/Tests/Chat/ReadCountClientChecks.swift" -o "$TMP_DIR/checks"
 "$TMP_DIR/checks"
