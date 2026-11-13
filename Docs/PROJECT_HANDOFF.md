@@ -1,5 +1,33 @@
 # ddlNew 项目交接文档
 
+## 2026-11-13 Vlog Tab、作品库与好友／群分享
+
+用户确认新增独立 Tab，支持拍照、录像、保存作品列表及分享。主栏顺序为消息／通讯录／Vlog／事项／我的，默认消息；App 最低 iOS16。VlogView 使用现有 MessagingTheme，照片／视频按时间倒序网格展示，视频标时长，详情 push 支持预览、播放、发送及删除确认。系统相机分拍照与录像入口，按需申请相机／麦克风权限；相册使用 PHPicker 单选照片或视频，确认后保存作品。没有公开信息流、点赞评论、新后端或云端作品同步；数据说明入口明确设备存储和卸载恢复边界。
+
+VlogRecord／VlogRepository／VlogStore 独立建模。Application Support/Vlog 下按租户＋UID的SHA256摘要建目录，UUID子目录保存媒体／缩略图，版本化JSON索引原子写入；成功落盘后才发布列表，插入失败只回滚自身目录，损坏或未知版本索引不覆盖。删除先提交索引再清理该作品目录，不影响邻项和已发送的聊天消息。认证激活／退出由ChatRuntime同步切换作品身份，epoch与取消检查拒绝旧账号加载／导入结果。
+
+相册临时URL在NSItemProvider完成回调返回前复制；相机控制器保持到媒体准备完成，防止原临时视频提前失效。文件复制和解码不在主线程做，照片方向归一化为JPEG（最长边4096）、网格缩略图640，详情照片最多解码2048；视频保留原MOV/MP4/M4V文件并生成640封面。列表不创建视频播放器；详情复用ChatPhotoBrowserPlayback，在退出、后台、来电或打开分享时停止，退出账号也由Runtime清理。处理中禁止重复导入，失败提示保留原作品。
+
+ContactsShareContent新增携带固定会话revision的media，复用现有收件人选择（好友／群、多选最多100、确认后逐目标发送、成功取消选择而失败保留）。ChatShareService.sendAttachment通过ChatMediaShareOperation在上传前后核对登录身份和发送权限，SDK上传及入队继续执行现有大小／角色／群权限限制；视频携带真实封面、时长和尺寸，上传不删除作品原件。提示沿用“分享已提交，发送状态请在对应聊天中查看”，不把上传或入队当作ACK。没有给真实联系人发送测试消息。
+
+验证：Tests/Vlog/run-checks.sh在-Onone和-O均通过复制／重读、租户隔离、删除范围、缺文件回滚、取消、损坏／未知schema保护、换号迟到加载及退出检查；run-share-checks.sh通过真实发送操作的权限顺序、视频字段、上传后身份变化、取消与原件保留检查（运输边界替身，不是线上收件回执）。原会话退出8项、读计数运行期5项、会话打开21项、读标记客户端8项及读标记操作回归通过。完整generic iOS签名Debug构建成功，日志/tmp/ddlNew-vlog-verified-build.log；三语各1657条编译／运行时检查与资源审计通过。
+
+匿名原生UI宿主直接编译生产作品页面／存储／媒体处理／播放器和MemberTab，使用生成的照片与H.264视频验证五栏、预览、分享入口、删除确认、重启恢复及空态，小屏iPhone通过（/tmp/ddlNew-vlog-ui2.xcresult）。宿主仅替换认证、来电状态和收件人运输，不能证明实际主App登录或线上发送。独立源码复核未发现关键问题。未真机验收拍摄、录像、相册授权、线上上传或收件人收到，未安装真机、发布、提交或推送。iPad完整同流程亦通过（/tmp/ddlNew-vlog-ipad2.xcresult）；首轮测试仅因iPad重复暴露嵌套同名Tab按钮而失败，改用实际可点击元素定位后通过，未为此改生产导航。
+
+## 2026-11-13 顶部下拉页文字翻译（iOS 18+，旧系统升级提示）
+
+用户确认使用苹果系统翻译、不新增后端，首版为源／目标语言选择、输入或粘贴、翻译与复制。新增Features/Translation/QuickTranslationView，iOS18+通过TranslationSession及translationTask执行真实翻译，支持自动检测、系统支持语言列表、明确选择源语言后的交换、清空原文和复制译文。首次使用可能由系统提示下载语言包。按用户最终决定，文字翻译仅支持 iOS18+，iOS16/17 显示“文字翻译需要 iOS 18 或更高版本，请升级系统后使用。”，保留关闭／上滑收起。App 最低部署版本仍为 iOS16。输入最多1000个Swift Character，超限截断并Toast。所有新增文案继续通过 xcstrings 提供简／繁／英三语。
+
+TranslationRequest 保存本次原文与语言，TranslationWorker 在 iOS18 availability 边界内使用系统 API。取消、关闭或进入后台使请求失效，迟到结果不更新页面。用户撤销了旧系统接入 ML Kit 的要求，相关依赖、服务、素材及文案已全部移除；Podfile、Podfile.lock 和工程依赖配置恢复原状，无新增后端或第三方翻译 SDK。
+
+按ui-ux-pro-max与impeccable沿用MessagingTheme森林绿、系统动态字体，采用语言选择／原文／主操作／译文的纵向工具布局，正文限制640pt阅读宽度。标题关闭按钮与底部收起按钮同时保留，上滑关闭位于独立底部区域，正文滚动与TextEditor不触发关闭。保留消息页顶部120pt下拉阈值。翻译中禁用输入／语言修改；关闭、退出及进入后台取消配置并作废request generation，迟到结果不更新；修改原文或语言清除旧译文。页面收起后当前视图生命周期内保留文字，无持久化翻译历史。语言列表只在首次展开加载。
+
+视觉检查发现旧覆盖层shadow投射到整页文字以及键盘底部避让重复计算，已移除多余阴影并按内外GeometryReader尺寸差只补容器安全区。非活跃状态不再立即关闭页面，避免系统语言包提示打断流程；进入后台仍重置。未改聊天发送、SDK或后端。
+
+验证：完整generic iOS签名Debug构建成功，三语资源编译／运行时检查通过。匿名生产组件UI宿主375pt小屏的展开／关闭／列表滚动／左滑、文字输入和关闭键盘通过（/tmp/ddlNew-translation-small-final.xcresult）；键盘避让修复后重新验证输入和关闭，通过/tmp/ddlNew-translation-keyboard-fixed.xcresult。最大Dynamic Type展开／收起通过；iPad旧测试的tabBars查询不适用于顶部Tab，关闭状态已通过而Tab查询失败，已改为通用buttons查询，未宣称iPad整套测试通过。截图位于.impeccable/review，独立复核结论为ship，仅覆盖原生UI及所检查源码。未执行VoiceOver／横屏完整矩阵，未真机验证语言包下载、真实译文、复制与失败重试；模拟器UI测试不等于翻译服务端到端验收。未安装真机、打包发布或提交推送。
+
+最终 Apple-only 版本验证：`/tmp/ddlNew-apple-only-build.log` 完整 generic iOS 签名 Debug 构建成功，产物 MinimumOSVersion=16.0；`/tmp/ddlNew-apple-only-ui.xcresult` 三项 UI 回归全部通过（下拉阈值／重复收起、列表滚动／左滑、输入／关闭键盘）。三语各1631条编译与运行时检查、资源审计通过。本机没有 iOS16/17 runtime，旧系统升级提示的真机显示未验收；真实语言下载／译文仍需真机验证。
+
 ## 2026-11-12 消息页下拉展开顶部空白页
 
 用户明确要求先实现空白页面及手势：在消息列表顶部继续下拉，页面随手势从顶部露出；超过120pt后松手展开整页，不足则回收。展开后上滑80pt或较快上滑收回，也可点底部向上箭头关闭。页面覆盖导航栏和Tab，正文预留为空，未添加网络请求或恢复下拉刷新。关闭后保留原列表位置；切换Tab、离开消息页或App进入非活跃状态时重置。

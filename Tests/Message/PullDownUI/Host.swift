@@ -20,8 +20,10 @@ import SwiftUI
         }.modifier(MessagePullDownPresentation(state: presentation))
     } }
 }
-enum MessagingTheme {
-    static let surface = Color(uiColor: .systemBackground)
-    static let secondaryText = Color.secondary
-}
 enum L10n { static func tr(_ key: String) -> String { key } }
+extension Color {
+    init(clubHex: UInt) { self.init(red: Double((clubHex >> 16) & 255)/255, green: Double((clubHex >> 8) & 255)/255, blue: Double(clubHex & 255)/255) }
+}
+extension View {
+    func messagingFeedbackToast(_ value: String?, trigger: Int) -> some View { self }
+}

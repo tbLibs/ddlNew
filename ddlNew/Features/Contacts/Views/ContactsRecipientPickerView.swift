@@ -106,6 +106,8 @@ struct ContactsRecipientPickerView: View {
                 case .contact(let contact, let sourceGroupID):
                     guard await ContactsBusinessStore.shared.checkGroupAccess(sourceGroupID) else { throw ContactBusinessError.invalidInput(L10n.tr("当前群不允许分享成员名片")) }
                     try await service.sendContactCard(contact: contact, to: route)
+                case .media(let attachment, let revision):
+                    try await service.sendAttachment(attachment, to: route, expectedRevision: revision)
                 case .image(let data): try await service.sendImage(data: data, to: route)
                 }
                 submitted.insert(key(route))

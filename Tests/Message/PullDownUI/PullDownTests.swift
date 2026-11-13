@@ -17,7 +17,7 @@ final class PullDownTests: XCTestCase {
         for index in 0..<2 {
             drag(app, from: .init(dx: 0.5, dy: 0.25), to: .init(dx: 0.5, dy: 0.65))
             wait(close, visible: true)
-            XCTAssertFalse(app.tabBars.buttons["我的"].isHittable)
+            XCTAssertFalse(app.buttons["我的"].isHittable)
             XCTAssertLessThanOrEqual(close.frame.height, 50)
             if index == 0 {
                 let attachment = XCTAttachment(screenshot: app.screenshot())
@@ -25,12 +25,26 @@ final class PullDownTests: XCTestCase {
                 attachment.lifetime = .keepAlways
                 add(attachment)
             }
-            drag(app, from: .init(dx: 0.5, dy: 0.75), to: .init(dx: 0.5, dy: 0.25))
+            let handle = app.buttons["translation.collapse"].coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5))
+            handle.press(forDuration: 0.05, thenDragTo: handle.withOffset(.init(dx: 0, dy: -120)))
             wait(close, visible: false)
-            XCTAssertTrue(app.tabBars.buttons["我的"].isHittable)
+            XCTAssertTrue(app.buttons["我的"].isHittable)
         }
         drag(app, from: .init(dx: 0.5, dy: 0.25), to: .init(dx: 0.5, dy: 0.65))
         wait(close, visible: true); close.tap(); wait(close, visible: false)
+    }
+    func testTranslationEditingAndClose() {
+        let app = XCUIApplication(); app.launch()
+        drag(app, from: .init(dx: 0.5, dy: 0.25), to: .init(dx: 0.5, dy: 0.65))
+        let input = app.textViews["translation.input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap(); input.typeText("Hello, how are you?")
+        XCTAssertTrue(app.buttons["translation.submit"].isEnabled)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Translation keyboard"; attachment.lifetime = .keepAlways; add(attachment)
+        app.buttons["messagePullDown.close"].tap()
+        wait(app.buttons["messagePullDown.close"], visible: false)
+        XCTAssertFalse(app.keyboards.firstMatch.exists)
     }
     func testScrollingAwayFromTopDoesNotOpenAndRowSwipeRemains() {
         let app = XCUIApplication(); app.launch()

@@ -60,6 +60,7 @@ struct MessagePullDownPresentation: ViewModifier {
         content
             .accessibilityHidden(state.isOpen)
             .overlay {
+                GeometryReader { outer in
                 GeometryReader { geometry in
                     ZStack {
                         Rectangle().fill(MessagingTheme.surface)
@@ -69,11 +70,11 @@ struct MessagePullDownPresentation: ViewModifier {
                                 .onEnded { state.endDragUp(translation: $0.translation.height,
                                                            predicted: $0.predictedEndTranslation.height) })
                             .accessibilityHidden(true)
-                        MessagePullDownBlankPage(onClose: state.close)
-                            .padding(.bottom, geometry.safeAreaInsets.bottom)
+                        QuickTranslationView(active: state.isOpen, onClose: state.close)
+                            .padding(.top, outer.safeAreaInsets.top)
+                            .padding(.bottom, max(0, geometry.size.height - outer.size.height - outer.safeAreaInsets.top))
                     }
                         .frame(width: geometry.size.width, height: geometry.size.height)
-                        .shadow(color: .black.opacity(0.1), radius: 12, y: 5)
                         .offset(y: state.reveal - geometry.size.height)
                         .accessibilityElement(children: .contain)
                         .accessibilityHidden(!state.isOpen)
@@ -81,33 +82,12 @@ struct MessagePullDownPresentation: ViewModifier {
                         .onChange(of: geometry.size.height) { state.resize(to: $0) }
                 }
                 .clipped()
-                .ignoresSafeArea()
+                .ignoresSafeArea(.container)
                 .allowsHitTesting(state.isOpen)
+                }
             }
             .onAppear { state.reduceMotion = reduceMotion }
             .onChange(of: reduceMotion) { state.reduceMotion = $0 }
-            .onChange(of: scenePhase) { if $0 != .active { state.reset() } }
-    }
-}
-
-/// 内容暂留空，后续功能接在此页；底部提供与上滑等价的可访问关闭入口。
-private struct MessagePullDownBlankPage: View {
-    let onClose: () -> Void
-    var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            Button(action: onClose) {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(MessagingTheme.secondaryText)
-                    .frame(width: 64, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L10n.tr("收起顶部页面"))
-            .accessibilityIdentifier("messagePullDown.close")
-            .accessibilityAction(.escape, onClose)
-            .padding(.bottom, 8)
-        }
+            .onChange(of: scenePhase) { if $0 == .background { state.reset() } }
     }
 }

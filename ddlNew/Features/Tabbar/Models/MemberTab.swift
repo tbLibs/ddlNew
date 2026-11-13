@@ -9,9 +9,9 @@ import Foundation
 
 enum MemberTab: String, CaseIterable, Identifiable {
     var displayName: String { L10n.lookup(rawValue) }
-    case messages = "消息", contacts = "通讯录", tasks = "事项", profile = "我的"
+    case messages = "消息", contacts = "通讯录", vlog = "Vlog", tasks = "事项", profile = "我的"
     var id: Self { self }
     var icon: String {
-        switch self { case .messages: return "bubble.left.and.bubble.right"; case .contacts: return "person.2"; case .tasks: return "checklist"; case .profile: return "person.crop.circle" }
+        switch self { case .messages: return "bubble.left.and.bubble.right"; case .contacts: return "person.2"; case .vlog: return "camera.aperture"; case .tasks: return "checklist"; case .profile: return "person.crop.circle" }
     }
 }

@@ -28,6 +28,7 @@ import Combine
     /// 认证轮次由根会话所有者提供，同UID重登也产生新身份。
     func activate(userUID: String, tenantID: String, sessionID: UUID) {
         close(); self.userUID = userUID; self.tenantID = tenantID; self.sessionID = sessionID; revision = UUID()
+        VlogStore.shared.activate(tenantID: tenantID, userUID: userUID)
         PersonalTaskStore.shared.activate(tenantID: tenantID, userUID: userUID)
         nicknameObserver.activate(userUID: userUID, tenantID: tenantID, sessionID: sessionID)
         readCounts.activate(userUID: userUID, tenantID: tenantID, sessionID: sessionID)
@@ -226,6 +227,7 @@ import Combine
 
     /// 根退出、切俱乐部和取消AUTH交接都应同步调用。
     func close() {
+        VlogStore.shared.close()
         PersonalTaskStore.shared.close()
         nicknameObserver.close(); unreadObserver.close(); readCounts.deactivate()
         closedConversationContext = nil; conversationCleanupWarning = nil

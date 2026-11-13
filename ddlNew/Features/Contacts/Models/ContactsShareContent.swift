@@ -11,4 +11,5 @@ import Foundation
 nonisolated enum ContactsShareContent: Sendable {
     case contact(ContactRecord, sourceGroupID: String?)
     case image(Data)
+    case media(ChatAttachment, sessionRevision: UUID)
 }

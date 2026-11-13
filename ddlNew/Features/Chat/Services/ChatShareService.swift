@@ -28,6 +28,26 @@ import NoaChatCore
         try client.send(record, context: context)
     }
 
+    /// Vlog owns its original files; this operation uploads without deleting them.
+    func sendAttachment(_ attachment: ChatAttachment, to route: ChatRoute, expectedRevision: UUID) async throws {
+        guard ChatRuntime.shared.revision == expectedRevision,
+              let context = ChatRuntime.shared.context(for: route) else { throw ChatClientError.sessionExpired }
+        let client = SDKChatClient(validSession: { ChatRuntime.shared.isCurrent($0) })
+        client.observe(context: context, onEvent: { _ in }); defer { client.stop() }
+        let media = SDKChatMediaClient()
+        ChatRuntime.shared.registerCleanup(owner: media, conversationID: route.id) { [weak media] in media?.cancel() }
+        defer { media.cancel() }
+        try await ChatMediaShareOperation.send(attachment, context: context,
+            validate: {
+                guard ChatRuntime.shared.revision == expectedRevision, ChatRuntime.shared.isCurrent(context) else { throw ChatClientError.sessionExpired }
+            }, authorize: {
+                try await client.refreshPermissions(context: context)
+                let permission = try client.permissions(context: context)
+                guard permission.canSend, permission.isActive else { throw ChatClientError.permission(permission.reason) }
+            }, upload: { try await media.upload($0, context: context, progress: { _ in }) },
+            enqueue: { try client.send($0, context: context) })
+    }
+
     /// 真实名片推荐按旧SDK字段与单/群接收者合同提交，不写假本地消息。
     func sendContactCard(contact: ContactRecord, to route: ChatRoute) async throws {
         guard !contact.isDeleted, !contact.id.isEmpty, let context = ChatRuntime.shared.context(for: route) else { throw ChatClientError.sessionExpired }

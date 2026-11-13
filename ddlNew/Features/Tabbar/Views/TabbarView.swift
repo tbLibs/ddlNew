@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// 主界面唯一的四栏容器，每个 Tab 保留独立的导航栈。
+/// 主界面唯一的五栏容器，每个 Tab 保留独立的导航栈。
 struct TabbarView: View {
     @Environment(\.locale) private var localizationLocale
     @EnvironmentObject private var store: ClubStore
@@ -19,6 +19,7 @@ struct TabbarView: View {
     @ObservedObject private var connection = OSSConnectionBootstrap.shared
     @ObservedObject private var session = LoginSessionService.shared
     @ObservedObject private var loginSecurity = LoginSecurityCoordinator.shared
+    @ObservedObject private var vlog = VlogStore.shared
     @ObservedObject private var personalTasks = PersonalTaskStore.shared
     @StateObject private var community = ClubCommunity()
     @State private var messagePullDown = MessagePullDownState()
@@ -30,6 +31,7 @@ struct TabbarView: View {
                 ContactsView(store: contacts, businessStore: contactBusiness, groupsStore: groups,
                              fileHost: connection.current?.getFileHost)
             }
+            tab(.vlog) { VlogView().id(vlog.epoch) }
             tab(.tasks) { PersonalTasksView().id(personalTasks.epoch) }
             tab(.profile) { MineView() }
         }
@@ -63,7 +65,7 @@ struct TabbarView: View {
             friends: contactBusiness.hasUnreadSnapshot ? contactBusiness.unreadCount : nil)
     }
 
-    /// 四个主页面使用独立导航栈，保留稳定ID路由与通知跳转。
+    /// 五个主页面使用独立导航栈，保留稳定ID路由与通知跳转。
     private func tab<Content: View>(_ tab: MemberTab, @ViewBuilder content: () -> Content) -> some View {
         ActivityNavigationScope {
             content()
