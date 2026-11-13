@@ -67,7 +67,7 @@ struct VlogView: View {
             }.padding(20).frame(maxWidth: 840).frame(maxWidth: .infinity)
         }
         .background(MessagingTheme.background)
-        .navigationTitle("Vlog").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(L10n.tr("影记")).navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button { information = true } label: { Image(systemName: "info.circle").frame(width: 44, height: 44) }

@@ -8,7 +8,7 @@
 import Foundation
 
 enum MemberTab: String, CaseIterable, Identifiable {
-    var displayName: String { L10n.lookup(rawValue) }
+    var displayName: String { self == .vlog ? L10n.tr("影记") : L10n.lookup(rawValue) }
     case messages = "消息", contacts = "通讯录", vlog = "Vlog", tasks = "事项", profile = "我的"
     var id: Self { self }
     var icon: String {

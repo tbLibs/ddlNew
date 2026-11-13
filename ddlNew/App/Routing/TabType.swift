@@ -18,7 +18,7 @@ enum TabType: Hashable {
         case .contacts:
             L10n.tr("通讯录")
         case .vlog:
-            L10n.tr("Vlog")
+            L10n.tr("影记")
         case .tasks:
             L10n.tr("事项")
         case .mine:

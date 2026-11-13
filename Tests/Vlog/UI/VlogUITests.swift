@@ -9,10 +9,10 @@ final class VlogUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--reset-vlog", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
-        XCTAssertTrue(app.buttons["Vlog"].firstMatch.waitForExistence(timeout: 10))
-        for name in ["消息", "通讯录", "Vlog", "事项", "我的"] { XCTAssertTrue(app.buttons[name].firstMatch.exists) }
+        XCTAssertTrue(app.buttons["影记"].firstMatch.waitForExistence(timeout: 10))
+        for name in ["消息", "通讯录", "影记", "事项", "我的"] { XCTAssertTrue(app.buttons[name].firstMatch.exists) }
         XCTAssertTrue(tab(app, "消息").isSelected)
-        tab(app, "Vlog").tap()
+        tab(app, "影记").tap()
         XCTAssertTrue(app.buttons["照片作品"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.buttons["视频作品"].waitForExistence(timeout: 20))
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = "Vlog library"; attachment.lifetime = .keepAlways; add(attachment)
@@ -28,7 +28,7 @@ final class VlogUITests: XCTestCase {
         XCTAssertFalse(app.buttons["照片作品"].exists)
         app.terminate()
         app.launchArguments = ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
-        app.launch(); tab(app, "Vlog").tap()
+        app.launch(); tab(app, "影记").tap()
         XCTAssertTrue(app.buttons["视频作品"].waitForExistence(timeout: 10))
         app.buttons["视频作品"].tap()
         XCTAssertTrue(app.buttons["播放视频"].waitForExistence(timeout: 5))

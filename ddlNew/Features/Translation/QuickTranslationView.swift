@@ -104,6 +104,7 @@ private struct SystemTranslationView: View {
                             if busy { ProgressView().tint(MessagingTheme.onPrimaryAction) }
                             Text(L10n.tr(busy ? "正在翻译" : "翻译文字")).font(.headline)
                         }.frame(maxWidth: .infinity, minHeight: 52)
+                            .contentShape(Rectangle())
                     }.buttonStyle(.plain)
                         .foregroundStyle(MessagingTheme.onPrimaryAction)
                         .background(MessagingTheme.primaryAction, in: RoundedRectangle(cornerRadius: 14))

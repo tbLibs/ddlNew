@@ -39181,30 +39181,6 @@
         }
       }
     },
-    "Vlog": {
-      "extractionState": "manual",
-      "generatesSymbol": false,
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vlog"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vlog"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vlog"
-          }
-        }
-      }
-    },
     "记录这一刻": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -39801,6 +39777,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Play video"
+          }
+        }
+      }
+    },
+    "影记": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影记"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影記"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moments"
           }
         }
       }
