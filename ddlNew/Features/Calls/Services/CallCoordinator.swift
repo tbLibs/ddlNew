@@ -133,8 +133,10 @@ import Combine
                 guard ids.isDisjoint(with: connectedIDs) else { throw CallError.unavailable(L10n.tr("所选成员已在当前通话中")) }
                 let response = try await client.perform(.invite, descriptor: room, context: request.context, ids: ids.sorted())
                 guard current(stamp, request.context), descriptor?.id == room.id else { return }
-                if !response.participants.isEmpty { mergeMembers(response.participants) }
-                else { mergeMembers(fresh.filter { ids.contains($0.id) }) }
+                // 邀请回执／成员信令可能只有 UID。先保留选人时取得的群成员资料，
+                // 再合并服务端状态，避免非好友成员的头像退回空值。
+                mergeMembers(fresh.filter { ids.contains($0.id) })
+                mergeMembers(response.participants)
                 selection = nil
             } else {
                 prepareAudio(); try await permission(request.kind)

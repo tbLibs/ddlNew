@@ -39,17 +39,20 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
  var allowed = true
  var failing: CallAction?
  var createID = "r1"
+ var memberProfiles: [CallParticipant]?
+ var inviteParticipants: [CallParticipant]?
  func observe(userUID: String, onSignal: @escaping @MainActor (CallSignal) -> Void) { handler = onSignal }
  func stopObserving() { handler = nil }
  func canOffer(context: ChatContext) -> Bool { allowed }
  func validateTarget(context: ChatContext) async throws { if !allowed { throw CallError.unavailable("禁止") } }
- func members(context: ChatContext) async throws -> [CallParticipant] { [participant(id: "b", localID: "a"), participant(id: "c", localID: "a")] }
+ func members(context: ChatContext) async throws -> [CallParticipant] { memberProfiles ?? [participant(id: "b", localID: "a"), participant(id: "c", localID: "a")] }
  func participant(id: String, localID: String) -> CallParticipant { CallParticipant(id: id, name: id, avatar: "", isLocal: id == localID, isConnected: false, cameraEnabled: false, microphoneEnabled: true) }
  func perform(_ action: CallAction, descriptor: CallRoomDescriptor, context: ChatContext, ids: [String]) async throws -> CallRoomDescriptor {
   actions.append((action, descriptor, ids))
   if action == failing { throw CallError.unavailable("离线故障") }
   if action == .create && suspendCreate { return try await withCheckedThrowingContinuation { createWaiter = $0 } }
   var room = descriptor
+  if action == .invite, let inviteParticipants { room.participants = inviteParticipants }
   if action == .create { room.id = createID; room.token = "offline-token"; room.endpoint = "wss://invalid.test"; room.roomName = "room" }
   if action == .confirm || action == .token { room.token = "offline-token"; room.endpoint = "wss://invalid.test"; room.roomName = "room" }
   return room
@@ -187,6 +190,30 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
   check(permissionClient.actions.isEmpty && permissionCoordinator.session == nil, "cancel during permission does not send invite")
   // 群选人创建失败原位保留，重试只在受理后进入通话。
   let groupContext = ChatContext(userUID: "a", tenantID: "t", sessionID: auth, route: ChatRoute(id: "g", kind: .group, title: "G", avatarURL: ""))
+  // 两供应商均覆盖：回执只有旧成员、仅 UID，以及已有服务端头像。
+  for provider in [CallProvider.liveKit, .zego] {
+   for responseMode in 0..<3 {
+    let avatarClient = FakeClient()
+    var third = avatarClient.participant(id: "c", localID: "a")
+    third.name = "Third"; third.avatar = "avatars/selected.png"
+    avatarClient.memberProfiles = [avatarClient.participant(id: "b", localID: "a"), third]
+    let avatarConfig = CallConfigurationStore(makeConfiguration: { _ in CallConfiguration(tenantID: "t", enabled: true, provider: provider, zegoAppID: 1) })
+    avatarConfig.configure(tenantID: "t")
+    let avatarMedia = FakeMedia()
+    let avatarCoordinator = CallCoordinator(client: avatarClient, configuration: avatarConfig, resources: CallSystemResources(), permission: { _ in }, prepareAudio: {}, mediaFactory: { _ in avatarMedia })
+    avatarCoordinator.activate(userUID: "a", tenantID: "t", sessionID: auth)
+    await avatarCoordinator.start(context: groupContext, kind: .audio)
+    await avatarCoordinator.submitSelection(["b"], requestID: avatarCoordinator.selection!.id)
+    avatarMedia.onConnected?()
+    var returned = avatarClient.participant(id: responseMode == 0 ? "b" : "c", localID: "a")
+    if responseMode == 2 { returned.avatar = "avatars/server.png" }
+    avatarClient.inviteParticipants = [returned]
+    await avatarCoordinator.inviteMembers()
+    await avatarCoordinator.submitSelection(["c"], requestID: avatarCoordinator.selection!.id)
+    check(avatarCoordinator.session?.participants.first(where: { $0.id == "c" })?.avatar == (responseMode == 2 ? "avatars/server.png" : third.avatar), "audio invite retains avatar for provider and sparse response variants")
+    avatarCoordinator.close()
+   }
+  }
   await coordinator.start(context: groupContext, kind: .video)
   let selectionID = coordinator.selection!.id
   await coordinator.submitSelection([], requestID: selectionID)
@@ -205,7 +232,18 @@ struct ChatContext: Equatable, Sendable { var userUID: String; var tenantID: Str
   await coordinator.submitSelection(["c"], requestID: additional.id)
   await drain()
   check(coordinator.session?.phase == .connected && coordinator.selection?.id == additional.id, "invite failure preserves active room and picker")
-  client.failing = nil; coordinator.cancelSelection()
+  client.failing = nil
+  var invited = client.participant(id: "c", localID: "a")
+  invited.name = "Third member"; invited.avatar = "avatars/third.png"
+  client.memberProfiles = [client.participant(id: "b", localID: "a"), invited]
+  client.inviteParticipants = [client.participant(id: "c", localID: "a")]
+  await coordinator.submitSelection(["c"], requestID: additional.id)
+  check(coordinator.session?.participants.first(where: { $0.id == "c" })?.avatar == invited.avatar, "additional invite retains selected group member avatar when response only carries UID")
+  check(coordinator.session?.participants.first(where: { $0.id == "c" })?.name == invited.name, "additional invite retains selected group member name")
+  media.onParticipants?([client.participant(id: "c", localID: "a")])
+  check(coordinator.session?.participants.first(where: { $0.id == "c" })?.avatar == invited.avatar, "later media callback retains invited avatar")
+  client.memberProfiles = nil; client.inviteParticipants = nil
+  coordinator.cancelSelection()
   let groupRoom = CallRoomDescriptor(provider: .liveKit, id: "group-room", groupID: "g", kind: .video, operationIDs: ["b"], reason: "timeout")
   client.handler?(.members(groupRoom))
   check(coordinator.session?.phase == .connected && coordinator.session?.participants.first(where: { $0.id == "b" })?.stateText == "未应答", "one group timeout does not end other members")
